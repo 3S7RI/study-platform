@@ -7,7 +7,6 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s; }
         
-        /* الألوان الافتراضية (الوضع الفاتح) */
         :root {
             --bg-color: #f4f7f6;
             --text-color: #333;
@@ -21,7 +20,6 @@
             --btn-border: rgba(255, 255, 255, 0.2);
         }
 
-        /* الألوان عند تفعيل الوضع الداكن */
         body.dark-mode {
             --bg-color: #121212;
             --text-color: #e0e0e0;
@@ -37,7 +35,6 @@
 
         body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
         
-        /* شريط التنقل العلوي بتقسيم Grid دقيق */
         .navbar { 
             background: var(--navbar-bg); 
             color: white; 
@@ -49,7 +46,6 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
         }
         
-        /* 1. اليمين: زر البروفايل */
         .profile-nav-btn { 
             display: flex; 
             align-items: center; 
@@ -64,7 +60,6 @@
         .profile-nav-btn img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0; }
         .profile-nav-btn span { color: white; font-weight: bold; font-size: 0.85rem; white-space: nowrap; }
 
-        /* 2. المنتصف: اسم المنصة */
         .navbar-title { 
             font-size: 1.1rem; 
             font-weight: bold; 
@@ -74,7 +69,6 @@
             text-align: center;
         }
 
-        /* 3. اليسار: زر الوضع الليلي */
         .theme-toggle-btn { 
             background: var(--btn-bg); 
             border: 1px solid var(--btn-border); 
@@ -106,20 +100,21 @@
 <body id="pageBody">
 
     <header class="navbar">
-        <!-- 1. اليمين: زر البروفايل -->
+        <!-- اليمين: زر البروفايل -->
         <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
             <img id="navProfileImg" src="https://via.placeholder.com/38" alt="صورة البروفايل">
             <span id="navStudentName">حسابي</span>
         </a>
 
-        <!-- 2. المنتصف: اسم المنصة -->
+        <!-- المنتصف: اسم المنصة -->
         <div class="navbar-title">📚 رحلة دراسية</div>
 
-        <!-- 3. اليسار: زر تبديل الوضع -->
+        <!-- اليسار: زر تبديل الوضع -->
         <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
     </header>
 
     <section class="welcome-section">
+        <!-- هنا تم ربط النص بالمعرف الصحيح عشان ياخد الاسم الأول بس -->
         <h1 id="studentWelcome">أهلاً بك يا بطل في منصتك!</h1>
         <p>استعد للتفوق.. اختر القسم اللي حابب تبدأ فيه دلوقتي</p>
     </section>
@@ -142,45 +137,51 @@
         </div>
     </main>
 
-    <script>
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        if (isLoggedIn !== 'true') {
-            alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'index.html';
-        }
-
-        const userData = JSON.parse(localStorage.getItem('studentUser'));
-        if (userData && userData.fullName) {
-            let firstName = userData.fullName.split(' ')[0]; // استخراج الاسم الأول فقط
-            
-            // وضع الاسم الأول في الترحيب وفي زر الناف بار
-            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-            document.getElementById('navStudentName').innerText = firstName;
-
-            if (userData.profileImg) {
-                document.getElementById('navProfileImg').src = userData.profileImg;
+    <main>
+        <!-- كود الجافاسكريبت لتحديث الاسم الأول في الترحيب والناف بار والمحافظة على الوضع الداكن -->
+        <script>
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (isLoggedIn !== 'true') {
+                alert('يجب تسجيل الدخول أولاً!');
+                window.location.href = 'index.html';
             }
-        }
 
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const pageBody = document.getElementById('pageBody');
+            const userData = JSON.parse(localStorage.getItem('studentUser'));
+            if (userData && userData.fullName) {
+                // استخراج الاسم الأول فقط (أول كلمة قبل المسافة)
+                let firstName = userData.fullName.trim().split(' ')[0];
+                
+                // تحديث جملة الترحيب الكبيرة بالاسم الأول فقط
+                document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                
+                // تحديث اسم المستخدم جنب صورة البروفايل
+                document.getElementById('navStudentName').innerText = firstName;
 
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') {
-            pageBody.classList.add('dark-mode');
-            themeToggleBtn.textContent = '☀️';
-        }
+                if (userData.profileImg) {
+                    document.getElementById('navProfileImg').src = userData.profileImg;
+                }
+            }
 
-        themeToggleBtn.addEventListener('click', function() {
-            pageBody.classList.toggle('dark-mode');
-            if (pageBody.classList.contains('dark-mode')) {
-                localStorage.setItem('theme', 'dark');
+            const themeToggleBtn = document.getElementById('themeToggleBtn');
+            const pageBody = document.getElementById('pageBody');
+
+            const currentTheme = localStorage.getItem('theme');
+            if (currentTheme === 'dark') {
+                pageBody.classList.add('dark-mode');
                 themeToggleBtn.textContent = '☀️';
-            } else {
-                localStorage.setItem('theme', 'light');
-                themeToggleBtn.textContent = '🌙';
             }
-        });
-    </script>
+
+            themeToggleBtn.addEventListener('click', function() {
+                pageBody.classList.toggle('dark-mode');
+                if (pageBody.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'dark');
+                    themeToggleBtn.textContent = '☀️';
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    themeToggleBtn.textContent = '🌙';
+                }
+            });
+        </script>
+    </main>
 </body>
 </html>
