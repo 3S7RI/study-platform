@@ -12,6 +12,8 @@
             --text-color: #333333;
             --border-color: #eee;
             --stat-num-color: #1e3c72;
+            --primary-color: #6366f1;
+            --input-bg: #ffffff;
         }
         [data-theme="dark"] {
             --bg-color: #121212;
@@ -19,7 +21,8 @@
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
             --border-color: #333333;
-            --stat-num-color: #ffffff; /* إصلاح اختفاء الأرقام في الوضع الداكن */
+            --stat-num-color: #ffffff;
+            --input-bg: #0f172a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
@@ -84,8 +87,6 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-right: 5px solid #2a5298; }
         .stat-card h3 { color: #888; font-size: 0.85rem; margin-bottom: 5px; }
-        
-        /* ضبط لون أرقام الإحصائيات ليصبح واضحاً دائماً */
         .stat-card p { color: var(--stat-num-color); font-size: 1.5rem; font-weight: bold; }
 
         .section-box { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 15px; margin-bottom: 20px; overflow-x: auto; }
@@ -102,9 +103,9 @@
         table { width: 100%; border-collapse: collapse; text-align: right; min-width: 700px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; white-space: nowrap; }
         th { background: rgba(0,0,0,0.02); color: var(--text-color); font-weight: bold; }
-        tr:hover { background: rgba(0,0,0,0.01); }
+        tr.clickable-row { cursor: pointer; transition: background 0.2s; }
+        tr.clickable-row:hover { background: rgba(99, 102, 241, 0.08); }
 
-        /* شارة التوثيق الزرقاء الاحترافية */
         .verified-badge {
             display: inline-flex;
             align-items: center;
@@ -116,11 +117,38 @@
             margin-right: 4px;
             vertical-align: middle;
         }
-        .verified-badge svg {
-            width: 10px;
-            height: 10px;
-            fill: white;
-        }
+        .verified-badge svg { width: 10px; height: 10px; fill: white; }
+
+        /* Modal النافذة العائمة للتحكم الشامل */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 460px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.9); transition: transform 0.3s ease; position: relative; color: var(--text-color); }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        
+        .modal-header { padding: 15px 20px; background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 1rem; color: var(--text-color); }
+        .close-modal { background: none; border: none; font-size: 1.2rem; color: #888; cursor: pointer; line-height: 1; }
+        .close-modal:hover { color: #ef4444; }
+
+        .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        .modal-avatar-wrapper { position: relative; width: 80px; height: 80px; margin: 0 auto 12px; }
+        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); }
+        
+        .modal-info-list { margin: 15px 0; text-align: right; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color); }
+        .modal-info-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+        .modal-info-item:last-child { border-bottom: none; }
+        .modal-info-item label { color: #888; }
+        .modal-info-item span { font-weight: 600; }
+
+        .modal-field { text-align: right; margin-bottom: 10px; }
+        .modal-field label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 3px; }
+        .modal-field input, .modal-field select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.85rem; outline: none; }
+
+        .modal-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .modal-actions-grid button { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.82rem; cursor: pointer; }
+        .btn-full { grid-column: span 2; }
+        .permission-warning { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 8px; font-size: 0.82rem; margin-top: 10px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -130,9 +158,7 @@
             <a href="admin-profile.html" class="admin-profile-btn" title="بروفايل الأدمن">
                 <img src="" alt="صورة الأدمن" class="header-avatar" id="headerAdminAvatar" onerror="this.src='https://via.placeholder.com/40?text=Admin'">
             </a>
-            
             <h1 id="headerTitle">⚡ لوحة التحكم المركزية</h1>
-            
             <button class="btn-theme" id="themeToggleBtn">🌙 داكن</button>
         </header>
 
@@ -177,16 +203,30 @@
         </div>
     </div>
 
+    <!-- النافذة العائمة للتحكم والتعديل الشامل -->
+    <div class="modal-overlay" id="userControlModal" onclick="closeControlModalOnOuterClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalControlTitle">إدارة الحساب ⚙️</h3>
+                <button class="close-modal" onclick="closeControlModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalControlBody">
+                <!-- المكونات الديناميكية ستظهر هنا -->
+            </div>
+        </div>
+    </div>
+
     <script>
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
+        let globalRecordData = {};
+
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
         }
 
-        // إعداد شارة التوثيق الزرقاء بصيغة SVG
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
                 <svg viewBox="0 0 24 24">
@@ -195,7 +235,6 @@
             </span>
         `;
 
-        // إدارة الثيم (فاتح / داكن)
         const themeBtn = document.getElementById('themeToggleBtn');
         const currentTheme = localStorage.getItem('adminTheme') || 'light';
         if (currentTheme === 'dark') {
@@ -226,37 +265,25 @@
 
         async function initDashboard() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: cloudHeaders
-                });
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
                 if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
                 let result = await response.json();
-                let rec = result.record || {};
+                globalRecordData = result.record || {};
 
                 let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
                 let isMasterUser = (currentSessionRole === 'master');
 
-                let rawAdmins = rec.admins || [];
-                let adminsList = [];
-                if (Array.isArray(rawAdmins)) {
-                    adminsList = rawAdmins;
-                } else if (typeof rawAdmins === 'object') {
-                    adminsList = Object.keys(rawAdmins).map(key => {
-                        let val = rawAdmins[key];
-                        return (typeof val === 'object' && val !== null) ? { email: key, ...val } : { email: key, name: key.split('@')[0], profileImage: val || '' };
-                    });
-                }
+                let rawAdmins = globalRecordData.admins || [];
+                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
 
-                // عرض صورة الأدمن الحالي في الهيدر
                 let loggedAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentAdminEmail.toLowerCase());
                 if (loggedAdmin && loggedAdmin.profileImage) {
                     document.getElementById('headerAdminAvatar').src = loggedAdmin.profileImage;
                 }
 
                 if (!isMasterUser && currentAdminEmail) {
-                    let foundAdmin = adminsList.find(a => a.email === currentAdminEmail);
-                    if (foundAdmin && (foundAdmin.role === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com')) {
+                    if (loggedAdmin && (loggedAdmin.role === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com')) {
                         isMasterUser = true;
                         sessionStorage.setItem('adminRole', 'master');
                     }
@@ -268,12 +295,12 @@
                     document.getElementById('addStudentBtn').style.display = 'inline-block';
                     document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي';
                     
-                    renderRequests(rec.adminRequests || []);
+                    renderRequests(globalRecordData.adminRequests || []);
                     renderAdmins(adminsList);
-                    renderStudents(rec.users || []);
+                    renderStudents(globalRecordData.users || []);
                 } else {
                     document.getElementById('adminsCountCard').style.display = 'none';
-                    renderStudents(rec.users || []);
+                    renderStudents(globalRecordData.users || []);
                 }
 
             } catch (err) {
@@ -281,8 +308,6 @@
                 document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
             }
         }
-
-        async function fetchCloudAllData() { initDashboard(); }
 
         function renderRequests(requests) {
             const wrapper = document.getElementById('requestsTableWrapper');
@@ -313,24 +338,18 @@
                 wrapper.innerHTML = '<p style="text-align: center; color: #888; padding: 10px;">لا يوجد مشرفين حالياً.</p>';
                 return;
             }
-            let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد</th><th>الرتبة</th><th>الحالة</th><th>إجراءات التحكم</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد</th><th>الرتبة</th><th>الحالة</th></tr></thead><tbody>`;
             admins.forEach(adm => {
                 let isBlocked = adm.status === 'blocked';
                 let isMasterRole = (adm.role === 'master' || adm.email === 'mohamad66xm@gmail.com');
                 let isVerified = adm.isVerified === true;
                 let adminName = adm.name || adm.email.split('@')[0];
 
-                html += `<tr>
+                html += `<tr class="clickable-row" onclick="openUserModal('${adm.email}', 'admin')">
                     <td><b>${adminName}</b> ${isVerified ? verifiedBadgeHTML : ''}</td>
                     <td>${adm.email}</td>
                     <td><b style="color: ${isMasterRole ? '#8e44ad' : '#2980b9'}">${isMasterRole ? 'متحكم كامل ⚡' : 'أدمن عادي 🛡️'}</b></td>
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
-                    <td>
-                        <button class="btn-verify" onclick="toggleVerifyAdmin('${adm.email}')">${isVerified ? 'إلغاء التوثيق' : 'توثيق'}</button>
-                        <button class="btn-master" onclick="toggleAdminRole('${adm.email}')">${isMasterRole ? 'تنزيل عادي' : 'ترقية كامل'}</button>
-                        <button class="btn-block" onclick="toggleBlockStatus('${adm.email}', 'admin')">${isBlocked ? 'فك الحظر' : 'حظر'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${adm.email}', 'admin')">حذف</button>
-                    </td>
                 </tr>`;
             });
             html += `</tbody></table>`;
@@ -344,33 +363,197 @@
                 wrapper.innerHTML = '<p style="text-align: center; color: #888; padding: 10px;">لا يوجد طلاب.</p>';
                 return;
             }
-            let html = `<table><thead><tr><th>الكود</th><th>اسم الطالب</th><th>البريد</th><th>الهاتف</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>الكود</th><th>اسم الطالب</th><th>البريد</th><th>الهاتف</th><th>الحالة</th></tr></thead><tbody>`;
             users.forEach(st => {
                 let isBlocked = st.status === 'blocked';
-                html += `<tr>
+                html += `<tr class="clickable-row" onclick="openUserModal('${st.email}', 'user')">
                     <td><b>${st.studentId || 'STU-0000'}</b></td>
                     <td>${st.fullName || '-'}</td>
                     <td>${st.email || '-'}</td>
                     <td>${st.studentPhone || '-'}</td>
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
-                    <td>
-                        <button class="btn-block" onclick="toggleBlockStatus('${st.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${st.email}', 'user')">حذف</button>
-                    </td>
                 </tr>`;
             });
             html += `</tbody></table>`;
             wrapper.innerHTML = html;
         }
 
-        window.toggleVerifyAdmin = async function(email) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (Array.isArray(rec.admins)) {
-                rec.admins = rec.admins.map(a => { if (a.email === email) a.isVerified = !a.isVerified; return a; });
+        // فتح النافذة العائمة للتحكم الكامل وبحث الصلاحيات
+        function openUserModal(email, type) {
+            const modal = document.getElementById('userControlModal');
+            const modalBody = document.getElementById('modalControlBody');
+            const modalTitle = document.getElementById('modalControlTitle');
+
+            let currentSessionRole = sessionStorage.getItem('adminRole');
+            let isMasterUser = (currentSessionRole === 'master' || sessionStorage.getItem('adminEmail') === 'mohamad66xm@gmail.com');
+
+            modal.classList.add('active');
+
+            if (type === 'admin') {
+                let admin = (globalRecordData.admins || []).find(a => a.email === email);
+                if (!admin) return;
+
+                modalTitle.textContent = "إدارة حساب المشرف 🛡️";
+                let isBlocked = admin.status === 'blocked';
+                let isMasterRole = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
+                let isVerified = admin.isVerified === true;
+
+                let canEdit = isMasterUser; // فقط المتحكم الرئيسي يقدر يغير بيانات الأدمن
+
+                modalBody.innerHTML = `
+                    <div class="modal-avatar-wrapper">
+                        <img src="${admin.profileImage || 'https://via.placeholder.com/80?text=Admin'}" alt="صورة الأدمن">
+                    </div>
+                    <h3 style="margin-bottom: 5px;">${admin.name || 'أدمن'} ${isVerified ? verifiedBadgeHTML : ''}</h3>
+                    <p style="font-size:0.85rem; color:#888;">${admin.email}</p>
+
+                    ${!canEdit ? `<div class="permission-warning">⚠️ غير مصرح لك بتعديل بيانات مشرف آخر (للعرض فقط)</div>` : ''}
+
+                    <div class="modal-info-list">
+                        <div class="modal-field">
+                            <label>اسم المشرف:</label>
+                            <input type="text" id="modalEditAdminName" value="${admin.name || ''}" ${!canEdit ? 'disabled' : ''}>
+                        </div>
+                        <div class="modal-field">
+                            <label>رقم الهاتف:</label>
+                            <input type="text" id="modalEditAdminPhone" value="${admin.phone || ''}" ${!canEdit ? 'disabled' : ''}>
+                        </div>
+                        <div class="modal-info-item">
+                            <label>الرتبة:</label>
+                            <span>${isMasterRole ? 'متحكم كامل ⚡' : 'أدمن عادي 🛡️'}</span>
+                        </div>
+                        <div class="modal-info-item">
+                            <label>الحالة:</label>
+                            <span style="color: ${isBlocked ? 'red' : 'green'};">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span>
+                        </div>
+                    </div>
+
+                    ${canEdit ? `
+                        <div class="modal-actions-grid">
+                            <button class="btn-verify" onclick="toggleVerifyAdmin('${admin.email}')">${isVerified ? 'إلغاء التوثيق' : 'توثيق'}</button>
+                            <button class="btn-master" onclick="toggleAdminRole('${admin.email}')">${isMasterRole ? 'تنزيل عادي' : 'ترقية كامل'}</button>
+                            <button class="btn-block" onclick="toggleBlockStatus('${admin.email}', 'admin')">${isBlocked ? 'فك الحظر' : 'حظر'}</button>
+                            <button class="btn-danger" onclick="deleteRecord('${admin.email}', 'admin')">حذف الحساب</button>
+                            <button class="btn-approve btn-full" onclick="saveAdminModalChanges('${admin.email}')">حفظ التعديلات 💾</button>
+                        </div>
+                    ` : ''}
+                `;
+
+            } else if (type === 'user') {
+                let student = (globalRecordData.users || []).find(u => u.email === email);
+                if (!student) return;
+
+                modalTitle.textContent = "إدارة حساب الطالب 🎓";
+                let isBlocked = student.status === 'blocked';
+                let rank = student.rank || 'unranked';
+
+                modalBody.innerHTML = `
+                    <div class="modal-avatar-wrapper">
+                        <img src="${student.profileImage || student.profileImg || 'https://via.placeholder.com/80?text=Student'}" alt="صورة الطالب">
+                    </div>
+                    <h3 style="margin-bottom: 5px;">${student.fullName || 'طالب'}</h3>
+                    <p style="font-size:0.85rem; color:#888;">${student.email}</p>
+
+                    <div class="modal-info-list">
+                        <div class="modal-field">
+                            <label>اسم الطالب الكامل:</label>
+                            <input type="text" id="modalEditStudentName" value="${student.fullName || ''}">
+                        </div>
+                        <div class="modal-field">
+                            <label>كود الطالب (ID):</label>
+                            <input type="text" id="modalEditStudentId" value="${student.studentId || ''}">
+                        </div>
+                        <div class="modal-field">
+                            <label>هاتف الطالب:</label>
+                            <input type="text" id="modalEditStudentPhone" value="${student.studentPhone || ''}">
+                        </div>
+                        <div class="modal-field">
+                            <label>المستوى الدراسي:</label>
+                            <select id="modalEditStudentRank">
+                                <option value="unranked" ${rank === 'unranked' ? 'selected' : ''}>مجهول</option>
+                                <option value="bronze" ${rank === 'bronze' ? 'selected' : ''}>ضعيف (Level 1)</option>
+                                <option value="silver" ${rank === 'silver' ? 'selected' : ''}>متوسط (Level 2)</option>
+                                <option value="gold" ${rank === 'gold' ? 'selected' : ''}>قوي (Level 3)</option>
+                                <option value="diamond" ${rank === 'diamond' ? 'selected' : ''}>قوي جداً (Level 4)</option>
+                                <option value="mythic" ${rank === 'mythic' ? 'selected' : ''}>أسطوري (Level 5)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-grid">
+                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب'}</button>
+                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب</button>
+                        <button class="btn-approve btn-full" onclick="saveStudentModalChanges('${student.email}')">حفظ التعديلات 💾</button>
+                    </div>
+                `;
             }
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
+        }
+
+        async function saveAdminModalChanges(email) {
+            let admin = (globalRecordData.admins || []).find(a => a.email === email);
+            if (admin) {
+                admin.name = document.getElementById('modalEditAdminName').value;
+                admin.phone = document.getElementById('modalEditAdminPhone').value;
+                await updateCloudData();
+                closeControlModal();
+                initDashboard();
+            }
+        }
+
+        async function saveStudentModalChanges(email) {
+            let student = (globalRecordData.users || []).find(u => u.email === email);
+            if (student) {
+                student.fullName = document.getElementById('modalEditStudentName').value;
+                student.studentId = document.getElementById('modalEditStudentId').value;
+                student.studentPhone = document.getElementById('modalEditStudentPhone').value;
+                student.rank = document.getElementById('modalEditStudentRank').value;
+                await updateCloudData();
+                closeControlModal();
+                initDashboard();
+            }
+        }
+
+        async function updateCloudData() {
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(globalRecordData) });
+        }
+
+        function closeControlModal() {
+            document.getElementById('userControlModal').classList.remove('active');
+        }
+
+        function closeControlModalOnOuterClick(e) {
+            if (e.target.classList.contains('modal-overlay')) closeControlModal();
+        }
+
+        window.toggleVerifyAdmin = async function(email) {
+            let adm = (globalRecordData.admins || []).find(a => a.email === email);
+            if (adm) { adm.isVerified = !adm.isVerified; await updateCloudData(); openUserModal(email, 'admin'); initDashboard(); }
+        };
+
+        window.toggleAdminRole = async function(email) {
+            let adm = (globalRecordData.admins || []).find(a => a.email === email);
+            if (adm) { adm.role = adm.role === 'master' ? 'sub' : 'master'; await updateCloudData(); openUserModal(email, 'admin'); initDashboard(); }
+        };
+
+        window.toggleBlockStatus = async function(email, type) {
+            if (type === 'admin') {
+                let adm = (globalRecordData.admins || []).find(a => a.email === email);
+                if (adm) adm.status = adm.status === 'blocked' ? 'active' : 'blocked';
+            } else {
+                let st = (globalRecordData.users || []).find(u => u.email === email);
+                if (st) st.status = st.status === 'blocked' ? 'active' : 'blocked';
+            }
+            await updateCloudData();
+            openUserModal(email, type);
+            initDashboard();
+        };
+
+        window.deleteRecord = async function(email, type) {
+            if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
+            if (type === 'admin') globalRecordData.admins = globalRecordData.admins.filter(a => a.email !== email);
+            else globalRecordData.users = globalRecordData.users.filter(u => u.email !== email);
+            await updateCloudData();
+            closeControlModal();
             initDashboard();
         };
 
@@ -381,12 +564,9 @@
             let studentId = prompt("كود الطالب:") || "STU-" + Math.floor(1000 + Math.random() * 9000);
             let password = prompt("كلمة المرور:") || "123456";
 
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (!rec.users) rec.users = [];
-            rec.users.push({ fullName: name, email, studentPhone: phone, studentId, password, status: 'active', profileImage: '' });
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
+            if (!globalRecordData.users) globalRecordData.users = [];
+            globalRecordData.users.push({ fullName: name, email, studentPhone: phone, studentId, password, status: 'active', profileImage: '' });
+            await updateCloudData();
             initDashboard();
         };
 
@@ -396,70 +576,23 @@
             let password = prompt("كلمة المرور:") || "@Mohamad66xm01122161407";
             let role = prompt("الرتبة (master / sub):") || "sub";
 
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (!rec.admins) rec.admins = [];
-            rec.admins.push({ name, email, password, role, status: 'active', isVerified: false, profileImage: '' });
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
+            if (!globalRecordData.admins) globalRecordData.admins = [];
+            globalRecordData.admins.push({ name, email, password, role, status: 'active', isVerified: false, profileImage: '' });
+            await updateCloudData();
             initDashboard();
         };
 
         window.approveAdminReq = async function(email, role) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
-            if (!rec.admins) rec.admins = [];
-            rec.admins.push({ name: email.split('@')[0], email, password: '@Mohamad66xm01122161407', role, status: 'active', isVerified: false, profileImage: '' });
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
+            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
+            if (!globalRecordData.admins) globalRecordData.admins = [];
+            globalRecordData.admins.push({ name: email.split('@')[0], email, password: '@Mohamad66xm01122161407', role, status: 'active', isVerified: false, profileImage: '' });
+            await updateCloudData();
             initDashboard();
         };
 
         window.rejectAdminReq = async function(email) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
-            initDashboard();
-        };
-
-        window.toggleAdminRole = async function(email) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (Array.isArray(rec.admins)) {
-                rec.admins = rec.admins.map(a => { if (a.email === email) a.role = a.role === 'master' ? 'sub' : 'master'; return a; });
-            }
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
-            initDashboard();
-        };
-
-        window.toggleBlockStatus = async function(email, type) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (type === 'admin' && Array.isArray(rec.admins)) {
-                rec.admins = rec.admins.map(a => { if (a.email === email) a.status = a.status === 'blocked' ? 'active' : 'blocked'; return a; });
-            } else if (type === 'user' && Array.isArray(rec.users)) {
-                rec.users = rec.users.map(u => { if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked'; return u; });
-            }
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
-            initDashboard();
-        };
-
-        window.deleteRecord = async function(email, type) {
-            if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-            let data = await res.json();
-            let rec = data.record || {};
-            if (type === 'admin' && Array.isArray(rec.admins)) {
-                rec.admins = rec.admins.filter(a => a.email !== email);
-            } else if (type === 'user' && Array.isArray(rec.users)) {
-                rec.users = rec.users.filter(u => u.email !== email);
-            }
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(rec) });
+            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
+            await updateCloudData();
             initDashboard();
         };
     </script>
