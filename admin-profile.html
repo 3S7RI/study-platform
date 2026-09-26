@@ -7,28 +7,22 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #f4f7f6; color: #333; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
-        
         .profile-card { background: white; width: 100%; max-width: 450px; border-radius: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden; }
         .profile-header { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 30px 20px; text-align: center; position: relative; }
         .admin-badge { position: absolute; top: 15px; left: 15px; background: #e74c3c; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-        
         .avatar-container { position: relative; width: 90px; height: 90px; margin: 0 auto 12px; }
         .avatar-box { width: 100%; height: 100%; background: #e2e8f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); overflow: hidden; }
         .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-        
         .upload-label { position: absolute; bottom: 0; right: 0; background: #27ae60; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; cursor: pointer; border: 2px solid white; }
         #avatarInput { display: none; }
-
         .profile-header h1 { font-size: 1.3rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .profile-header p { font-size: 0.85rem; opacity: 0.9; }
-
         .profile-body { padding: 20px; }
         .info-group { margin-bottom: 15px; }
         .info-group label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 5px; font-weight: bold; }
         .info-value { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 8px; font-size: 0.9rem; color: #1e293b; font-weight: 500; }
-
         .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .btn { padding: 11px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn { padding: 11px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: flex; justify-content: center; align-items: center; gap: 5px; }
         .btn-primary { background: #2980b9; color: white; }
         .btn-secondary { background: #7f8c8d; color: white; }
         .btn-danger { background: #e74c3c; color: white; grid-column: span 2; }
@@ -36,29 +30,27 @@
 </head>
 <body>
 
-    <div class="profile-card" id="adminProfileCard">
+    <div class="profile-card">
         <div class="profile-header">
-            <span class="admin-badge" id="badgeText">مطور النظام ⚡</span>
-            
+            <span class="admin-badge">مطور النظام ⚡</span>
             <div class="avatar-container">
                 <div class="avatar-box" id="avatarPreviewContainer">👨‍💻</div>
                 <label for="avatarInput" class="upload-label" title="تغيير الصورة الشخصية">📷</label>
                 <input type="file" id="avatarInput" accept="image/*">
             </div>
-
-            <h1 id="adminNameText">محمد عشري <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span></h1>
-            <p id="adminDescText">المؤسس ومطور منصة رحلة دراسية</p>
+            <h1>محمد عشري <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span></h1>
+            <p>المؤسس ومطور منصة رحلة دراسية</p>
         </div>
 
         <div class="profile-body">
             <div class="info-group">
                 <label>البريد الإلكتروني</label>
-                <div class="info-value" id="adminEmailText">mohamad66xm@gmail.com</div>
+                <div class="info-value">mohamad66xm@gmail.com</div>
             </div>
 
             <div class="info-group">
                 <label>نوع الصلاحية والتوثيق</label>
-                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">المطور الأساسي ومتحكم كامل (Master Admin) 🚀</div>
+                <div class="info-value" style="color: #2980b9; font-weight: bold;">المطور الأساسي ومتحكم كامل (Master Admin) 🚀</div>
             </div>
 
             <div class="btn-grid">
@@ -70,98 +62,28 @@
     </div>
 
     <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
-
-        const cloudHeaders = {
-            'X-Master-Key': API_KEY,
-            'X-Access-Key': API_KEY,
-            'Content-Type': 'application/json'
-        };
-
-        // تثبيت جلسة الدخول للأدمن تلقائياً لمنع أي أخطاء
+        // فرض الجلسة قسرياً وثبيتها للأدمن الرئيسي لتجنب أي طرد نهائياً
         sessionStorage.setItem('isAdminLoggedIn', 'true');
-        
-        let currentEmail = (sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com').trim().toLowerCase();
-        document.getElementById('adminEmailText').textContent = currentEmail;
+        sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
 
-        // استرجاع الصورة المحفوظة محلياً إن وجدت
+        const currentEmail = 'mohamad66xm@gmail.com';
+
+        // تحميل الصورة المخزنة محلياً فوراً
         let savedAvatar = localStorage.getItem('adminAvatar_' + currentEmail);
         if (savedAvatar) {
             document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
         }
 
-        // تحديد ما إذا كان هو الحساب الرئيسي أو مشرف فرعي
-        let isMaster = (currentEmail === 'mohamad66xm@gmail.com');
-        if (!isMaster) {
-            document.getElementById('badgeText').textContent = 'مشرف معتمد 🛡️';
-            document.getElementById('adminNameText').innerHTML = (currentEmail.split('@')[0]) + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
-            document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
-            document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
-        }
-
-        // مزامنة البيانات من JSONBin في الخلفية
-        async function syncProfileData() {
-            try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                let data = await res.json();
-                let rec = data.record || {};
-
-                let adminsList = [];
-                if (Array.isArray(rec.admins)) {
-                    adminsList = rec.admins;
-                } else if (rec.admins && typeof rec.admins === 'object') {
-                    adminsList = Object.keys(rec.admins).map(key => ({ email: key, ...rec.admins[key] }));
-                }
-
-                let currentAdmin = adminsList.find(a => (a.email || '').trim().toLowerCase() === currentEmail);
-                if (currentAdmin) {
-                    if (currentAdmin.name && !isMaster) {
-                        document.getElementById('adminNameText').innerHTML = currentAdmin.name + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
-                    }
-                    if (currentAdmin.profileImage) {
-                        document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${currentAdmin.profileImage}" alt="Admin Avatar">`;
-                    }
-                }
-            } catch (err) {
-                console.log('مزامنة خلفية:', err);
-            }
-        }
-        syncProfileData();
-
-        // رفع وتغيير الصورة وتخزينها
-        document.getElementById('avatarInput').addEventListener('change', async function(e) {
+        // رفع وتغيير الصورة
+        document.getElementById('avatarInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = async function(event) {
+                reader.onload = function(event) {
                     const base64Image = event.target.result;
                     localStorage.setItem('adminAvatar_' + currentEmail, base64Image);
                     document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${base64Image}" alt="Admin Avatar">`;
-
-                    try {
-                        let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                        let data = await res.json();
-                        let rec = data.record || {};
-
-                        if (Array.isArray(rec.admins)) {
-                            rec.admins = rec.admins.map(a => {
-                                if ((a.email || '').trim().toLowerCase() === currentEmail) {
-                                    a.profileImage = base64Image;
-                                }
-                                return a;
-                            });
-                        }
-
-                        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                            method: 'PUT',
-                            headers: cloudHeaders,
-                            body: JSON.stringify(rec)
-                        });
-                        alert('تم تحديث صورتك الشخصية بنجاح! ✅');
-                    } catch (err) {
-                        console.log('خطأ في مزامنة الصورة:', err);
-                    }
+                    alert('تم تحديث صورتك الشخصية بنجاح! ✅');
                 };
                 reader.readAsDataURL(file);
             }
