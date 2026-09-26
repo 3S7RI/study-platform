@@ -16,13 +16,21 @@
         .upload-btn input { display: none; }
 
         .profile-container h2 { color: #1e3c72; margin-bottom: 5px; font-size: 1.5rem; }
-        .student-id { display: inline-block; background: #e8f4fd; color: #1e3c72; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; margin-bottom: 20px; }
+        .student-id { display: inline-block; background: #e8f4fd; color: #1e3c72; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; margin-bottom: 10px; }
         
+        /* زر نسخ الآيدي المصغر */
+        .btn-copy { display: inline-block; background-color: #f39c12; color: white; border: none; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-bottom: 20px; }
+        .btn-copy:hover { background-color: #d68910; }
+
         .info-card { text-align: right; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-right: 4px solid #2a5298; }
         .info-card label { display: block; color: #666; font-size: 0.85rem; margin-bottom: 3px; }
         .info-card span { color: #333; font-size: 1rem; font-weight: bold; }
 
-        .btn-logout { display: block; width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 15px; text-decoration: none; }
+        /* الأزرار الرئيسية */
+        .btn-back { display: block; width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 15px; text-decoration: none; text-align: center; }
+        .btn-back:hover { background-color: #2471a3; }
+
+        .btn-logout { display: block; width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; text-decoration: none; }
         .btn-logout:hover { background-color: #c0392b; }
     </style>
 </head>
@@ -39,7 +47,11 @@
         </div>
 
         <h2 id="studentName">اسم الطالب</h2>
-        <div class="student-id" id="studentIdBadge">الكود: STU-0000</div>
+        <div>
+            <span class="student-id" id="studentIdBadge">الكود: STU-0000</span>
+        </div>
+        <!-- زر نسخ الآيدي -->
+        <button type="button" class="btn-copy" id="copyIdBtn">نسخ الآيدي 📋</button>
 
         <div class="info-card">
             <label>البريد الإلكتروني</label>
@@ -53,6 +65,9 @@
             <label>رقم هاتف ولي الأمر</label>
             <span id="parentPhoneVal">01xxxxxxxx0</span>
         </div>
+
+        <!-- زر العودة للرئيسية -->
+        <a href="main.html" class="btn-back">العودة للرئيسية 🏠</a>
 
         <button type="button" class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
     </div>
@@ -68,12 +83,10 @@
         } else {
             // حل مشكلة الحسابات القديمة: لو المستخدم ملوش ID، بنولدله واحد تلقائياً ونحفظه
             if (!currentUser.studentId) {
-                // نبحث عنه في القائمة أو ندي إي دي برقم تسلسلي جديد
                 let indexInList = studentsList.findIndex(st => st.email === currentUser.email);
                 let serialNum = indexInList !== -1 ? indexInList + 1 : studentsList.length + 1;
                 currentUser.studentId = 'STU-' + String(serialNum).padStart(4, '0');
                 
-                // تحديثه في القائمة المحلية
                 if (indexInList !== -1) {
                     studentsList[indexInList].studentId = currentUser.studentId;
                     localStorage.setItem('studentsList', JSON.stringify(studentsList));
@@ -88,11 +101,21 @@
             document.getElementById('studentPhoneVal').textContent = currentUser.studentPhone || '-';
             document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-';
             
-            // عرض الصورة لو موجودة
             if (currentUser.profileImg) {
                 document.getElementById('profileImage').src = currentUser.profileImg;
             }
         }
+
+        // كود نسخ الآيدي للحافظة
+        document.getElementById('copyIdBtn').addEventListener('click', function() {
+            if (currentUser && currentUser.studentId) {
+                navigator.clipboard.writeText(currentUser.studentId).then(() => {
+                    alert('تم نسخ الآيدي بنجاح: ' + currentUser.studentId + ' 📋');
+                }).catch(err => {
+                    alert('فشل نسخ الآيدي!');
+                });
+            }
+        });
 
         // التعامل مع رفع وتغيير صورة البروفايل وحفظها فوريًا
         const imageInput = document.getElementById('imageInput');
@@ -104,11 +127,9 @@
                     const base64Image = event.target.result;
                     document.getElementById('profileImage').src = base64Image;
 
-                    // تحديث الصورة في بيانات المستخدم الحالي
                     currentUser.profileImg = base64Image;
                     localStorage.setItem('studentUser', JSON.stringify(currentUser));
 
-                    // تحديث القائمة الشاملة أيضاً لضمان حفظها بالذاكرة
                     studentsList = studentsList.map(st => {
                         if (st.email === currentUser.email) {
                             st.profileImg = base64Image;
