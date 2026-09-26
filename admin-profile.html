@@ -46,19 +46,19 @@
                 <input type="file" id="avatarInput" accept="image/*">
             </div>
 
-            <h1 id="adminNameText">جاري التحميل...</h1>
-            <p id="adminDescText">فريق إدارة منصة رحلة دراسية</p>
+            <h1 id="adminNameText">محمد عشري <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span></h1>
+            <p id="adminDescText">المؤسس ومطور منصة رحلة دراسية</p>
         </div>
 
         <div class="profile-body">
             <div class="info-group">
                 <label>البريد الإلكتروني</label>
-                <div class="info-value" id="adminEmailText">-</div>
+                <div class="info-value" id="adminEmailText">mohamad66xm@gmail.com</div>
             </div>
 
             <div class="info-group">
                 <label>نوع الصلاحية والتوثيق</label>
-                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">-</div>
+                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">المطور الأساسي ومتحكم كامل (Master Admin) 🚀</div>
             </div>
 
             <div class="btn-grid">
@@ -79,36 +79,29 @@
             'Content-Type': 'application/json'
         };
 
-        // ضمان بقاء الجلسة مفعلة لأي أدمن يدخل
+        // تثبيت جلسة الدخول للأدمن تلقائياً لمنع أي أخطاء
         sessionStorage.setItem('isAdminLoggedIn', 'true');
         
-        // جلب الإيميل الحالي (لو مش موجود بنعتبره محمد عشري كقيمة افتراضية للمطور)
         let currentEmail = (sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com').trim().toLowerCase();
         document.getElementById('adminEmailText').textContent = currentEmail;
 
-        // تحميل الصورة المخزنة محلياً فوراً لمنع التأخير
+        // استرجاع الصورة المحفوظة محلياً إن وجدت
         let savedAvatar = localStorage.getItem('adminAvatar_' + currentEmail);
         if (savedAvatar) {
             document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
         }
 
-        // جلب البيانات وتحديث الواجهة بناءً على الإيميل (سواء المطور الأساسي أو أدمن فرعي)
-        async function loadProfile() {
-            let isMaster = (currentEmail === 'mohamad66xm@gmail.com');
-            
-            if (isMaster) {
-                document.getElementById('badgeText').textContent = 'مطور النظام ⚡';
-                document.getElementById('adminNameText').innerHTML = 'محمد عشري <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
-                document.getElementById('adminDescText').textContent = 'المؤسس ومطور منصة رحلة دراسية';
-                document.getElementById('adminRoleText').textContent = 'المطور الأساسي ومتحكم كامل (Master Admin) 🚀';
-            } else {
-                document.getElementById('badgeText').textContent = 'مشرف معتمد 🛡️';
-                document.getElementById('adminNameText').innerHTML = currentEmail.split('@')[0] + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
-                document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
-                document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
-            }
+        // تحديد ما إذا كان هو الحساب الرئيسي أو مشرف فرعي
+        let isMaster = (currentEmail === 'mohamad66xm@gmail.com');
+        if (!isMaster) {
+            document.getElementById('badgeText').textContent = 'مشرف معتمد 🛡️';
+            document.getElementById('adminNameText').innerHTML = (currentEmail.split('@')[0]) + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
+            document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
+            document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
+        }
 
-            // محاولة جلب التحديثات من السحابة في الخلفية
+        // مزامنة البيانات من JSONBin في الخلفية
+        async function syncProfileData() {
             try {
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
                 let data = await res.json();
@@ -123,9 +116,8 @@
 
                 let currentAdmin = adminsList.find(a => (a.email || '').trim().toLowerCase() === currentEmail);
                 if (currentAdmin) {
-                    if (currentAdmin.name) {
-                        let isVerified = currentAdmin.isVerified === true || isMaster;
-                        document.getElementById('adminNameText').innerHTML = currentAdmin.name + (isVerified ? ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>' : '');
+                    if (currentAdmin.name && !isMaster) {
+                        document.getElementById('adminNameText').innerHTML = currentAdmin.name + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
                     }
                     if (currentAdmin.profileImage) {
                         document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${currentAdmin.profileImage}" alt="Admin Avatar">`;
@@ -135,10 +127,9 @@
                 console.log('مزامنة خلفية:', err);
             }
         }
+        syncProfileData();
 
-        loadProfile();
-
-        // رفع وتغيير صورة الأدمن وحفظها في السحابة والمحلي
+        // رفع وتغيير الصورة وتخزينها
         document.getElementById('avatarInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -167,9 +158,9 @@
                             headers: cloudHeaders,
                             body: JSON.stringify(rec)
                         });
-                        alert('تم تحديث صورتك الشخصية ومزامنتها بنجاح! ✅');
+                        alert('تم تحديث صورتك الشخصية بنجاح! ✅');
                     } catch (err) {
-                        console.log('خطأ في مزامنة الصورة بالسحابة:', err);
+                        console.log('خطأ في مزامنة الصورة:', err);
                     }
                 };
                 reader.readAsDataURL(file);
