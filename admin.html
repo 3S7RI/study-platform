@@ -29,6 +29,7 @@
         .btn-master { background: #8e44ad; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-block { background: #e67e22; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-danger { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; font-weight: bold; }
+        .btn-add { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; text-align: right; min-width: 700px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.85rem; white-space: nowrap; }
@@ -72,6 +73,7 @@
         <div class="section-box" id="masterAdminSection" style="display: none; border: 2px dashed #2980b9;">
             <div class="section-header">
                 <h2>🛡️ إدارة المشرفين والصلاحيات (التحكم الكامل)</h2>
+                <button class="btn-add" onclick="addNewAdminManual()">➕ إضافة أدمن جديد</button>
             </div>
             <div id="adminsTableWrapper">
                 <div style="text-align: center; padding: 15px; color: #666;">جاري التحميل...</div>
@@ -82,6 +84,7 @@
         <div class="section-box">
             <div class="section-header">
                 <h2>📋 قائمة الطلاب المسجلين في المنصة</h2>
+                <button class="btn-add" id="addStudentBtn" style="display: none;" onclick="addNewStudentManual()">➕ إضافة طالب جديد</button>
             </div>
             <div id="tableWrapper">
                 <div style="text-align: center; padding: 20px; color: #666;">جاري جلب بيانات الطلاب...</div>
@@ -102,6 +105,7 @@
         if (role === 'master') {
             document.getElementById('masterAdminSection').style.display = 'block';
             document.getElementById('requestsSection').style.display = 'block';
+            document.getElementById('addStudentBtn').style.display = 'inline-block';
             document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (المتحكم الكامل)';
             fetchCloudAllData();
         } else {
@@ -114,7 +118,7 @@
             window.location.href = 'login.html';
         });
 
-        // جلب كل البيانات للمطور الأساسي
+        // جلب البيانات للرئيسي
         async function fetchCloudAllData() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
@@ -126,6 +130,19 @@
                 renderRequests(rec.adminRequests || []);
                 renderAdmins(rec.admins || []);
                 renderStudents(rec.users || []);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // جلب الطلاب فقط للأدمن العادي
+        async function fetchStudentsOnly() {
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                renderStudents(result.record.users || []);
             } catch (err) {
                 console.error(err);
             }
@@ -174,7 +191,7 @@
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
                     <td>
                         <button class="btn-master" onclick="toggleAdminRole('${adm.email}')">${isMasterRole ? 'تنزيل لأدمن عادي' : 'ترقية لمتحكم كامل'}</button>
-                        <button class="btn-block" onclick="toggleBlockStatus('${adm.email}', 'admin')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر (404) 🔒'}</button>
+                        <button class="btn-block" onclick="toggleBlockStatus('${adm.email}', 'admin')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر 🔒'}</button>
                         <button class="btn-danger" onclick="deleteRecord('${adm.email}', 'admin')">حذف 🗑️</button>
                     </td>
                 </tr>`;
@@ -202,7 +219,7 @@
                     <td>${st.studentPhone || '-'}</td>
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
                     <td>
-                        <button class="btn-block" onclick="toggleBlockStatus('${st.email}', 'user')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر (404) 🔒'}</button>
+                        <button class="btn-block" onclick="toggleBlockStatus('${st.email}', 'user')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر 🔒'}</button>
                         <button class="btn-danger" onclick="deleteRecord('${st.email}', 'user')">حذف 🗑️</button>
                     </td>
                 </tr>`;
@@ -210,6 +227,73 @@
             html += `</tbody></table>`;
             wrapper.innerHTML = html;
         }
+
+        // إضافة طالب جديد يدويًا
+        window.addNewStudentManual = async function() {
+            let name = prompt("أدخل اسم الطالب الكامل:");
+            if (!name) return;
+            let email = prompt("أدخل البريد الإلكتروني للطالب:");
+            if (!email) return;
+            let phone = prompt("أدخل رقم هاتف الطالب:") || "-";
+            let studentId = prompt("أدخل كود الطالب (مثال: STU-0003):") || "STU-" + Math.floor(1000 + Math.random() * 9000);
+            let password = prompt("أدخل كلمة المرور الخاصة بالطالب:") || "123456";
+
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
+
+            if (!rec.users) rec.users = [];
+            rec.users.push({
+                fullName: name,
+                email: email,
+                studentPhone: phone,
+                studentId: studentId,
+                password: password,
+                status: 'active'
+            });
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+
+            alert('تم إضافة الطالب بنجاح! ⚡');
+            fetchCloudAllData();
+        };
+
+        // إضافة أدمن جديد يدويًا
+        window.addNewAdminManual = async function() {
+            let name = prompt("أدخل اسم المشرف أو الأدمن:");
+            if (!name) return;
+            let email = prompt("أدخل البريد الإلكتروني للأدمن:");
+            if (!email) return;
+            let password = prompt("أدخل كلمة المرور للأدمن:") || "@Mohamad66xm01122161407";
+            let typeChoice = prompt("اختر الرتبة: اكتب (master) لمتحكم كامل، أو (sub) لأدمن عادي:") || "sub";
+
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
+
+            if (!rec.admins) rec.admins = [];
+            rec.admins.push({
+                name: name,
+                email: email,
+                password: password,
+                role: typeChoice,
+                status: 'active',
+                badge: typeChoice === 'master' ? 'متحكم كامل' : 'مشرف معتمد'
+            });
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+
+            alert('تم إضافة المشرف بنجاح! 🛡️');
+            fetchCloudAllData();
+        };
 
         // قبول طلب الإشراف
         window.approveAdminReq = async function(email, assignRole) {
@@ -235,7 +319,7 @@
                 body: JSON.stringify(rec)
             });
 
-            alert(`تم قبول ${email} برتبة (${assignRole === 'master' ? 'متحكم كامل' : 'أدمن عادي'}) بنجاح!`);
+            alert(`تم قبول ${email} بنجاح!`);
             fetchCloudAllData();
         };
 
@@ -254,7 +338,7 @@
             fetchCloudAllData();
         };
 
-        // التبديل بين رتبة (متحكم كامل) و (أدمن عادي)
+        // التبديل بين الرتب
         window.toggleAdminRole = async function(email) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
             let data = await res.json();
@@ -276,7 +360,7 @@
             fetchCloudAllData();
         };
 
-        // حظر / إلغاء حظر (سواء أدمن أو طالب)
+        // حظر / إلغاء حظر
         window.toggleBlockStatus = async function(email, type) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
             let data = await res.json();
