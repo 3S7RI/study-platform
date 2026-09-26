@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأدمن - رحلة دراسية</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f4f7f6; color: #333; padding: 20px; }
+        
+        /* شاشة تسجيل الدخول الخاصة بالأدمن */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .login-box h2 { color: #1e3c72; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; text-align: center; }
+        .login-box button { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        .login-box button:hover { background: #219653; }
+
+        /* تصميم اللوحة الرئيسية */
+        .container { max-width: 1100px; margin: 0 auto; display: none; }
+        header { display: flex; justify-content: space-between; align-items: center; background: #1e3c72; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        header h1 { font-size: 1.5rem; }
+        .btn-exit { background: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-exit:hover { background: #c0392b; }
+
+        /* كروت الإحصائيات */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-right: 5px solid #2a5298; }
+        .stat-card h3 { color: #666; font-size: 0.9rem; margin-bottom: 8px; }
+        .stat-card p { color: #1e3c72; font-size: 1.8rem; font-weight: bold; }
+
+        /* جدول الطلاب */
+        .table-container { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .table-header h2 { color: #1e3c72; font-size: 1.2rem; }
+        .btn-refresh { background: #2980b9; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-refresh:hover { background: #2471a3; }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+        th { background: #f8f9fa; color: #333; font-weight: bold; }
+        tr:hover { background: #f9f9f9; }
+
+        .btn-delete-user { background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+        .btn-delete-user:hover { background: #c0392b; }
+
+        .loading { text-align: center; padding: 40px; color: #666; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة تسجيل دخول الأدمن -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2>🔐 دخول لوحة الأدمن</h2>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">أدخل كلمة مرور المسؤول للمتابعة</p>
+            <input type="password" id="adminPasswordInput" placeholder="كلمة المرور">
+            <button id="adminLoginBtn">دخول اللوحة</button>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم الرئيسية -->
+    <div class="container" id="adminContainer">
+        <header>
+            <h1>⚡ لوحة تحكم منصة رحلة دراسية</h1>
+            <button class="btn-exit" id="logoutAdminBtn">خروج</button>
+        </header>
+
+        <!-- قسم الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>إجمالي الطلاب المسجلين</h3>
+                <p id="totalStudentsCount">0</p>
+            </div>
+            <div class="stat-card" style="border-right-color: #27ae60;">
+                <h3>حالة السحابة</h3>
+                <p style="color: #27ae60; font-size: 1.2rem; margin-top: 5px;">متصلة بـ JSONBin 🟢</p>
+            </div>
+        </div>
+
+        <!-- جدول بيانات الطلاب -->
+        <div class="table-container">
+            <div class="table-header">
+                <h2>📋 قائمة الطلاب في السحابة</h2>
+                <button class="btn-refresh" id="refreshDataBtn">تحديث البيانات 🔄</button>
+            </div>
+            
+            <div id="tableWrapper">
+                <div class="loading">جاري جلب البيانات من السحابة...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // إعدادات سحابة JSONBin
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        
+        // كلمة مرور الأدمن المحدثة
+        const ADMIN_SECRET_PASS = '@Mohamad66xm01122161407';
+
+        const loginOverlay = document.getElementById('loginOverlay');
+        const adminContainer = document.getElementById('adminContainer');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+
+        // التحقق من تسجيل دخول الأدمن مسبقاً في الجلسة
+        if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+            loginOverlay.style.display = 'none';
+            adminContainer.style.display = 'block';
+            fetchCloudData();
+        }
+
+        // زر دخول الأدمن
+        adminLoginBtn.addEventListener('click', function() {
+            if (adminPasswordInput.value === ADMIN_SECRET_PASS) {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                loginOverlay.style.display = 'none';
+                adminContainer.style.display = 'block';
+                fetchCloudData();
+            } else {
+                alert('كلمة المرور غير صحيحة!');
+                adminPasswordInput.value = '';
+            }
+        });
+
+        // زر خروج الأدمن
+        document.getElementById('logoutAdminBtn').addEventListener('click', function() {
+            sessionStorage.removeItem('isAdminLoggedIn');
+            location.reload();
+        });
+
+        document.getElementById('refreshDataBtn').addEventListener('click', fetchCloudData);
+
+        // دالة جلب بيانات الطلاب من سحابة JSONBin وعرضها في الجدول
+        async function fetchCloudData() {
+            const tableWrapper = document.getElementById('tableWrapper');
+            tableWrapper.innerHTML = '<div class="loading">جاري جلب البيانات من السحابة...</div>';
+
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let users = result.record.users || [];
+
+                // تحديث عداد الإحصائيات
+                document.getElementById('totalStudentsCount').textContent = users.length;
+
+                if (users.length === 0) {
+                    tableWrapper.innerHTML = '<p style="text-align: center; padding: 20px; color: #777;">لا يوجد طلاب مسجلين حتى الآن.</p>';
+                    return;
+                }
+
+                // بناء الجدول
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الكود</th>
+                                <th>اسم الطالب</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>هاتف الطالب</th>
+                                <th>هاتف ولي الأمر</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                users.forEach(student => {
+                    html += `
+                        <tr>
+                            <td><b>${student.studentId || 'STU-0000'}</b></td>
+                            <td>${student.fullName || '-'}</td>
+                            <td>${student.email || '-'}</td>
+                            <td>${student.studentPhone || '-'}</td>
+                            <td>${student.parentPhone || '-'}</td>
+                            <td>
+                                <button class="btn-delete-user" onclick="deleteStudent('${student.email}')">حذف 🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table>`;
+                tableWrapper.innerHTML = html;
+
+            } catch (error) {
+                console.error('خطأ في جلب البيانات:', error);
+                tableWrapper.innerHTML = '<p style="text-align: center; padding: 20px; color: #e74c3c;">فشل الاتصال بالسحابة، تحقق من الإنترنت وحاول مرة أخرى.</p>';
+            }
+        }
+
+        // دالة حذف طالب من لوحة التحكم والسحابة مباشرة
+        window.deleteStudent = async function(email) {
+            if (!confirm(`هل أنت متأكد من حذف الحساب ذو البريد (${email}) نهائياً من المنصة والسحابة؟`)) return;
+
+            try {
+                // جلب أحدث بيانات
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let users = result.record.users || [];
+
+                // تصفية وحذف المستخدم المستهدف
+                let updatedUsers = users.users ? users.users.filter(st => st.email !== email) : users.filter(st => st.email !== email);
+
+                // حفظ التحديث في السحابة
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ users: updatedUsers })
+                });
+
+                alert('تم حذف الحساب بنجاح من السحابة! ✅');
+                fetchCloudData(); // تحديث الجدول
+
+            } catch (error) {
+                console.error('خطأ أثناء الحذف:', error);
+                alert('حدث خطأ أثناء محاولة الحذف.');
+            }
+        };
+    </script>
+</body>
+</html>
