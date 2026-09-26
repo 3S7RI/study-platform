@@ -29,7 +29,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; transition: background-color 0.3s, color 0.3s; }
-        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); padding: 25px; border: 1px solid var(--border-color); }
+        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 520px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); padding: 25px; border: 1px solid var(--border-color); }
         .header-actions { margin-bottom: 15px; }
         .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 600; }
         .back-btn:hover { color: var(--primary-color); }
@@ -60,7 +60,6 @@
 
         .admin-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 3px; color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 6px; }
         
-        /* شارة التوثيق الزرقاء الاحترافية */
         .verified-badge {
             display: inline-flex;
             align-items: center;
@@ -72,11 +71,7 @@
             margin-right: 2px;
             vertical-align: middle;
         }
-        .verified-badge svg {
-            width: 11px;
-            height: 11px;
-            fill: white;
-        }
+        .verified-badge svg { width: 11px; height: 11px; fill: white; }
 
         .admin-email { color: var(--text-secondary); font-size: 0.88rem; }
         
@@ -91,6 +86,33 @@
         .form-group label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: var(--text-secondary); }
         .form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 8px; outline: none; font-size: 0.88rem; }
         .form-group input:focus { border-color: var(--primary-color); }
+
+        /* تنسيقات قسم البحث عن الطلاب للأدمن */
+        .admin-search-box {
+            background: var(--form-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .admin-search-box h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--primary-color); }
+        .search-input-group { display: flex; gap: 8px; }
+        .search-input-group input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.88rem; background: var(--input-bg); color: var(--text-main); outline: none; }
+        .search-input-group button { padding: 8px 15px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; }
+
+        .student-result-card {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .student-result-card img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); }
+        .student-details h4 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 4px; }
+        .student-details p { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
 
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 8px; }
         .btn:hover { background-color: var(--primary-hover); }
@@ -123,7 +145,6 @@
         let currentAdminData = null;
         let oldAdminEmail = '';
 
-        // تفعيل الثيم الداكن إذا كان مفعلاً في اللوحة
         if (localStorage.getItem('adminTheme') === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
         }
@@ -133,7 +154,6 @@
             window.location.href = 'login.html';
         }
 
-        // شارة التوثيق الزرقاء بصيغة SVG
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
                 <svg viewBox="0 0 24 24">
@@ -205,10 +225,16 @@
                             ${isVerified ? 'موثق رسمياً ' + verifiedBadgeHTML : 'غير موثق ⚪'}
                         </span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">حالة الحساب:</span>
-                        <span class="info-value" style="color: #10b981;">نشط ومتصل 🌐</span>
+                </div>
+
+                <!-- قسم البحث الفوري عن أي طالب للأدمن -->
+                <div class="admin-search-box">
+                    <h3>🔍 البحث الفوري عن بروفايل طالب</h3>
+                    <div class="search-input-group">
+                        <input type="text" id="adminSearchQuery" placeholder="اكتب ID الطالب (STU-0001)، البريد، أو الاسم...">
+                        <button onclick="searchStudentProfile()">بحث</button>
                     </div>
+                    <div id="studentSearchResult" style="display:none;"></div>
                 </div>
 
                 <div class="edit-form">
@@ -238,7 +264,45 @@
             `;
         }
 
-        // ضغط الصورة وتقليل حجمها لتخزينها بسلاسة في السحابة
+        // دالة بحث الأدمن عن الطالب
+        function searchStudentProfile() {
+            const query = document.getElementById('adminSearchQuery').value.trim().toLowerCase();
+            const resContainer = document.getElementById('studentSearchResult');
+            
+            if (!query) {
+                alert('اكتب بيانات الطالب أولاً!');
+                return;
+            }
+
+            resContainer.style.display = 'block';
+            resContainer.innerHTML = '<p style="font-size:0.8rem; text-align:center; padding:10px;">جاري البحث... ⏳</p>';
+
+            let users = globalRecord.users || [];
+            let found = users.find(u => 
+                (u.studentId && u.studentId.toLowerCase() === query) ||
+                (u.email && u.email.toLowerCase() === query) ||
+                (u.studentPhone && u.studentPhone === query) ||
+                (u.fullName && u.fullName.toLowerCase().includes(query))
+            );
+
+            if (found) {
+                let imgUrl = found.profileImage || found.profileImg || 'https://via.placeholder.com/60?text=Student';
+                resContainer.innerHTML = `
+                    <div class="student-result-card">
+                        <img src="${imgUrl}" alt="صورة الطالب">
+                        <div class="student-details">
+                            <h4>${found.fullName} <span style="font-size:0.75rem; color:#10b981;">(${found.studentId || 'STU'})</span></h4>
+                            <p>📧 ${found.email}</p>
+                            <p>📱 هاتف الطالب: ${found.studentPhone}</p>
+                            <p>👨‍👦 ولي الأمر: ${found.parentPhone || 'غير مسجل'}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resContainer.innerHTML = '<p style="font-size:0.8rem; color:#ef4444; text-align:center; padding:10px;">❌ لم يتم العثور على طالب بهذه البيانات</p>';
+            }
+        }
+
         function compressImage(file, maxWidth, maxHeight, quality, callback) {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -251,28 +315,20 @@
                     let height = img.height;
 
                     if (width > height) {
-                        if (width > maxWidth) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        }
+                        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
                     } else {
-                        if (height > maxHeight) {
-                            width *= maxHeight / height;
-                            height = maxHeight;
-                        }
+                        if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
                     }
 
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-                    callback(compressedDataUrl);
+                    callback(canvas.toDataURL('image/jpeg', quality));
                 };
             };
         }
 
-        // التعامل مع معالجة الصورة المرفوعة
         function handleImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -284,7 +340,6 @@
             });
         }
 
-        // حفظ التغييرات على الاسم، البريد، الهاتف، وكلمة المرور
         async function saveAdminChanges() {
             const newName = document.getElementById('editAdminName').value.trim();
             const newEmail = document.getElementById('editAdminEmail').value.trim().toLowerCase();
@@ -315,7 +370,6 @@
             document.getElementById('displayAdminEmail').textContent = newEmail;
         }
 
-        // المزامنة الشاملة مع السحابة
         async function syncDataToCloud(successMsg) {
             try {
                 if (!Array.isArray(globalRecord.admins)) globalRecord.admins = [];
