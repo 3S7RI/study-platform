@@ -81,13 +81,15 @@
         }
 
         const role = sessionStorage.getItem('adminRole');
-        const email = sessionStorage.getItem('adminEmail');
+        const email = sessionStorage.getItem('adminEmail') || 'admin';
+
+        // عرض الإيميل والبيانات الصحيحة في الواجهة بغض النظر عن الرتبة
+        document.getElementById('adminEmailText').textContent = email;
 
         if (role === 'sub') {
             document.getElementById('badgeText').textContent = sessionStorage.getItem('adminBadge') || 'مشرف';
             document.getElementById('adminNameText').textContent = 'مشرف فرعي';
-            document.getElementById('adminDescTest').textContent = 'فريق إدارة منصة رحلة دراسية';
-            document.getElementById('adminEmailText').textContent = email;
+            document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية'; // تم تصحيح الخطأ هنا بنجاح
             document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
         }
 
@@ -99,7 +101,7 @@
             previewContainer.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
         }
 
-        // رفع وتغيير صورة الأدمن من الجهاز وتحديثها في الـ LocalStorage والسحابة (عشان تظهر من أي جهاز)
+        // رفع وتغيير صورة الأدمن من الجهاز وتحديثها في الـ LocalStorage والسحابة
         document.getElementById('avatarInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -118,7 +120,7 @@
                         let rec = data.record;
 
                         if (!rec.admins) rec.admins = {};
-                        rec.admins[email.replace('.', '_')] = base64Image;
+                        rec.admins[email.replace(/\./g, '_')] = base64Image;
 
                         await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                             method: 'PUT',
