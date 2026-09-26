@@ -96,27 +96,11 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
-        const role = sessionStorage.getItem('adminRole');
+        // التحقق الأساسي من تسجيل الدخول
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
         }
-
-        if (role === 'master') {
-            document.getElementById('masterAdminSection').style.display = 'block';
-            document.getElementById('requestsSection').style.display = 'block';
-            document.getElementById('addStudentBtn').style.display = 'inline-block';
-            document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (المتحكم الكامل)';
-            fetchCloudAllData();
-        } else {
-            document.getElementById('adminsCountCard').style.display = 'none';
-            fetchStudentsOnly();
-        }
-
-        document.getElementById('logoutAdminBtn').addEventListener('click', function() {
-            sessionStorage.clear();
-            window.location.href = 'login.html';
-        });
 
         // هيدرز الاتصال المزدوج المعتمدة لمنع أخطاء السحابة
         const cloudHeaders = {
@@ -125,8 +109,10 @@
             'Content-Type': 'application/json'
         };
 
-        // جلب البيانات بالكامل للمطور الأساسي
-        async function fetchCloudAllData() {
+        // عند فتح الصفحة، نبدأ بفحص البيانات من السحابة لتحديد صلاحيات الأدمن بدقة
+        initDashboard();
+
+        async function initDashboard() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: cloudHeaders
@@ -135,33 +121,55 @@
                 let result = await response.json();
                 let rec = result.record || {};
 
-                renderRequests(rec.adminRequests || []);
-                
-                let rawAdmins = rec.admins;
-                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
-                renderAdmins(adminsList);
+                // جلب بيانات الأدمن الحالي المسجل (سواء من الـ sessionStorage أو عن طريق الايميل المحفوظ)
+                let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
+                let currentSessionRole = sessionStorage.getItem('adminRole');
 
-                renderStudents(rec.users || []);
+                // فحص هل هو ماستر فعلاً؟ (عن طريق الـ Session أو التأكد لو حسابه مبرمج كـ master في قاعدة البيانات)
+                let isMasterUser = (currentSessionRole === 'master');
+
+                if (!isMasterUser && currentAdminEmail) {
+                    let foundAdmin = (rec.admins || []).find(a => a.email === currentAdminEmail);
+                    if (foundAdmin && foundAdmin.role === 'master') {
+                        isMasterUser = true;
+                        sessionStorage.setItem('adminRole', 'master'); // تصحيح وتثبيت الصلاحية
+                    }
+                }
+
+                // لو الحساب للمطور أو مسجل بصلاحية ماستر، افتح كل الأقسام وعرض الإحصائيات
+                if (isMasterUser || currentSessionRole === 'master') {
+                    document.getElementById('masterAdminSection').style.display = 'block';
+                    document.getElementById('requestsSection').style.display = 'block';
+                    document.getElementById('addStudentBtn').style.display = 'inline-block';
+                    document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (المتحكم الكامل)';
+                    
+                    renderRequests(rec.adminRequests || []);
+                    
+                    let rawAdmins = rec.admins;
+                    let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
+                    renderAdmins(adminsList);
+
+                    renderStudents(rec.users || []);
+                } else {
+                    // أدمن عادي
+                    document.getElementById('adminsCountCard').style.display = 'none';
+                    renderStudents(rec.users || []);
+                }
+
             } catch (err) {
                 console.error(err);
                 document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
-                document.getElementById('adminsTableWrapper').innerHTML = '<p style="color:red; text-align:center;">تعذر التحميل.</p>';
             }
         }
 
-        // جلب الطلاب فقط للأدمن العادي
-        async function fetchStudentsOnly() {
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: cloudHeaders
-                });
-                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
-                let result = await response.json();
-                renderStudents(result.record.users || []);
-            } catch (err) {
-                console.error(err);
-                document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
-            }
+        document.getElementById('logoutAdminBtn').addEventListener('click', function() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // دالة التحديث الشاملة (تستخدم بعد أي عملية تعديل أو حذف)
+        async function fetchCloudAllData() {
+            initDashboard();
         }
 
         // عرض طلبات الأدمن المعلقة
@@ -394,7 +402,7 @@
                 }
             } else {
                 if (Array.isArray(rec.users)) {
-                    rec.users = rec.users.map(u => {
+                    rec.users = rec.users.api ? rec.users : rec.users.map(u => {
                         if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked';
                         return u;
                     });
