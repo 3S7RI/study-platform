@@ -1,17 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - رحلة دراسية</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        
+        .login-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 450px; }
+        .login-container h2 { text-align: center; color: #1e3c72; margin-bottom: 20px; font-size: 1.6rem; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; color: #333; font-weight: bold; font-size: 0.9rem; }
+        .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; }
+        
+        .show-pass-container { display: flex; align-items: center; gap: 5px; margin-bottom: 15px; font-size: 0.85rem; color: #555; }
+
+        .btn-submit { display: block; width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        .btn-submit:hover { background-color: #2471a3; }
+        .footer-text { text-align: center; margin-top: 15px; color: #666; font-size: 0.85rem; }
+        .footer-text a { color: #2980b9; text-decoration: none; font-weight: bold; }
+
+        /* شاشة الـ 404 الوهمية للمحظورين */
+        #banned404Screen { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; color: #000; text-align: center; font-family: monospace; padding-top: 15vh; z-index: 99999; }
+        #banned404Screen h1 { font-size: 5rem; color: #d32f2f; margin-bottom: 10px; }
+        #banned404Screen p { font-size: 1.2rem; color: #555; }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة الـ 404 المزيفة للمستخدمين المحظورين -->
+    <div id="banned404Screen">
+        <h1>404</h1>
+        <h2>Not Found</h2>
+        <br>
+        <p>The requested URL /study was not found on this server.</p>
+        <p style="margin-top: 20px; font-size: 0.85rem; color: #888;">Apache/2.4.41 (Ubuntu) Server at 3s7ri.github.io Port 443</p>
+    </div>
+
+    <div class="login-container" id="loginCard">
+        <h2>تسجيل الدخول لمنصتك</h2>
+        <div>
+            <div class="input-group">
+                <label>البريد الإلكتروني</label>
+                <input type="email" id="loginEmail" placeholder="example@gmail.com" required>
+            </div>
+            <div class="input-group">
+                <label>كلمة المرور</label>
+                <input type="password" id="loginPassword" placeholder="********" required>
+            </div>
+            
+            <div class="show-pass-container">
+                <input type="checkbox" id="showPasswordCheck">
+                <label for="showPasswordCheck" style="cursor:pointer;">👁️ إظهار كلمة المرور</label>
+            </div>
+
+            <button type="button" id="loginBtn" class="btn-submit">دخول إلى المنصة</button>
+        </div>
+        <div class="footer-text">
+            ليس لديك حساب؟ <a href="index.html">إنشاء حساب جديد</a>
+        </div>
+    </div>
+
     <script>
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // بيانات المطور الأساسي (أنت وحدك)
         const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com';
         const ADMIN_SECRET_PASS = '@Mohamad66xm01122161407';
 
-        const passwordInput = document.getElementById('loginPassword');
-        const showPasswordCheck = document.getElementById('showPasswordCheck');
-
-        showPasswordCheck.addEventListener('change', function() {
-            passwordInput.type = this.checked ? 'text' : 'password';
+        document.getElementById('showPasswordCheck').addEventListener('change', function() {
+            document.getElementById('loginPassword').type = this.checked ? 'text' : 'password';
         });
+
+        function triggerBanned404() {
+            document.getElementById('loginCard').style.display = 'none';
+            document.getElementById('banned404Screen').style.display = 'block';
+        }
 
         document.getElementById('loginBtn').addEventListener('click', async function() {
             const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -26,7 +91,7 @@
             btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
-            // 1. التحقق الصارم جداً من المطور الأساسي (يجب أن يتطابق الإيميل والباسورد معاً بدقة)
+            // 1. الدخول الصارم للمطور الأساسي (أنت)
             if (email === MASTER_ADMIN_EMAIL && pass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 sessionStorage.setItem('adminRole', 'master');
@@ -36,52 +101,65 @@
                 return;
             }
 
-            // لو كتب إيميلك الأساسي لكن باسورد غلط، أو كتب إيميل تاني وباسوردك (يمنعه فوراً ولا يعامله كمطور)
-            if (email === MASTER_ADMIN_EMAIL && pass !== ADMIN_SECRET_PASS) {
-                alert('كلمة المرور الخاصة بالمطور الأساسي غير صحيحة!');
-                btn.textContent = 'دخول إلى المنصة';
-                btn.disabled = false;
-                return;
-            }
-
-            // 2. الاتصال بالسحابة للتحقق من المشرفين الفرعيين أو الطلاب العاديين
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
-                let data = await response.json();
-                
-                let adminsList = data.record.admins || [];
-                let studentsList = data.record.users || [];
+                let result = await response.json();
+                let record = result.record;
+                let adminsList = record.admins || [];
+                let studentsList = record.users || [];
+                let adminRequests = record.adminRequests || [];
 
-                // فحص المشرفين الفرعيين
-                let foundAdmin = adminsList.find(adm => adm.email.toLowerCase() === email && adm.password === pass);
+                // 2. التحقق من الحظر لدى المشرفين والطلاب
+                let foundAdmin = adminsList.find(adm => adm.email.toLowerCase() === email);
+                let foundStudent = studentsList.find(st => st.email.toLowerCase() === email);
 
-                if (foundAdmin) {
-                    if (foundAdmin.status === 'blocked') {
-                        alert('عفواً، تم إيقاف حساب الإشراف الخاص بك من قبل المطور الرئيسي!');
-                        btn.textContent = 'دخول إلى المنصة';
-                        btn.disabled = false;
-                        return;
-                    }
+                if ((foundAdmin && foundAdmin.status === 'blocked') || (foundStudent && foundStudent.status === 'blocked')) {
+                    triggerBanned404();
+                    return;
+                }
 
+                // 3. لو المشرف الفرعي مسجل ومفعل في النظام
+                if (foundAdmin && foundAdmin.password === pass) {
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    sessionStorage.setItem('adminRole', 'sub');
+                    sessionStorage.setItem('adminRole', foundAdmin.role || 'sub');
                     sessionStorage.setItem('adminEmail', foundAdmin.email);
-                    sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف معتمد');
+                    sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف');
                     
                     alert(`أهلاً بك يا مشرفنا ${foundAdmin.name}!`);
                     window.location.href = 'admin.html';
                     return;
                 }
 
-                // 3. فحص حسابات الطلاب العادية
-                let foundStudent = studentsList.find(student => student.email.toLowerCase() === email && student.password === pass);
+                // 4. إذا حاول أي شخص تسجيل دخول بكلمة سر الأدمن بدون موافقة المطور
+                if (pass === ADMIN_SECRET_PASS && email !== MASTER_ADMIN_EMAIL) {
+                    // تسجيل طلب إشراف جديد للمطور
+                    if (!adminRequests.some(req => req.email === email)) {
+                        adminRequests.push({
+                            email: email,
+                            requestedAt: new Date().toLocaleDateString('ar-EG'),
+                            status: 'pending'
+                        });
+                        record.adminRequests = adminRequests;
 
-                if (foundStudent) {
+                        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                            body: JSON.stringify(record)
+                        });
+                    }
+
+                    alert('تم إرسال طلب انضمام كـ أدمن إلى المطور الأساسي! سيتم مراجعة طلبك وقبوله قريباً.');
+                    btn.textContent = 'دخول إلى المنصة';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // 5. التحقق من الطلاب العاديين
+                if (foundStudent && foundStudent.password === pass) {
                     localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                     localStorage.setItem('isLoggedIn', 'true');
-                    
                     alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}!`);
                     window.location.href = 'main.html';
                 } else {
@@ -89,11 +167,14 @@
                     btn.textContent = 'دخول إلى المنصة';
                     btn.disabled = false;
                 }
+
             } catch (error) {
-                console.error('خطأ:', error);
+                console.error(error);
                 alert('حدث خطأ أثناء الاتصال بالسحابة!');
                 btn.textContent = 'دخول إلى المنصة';
                 btn.disabled = false;
             }
         });
     </script>
+</body>
+</html>
