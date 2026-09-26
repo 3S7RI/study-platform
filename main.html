@@ -89,7 +89,7 @@
         .welcome-section h1 { color: var(--welcome-h1); font-size: 1.8rem; margin-bottom: 10px; }
         .welcome-section p { color: var(--welcome-p); font-size: 1rem; }
         
-        .sections-container { max-width: 10000px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+        .sections-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-top: 4px solid #2a5298; }
         .card h3 { color: var(--welcome-h1); font-size: 1.4rem; margin-bottom: 10px; }
         .card p { color: var(--card-text); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5; }
@@ -136,47 +136,71 @@
         </div>
     </main>
 
-    <div>
-        <script>
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (isLoggedIn !== 'true') {
-                alert('يجب تسجيل الدخول أولاً!');
-                window.location.href = 'index.html';
-            }
+    <script>
+        // التحقق من حالة تسجيل الدخول (سواء طالب أو أدمن)
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
 
-            const userData = JSON.parse(localStorage.getItem('studentUser'));
-            if (userData && userData.fullName) {
-                let firstName = userData.fullName.trim().split(' ')[0];
-                
-                document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                document.getElementById('navStudentName').innerText = firstName;
+        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'index.html';
+        }
 
-                // التعديل الجذري هنا: تم تصحيح اسم المفتاح ليطابق profileImage الصحيح
-                if (userData.profileImage) {
-                    document.getElementById('navProfileImg').src = userData.profileImage;
+        // التعامل مع بيانات الطالب لو كان مسجل دخول كطالب
+        const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
+        if (userData && userData.fullName) {
+            let firstName = userData.fullName.trim().split(' ')[0];
+            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+            document.getElementById('navStudentName').innerText = firstName;
+        } else if (isAdminLoggedIn === 'true') {
+            // لو مسجل كأدمن نظهر كلمة "الأدمن" أو الاسم في النافبار
+            document.getElementById('navStudentName').innerText = 'الأدمن';
+        }
+
+        // جلب الصورة الشخصية وضمان ظهورها في النافبار من أي مكان تم تخزينها فيه
+        const navProfileImg = document.getElementById('navProfileImg');
+        const adminEmail = sessionStorage.getItem('adminEmail');
+        let profileImgSrc = null;
+
+        if (userData.profileImage) {
+            profileImgSrc = userData.profileImage;
+        } else if (adminEmail && localStorage.getItem('adminAvatar_' + adminEmail)) {
+            profileImgSrc = localStorage.getItem('adminAvatar_' + adminEmail);
+        } else {
+            // البحث التلقائي في الـ LocalStorage عن أي صورة أدمن مسجلة مسبقاً
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                if (key.startsWith('adminAvatar_')) {
+                    profileImgSrc = localStorage.getItem(key);
+                    break;
                 }
             }
+        }
 
-            const themeToggleBtn = document.getElementById('themeToggleBtn');
-            const pageBody = document.getElementById('pageBody');
+        if (profileImgSrc) {
+            navProfileImg.src = profileImgSrc;
+        }
 
-            const currentTheme = localStorage.getItem('theme');
-            if (currentTheme === 'dark') {
-                pageBody.classList.add('dark-mode');
+        // نظام الوضع الليلي والنهاري (Dark/Light Mode)
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const pageBody = document.getElementById('pageBody');
+
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark') {
+            pageBody.classList.add('dark-mode');
+            themeToggleBtn.textContent = '☀️';
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            pageBody.classList.toggle('dark-mode');
+            if (pageBody.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
                 themeToggleBtn.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent = '🌙';
             }
-
-            themeToggleBtn.addEventListener('click', function() {
-                pageBody.classList.toggle('dark-mode');
-                if (pageBody.classList.contains('dark-mode')) {
-                    localStorage.setItem('theme', 'dark');
-                    themeToggleBtn.textContent = '☀️';
-                } else {
-                    localStorage.setItem('theme', 'light');
-                    themeToggleBtn.textContent = '🌙';
-                }
-            });
-        </script>
-    </div>
+        });
+    </script>
 </body>
 </html>
