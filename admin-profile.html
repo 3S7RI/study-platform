@@ -62,31 +62,16 @@
     </div>
 
     <script>
-        // تثبيت بيانات وصلاحيات الأدمن قسرياً لمنع أي سكربت خارجي من طردك
+        // تثبيت جلسة الأدمن في الـ sessionStorage لضمان عدم حدوث تداخل مع حساب الطالب
         (function() {
-            localStorage.setItem('isAdminLoggedIn', 'true');
-            localStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-            localStorage.setItem('currentUser', JSON.stringify({
-                email: "mohamad66xm@gmail.com",
-                fullName: "محمد عشري",
-                role: "admin"
-            }));
-            
             sessionStorage.setItem('isAdminLoggedIn', 'true');
+            sessionStorage.setItem('adminRole', 'master');
             sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-
-            // منع ظهور رسائل الطرد الوهمية لأدمن المنصة
-            window.alert = function(msg) {
-                if(msg && (msg.includes('تسجيل الدخول') || msg.includes('يجب'))) {
-                    return; 
-                }
-                // أي رسالة تنبيه عادية أخرى ستعمل بشكل طبيعي
-            };
         })();
 
         const currentEmail = 'mohamad66xm@gmail.com';
 
-        // تحميل الصورة المخزنة محلياً فوراً
+        // تحميل الصورة المخزنة محلياً للأدمن فوراً
         let savedAvatar = localStorage.getItem('adminAvatar_' + currentEmail);
         if (savedAvatar) {
             document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
@@ -107,10 +92,11 @@
             }
         });
 
-        // زر تسجيل الخروج الحقيقي
+        // زر تسجيل الخروج الخاص بالأدمن (يمسح جلسة الأدمن فقط)
         document.getElementById('logoutAdminBtn').addEventListener('click', function() {
-            localStorage.clear();
-            sessionStorage.clear();
+            sessionStorage.removeItem('isAdminLoggedIn');
+            sessionStorage.removeItem('adminRole');
+            sessionStorage.removeItem('adminEmail');
             window.location.href = 'login.html';
         });
     </script>
