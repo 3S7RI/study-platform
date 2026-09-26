@@ -45,7 +45,6 @@
         
         .profile-header { text-align: center; margin-bottom: 25px; }
         
-        /* تصميم غلاف الصورة وأيقونة التغيير المقتبسة من بروفايل الأدمن */
         .avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
         .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid #2a5298; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: #e2e8f0; }
         
@@ -71,6 +70,21 @@
 
         .profile-header h2 { color: var(--text-color); font-size: 1.5rem; margin-bottom: 5px; }
         .student-badge { display: inline-block; background: #27ae60; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
+
+        /* قسم البحث المخصص للطالب عن الملازم والمستندات */
+        .doc-search-section {
+            background: rgba(0,0,0,0.02);
+            border: 1px solid var(--input-border);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .doc-search-section h3 { font-size: 1rem; color: #2a5298; margin-bottom: 10px; }
+        .doc-search-section input { width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); border-radius: 6px; font-size: 0.9rem; outline: none; margin-bottom: 10px; }
+        .doc-list { display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; }
+        .doc-item { padding: 8px 12px; background: var(--card-bg); border: 1px solid var(--input-border); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .doc-item span { font-size: 0.88rem; font-weight: 600; }
+        .doc-item a { text-decoration: none; color: white; background: #27ae60; padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; }
 
         .info-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 25px; }
         .info-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; color: var(--card-text); }
@@ -103,7 +117,26 @@
             <span class="student-badge" id="profileStudentId">STU-0000</span>
         </div>
 
-        <!-- مدخل اختيار الصورة المخفي -->
+        <!-- قسم البحث الفوري عن الملازم والمستندات للطالب -->
+        <div class="doc-search-section">
+            <h3>📖 البحث في المستندات والملازم</h3>
+            <input type="text" id="docSearchInput" placeholder="ابحث باسم المادة، الملزمة أو الدرس..." onkeyup="filterDocuments()">
+            <div class="doc-list" id="docListContainer">
+                <div class="doc-item" data-title="ملزمة الفيزياء الفصل الاول">
+                    <span>📄 ملزمة الفيزياء - الفصل الأول</span>
+                    <a href="#" onclick="alert('جاري تجهيز التحميل...')">تحميل 📥</a>
+                </div>
+                <div class="doc-item" data-title="ملخص الكيمياء العضوية">
+                    <span>📄 ملخص الكيمياء العضوية</span>
+                    <a href="#" onclick="alert('جاري تجهيز التحميل...')">تحميل 📥</a>
+                </div>
+                <div class="doc-item" data-title="بنك أسئلة الرياضيات">
+                    <span>📄 بنك أسئلة الرياضيات</span>
+                    <a href="#" onclick="alert('جاري تجهيز التحميل...')">تحميل 📥</a>
+                </div>
+            </div>
+        </div>
+
         <input type="file" id="editImageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 
         <div class="info-grid">
@@ -139,7 +172,6 @@
             'Content-Type': 'application/json'
         };
 
-        // التحقق من تسجيل الدخول
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
@@ -147,7 +179,6 @@
 
         let userData = JSON.parse(localStorage.getItem('studentUser')) || {};
 
-        // تعبئة البيانات في الحقول
         document.getElementById('profileName').textContent = userData.fullName || 'طالب رحلة دراسية';
         document.getElementById('profileStudentId').textContent = userData.studentId || 'STU-0000';
         document.getElementById('editFullName').value = userData.fullName || '';
@@ -159,7 +190,21 @@
             document.getElementById('profileImg').src = userData.profileImage || userData.profileImg;
         }
 
-        // دالة ضغط وتحويل الصورة لـ Base64
+        // تصفية المستندات
+        function filterDocuments() {
+            let input = document.getElementById('docSearchInput').value.toLowerCase();
+            let items = document.querySelectorAll('.doc-item');
+
+            items.forEach(item => {
+                let title = item.getAttribute('data-title').toLowerCase();
+                if (title.includes(input)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
         function convertImageToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -192,7 +237,6 @@
             });
         }
 
-        // معالجة اختيار الصورة تلقائياً من الأيقونة
         async function handleImageUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -203,7 +247,6 @@
                 userData.profileImage = base64Img;
                 userData.profileImg = base64Img;
 
-                // تحديث الصورة في السحابة فوراً
                 await syncStudentToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
             } catch (e) {
                 console.error("خطأ في معالجة الصورة", e);
@@ -211,7 +254,6 @@
             }
         }
 
-        // حفظ البيانات وحفظها في السحابة
         document.getElementById('saveChangesBtn').addEventListener('click', async function() {
             const newName = document.getElementById('editFullName').value.trim();
             const newSPhone = document.getElementById('editStudentPhone').value.trim();
@@ -237,9 +279,7 @@
             saveBtn.disabled = false;
         });
 
-        // دالة التزامن المباشر مع السحابة
         async function syncStudentToCloud(successMsg) {
-            // تحديث التخزين المحلي أولاً
             localStorage.setItem('studentUser', JSON.stringify(userData));
 
             try {
@@ -252,7 +292,6 @@
                 let record = result.record || {};
                 let users = Array.isArray(record.users) ? record.users : [];
 
-                // البحث عن الطالب بواسطة البريد الإلكتروني أو كود الطالب
                 let index = users.findIndex(u => 
                     (u.email && userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
                     (u.studentId && userData.studentId && u.studentId === userData.studentId)
@@ -283,14 +322,12 @@
             }
         }
 
-        // زر تسجيل الخروج
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('studentUser');
             window.location.href = 'login.html';
         });
 
-        // نظام الوضع الليلي (Dark Mode)
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const pageBody = document.getElementById('pageBody');
 
