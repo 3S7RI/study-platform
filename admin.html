@@ -118,20 +118,34 @@
             window.location.href = 'login.html';
         });
 
-        // جلب البيانات للرئيسي
+        // هيدرز الاتصال المزدوج المعتمدة لمنع أخطاء السحابة
+        const cloudHeaders = {
+            'X-Master-Key': API_KEY,
+            'X-Access-Key': API_KEY,
+            'Content-Type': 'application/json'
+        };
+
+        // جلب البيانات بالكامل للمطور الأساسي
         async function fetchCloudAllData() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    headers: cloudHeaders
                 });
+                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
                 let result = await response.json();
-                let rec = result.record;
+                let rec = result.record || {};
 
                 renderRequests(rec.adminRequests || []);
-                renderAdmins(rec.admins || []);
+                
+                let rawAdmins = rec.admins;
+                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
+                renderAdmins(adminsList);
+
                 renderStudents(rec.users || []);
             } catch (err) {
                 console.error(err);
+                document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
+                document.getElementById('adminsTableWrapper').innerHTML = '<p style="color:red; text-align:center;">تعذر التحميل.</p>';
             }
         }
 
@@ -139,19 +153,21 @@
         async function fetchStudentsOnly() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    headers: cloudHeaders
                 });
+                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
                 let result = await response.json();
                 renderStudents(result.record.users || []);
             } catch (err) {
                 console.error(err);
+                document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
             }
         }
 
         // عرض طلبات الأدمن المعلقة
         function renderRequests(requests) {
             const wrapper = document.getElementById('requestsTableWrapper');
-            if (requests.length === 0) {
+            if (!requests || requests.length === 0) {
                 wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا توجد طلبات إشراف جديدة حالياً.</p>';
                 return;
             }
@@ -176,7 +192,7 @@
             const wrapper = document.getElementById('adminsTableWrapper');
             document.getElementById('totalAdminsCount').textContent = admins.length;
 
-            if (admins.length === 0) {
+            if (!admins || admins.length === 0) {
                 wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا يوجد مشرفين حالياً.</p>';
                 return;
             }
@@ -203,9 +219,9 @@
         // عرض الطلاب
         function renderStudents(users) {
             const wrapper = document.getElementById('tableWrapper');
-            document.getElementById('totalStudentsCount').textContent = users.length;
+            document.getElementById('totalStudentsCount').textContent = users ? users.length : 0;
 
-            if (users.length === 0) {
+            if (!users || users.length === 0) {
                 wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا يوجد طلاب.</p>';
                 return;
             }
@@ -238,9 +254,9 @@
             let studentId = prompt("أدخل كود الطالب (مثال: STU-0003):") || "STU-" + Math.floor(1000 + Math.random() * 9000);
             let password = prompt("أدخل كلمة المرور الخاصة بالطالب:") || "123456";
 
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
             if (!rec.users) rec.users = [];
             rec.users.push({
@@ -249,12 +265,13 @@
                 studentPhone: phone,
                 studentId: studentId,
                 password: password,
-                status: 'active'
+                status: 'active',
+                profileImage: ''
             });
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
 
@@ -271,9 +288,9 @@
             let password = prompt("أدخل كلمة المرور للأدمن:") || "@Mohamad66xm01122161407";
             let typeChoice = prompt("اختر الرتبة: اكتب (master) لمتحكم كامل، أو (sub) لأدمن عادي:") || "sub";
 
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
             if (!rec.admins) rec.admins = [];
             rec.admins.push({
@@ -287,7 +304,7 @@
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
 
@@ -297,9 +314,9 @@
 
         // قبول طلب الإشراف
         window.approveAdminReq = async function(email, assignRole) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
             rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
             if (!rec.admins) rec.admins = [];
@@ -315,7 +332,7 @@
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
 
@@ -325,14 +342,14 @@
 
         // رفض طلب الإشراف
         window.rejectAdminReq = async function(email) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
             rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
             fetchCloudAllData();
@@ -340,21 +357,23 @@
 
         // التبديل بين الرتب
         window.toggleAdminRole = async function(email) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
-            rec.admins = rec.admins.map(a => {
-                if (a.email === email) {
-                    a.role = a.role === 'master' ? 'sub' : 'master';
-                    a.badge = a.role === 'master' ? 'متحكم كامل' : 'مشرف معتمد';
-                }
-                return a;
-            });
+            if (Array.isArray(rec.admins)) {
+                rec.admins = rec.admins.map(a => {
+                    if (a.email === email) {
+                        a.role = a.role === 'master' ? 'sub' : 'master';
+                        a.badge = a.role === 'master' ? 'متحكم كامل' : 'مشرف معتمد';
+                    }
+                    return a;
+                });
+            }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
             fetchCloudAllData();
@@ -362,25 +381,29 @@
 
         // حظر / إلغاء حظر
         window.toggleBlockStatus = async function(email, type) {
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
             if (type === 'admin') {
-                rec.admins = rec.admins.map(a => {
-                    if (a.email === email) a.status = a.status === 'blocked' ? 'active' : 'blocked';
-                    return a;
-                });
+                if (Array.isArray(rec.admins)) {
+                    rec.admins = rec.admins.map(a => {
+                        if (a.email === email) a.status = a.status === 'blocked' ? 'active' : 'blocked';
+                        return a;
+                    });
+                }
             } else {
-                rec.users = rec.users.map(u => {
-                    if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked';
-                    return u;
-                });
+                if (Array.isArray(rec.users)) {
+                    rec.users = rec.users.map(u => {
+                        if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked';
+                        return u;
+                    });
+                }
             }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
             fetchCloudAllData();
@@ -390,19 +413,23 @@
         window.deleteRecord = async function(email, type) {
             if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
 
-            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
-            let rec = data.record;
+            let rec = data.record || {};
 
             if (type === 'admin') {
-                rec.admins = rec.admins.filter(a => a.email !== email);
+                if (Array.isArray(rec.admins)) {
+                    rec.admins = rec.admins.filter(a => a.email !== email);
+                }
             } else {
-                rec.users = rec.users.filter(u => u.email !== email);
+                if (Array.isArray(rec.users)) {
+                    rec.users = rec.users.filter(u => u.email !== email);
+                }
             }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                headers: cloudHeaders,
                 body: JSON.stringify(rec)
             });
             fetchCloudAllData();
