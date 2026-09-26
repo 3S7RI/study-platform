@@ -21,26 +21,19 @@
         .stat-card h3 { color: #666; font-size: 0.85rem; margin-bottom: 5px; }
         .stat-card p { color: #1e3c72; font-size: 1.5rem; font-weight: bold; }
 
-        /* قسم إدارة المشرفين (يظهر للمطور الأساسي فقط) */
         .section-box { background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 15px; margin-bottom: 20px; overflow-x: auto; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .section-header h2 { color: #1e3c72; font-size: 1.1rem; }
 
-        .btn-action { background: #27ae60; color: white; border: none; padding: 7px 14px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
-        .btn-danger { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; }
-        .btn-warning { background: #f39c12; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; }
+        .btn-approve { background: #27ae60; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .btn-master { background: #8e44ad; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .btn-block { background: #e67e22; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; font-weight: bold; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; min-width: 650px; }
+        table { width: 100%; border-collapse: collapse; text-align: right; min-width: 700px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 0.85rem; white-space: nowrap; }
         th { background: #f8f9fa; color: #333; font-weight: bold; }
         tr:hover { background: #f9f9f9; }
-
-        /* نافذة منبثقة لإضافة مشرف */
-        #addAdminModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .modal-input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; outline: none; }
-        .modal-btns { display: flex; gap: 10px; margin-top: 10px; }
-        .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -59,46 +52,39 @@
                 <h3>إجمالي الطلاب المسجلين</h3>
                 <p id="totalStudentsCount">0</p>
             </div>
-            <div class="stat-card" style="border-right-color: #27ae60;" id="adminsCountCard">
-                <h3>المشرفين الفرعيين</h3>
-                <p id="totalAdminsCount" style="color: #27ae60;">0</p>
+            <div class="stat-card" style="border-right-color: #8e44ad;" id="adminsCountCard">
+                <h3>طاقم الأدمنز والمشرفين</h3>
+                <p id="totalAdminsCount" style="color: #8e44ad;">0</p>
             </div>
         </div>
 
-        <!-- قسم إدارة المشرفين (يظهر للمطور الأساسي فقط) -->
-        <div class="section-box" id="masterAdminSection" style="display: none; border: 2px dashed #3498db;">
+        <!-- 1. قسم طلبات الإشراف المعلقة (للمطور فقط) -->
+        <div class="section-box" id="requestsSection" style="display: none; border: 2px solid #f39c12;">
             <div class="section-header">
-                <h2>🛡️ إدارة المشرفين الفرعيين (صلاحيات المطور)</h2>
-                <button class="btn-action" id="openAddAdminModal">➕ إضافة مشرف جديد</button>
+                <h2 style="color: #d35400;">📩 طلبات الانضمام كـ أدمن (المعلقة)</h2>
+            </div>
+            <div id="requestsTableWrapper">
+                <div style="text-align: center; padding: 10px; color: #666;">لا يوجد طلبات جديدة.</div>
+            </div>
+        </div>
+
+        <!-- 2. قسم إدارة الأدمنز والمشرفين (للمطور فقط) -->
+        <div class="section-box" id="masterAdminSection" style="display: none; border: 2px dashed #2980b9;">
+            <div class="section-header">
+                <h2>🛡️ إدارة المشرفين والصلاحيات (التحكم الكامل)</h2>
             </div>
             <div id="adminsTableWrapper">
-                <div style="text-align: center; padding: 15px; color: #666;">جاري تحميل المشرفين...</div>
+                <div style="text-align: center; padding: 15px; color: #666;">جاري التحميل...</div>
             </div>
         </div>
 
-        <!-- جدول بيانات الطلاب -->
+        <!-- 3. جدول بيانات الطلاب -->
         <div class="section-box">
             <div class="section-header">
                 <h2>📋 قائمة الطلاب المسجلين في المنصة</h2>
             </div>
             <div id="tableWrapper">
-                <div style="text-align: center; padding: 20px; color: #666;">جاري جلب البيانات...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة إضافة مشرف جديد -->
-    <div id="addAdminModal">
-        <div class="modal-content">
-            <h3 style="color: #1e3c72; margin-bottom: 15px; text-align: center;">🛡️ إضافة مشرف فرعي جديد</h3>
-            <input type="text" id="adminName" class="modal-input" placeholder="اسم المشرف الكامل">
-            <input type="email" id="adminEmail" class="modal-input" placeholder="البريد الإلكتروني للإشراف">
-            <input type="password" id="adminPassword" class="modal-input" placeholder="كلمة المرور">
-            <input type="text" id="adminBadge" class="modal-input" placeholder="الشارة (مثال: مشرف عام، مساعد مالي...)">
-            
-            <div class="modal-btns">
-                <button type="button" style="background: #27ae60; color: white;" id="saveNewAdminBtn">حفظ ومنح الصلاحية</button>
-                <button type="button" style="background: #95a5a6; color: white;" id="closeAdminModal">إلغاء</button>
+                <div style="text-align: center; padding: 20px; color: #666;">جاري جلب بيانات الطلاب...</div>
             </div>
         </div>
     </div>
@@ -113,214 +99,229 @@
             window.location.href = 'login.html';
         }
 
-        // لو أنت المطور الأساسي، افتح لوحة التحكم الخاصة بالمشرفين
         if (role === 'master') {
             document.getElementById('masterAdminSection').style.display = 'block';
-            document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (تحكم كامل)';
-            fetchAdminsData();
+            document.getElementById('requestsSection').style.display = 'block';
+            document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (المتحكم الكامل)';
+            fetchCloudAllData();
         } else {
             document.getElementById('adminsCountCard').style.display = 'none';
+            fetchStudentsOnly();
         }
-
-        fetchCloudData();
 
         document.getElementById('logoutAdminBtn').addEventListener('click', function() {
             sessionStorage.clear();
             window.location.href = 'login.html';
         });
 
-        // نافذة المشرفين
-        const adminModal = document.getElementById('addAdminModal');
-        document.getElementById('openAddAdminModal').onclick = () => adminModal.style.display = 'flex';
-        document.getElementById('closeAdminModal').onclick = () => adminModal.style.display = 'none';
-
-        // جلب بيانات الطلاب
-        async function fetchCloudData() {
-            const tableWrapper = document.getElementById('tableWrapper');
+        // جلب كل البيانات للمطور الأساسي
+        async function fetchCloudAllData() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 let result = await response.json();
-                let users = result.record.users || [];
-                document.getElementById('totalStudentsCount').textContent = users.length;
+                let rec = result.record;
 
-                if (users.length === 0) {
-                    tableWrapper.innerHTML = '<p style="text-align: center; padding: 15px; color: #777;">لا يوجد طلاب مسجلين.</p>';
-                    return;
-                }
-
-                let html = `<table><thead><tr><th>الكود</th><th>اسم الطالب</th><th>البريد</th><th>هاتف الطالب</th><th>الإجراءات</th></tr></thead><tbody>`;
-                users.forEach(st => {
-                    html += `<tr>
-                        <td><b>${st.studentId || 'STU-0000'}</b></td>
-                        <td>${st.fullName || '-'}</td>
-                        <td>${st.email || '-'}</td>
-                        <td>${st.studentPhone || '-'}</td>
-                        <td><button class="btn-danger" onclick="deleteStudent('${st.email}')">حذف 🗑️</button></td>
-                    </tr>`;
-                });
-                html += `</tbody></table>`;
-                tableWrapper.innerHTML = html;
+                renderRequests(rec.adminRequests || []);
+                renderAdmins(rec.admins || []);
+                renderStudents(rec.users || []);
             } catch (err) {
-                tableWrapper.innerHTML = '<p style="color: red; text-align: center;">فشل تحميل بيانات الطلاب.</p>';
+                console.error(err);
             }
         }
 
-        // جلب وإدارة المشرفين (للمطور فقط)
-        async function fetchAdminsData() {
-            const wrapper = document.getElementById('adminsTableWrapper');
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let admins = result.record.admins || [];
-                document.getElementById('totalAdminsCount').textContent = admins.length;
-
-                if (admins.length === 0) {
-                    wrapper.innerHTML = '<p style="text-align: center; padding: 10px; color: #777;">لا يوجد مشرفين فرعيين حالياً.</p>';
-                    return;
-                }
-
-                let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد الإلكتروني</th><th>الشارة</th><th>الحالة</th><th>تحكم المطور</th></tr></thead><tbody>`;
-                admins.forEach(adm => {
-                    let isBlocked = adm.status === 'blocked';
-                    html += `<tr>
-                        <td><b>${adm.name}</b></td>
-                        <td>${adm.email}</td>
-                        <td><span style="background: #e1f5fe; color: #0288d1; padding: 3px 8px; border-radius: 4px; font-weight: bold;">${adm.badge || 'مشرف'}</span></td>
-                        <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'موقوف 🔴' : 'نشط 🟢'}</span></td>
-                        <td>
-                            <button class="btn-warning" onclick="toggleAdminStatus('${adm.email}', '${isBlocked ? 'active' : 'blocked'}')">${isBlocked ? 'تفعيل 🔓' : 'إيقاف 🔒'}</button>
-                            <button class="btn-danger" onclick="deleteAdmin('${adm.email}')">حذف ❌</button>
-                        </td>
-                    </tr>`;
-                });
-                html += `</tbody></table>`;
-                wrapper.innerHTML = html;
-            } catch (err) {
-                wrapper.innerHTML = '<p style="color: red; text-align: center;">فشل تحميل المشرفين.</p>';
-            }
-        }
-
-        // حفظ مشرف جديد
-        document.getElementById('saveNewAdminBtn').onclick = async function() {
-            const name = document.getElementById('adminName').value.trim();
-            const email = document.getElementById('adminEmail').value.trim();
-            const password = document.getElementById('adminPassword').value.trim();
-            const badge = document.getElementById('adminBadge').value.trim() || 'مشرف معتمد';
-
-            if (!name || !email || !password) {
-                alert('املأ الحقول الأساسية!');
+        // عرض طلبات الأدمن المعلقة
+        function renderRequests(requests) {
+            const wrapper = document.getElementById('requestsTableWrapper');
+            if (requests.length === 0) {
+                wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا توجد طلبات إشراف جديدة حالياً.</p>';
                 return;
             }
+            let html = `<table><thead><tr><th>البريد الإلكتروني</th><th>تاريخ الطلب</th><th>القرارات والتحكم</th></tr></thead><tbody>`;
+            requests.forEach(req => {
+                html += `<tr>
+                    <td><b>${req.email}</b></td>
+                    <td>${req.requestedAt || '-'}</td>
+                    <td>
+                        <button class="btn-approve" onclick="approveAdminReq('${req.email}', 'sub')">قبول كـ أدمن عادي 🛡️</button>
+                        <button class="btn-master" onclick="approveAdminReq('${req.email}', 'master')">ترقية لمتحكم كامل ⚡</button>
+                        <button class="btn-danger" onclick="rejectAdminReq('${req.email}')">رفض ❌</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            wrapper.innerHTML = html;
+        }
 
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let record = result.record;
-                if (!record.admins) record.admins = [];
+        // عرض قائمة المشرفين والأدمنز
+        function renderAdmins(admins) {
+            const wrapper = document.getElementById('adminsTableWrapper');
+            document.getElementById('totalAdminsCount').textContent = admins.length;
 
-                if (record.admins.some(a => a.email === email)) {
-                    alert('هذا المشرف مسجل مسبقاً بهذا البريد!');
-                    return;
+            if (admins.length === 0) {
+                wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا يوجد مشرفين حالياً.</p>';
+                return;
+            }
+            let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد</th><th>الرتبة</th><th>الحالة</th><th>إجراءات التحكم</th></tr></thead><tbody>`;
+            admins.forEach(adm => {
+                let isBlocked = adm.status === 'blocked';
+                let isMasterRole = adm.role === 'master';
+                html += `<tr>
+                    <td><b>${adm.name || 'أدمن'}</b></td>
+                    <td>${adm.email}</td>
+                    <td><b style="color: ${isMasterRole ? '#8e44ad' : '#2980b9'}">${isMasterRole ? 'متحكم كامل ⚡' : 'أدمن عادي 🛡️'}</b></td>
+                    <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
+                    <td>
+                        <button class="btn-master" onclick="toggleAdminRole('${adm.email}')">${isMasterRole ? 'تنزيل لأدمن عادي' : 'ترقية لمتحكم كامل'}</button>
+                        <button class="btn-block" onclick="toggleBlockStatus('${adm.email}', 'admin')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر (404) 🔒'}</button>
+                        <button class="btn-danger" onclick="deleteRecord('${adm.email}', 'admin')">حذف 🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            wrapper.innerHTML = html;
+        }
+
+        // عرض الطلاب
+        function renderStudents(users) {
+            const wrapper = document.getElementById('tableWrapper');
+            document.getElementById('totalStudentsCount').textContent = users.length;
+
+            if (users.length === 0) {
+                wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا يوجد طلاب.</p>';
+                return;
+            }
+            let html = `<table><thead><tr><th>الكود</th><th>اسم الطالب</th><th>البريد</th><th>الهاتف</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>`;
+            users.forEach(st => {
+                let isBlocked = st.status === 'blocked';
+                html += `<tr>
+                    <td><b>${st.studentId || 'STU-0000'}</b></td>
+                    <td>${st.fullName || '-'}</td>
+                    <td>${st.email || '-'}</td>
+                    <td>${st.studentPhone || '-'}</td>
+                    <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
+                    <td>
+                        <button class="btn-block" onclick="toggleBlockStatus('${st.email}', 'user')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر (404) 🔒'}</button>
+                        <button class="btn-danger" onclick="deleteRecord('${st.email}', 'user')">حذف 🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            wrapper.innerHTML = html;
+        }
+
+        // قبول طلب الإشراف
+        window.approveAdminReq = async function(email, assignRole) {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
+
+            rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
+            if (!rec.admins) rec.admins = [];
+
+            rec.admins.push({
+                name: email.split('@')[0],
+                email: email,
+                password: '@Mohamad66xm01122161407',
+                role: assignRole,
+                status: 'active',
+                badge: assignRole === 'master' ? 'متحكم كامل' : 'مشرف معتمد'
+            });
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+
+            alert(`تم قبول ${email} برتبة (${assignRole === 'master' ? 'متحكم كامل' : 'أدمن عادي'}) بنجاح!`);
+            fetchCloudAllData();
+        };
+
+        // رفض طلب الإشراف
+        window.rejectAdminReq = async function(email) {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
+            rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+            fetchCloudAllData();
+        };
+
+        // التبديل بين رتبة (متحكم كامل) و (أدمن عادي)
+        window.toggleAdminRole = async function(email) {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
+
+            rec.admins = rec.admins.map(a => {
+                if (a.email === email) {
+                    a.role = a.role === 'master' ? 'sub' : 'master';
+                    a.badge = a.role === 'master' ? 'متحكم كامل' : 'مشرف معتمد';
                 }
+                return a;
+            });
 
-                record.admins.push({ name, email, password, badge, status: 'active' });
-
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-
-                if (updateRes.ok) {
-                    alert('تم إضافة المشرف بنجاح! ✅');
-                    adminModal.style.display = 'none';
-                    document.getElementById('adminName').value = '';
-                    document.getElementById('adminEmail').value = '';
-                    document.getElementById('adminPassword').value = '';
-                    document.getElementById('adminBadge').value = '';
-                    fetchAdminsData();
-                }
-            } catch (err) {
-                alert('حدث خطأ أثناء الحفظ.');
-            }
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+            fetchCloudAllData();
         };
 
-        // إيقاف أو تفعيل مشرف
-        window.toggleAdminStatus = async function(email, newStatus) {
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let record = result.record;
+        // حظر / إلغاء حظر (سواء أدمن أو طالب)
+        window.toggleBlockStatus = async function(email, type) {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
 
-                record.admins = record.admins.map(adm => {
-                    if (adm.email === email) adm.status = newStatus;
-                    return adm;
+            if (type === 'admin') {
+                rec.admins = rec.admins.map(a => {
+                    if (a.email === email) a.status = a.status === 'blocked' ? 'active' : 'blocked';
+                    return a;
                 });
-
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
+            } else {
+                rec.users = rec.users.map(u => {
+                    if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked';
+                    return u;
                 });
-
-                fetchAdminsData();
-            } catch (err) {
-                alert('فشل تحديث حالة المشرف.');
             }
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+            fetchCloudAllData();
         };
 
-        // حذف مشرف
-        window.deleteAdmin = async function(email) {
-            if (!confirm(`هل أنت متأكد من حذف المشرف (${email}) نهائياً؟`)) return;
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let record = result.record;
+        // حذف نهائي
+        window.deleteRecord = async function(email, type) {
+            if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
 
-                record.admins = record.admins.filter(adm => adm.email !== email);
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+            let data = await res.json();
+            let rec = data.record;
 
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-
-                fetchAdminsData();
-            } catch (err) {
-                alert('خطأ أثناء الحذف.');
+            if (type === 'admin') {
+                rec.admins = rec.admins.filter(a => a.email !== email);
+            } else {
+                rec.users = rec.users.filter(u => u.email !== email);
             }
-        };
 
-        // حذف طالب
-        window.deleteStudent = async function(email) {
-            if (!confirm(`حذف الطالب (${email})؟`)) return;
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let record = result.record;
-                record.users = (record.users || []).filter(st => st.email !== email);
-
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-                fetchCloudData();
-            } catch (err) {
-                alert('خطأ أثناء الحذف.');
-            }
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                body: JSON.stringify(rec)
+            });
+            fetchCloudAllData();
         };
     </script>
 </body>
