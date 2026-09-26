@@ -14,9 +14,10 @@
         .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #2a5298; }
         
-        /* تنسيق زرار إظهار كلمة المرور تحت الخانة */
-        .show-pass-container { display: flex; align-items: center; gap: 5px; margin-top: 5px; margin-bottom: 15px; font-size: 0.85rem; color: #555; cursor: pointer; }
-        .show-pass-container input { width: auto; cursor: pointer; }
+        /* تنسيق واضح وصريح لخانة إظهار كلمة المرور عشان تظهر فوراً */
+        .show-pass-box { background: #f8f9fa; padding: 8px 12px; border: 1px dashed #27ae60; border-radius: 6px; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+        .show-pass-box input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .show-pass-box label { font-size: 0.9rem; color: #27ae60; font-weight: bold; cursor: pointer; margin: 0; }
 
         .btn-submit { display: block; width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; text-align: center; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
         .btn-submit:hover { background-color: #219653; }
@@ -51,10 +52,10 @@
                 <input type="password" id="password" placeholder="********" required>
             </div>
             
-            <!-- زرار إظهار كلمة المرور بعلامة العين -->
-            <div class="show-pass-container">
+            <!-- زرار إظهار كلمة المرور بخلفية وإطار بارز عشان يظهر فوراً بدون كاش -->
+            <div class="show-pass-box">
                 <input type="checkbox" id="showPasswordCheck">
-                <label for="showPasswordCheck" style="display:inline; cursor:pointer; font-weight:normal;">👁️ إظهار كلمة المرور</label>
+                <label for="showPasswordCheck">👁️ إظهار كلمة المرور بوضوح</label>
             </div>
 
             <button type="button" id="submitBtn" class="btn-submit">تسجيل الحساب وانطلاق</button>
@@ -91,10 +92,8 @@
                 return;
             }
 
-            // فحص شامل للقائمة المخزنة
             let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
             
-            // البحث عن الإيميل أو الهاتف في القائمة
             const emailExists = studentsList.some(student => student.email === email);
             const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
 
@@ -117,7 +116,6 @@
                 password: pass
             };
 
-            // إرسال البيانات لجوجل شيت
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -125,11 +123,9 @@
                 body: JSON.stringify(userData)
             }).catch(err => console.log(err));
 
-            // إضافة الحساب الجديد للقائمة وحفظه
             studentsList.push(userData);
             localStorage.setItem('studentsList', JSON.stringify(studentsList));
             
-            // حفظ الحساب الحالي لتسجيل الدخول الفوري
             localStorage.setItem('studentUser', JSON.stringify(userData));
             localStorage.setItem('isLoggedIn', 'true');
 
