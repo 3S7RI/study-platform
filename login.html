@@ -26,7 +26,7 @@
             btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
-            // 1. التحقق الدقيق من المطور الأساسي (الإيميل والباسورد معاً)
+            // 1. التحقق الصارم جداً من المطور الأساسي (يجب أن يتطابق الإيميل والباسورد معاً بدقة)
             if (email === MASTER_ADMIN_EMAIL && pass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 sessionStorage.setItem('adminRole', 'master');
@@ -36,7 +36,15 @@
                 return;
             }
 
-            // 2. الاتصال بالسحابة للتحقق من المشرفين الفرعيين أو الطلاب
+            // لو كتب إيميلك الأساسي لكن باسورد غلط، أو كتب إيميل تاني وباسوردك (يمنعه فوراً ولا يعامله كمطور)
+            if (email === MASTER_ADMIN_EMAIL && pass !== ADMIN_SECRET_PASS) {
+                alert('كلمة المرور الخاصة بالمطور الأساسي غير صحيحة!');
+                btn.textContent = 'دخول إلى المنصة';
+                btn.disabled = false;
+                return;
+            }
+
+            // 2. الاتصال بالسحابة للتحقق من المشرفين الفرعيين أو الطلاب العاديين
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
@@ -67,7 +75,7 @@
                     return;
                 }
 
-                // 3. فحص حسابات الطلاب
+                // 3. فحص حسابات الطلاب العادية
                 let foundStudent = studentsList.find(student => student.email.toLowerCase() === email && student.password === pass);
 
                 if (foundStudent) {
