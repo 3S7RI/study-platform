@@ -19,7 +19,7 @@
         .upload-label { position: absolute; bottom: 0; right: 0; background: #27ae60; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; cursor: pointer; border: 2px solid white; }
         #avatarInput { display: none; }
 
-        .profile-header h1 { font-size: 1.3rem; margin-bottom: 4px; }
+        .profile-header h1 { font-size: 1.3rem; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .profile-header p { font-size: 0.85rem; opacity: 0.9; }
 
         .profile-body { padding: 20px; }
@@ -46,19 +46,19 @@
                 <input type="file" id="avatarInput" accept="image/*">
             </div>
 
-            <h1 id="adminNameText">محمد عشري</h1>
-            <p id="adminDescText">المؤسس ومطور منصة رحلة دراسية</p>
+            <h1 id="adminNameText">جاري التحميل...</h1>
+            <p id="adminDescText">فريق إدارة منصة رحلة دراسية</p>
         </div>
 
         <div class="profile-body">
             <div class="info-group">
                 <label>البريد الإلكتروني</label>
-                <div class="info-value" id="adminEmailText">mohamad66xm@gmail.com</div>
+                <div class="info-value" id="adminEmailText">-</div>
             </div>
 
             <div class="info-group">
-                <label>نوع الصلاحية</label>
-                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">المطور الأساسي (Master Admin) 🚀</div>
+                <label>نوع الصلاحية والتوثيق</label>
+                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">-</div>
             </div>
 
             <div class="btn-grid">
@@ -73,68 +73,108 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
+        const cloudHeaders = {
+            'X-Master-Key': API_KEY,
+            'X-Access-Key': API_KEY,
+            'Content-Type': 'application/json'
+        };
+
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
         } else {
             document.getElementById('adminProfileCard').style.display = 'block';
+            loadAdminProfileData();
         }
 
-        const role = sessionStorage.getItem('adminRole');
-        const email = sessionStorage.getItem('adminEmail') || 'admin';
+        const currentEmail = sessionStorage.getItem('adminEmail') || '';
+        document.getElementById('adminEmailText').textContent = currentEmail;
 
-        // عرض الإيميل والبيانات الصحيحة في الواجهة بغض النظر عن الرتبة
-        document.getElementById('adminEmailText').textContent = email;
+        // جلب وتحديث بيانات البروفايل مباشرة من السحابة لتطابق لوحة التحكم
+        async function loadAdminProfileData() {
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
+                let data = await res.json();
+                let rec = data.record || {};
 
-        if (role === 'sub') {
-            document.getElementById('badgeText').textContent = sessionStorage.getItem('adminBadge') || 'مشرف';
-            document.getElementById('adminNameText').textContent = 'مشرف فرعي';
-            document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية'; // تم تصحيح الخطأ هنا بنجاح
-            document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
+                let adminsList = [];
+                if (Array.isArray(rec.admins)) {
+                    adminsList = rec.admins;
+                } else if (rec.admins && typeof rec.admins === 'object') {
+                    adminsList = Object.keys(rec.admins).map(key => ({ email: key, ...rec.admins[key] }));
+                }
+
+                let currentAdmin = adminsList.find(a => a.email === currentEmail);
+                let isMaster = (currentEmail === 'mohamad66xm@gmail.com' || (currentAdmin && currentAdmin.role === 'master'));
+
+                if (currentAdmin) {
+                    let displayName = currentAdmin.name || currentEmail.split('@')[0];
+                    let isVerified = currentAdmin.isVerified === true;
+
+                    document.getElementById('adminNameTextinnerHTML').innerHTML = `${displayName} ${isVerified ? '<span style="color:#3498db;" title="حساب موثق">✔️</span>' : ''}`;
+                    document.getElementById('adminNameText').textContent = displayName;
+                    
+                    if (isVerified) {
+                        document.getElementById('adminNameText').innerHTML += ' <span style="color:#3498db;" title="حساب موثق">✔️</span>';
+                    }
+
+                    if (isMaster) {
+                        document.getElementById('badgeText').textContent = 'مطور النظام ⚡';
+                        document.getElementById('adminRoleText').textContent = 'المطور الأساسي ومتحكم كامل (Master Admin) 🚀';
+                        document.getElementById('adminDescText').textContent = 'المؤسس ومطور منصة رحلة دراسية';
+                    } else {
+                        document.getElementById('badgeText').textContent = 'مشرف معتمد 🛡️';
+                        document.getElementById('adminRoleText').textContent = 'أدمن / مشرف فرعي (Sub Admin)';
+                        document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
+                    }
+
+                    // عرض الصورة الشخصية لو مخزنة في السحابة أو الـ LocalStorage
+                    const previewContainer = document.getElementById('avatarPreviewContainer');
+                    let savedAvatar = currentAdmin.profileImage || localStorage.getItem('adminAvatar_' + currentEmail);
+                    if (savedAvatar) {
+                        previewContainer.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
+                    }
+                } else {
+                    document.getElementById('adminNameText').textContent = currentEmail.split('@')[0];
+                    document.getElementById('adminRoleText').textContent = 'مشرف المنصة';
+                }
+
+            } catch (err) {
+                console.error('خطأ في تحميل بيانات بروفايل الأدمن:', err);
+            }
         }
 
-        // تحميل صورة الأدمن (محلياً أو من السحابة لو متوفرة)
-        const previewContainer = document.getElementById('avatarPreviewContainer');
-        let savedAvatar = localStorage.getItem('adminAvatar_' + email);
-        
-        if (savedAvatar) {
-            previewContainer.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
-        }
-
-        // رفع وتغيير صورة الأدمن من الجهاز وتحديثها في الـ LocalStorage والسحابة
+        // رفع وتغيير صورة الأدمن وحفظها في السحابة والمحلي
         document.getElementById('avatarInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = async function(event) {
                     const base64Image = event.target.result;
-                    localStorage.setItem('adminAvatar_' + email, base64Image);
-                    previewContainer.innerHTML = `<img src="${base64Image}" alt="Admin Avatar">`;
+                    localStorage.setItem('adminAvatar_' + currentEmail, base64Image);
+                    document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${base64Image}" alt="Admin Avatar">`;
 
-                    // تحديثها في السحابة أيضاً لضمان المزامنة
                     try {
-                        let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                            headers: { 'X-Master-Key': API_KEY }
-                        });
+                        let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
                         let data = await res.json();
-                        let rec = data.record;
+                        let rec = data.record || {};
 
-                        if (!rec.admins) rec.admins = {};
-                        rec.admins[email.replace(/\./g, '_')] = base64Image;
+                        if (Array.isArray(rec.admins)) {
+                            rec.admins = rec.admins.map(a => {
+                                if (a.email === currentEmail) a.profileImage = base64Image;
+                                return a;
+                            });
+                        }
 
                         await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                             method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Master-Key': API_KEY
-                            },
+                            headers: cloudHeaders,
                             body: JSON.stringify(rec)
                         });
+                        alert('تم تحديث صورتك الشخصية ومزامنتها بنجاح! ✅');
                     } catch (err) {
-                        console.log('خطأ في مزامنة صورة الأدمن بالسحابة:', err);
+                        console.log('خطأ في مزامنة الصورة بالسحابة:', err);
                     }
-
-                    alert('تم تحديث صورتك بنجاح وحفظها! ✅');
                 };
                 reader.readAsDataURL(file);
             }
