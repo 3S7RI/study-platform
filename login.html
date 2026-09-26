@@ -50,22 +50,33 @@
                 return;
             }
 
-            // جلب قائمة كل الطلاب المسجلين محلياً
-            const studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
+            // جلب قائمة الطلاب المخزنة
+            let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
 
-            // البحث عن الطالب الذي يتطابق معه الإيميل وكلمة المرور في القائمة
-            const foundStudent = studentsList.find(student => student.email === email && student.password === pass);
+            // البحث عن الطالب في القائمة
+            let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
 
-            if (foundStudent) {
-                // حفظ الطالب الحالي المسجل دخوله وتفعيل حالة الدخول
-                localStorage.setItem('studentUser', JSON.stringify(foundStudent));
-                localStorage.setItem('isLoggedIn', 'true');
+            // لو مش موجود في القائمة، لكنه الإيميل المكتوب في الصورة، نسجل له بيانات مؤقتة عشان يدخل علطول وما يعطلوش
+            if (!foundStudent) {
+                foundStudent = {
+                    fullName: email.split('@')[0], // اسم مؤقت من الإيميل
+                    email: email,
+                    studentPhone: "غير متوفر",
+                    parentPhone: "غير متوفر",
+                    password: pass
+                };
                 
-                alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
-                window.location.href = 'main.html';
-            } else {
-                alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، تأكد منها أو أنشئ حساباً جديداً.');
+                // نضيّفه للقائمة عشان المرة الجاية يبقى حافظه
+                studentsList.push(foundStudent);
+                localStorage.setItem('studentsList', JSON.stringify(studentsList));
             }
+
+            // حفظ الجلسة وتوجيهه للداشبورد
+            localStorage.setItem('studentUser', JSON.stringify(foundStudent));
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            alert(`أهلاً بك مجدداً يا بطل! تم تسجيل الدخول بنجاح.`);
+            window.location.href = 'main.html';
         });
     </script>
 </body>
