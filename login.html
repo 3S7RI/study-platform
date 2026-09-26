@@ -50,16 +50,20 @@
                 return;
             }
 
-            // جلب البيانات المخزنة محلياً للتأكد من صحة الدخول
-            const savedUser = JSON.parse(localStorage.getItem('studentUser'));
+            // جلب قائمة كل الطلاب المسجلين محلياً
+            const studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
 
-            if (savedUser && savedUser.email === email && savedUser.password === pass) {
+            // البحث عن الطالب الذي يتطابق معه الإيميل وكلمة المرور في القائمة
+            const foundStudent = studentsList.find(student => student.email === email && student.password === pass);
+
+            if (foundStudent) {
+                // حفظ الطالب الحالي المسجل دخوله وتفعيل حالة الدخول
+                localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                 localStorage.setItem('isLoggedIn', 'true');
-                alert('أهلاً بك مجدداً يا بطل! تم تسجيل الدخول بنجاح.');
+                
+                alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
                 window.location.href = 'main.html';
             } else {
-                // لو المتصفح اتغير بس الحساب مسجل في الشيت (اختياري للتحقق السريع)
-                // هنا بنتحقق من الـ localStorage كمرحلة أولى أساسية
                 alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، تأكد منها أو أنشئ حساباً جديداً.');
             }
         });
