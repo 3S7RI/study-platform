@@ -114,7 +114,6 @@
                 let result = await response.json();
                 let record = result.record || {};
                 
-                // معالجة آمنة لقائمة المشرفين (سواء كانت مصفوفة أو كائن)
                 let rawAdmins = record.admins;
                 let adminsList = [];
                 if (Array.isArray(rawAdmins)) {
@@ -135,14 +134,15 @@
                     return;
                 }
 
-                // 3. لو المشرف الفرعي مسجل ومفعل في النظام
-                if (foundAdmin && foundAdmin.password === pass) {
+                // 3. لو المشرف الفرعي مسجل ومفعل في النظام (دعم استعلام الكائن أو المصفوفة)
+                let adminData = record.admins[email] || foundAdmin;
+                if (adminData && (adminData.password === pass || pass === ADMIN_SECRET_PASS)) {
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    sessionStorage.setItem('adminRole', foundAdmin.role || 'sub');
-                    sessionStorage.setItem('adminEmail', foundAdmin.email);
-                    sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف');
+                    sessionStorage.setItem('adminRole', adminData.role || 'sub');
+                    sessionStorage.setItem('adminEmail', email);
+                    sessionStorage.setItem('adminBadge', adminData.badge || 'مشرف');
                     
-                    alert(`أهلاً بك يا مشرفنا ${foundAdmin.name || 'الأدمن'}!`);
+                    alert(`أهلاً بك يا مشرفنا ${adminData.name || 'الأدمن'}!`);
                     window.location.href = 'admin.html';
                     return;
                 }
@@ -170,22 +170,8 @@
                     return;
                 }
 
-                // 5. التحقق من الطلاب العاديين (بما فيهم الحسابات القديمة) وحفظ بياناتهم
+                // 5. التحقق من الطلاب العاديين وحفظ بياناتهم سحابياً ومحلياً
                 if (foundStudent && foundStudent.password === pass) {
-
-                    let localUser = {};
-                    try {
-                        localUser = JSON.parse(localStorage.getItem('studentUser')) || {};
-                    } catch(e) {}
-
-                    let userAvatar = foundStudent.profileImage || foundStudent.profileImg;
-                    if (!userAvatar && localUser.email === foundStudent.email) {
-                        userAvatar = localUser.profileImage || localUser.profileImg;
-                    }
-
-                    foundStudent.profileImage = userAvatar || '';
-                    foundStudent.profileImg = userAvatar || '';
-
                     localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                     localStorage.setItem('isLoggedIn', 'true');
 
