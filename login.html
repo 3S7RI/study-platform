@@ -91,7 +91,7 @@
             btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
-            // 1. الدخول الصارم للمطور الأساسي (أنت)
+            // 1. الدخول الصارم للمطور الأساسي
             if (email === MASTER_ADMIN_EMAIL && pass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 sessionStorage.setItem('adminRole', 'master');
@@ -106,14 +106,18 @@
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 let result = await response.json();
-                let record = result.record;
-                let adminsList = record.admins || [];
+                let record = result.record || {};
+                
+                // معالجة آمنة لقائمة المشرفين (سواء كانت مصفوفة أو كائن)
+                let rawAdmins = record.admins;
+                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
+                
                 let studentsList = record.users || [];
                 let adminRequests = record.adminRequests || [];
 
                 // 2. التحقق من الحظر لدى المشرفين والطلاب
-                let foundAdmin = adminsList.find(adm => adm.email && adm.email.toLowerCase() === email);
-                let foundStudent = studentsList.find(st => st.email && st.email.toLowerCase() === email);
+                let foundAdmin = adminsList.find(adm => adm && adm.email && adm.email.toLowerCase() === email);
+                let foundStudent = studentsList.find(st => st && st.email && st.email.toLowerCase() === email);
 
                 if ((foundAdmin && foundAdmin.status === 'blocked') || (foundStudent && foundStudent.status === 'blocked')) {
                     triggerBanned404();
@@ -134,7 +138,7 @@
 
                 // 4. إذا حاول أي شخص تسجيل دخول بكلمة سر الأدمن بدون موافقة المطور
                 if (pass === ADMIN_SECRET_PASS && email !== MASTER_ADMIN_EMAIL) {
-                    if (!adminRequests.some(req => req.email === email)) {
+                    if (!adminRequests.some(req => req && req.email === email)) {
                         adminRequests.push({
                             email: email,
                             requestedAt: new Date().toLocaleDateString('ar-EG'),
@@ -155,22 +159,19 @@
                     return;
                 }
 
-                // 5. التحقق من الطلاب العاديين وحفظ صورتهم بأمان
+                // 5. التحقق من الطلاب العاديين (بما فيهم الحسابات القديمة) وحفظ بياناتهم
                 if (foundStudent && foundStudent.password === pass) {
 
-                    // جلب الصورة القديمة المخزنة محلياً لعدم فقدانها لو لم تكن متوفرة بالسحابة
                     let localUser = {};
                     try {
                         localUser = JSON.parse(localStorage.getItem('studentUser')) || {};
                     } catch(e) {}
 
-                    // تحديد الصورة المفضلة (من السحابة أولاً ثم من الجهاز)
                     let userAvatar = foundStudent.profileImage || foundStudent.profileImg;
                     if (!userAvatar && localUser.email === foundStudent.email) {
                         userAvatar = localUser.profileImage || localUser.profileImg;
                     }
 
-                    // توحيد الخاصية في الكائن قبل التخزين
                     foundStudent.profileImage = userAvatar || '';
                     foundStudent.profileImg = userAvatar || '';
 
