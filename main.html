@@ -51,13 +51,55 @@
             align-items: center; 
             text-decoration: none; 
             background: var(--btn-bg); 
-            padding: 3px 8px; 
+            padding: 4px 10px; 
             border-radius: 30px; 
             border: 1px solid var(--btn-border); 
-            gap: 6px; 
+            gap: 8px; 
             justify-self: start;
         }
-        .profile-nav-btn img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid white; flex-shrink: 0; }
+
+        .nav-avatar-frame {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-avatar-frame img { 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            z-index: 2;
+            position: relative;
+            background: #1e293b;
+        }
+
+        /* إطارات النافبار حسب المستوى */
+        .nav-frame-unranked img { border: 2px solid #64748b; }
+        .nav-frame-bronze img { border: 2px solid #d97706; }
+        .nav-frame-silver img { border: 2px solid #cbd5e1; }
+        .nav-frame-gold img { border: 2px solid #eab308; }
+        .nav-frame-diamond img { border: 2px solid #06b6d4; }
+        
+        .nav-frame-mythic::before {
+            content: '';
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #f43f5e, #eab308, #f43f5e);
+            animation: rotateNavGlow 3s linear infinite;
+            z-index: 1;
+            filter: blur(2px);
+        }
+        .nav-frame-mythic img { border: 2px solid #fff; }
+
+        @keyframes rotateNavGlow { 100% { transform: rotate(360deg); } }
+
         .profile-nav-btn span { color: white; font-weight: bold; font-size: 0.85rem; white-space: nowrap; }
 
         .navbar-title { 
@@ -102,7 +144,9 @@
     <header class="navbar">
         <!-- اليمين: زر البروفايل -->
         <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
-            <img id="navProfileImg" src="https://via.placeholder.com/38" alt="صورة البروفايل">
+            <div class="nav-avatar-frame" id="navAvatarFrame">
+                <img id="navProfileImg" src="" alt="صورة البروفايل">
+            </div>
             <span id="navStudentName">حسابي</span>
         </a>
 
@@ -137,7 +181,10 @@
     </main>
 
     <script>
-        // التحقق من حالة تسجيل الدخول (سواء طالب أو أدمن)
+        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+        const defaultFemaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%23e6007a'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%23e6007a'/></svg>";
+
+        // التحقق من حالة تسجيل الدخول
         const isLoggedIn = localStorage.getItem('isLoggedIn');
         const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
 
@@ -146,47 +193,30 @@
             window.location.href = 'index.html';
         }
 
-        // التعامل مع بيانات الطالب لو كان مسجل دخول كطالب
         const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
+        const navProfileImg = document.getElementById('navProfileImg');
+        const navAvatarFrame = document.getElementById('navAvatarFrame');
+
         if (userData && userData.fullName) {
             let firstName = userData.fullName.trim().split(' ')[0];
             document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
             document.getElementById('navStudentName').innerText = firstName;
+            
+            // الصورة والإطار
+            let defaultImg = (userData.gender === 'female') ? defaultFemaleSvg : defaultMaleSvg;
+            navProfileImg.src = userData.profileImage || userData.profileImg || defaultImg;
+            navAvatarFrame.className = 'nav-avatar-frame nav-frame-' + (userData.rank || 'unranked');
+
         } else if (isAdminLoggedIn === 'true') {
-            // لو مسجل كأدمن نظهر كلمة "الأدمن" أو الاسم في النافبار
             document.getElementById('navStudentName').innerText = 'الأدمن';
+            navProfileImg.src = defaultMaleSvg;
         }
 
-        // جلب الصورة الشخصية وضمان ظهورها في النافبار من أي مكان تم تخزينها فيه
-        const navProfileImg = document.getElementById('navProfileImg');
-        const adminEmail = sessionStorage.getItem('adminEmail');
-        let profileImgSrc = null;
-
-        if (userData.profileImage) {
-            profileImgSrc = userData.profileImage;
-        } else if (adminEmail && localStorage.getItem('adminAvatar_' + adminEmail)) {
-            profileImgSrc = localStorage.getItem('adminAvatar_' + adminEmail);
-        } else {
-            // البحث التلقائي في الـ LocalStorage عن أي صورة أدمن مسجلة مسبقاً
-            for (let i = 0; i < localStorage.length; i++) {
-                let key = localStorage.key(i);
-                if (key.startsWith('adminAvatar_')) {
-                    profileImgSrc = localStorage.getItem(key);
-                    break;
-                }
-            }
-        }
-
-        if (profileImgSrc) {
-            navProfileImg.src = profileImgSrc;
-        }
-
-        // نظام الوضع الليلي والنهاري (Dark/Light Mode)
+        // نظام الوضع الليلي والنهاري
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const pageBody = document.getElementById('pageBody');
 
-        const currentTheme = localStorage.getItem('theme');
-        if (currentTheme === 'dark') {
+        if (localStorage.getItem('theme') === 'dark') {
             pageBody.classList.add('dark-mode');
             themeToggleBtn.textContent = '☀️';
         }
