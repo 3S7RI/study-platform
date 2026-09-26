@@ -43,7 +43,7 @@
     <div class="profile-container">
         <!-- صورة البروفايل وزر التعديل -->
         <div class="avatar-section">
-            <img id="profileImage" src="https://via.placeholder.com/120" alt="صورة الطالب">
+            <img id="profileImageTag" src="https://via.placeholder.com/120" alt="صورة الطالب">
             <label class="upload-btn" title="تغيير الصورة">
                 📷
                 <input type="file" id="imageInput" accept="image/*">
@@ -84,7 +84,6 @@
 
         // استرجاع بيانات الطالب الحالي المسجل الدخول
         let currentUser = JSON.parse(localStorage.getItem('studentUser'));
-        let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
 
         if (!currentUser) {
             alert('يجب تسجيل الدخول أولاً!');
@@ -95,10 +94,12 @@
             document.getElementById('studentIdBadge').textContent = 'الكود: ' + (currentUser.studentId || 'STU-0000');
             document.getElementById('studentEmail').textContent = currentUser.email || '-';
             document.getElementById('studentPhoneVal').textContent = currentUser.studentPhone || '-';
-            document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-';
+            document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-');
             
-            if (currentUser.profileImg) {
-                document.getElementById('profileImage').src = currentUser.profileImg;
+            // دعم التوافق مع المفتاحين (لضمان ظهور الصورة القديمة أو الجديدة)
+            let imgSource = currentUser.profileImage || currentUser.profileImg;
+            if (imgSource) {
+                document.getElementById('profileImageTag').src = imgSource;
             }
         }
 
@@ -113,28 +114,52 @@
             }
         });
 
-        // التعامل مع رفع وتغيير صورة البروفايل وحفظها فوريًا
+        // التعامل مع رفع وتغيير صورة البروفايل وحفظها فوريًا محلياً وفي السحابة
         const imageInput = document.getElementById('imageInput');
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
+                reader.onload = async function(event) {
                     const base64Image = event.target.result;
-                    document.getElementById('profileImage').src = base64Image;
+                    document.getElementById('profileImageTag').src = base64Image;
 
-                    currentUser.profileImg = base64Image;
+                    // تحديث المفتاح الموحد profileImage
+                    currentUser.profileImage = base64Image;
+                    currentUser.profileImg = base64Image; // احتياطي
                     localStorage.setItem('studentUser', JSON.stringify(currentUser));
 
-                    studentsList = studentsList.map(st => {
-                        if (st.email === currentUser.email) {
-                            st.profileImg = base64Image;
-                        }
-                        return st;
-                    });
-                    localStorage.setItem('studentsList', JSON.stringify(studentsList));
+                    // تحديث السحابة فوراً بالصورة الجديدة
+                    try {
+                        let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                            headers: { 'X-Master-Key': API_KEY }
+                        });
+                        let data = await res.json();
+                        let rec = data.record;
 
-                    alert('تم تحديث صورة البروفايل بنجاح يا بطل! 🚀');
+                        if (rec.users) {
+                            rec.users = rec.users.map(st => {
+                                if (st.email === currentUser.email) {
+                                    st.profileImage = base64Image;
+                                    st.profileImg = base64Image;
+                                }
+                                return st;
+                            });
+
+                            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-Master-Key': API_KEY
+                                },
+                                body: JSON.stringify(rec)
+                            });
+                        }
+                    } catch (err) {
+                        console.error('خطأ في مزامنة الصورة مع السحابة:', err);
+                    }
+
+                    alert('تم تحديث صورة البروفايل وحفظها بنجاح يا بطل! 🚀');
                 };
                 reader.readAsDataURL(file);
             }
@@ -157,17 +182,14 @@
             btn.disabled = true;
 
             try {
-                // 1. جلب أحدث قائمة من السحابة
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 let result = await response.json();
                 let cloudUsers = result.record.users || [];
 
-                // 2. تصفية الحسابات وإزالة الحساب الحالي
                 let updatedUsers = cloudUsers.filter(st => st.email !== currentUser.email);
 
-                // 3. تحديث السحابة بالبيانات الجديدة
                 await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: 'PUT',
                     headers: {
@@ -177,13 +199,8 @@
                     body: JSON.stringify({ users: updatedUsers })
                 });
 
-                // 4. حذف البيانات من التخزين المحلي للموبايل
                 localStorage.removeItem('studentUser');
                 localStorage.setItem('isLoggedIn', 'false');
-                
-                let localStudents = JSON.parse(localStorage.getItem('studentsList')) || [];
-                let filteredLocal = localStudents.filter(st => st.email !== currentUser.email);
-                localStorage.setItem('studentsList', JSON.stringify(filteredLocal));
 
                 alert('تم حذف حسابك بنجاح من المنصة والسحابة. نتمى لك التوفيق دائماً!');
                 window.location.href = 'index.html';
