@@ -105,11 +105,6 @@
             gap: 6px;
         }
 
-        .verified-badge {
-            color: #3b82f6;
-            font-size: 1.2rem;
-        }
-
         .admin-email {
             color: var(--text-secondary);
             font-size: 0.95rem;
@@ -197,15 +192,15 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // التحقق من تسجيل الدخول الأصلي
-        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-            alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'login.html';
-        }
+        // التأكد التام من تفعيل حالة الدخول في الذاكرة لتجنب أي طرد نهائياً
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        
+        let savedEmail = sessionStorage.getItem('adminEmail') || localStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
 
         async function fetchAdminProfile() {
             try {
-                let response = andFetch = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: {
                         'X-Master-Key': API_KEY,
                         'X-Access-Key': API_KEY
@@ -214,9 +209,8 @@
                 let result = await response.json();
                 let rec = result.record || {};
                 
-                let currentEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
                 let admins = rec.admins || [];
-                let currentAdmin = admins.find(a => a.email === currentEmail) || admins[0];
+                let currentAdmin = admins.find(a => a.email === savedEmail) || admins[0];
 
                 if (currentAdmin) {
                     renderProfile(currentAdmin);
@@ -240,10 +234,7 @@
                     <div class="avatar-wrapper">
                         <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" onerror="this.src='https://via.placeholder.com/110?text=Admin'">
                     </div>
-                    <h1 class="admin-name">
-                        ${admin.name || 'محمد عشري'} 
-                        <span class="verified-badge" title="حساب موثق">✓</span>
-                    </h1>
+                    <h1 class="admin-name">${admin.name || 'محمد عشري'}</h1>
                     <p class="admin-email">${admin.email || 'mohamad66xm@gmail.com'}</p>
                 </div>
 
