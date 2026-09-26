@@ -14,7 +14,6 @@
         .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #2a5298; }
         
-        /* زرار إظهار كلمة المرور الواضح والصريح تحت الخانة */
         .show-pass-container { display: flex; align-items: center; gap: 5px; margin-top: 5px; margin-bottom: 15px; font-size: 0.85rem; color: #555; cursor: pointer; }
         .show-pass-container input { width: auto; cursor: pointer; }
 
@@ -39,7 +38,6 @@
                 <input type="password" id="loginPassword" placeholder="********" required>
             </div>
             
-            <!-- خانة اختيار لإظهار كلمة المرور واضحة تحت الخانة تماماً -->
             <div class="show-pass-container">
                 <input type="checkbox" id="showPasswordCheck">
                 <label for="showPasswordCheck" style="display:inline; cursor:pointer; font-weight:normal;">👁️ إظهار كلمة المرور</label>
@@ -53,6 +51,10 @@
     </div>
 
     <script>
+        // إعدادات سحابة JSONBin الخاصة بك
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
         // تفعيل زر إظهار كلمة المرور
         const passwordInput = document.getElementById('loginPassword');
         const showPasswordCheck = document.getElementById('showPasswordCheck');
@@ -65,8 +67,8 @@
             }
         });
 
-        // كود تسجيل الدخول
-        document.getElementById('loginBtn').addEventListener('click', function() {
+        // كود تسجيل الدخول بالاتصال بالسحابة
+        document.getElementById('loginBtn').addEventListener('click', async function() {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPassword').value;
 
@@ -75,17 +77,39 @@
                 return;
             }
 
-            let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
-            let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
+            // تغيير نص الزر أثناء التحميل لتعطير إيحاء بالعمل
+            const btn = document.getElementById('loginBtn');
+            btn.textContent = 'جاري التحقق من السحابة...';
+            btn.disabled = true;
 
-            if (foundStudent) {
-                localStorage.setItem('studentUser', JSON.stringify(foundStudent));
-                localStorage.setItem('isLoggedIn', 'true');
+            try {
+                // سحب قائمة الطلاب المسجلين من السحابة مباشرة
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
                 
-                alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
-                window.location.href = 'main.html';
-            } else {
-                alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن هذا الحساب غير مسجل من قبل!');
+                let data = await response.json();
+                let studentsList = data.record.users || [];
+
+                // البحث عن الطالب المطابق للإيميل والباسورد
+                let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
+
+                if (foundStudent) {
+                    localStorage.setItem('studentUser', JSON.stringify(foundStudent));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    
+                    alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
+                    window.location.href = 'main.html';
+                } else {
+                    alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن هذا الحساب غير مسجل من قبل!');
+                    btn.textContent = 'دخول إلى المنصة';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('خطأ في الاتصال:', error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة، تأكد من اتصالك بالإنترنت!');
+                btn.textContent = 'دخول إلى المنصة';
+                btn.disabled = false;
             }
         });
     </script>
