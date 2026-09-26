@@ -58,7 +58,7 @@
             <h2>🔐 دخول لوحة الأدمن</h2>
             <p style="color: #666; font-size: 0.85rem; margin-bottom: 15px;">أدخل كلمة مرور المسؤول للمتابعة</p>
             <input type="password" id="adminPasswordInput" placeholder="كلمة المرور">
-            <button id="adminLoginBtn">دخول اللوحة</button>
+            <button type="button" id="adminLoginBtn">دخول اللوحة</button>
         </div>
     </div>
 
@@ -116,9 +116,10 @@
             fetchCloudData();
         }
 
-        // زر دخول الأدمن
-        adminLoginBtn.addEventListener('click', function() {
-            if (adminPasswordInput.value === ADMIN_SECRET_PASS) {
+        // دالة تنفيذ الدخول
+        function handleAdminLogin() {
+            const enteredPass = adminPasswordInput.value.trim();
+            if (enteredPass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 loginOverlay.style.display = 'none';
                 adminContainer.style.display = 'block';
@@ -127,15 +128,25 @@
                 alert('كلمة المرور غير صحيحة!');
                 adminPasswordInput.value = '';
             }
+        }
+
+        // ربط الحدث بالضغط على الزر
+        adminLoginBtn.onclick = handleAdminLogin;
+
+        // السماح بالدخول عبر الضغط على زر Enter من لوحة المفاتيح
+        adminPasswordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleAdminLogin();
+            }
         });
 
         // زر خروج الأدمن
-        document.getElementById('logoutAdminBtn').addEventListener('click', function() {
+        document.getElementById('logoutAdminBtn').onclick = function() {
             sessionStorage.removeItem('isAdminLoggedIn');
             location.reload();
-        });
+        };
 
-        document.getElementById('refreshDataBtn').addEventListener('click', fetchCloudData);
+        document.getElementById('refreshDataBtn').onclick = fetchCloudData;
 
         // دالة جلب بيانات الطلاب من سحابة JSONBin وعرضها في الجدول
         async function fetchCloudData() {
