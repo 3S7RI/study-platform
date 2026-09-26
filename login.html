@@ -51,26 +51,20 @@
     </div>
 
     <script>
-        // إعدادات سحابة JSONBin الخاصة بك
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // كلمة مرور الأدمن السرية المطلوبة
+        // بيانات المطور الأساسي (أنت)
+        const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com';
         const ADMIN_SECRET_PASS = '@Mohamad66xm01122161407';
 
-        // تفعيل زر إظهار كلمة المرور
         const passwordInput = document.getElementById('loginPassword');
         const showPasswordCheck = document.getElementById('showPasswordCheck');
 
         showPasswordCheck.addEventListener('change', function() {
-            if (this.checked) {
-                passwordInput.type = 'text';
-            } else {
-                passwordInput.type = 'password';
-            }
+            passwordInput.type = this.checked ? 'text' : 'password';
         });
 
-        // كود تسجيل الدخول الذكي المحدث
         document.getElementById('loginBtn').addEventListener('click', async function() {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPassword').value;
@@ -84,30 +78,55 @@
             btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
-            // 1. فحص هل كلمة المرور المدخلة هي باسورد الأدمن السري؟ (بغض النظر عن الإيميل)
+            // 1. التحقق من المطور الرئيسي (أنت)
             if (pass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
-                alert('أهلاً بك يا باشمهندس محمد! تم توجيهك إلى لوحة التحكم ⚡');
+                sessionStorage.setItem('adminRole', 'master'); // دور المطور الأساسي
+                sessionStorage.setItem('adminEmail', email);
+                alert('أهلاً بك يا باشمهندس محمد (المطور الأساسي) ⚡');
                 window.location.href = 'admin.html';
                 return;
             }
 
-            // 2. إذا لم يكن باسورد أدمن، يتم التحقق من حسابات الطلاب في سحابة JSONBin
+            // 2. الاتصال بالسحابة للتحقق من المشرفين الفرعيين (Sub-Admins) أو الطلاب
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
-                
                 let data = await response.json();
+                
+                let adminsList = data.record.admins || [];
                 let studentsList = data.record.users || [];
 
+                // فحص هل الباسورد والإيميل يخصوا مشرف فرعي؟
+                let foundAdmin = adminsList.find(adm => adm.email === email && adm.password === pass);
+
+                if (foundAdmin) {
+                    if (foundAdmin.status === 'blocked') {
+                        alert('عفواً، تم إيقاف حساب الإشراف الخاص بك من قبل المطور الرئيسي!');
+                        btn.textContent = 'دخول إلى المنصة';
+                        btn.disabled = false;
+                        return;
+                    }
+
+                    sessionStorage.setItem('isAdminLoggedIn', 'true');
+                    sessionStorage.setItem('adminRole', 'sub'); // مشرف فرعي
+                    sessionStorage.setItem('adminEmail', foundAdmin.email);
+                    sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف معتمد');
+                    
+                    alert(`أهلاً بك يا مشرفنا ${foundAdmin.name}! تم تسجيل الدخول لوحة التحكم.`);
+                    window.location.href = 'admin.html';
+                    return;
+                }
+
+                // 3. التحقق من حسابات الطلاب العادية
                 let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
 
                 if (foundStudent) {
                     localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                     localStorage.setItem('isLoggedIn', 'true');
                     
-                    alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
+                    alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}!`);
                     window.location.href = 'main.html';
                 } else {
                     alert('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
@@ -115,8 +134,8 @@
                     btn.disabled = false;
                 }
             } catch (error) {
-                console.error('خطأ في الاتصال:', error);
-                alert('حدث خطأ أثناء الاتصال بالسحابة، تأكد من اتصالك بالإنترنت!');
+                console.error('خطأ:', error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة!');
                 btn.textContent = 'دخول إلى المنصة';
                 btn.disabled = false;
             }
