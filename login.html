@@ -69,6 +69,12 @@
         const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com';
         const ADMIN_SECRET_PASS = '@Mohamad66xm01122161407';
 
+        const cloudHeaders = {
+            'X-Master-Key': API_KEY,
+            'X-Access-Key': API_KEY,
+            'Content-Type': 'application/json'
+        };
+
         document.getElementById('showPasswordCheck').addEventListener('change', function() {
             document.getElementById('loginPassword').type = this.checked ? 'text' : 'password';
         });
@@ -103,14 +109,19 @@
 
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    headers: cloudHeaders
                 });
                 let result = await response.json();
                 let record = result.record || {};
                 
                 // معالجة آمنة لقائمة المشرفين (سواء كانت مصفوفة أو كائن)
                 let rawAdmins = record.admins;
-                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
+                let adminsList = [];
+                if (Array.isArray(rawAdmins)) {
+                    adminsList = rawAdmins;
+                } else if (rawAdmins && typeof rawAdmins === 'object') {
+                    adminsList = Object.keys(rawAdmins).map(key => ({ email: key, ...rawAdmins[key] }));
+                }
                 
                 let studentsList = record.users || [];
                 let adminRequests = record.adminRequests || [];
@@ -148,7 +159,7 @@
 
                         await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                            headers: cloudHeaders,
                             body: JSON.stringify(record)
                         });
                     }
