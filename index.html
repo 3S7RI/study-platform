@@ -67,16 +67,17 @@
                 return;
             }
 
-            // التحقق من عدم تكرار البريد أو الهاتف محلياً
-            const savedUser = JSON.parse(localStorage.getItem('studentUser'));
+            // فحص قائمة الطلاب المخزنة محلياً لمنع التكرار بدقة
+            let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
             
-            if (savedUser) {
-                if (savedUser.email === email) {
-                    alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، قم بتسجيل الدخول بدلاً من ذلك.');
+            const existingUser = studentsList.find(student => student.email === email || student.studentPhone === sPhone);
+            
+            if (existingUser) {
+                if (existingUser.email === email) {
+                    alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
                     window.location.href = 'login.html';
                     return;
-                }
-                if (savedUser.studentPhone === sPhone) {
+                } else {
                     alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
                     return;
                 }
@@ -90,6 +91,7 @@
                 password: pass
             };
 
+            // إرسال البيانات لجوجل شيت للحساب الجديد فقط
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -97,6 +99,10 @@
                 body: JSON.stringify(userData)
             }).catch(err => console.log(err));
 
+            // حفظ الطالب الجديد في القائمة وتحديث الـ LocalStorage
+            studentsList.push(userData);
+            localStorage.setItem('studentsList', JSON.stringify(studentsList));
+            
             localStorage.setItem('studentUser', JSON.stringify(userData));
             localStorage.setItem('isLoggedIn', 'true');
 
