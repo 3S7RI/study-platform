@@ -27,6 +27,7 @@
 
         .btn-approve { background: #27ae60; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-master { background: #8e44ad; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .btn-verify { background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-block { background: #e67e22; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-danger { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; font-weight: bold; }
         .btn-add { background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
@@ -43,7 +44,7 @@
         <header>
             <h1 id="headerTitle">⚡ لوحة التحكم المركزية</h1>
             <div class="header-btns">
-                <a href="admin-profile.html" class="btn-profile">👤 بروفايل الأدمن</a>
+                <a href="profile.html" class="btn-profile">👤 بروفايل الأدمن</a>
                 <button class="btn-exit" id="logoutAdminBtn">خروج</button>
             </div>
         </header>
@@ -59,7 +60,7 @@
             </div>
         </div>
 
-        <!-- 1. قسم طلبات الإشراف المعلقة (للمطور فقط) -->
+        <!-- 1. قسم طلبات الإشراف المعلقة -->
         <div class="section-box" id="requestsSection" style="display: none; border: 2px solid #f39c12;">
             <div class="section-header">
                 <h2 style="color: #d35400;">📩 طلبات الانضمام كـ أدمن (المعلقة)</h2>
@@ -69,10 +70,10 @@
             </div>
         </div>
 
-        <!-- 2. قسم إدارة الأدمنز والمشرفين (للمطور فقط) -->
+        <!-- 2. قسم إدارة الأدمنز والمشرفين والصلاحيات والتوثيق -->
         <div class="section-box" id="masterAdminSection" style="display: none; border: 2px dashed #2980b9;">
             <div class="section-header">
-                <h2>🛡️ إدارة المشرفين والصلاحيات (التحكم الكامل)</h2>
+                <h2>🛡️ إدارة المشرفين والصلاحيات والتوثيق</h2>
                 <button class="btn-add" onclick="addNewAdminManual()">➕ إضافة أدمن جديد</button>
             </div>
             <div id="adminsTableWrapper">
@@ -96,20 +97,17 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
-        // التحقق الأساسي من تسجيل الدخول
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
         }
 
-        // هيدرز الاتصال المزدوج المعتمدة لمنع أخطاء السحابة
         const cloudHeaders = {
             'X-Master-Key': API_KEY,
             'X-Access-Key': API_KEY,
             'Content-Type': 'application/json'
         };
 
-        // عند فتح الصفحة، نبدأ بفحص البيانات من السحابة لتحديد صلاحيات الأدمن بدقة
         initDashboard();
 
         async function initDashboard() {
@@ -121,37 +119,45 @@
                 let result = await response.json();
                 let rec = result.record || {};
 
-                // جلب بيانات الأدمن الحالي المسجل (سواء من الـ sessionStorage أو عن طريق الايميل المحفوظ)
                 let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
-
-                // فحص هل هو ماستر فعلاً؟ (عن طريق الـ Session أو التأكد لو حسابه مبرمج كـ master في قاعدة البيانات)
                 let isMasterUser = (currentSessionRole === 'master');
 
+                // تحويل بيانات الأدمنز سواء كانت Array أو Object لضمان التوافق التام
+                let rawAdmins = rec.admins;
+                let adminsList = [];
+                if (Array.isArray(rawAdmins)) {
+                    adminsList = rawAdmins;
+                } else if (rawAdmins && typeof rawAdmins === 'object') {
+                    adminsList = Object.keys(rawAdmins).map(key => {
+                        let val = rawAdmins[key];
+                        if (typeof val === 'object' && val !== null) {
+                            return { email: key, ...val };
+                        } else {
+                            return { email: key, name: key.split('@')[0], profileImage: val || '' };
+                        }
+                    });
+                }
+
                 if (!isMasterUser && currentAdminEmail) {
-                    let foundAdmin = (rec.admins || []).find(a => a.email === currentAdminEmail);
-                    if (foundAdmin && foundAdmin.role === 'master') {
+                    let foundAdmin = adminsList.find(a => a.email === currentAdminEmail);
+                    if (foundAdmin && (foundAdmin.role === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com')) {
                         isMasterUser = true;
-                        sessionStorage.setItem('adminRole', 'master'); // تصحيح وتثبيت الصلاحية
+                        sessionStorage.setItem('adminRole', 'master');
                     }
                 }
 
-                // لو الحساب للمطور أو مسجل بصلاحية ماستر، افتح كل الأقسام وعرض الإحصائيات
-                if (isMasterUser || currentSessionRole === 'master') {
+                // فتح لوحة المطور إذا كان هو المطور الأساسي أو حسابه ماستر
+                if (isMasterUser || currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com') {
                     document.getElementById('masterAdminSection').style.display = 'block';
                     document.getElementById('requestsSection').style.display = 'block';
                     document.getElementById('addStudentBtn').style.display = 'inline-block';
                     document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي (المتحكم الكامل)';
                     
                     renderRequests(rec.adminRequests || []);
-                    
-                    let rawAdmins = rec.admins;
-                    let adminsList = Array.isArray(rawAdmins) ? rawAdmins : (rawAdmins ? Object.values(rawAdmins) : []);
                     renderAdmins(adminsList);
-
                     renderStudents(rec.users || []);
                 } else {
-                    // أدمن عادي
                     document.getElementById('adminsCountCard').style.display = 'none';
                     renderStudents(rec.users || []);
                 }
@@ -167,12 +173,10 @@
             window.location.href = 'login.html';
         });
 
-        // دالة التحديث الشاملة (تستخدم بعد أي عملية تعديل أو حذف)
         async function fetchCloudAllData() {
             initDashboard();
         }
 
-        // عرض طلبات الأدمن المعلقة
         function renderRequests(requests) {
             const wrapper = document.getElementById('requestsTableWrapper');
             if (!requests || requests.length === 0) {
@@ -195,7 +199,6 @@
             wrapper.innerHTML = html;
         }
 
-        // عرض قائمة المشرفين والأدمنز
         function renderAdmins(admins) {
             const wrapper = document.getElementById('adminsTableWrapper');
             document.getElementById('totalAdminsCount').textContent = admins.length;
@@ -204,16 +207,20 @@
                 wrapper.innerHTML = '<p style="text-align: center; color: #777; padding: 10px;">لا يوجد مشرفين حالياً.</p>';
                 return;
             }
-            let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد</th><th>الرتبة</th><th>الحالة</th><th>إجراءات التحكم</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>اسم المشرف</th><th>البريد</th><th>الرتبة</th><th>الحالة</th><th>إجراءات التحكم والتوثيق</th></tr></thead><tbody>`;
             admins.forEach(adm => {
                 let isBlocked = adm.status === 'blocked';
-                let isMasterRole = adm.role === 'master';
+                let isMasterRole = (adm.role === 'master' || adm.email === 'mohamad66xm@gmail.com');
+                let isVerified = adm.isVerified === true;
+                let adminName = adm.name || adm.email.split('@')[0];
+
                 html += `<tr>
-                    <td><b>${adm.name || 'أدمن'}</b></td>
+                    <td><b>${adminName}</b> ${isVerified ? '<span style="color:#3498db;" title="حساب موثق">✔️</span>' : ''}</td>
                     <td>${adm.email}</td>
                     <td><b style="color: ${isMasterRole ? '#8e44ad' : '#2980b9'}">${isMasterRole ? 'متحكم كامل ⚡' : 'أدمن عادي 🛡️'}</b></td>
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
                     <td>
+                        <button class="btn-verify" onclick="toggleVerifyAdmin('${adm.email}')">${isVerified ? 'إلغاء التوثيق ❌' : 'توثيق ✔️'}</button>
                         <button class="btn-master" onclick="toggleAdminRole('${adm.email}')">${isMasterRole ? 'تنزيل لأدمن عادي' : 'ترقية لمتحكم كامل'}</button>
                         <button class="btn-block" onclick="toggleBlockStatus('${adm.email}', 'admin')">${isBlocked ? 'إلغاء الحظر 🔓' : 'حظر 🔒'}</button>
                         <button class="btn-danger" onclick="deleteRecord('${adm.email}', 'admin')">حذف 🗑️</button>
@@ -224,7 +231,6 @@
             wrapper.innerHTML = html;
         }
 
-        // عرض الطلاب
         function renderStudents(users) {
             const wrapper = document.getElementById('tableWrapper');
             document.getElementById('totalStudentsCount').textContent = users ? users.length : 0;
@@ -252,7 +258,41 @@
             wrapper.innerHTML = html;
         }
 
-        // إضافة طالب جديد يدويًا
+        // توثيق أو إلغاء توثيق الأدمن من لوحة التحكم ومزامنتها بالسحابة
+        window.toggleVerifyAdmin = async function(adminEmail) {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
+            let data = await res.json();
+            let rec = data.record || {};
+
+            if (rec.admins) {
+                if (Array.isArray(rec.admins)) {
+                    rec.admins = rec.admins.map(a => {
+                        if (a.email === adminEmail) {
+                            a.isVerified = !a.isVerified;
+                        }
+                        return a;
+                    });
+                } else if (typeof rec.admins === 'object') {
+                    let key = adminEmail.replace(/\./g, '_');
+                    // التعامل مع الهيكل في حال كان Object
+                    if (rec.admins[adminEmail]) {
+                        rec.admins[adminEmail].isVerified = !rec.admins[adminEmail].isVerified;
+                    } else if (rec.admins[key]) {
+                        rec.admins[key].isVerified = !rec.admins[key].isVerified;
+                    }
+                }
+            }
+
+            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: cloudHeaders,
+                body: JSON.stringify(rec)
+            });
+
+            alert('تم تحديث حالة التوثيق بنجاح ومزامنتها بالسحابة! 🔄');
+            fetchCloudAllData();
+        };
+
         window.addNewStudentManual = async function() {
             let name = prompt("أدخل اسم الطالب الكامل:");
             if (!name) return;
@@ -287,7 +327,6 @@
             fetchCloudAllData();
         };
 
-        // إضافة أدمن جديد يدويًا
         window.addNewAdminManual = async function() {
             let name = prompt("أدخل اسم المشرف أو الأدمن:");
             if (!name) return;
@@ -301,14 +340,22 @@
             let rec = data.record || {};
 
             if (!rec.admins) rec.admins = [];
-            rec.admins.push({
+            
+            let newAdminObj = {
                 name: name,
                 email: email,
                 password: password,
                 role: typeChoice,
                 status: 'active',
-                badge: typeChoice === 'master' ? 'متحكم كامل' : 'مشرف معتمد'
-            });
+                isVerified: false,
+                profileImage: ''
+            };
+
+            if (Array.isArray(rec.admins)) {
+                rec.admins.push(newAdminObj);
+            } else {
+                rec.admins[email] = newAdminObj;
+            }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
@@ -320,7 +367,6 @@
             fetchCloudAllData();
         };
 
-        // قبول طلب الإشراف
         window.approveAdminReq = async function(email, assignRole) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
@@ -329,14 +375,21 @@
             rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
             if (!rec.admins) rec.admins = [];
 
-            rec.admins.push({
+            let approvedAdmin = {
                 name: email.split('@')[0],
                 email: email,
                 password: '@Mohamad66xm01122161407',
                 role: assignRole,
                 status: 'active',
-                badge: assignRole === 'master' ? 'متحكم كامل' : 'مشرف معتمد'
-            });
+                isVerified: false,
+                profileImage: ''
+            };
+
+            if (Array.isArray(rec.admins)) {
+                rec.admins.push(approvedAdmin);
+            } else {
+                rec.admins[email] = approvedAdmin;
+            }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                 method: 'PUT',
@@ -348,7 +401,6 @@
             fetchCloudAllData();
         };
 
-        // رفض طلب الإشراف
         window.rejectAdminReq = async function(email) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
@@ -363,7 +415,6 @@
             fetchCloudAllData();
         };
 
-        // التبديل بين الرتب
         window.toggleAdminRole = async function(email) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
@@ -373,7 +424,6 @@
                 rec.admins = rec.admins.map(a => {
                     if (a.email === email) {
                         a.role = a.role === 'master' ? 'sub' : 'master';
-                        a.badge = a.role === 'master' ? 'متحكم كامل' : 'مشرف معتمد';
                     }
                     return a;
                 });
@@ -387,7 +437,6 @@
             fetchCloudAllData();
         };
 
-        // حظر / إلغاء حظر
         window.toggleBlockStatus = async function(email, type) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
@@ -402,7 +451,7 @@
                 }
             } else {
                 if (Array.isArray(rec.users)) {
-                    rec.users = rec.users.api ? rec.users : rec.users.map(u => {
+                    rec.users = rec.users.map(u => {
                         if (u.email === email) u.status = u.status === 'blocked' ? 'active' : 'blocked';
                         return u;
                     });
@@ -417,7 +466,6 @@
             fetchCloudAllData();
         };
 
-        // حذف نهائي
         window.deleteRecord = async function(email, type) {
             if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
 
@@ -428,6 +476,9 @@
             if (type === 'admin') {
                 if (Array.isArray(rec.admins)) {
                     rec.admins = rec.admins.filter(a => a.email !== email);
+                } else if (rec.admins && typeof rec.admins === 'object') {
+                    delete rec.admins[email];
+                    delete rec.admins[email.replace(/\./g, '_')];
                 }
             } else {
                 if (Array.isArray(rec.users)) {
