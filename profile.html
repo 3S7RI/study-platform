@@ -44,7 +44,31 @@
         .profile-container { max-width: 600px; margin: 30px auto; background: var(--card-bg); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         
         .profile-header { text-align: center; margin-bottom: 25px; }
-        .profile-header img { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid #2a5298; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        /* تصميم غلاف الصورة وأيقونة التغيير المقتبسة من بروفايل الأدمن */
+        .avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
+        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid #2a5298; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: #e2e8f0; }
+        
+        .upload-badge {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            background: #2a5298;
+            color: white;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid var(--card-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .upload-badge:hover { transform: scale(1.1); background: #1e3c72; }
+
         .profile-header h2 { color: var(--text-color); font-size: 1.5rem; margin-bottom: 5px; }
         .student-badge { display: inline-block; background: #27ae60; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
 
@@ -55,6 +79,7 @@
 
         .btn-action { display: block; width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; transition: background 0.3s; margin-top: 10px; }
         .btn-action:hover { background-color: #219653; }
+        .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
         
         .btn-logout { background-color: #e74c3c; margin-top: 15px; }
         .btn-logout:hover { background-color: #c0392b; }
@@ -70,10 +95,16 @@
 
     <div class="profile-container">
         <div class="profile-header">
-            <img id="profileImg" src="https://via.placeholder.com/110" alt="صورة الطالب">
+            <div class="avatar-wrapper">
+                <img id="profileImg" src="https://via.placeholder.com/110?text=Student" alt="صورة الطالب" onerror="this.src='https://via.placeholder.com/110?text=Student'">
+                <label for="editImageInput" class="upload-badge" title="تغيير الصورة الشخصية">📷</label>
+            </div>
             <h2 id="profileName">اسم الطالب</h2>
             <span class="student-badge" id="profileStudentId">STU-0000</span>
         </div>
+
+        <!-- مدخل اختيار الصورة المخفي -->
+        <input type="file" id="editImageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 
         <div class="info-grid">
             <div class="info-group">
@@ -92,10 +123,6 @@
                 <label>رقم هاتف ولي الأمر</label>
                 <input type="tel" id="editParentPhone">
             </div>
-            <div class="info-group">
-                <label>تغيير الصورة الشخصية</label>
-                <input type="file" id="editImageInput" accept="image/*">
-            </div>
         </div>
 
         <button type="button" id="saveChangesBtn" class="btn-action">حفظ التعديلات 💾</button>
@@ -103,6 +130,15 @@
     </div>
 
     <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        const cloudHeaders = {
+            'X-Master-Key': API_KEY,
+            'X-Access-Key': API_KEY,
+            'Content-Type': 'application/json'
+        };
+
         // التحقق من تسجيل الدخول
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
@@ -119,8 +155,8 @@
         document.getElementById('editStudentPhone').value = userData.studentPhone || '';
         document.getElementById('editParentPhone').value = userData.parentPhone || '';
 
-        if (userData.profileImage) {
-            document.getElementById('profileImg').src = userData.profileImage;
+        if (userData.profileImage || userData.profileImg) {
+            document.getElementById('profileImg').src = userData.profileImage || userData.profileImg;
         }
 
         // دالة ضغط وتحويل الصورة لـ Base64
@@ -133,8 +169,8 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 300;
-                        const MAX_HEIGHT = 300;
+                        const MAX_WIDTH = 200;
+                        const MAX_HEIGHT = 200;
                         let width = img.width;
                         let height = img.height;
 
@@ -156,12 +192,30 @@
             });
         }
 
-        // حفظ التعديلات محلياً
+        // معالجة اختيار الصورة تلقائياً من الأيقونة
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                let base64Img = await convertImageToBase64(file);
+                document.getElementById('profileImg').src = base64Img;
+                userData.profileImage = base64Img;
+                userData.profileImg = base64Img;
+
+                // تحديث الصورة في السحابة فوراً
+                await syncStudentToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
+            } catch (e) {
+                console.error("خطأ في معالجة الصورة", e);
+                alert("تعذر معالجة الصورة المحددة!");
+            }
+        }
+
+        // حفظ البيانات وحفظها في السحابة
         document.getElementById('saveChangesBtn').addEventListener('click', async function() {
             const newName = document.getElementById('editFullName').value.trim();
             const newSPhone = document.getElementById('editStudentPhone').value.trim();
             const newPPhone = document.getElementById('editParentPhone').value.trim();
-            const imageFile = document.getElementById('editImageInput').files[0];
 
             if (!newName || !newSPhone) {
                 alert('الاسم ورقم الهاتف حقول أساسية ولا يمكن تركها فارغة!');
@@ -172,21 +226,62 @@
             userData.studentPhone = newSPhone;
             userData.parentPhone = newPPhone;
 
-            if (imageFile) {
-                try {
-                    let base64Img = await convertImageToBase64(imageFile);
-                    userData.profileImage = base64Img;
-                    userData.profileImg = base64Img;
-                    document.getElementById('profileImg').src = base64Img;
-                } catch (e) {
-                    console.log("خطأ في معالجة الصورة", e);
-                }
-            }
+            const saveBtn = document.getElementById('saveChangesBtn');
+            saveBtn.textContent = 'جاري الحفظ بالسحابة... ⏳';
+            saveBtn.disabled = true;
 
-            localStorage.setItem('studentUser', JSON.stringify(userData));
-            alert('تم تحديث بيانات بروفايلك بنجاح يا بطل! ⚡');
-            window.location.href = 'main.html';
+            await syncStudentToCloud("تم تحديث بيانات بروفايلك بنجاح يا بطل! ⚡");
+
+            document.getElementById('profileName').textContent = newName;
+            saveBtn.textContent = 'حفظ التعديلات 💾';
+            saveBtn.disabled = false;
         });
+
+        // دالة التزامن المباشر مع السحابة
+        async function syncStudentToCloud(successMsg) {
+            // تحديث التخزين المحلي أولاً
+            localStorage.setItem('studentUser', JSON.stringify(userData));
+
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: cloudHeaders
+                });
+                if (!response.ok) throw new Error('فشل جلب البيانات السحابية');
+
+                let result = await response.json();
+                let record = result.record || {};
+                let users = Array.isArray(record.users) ? record.users : [];
+
+                // البحث عن الطالب بواسطة البريد الإلكتروني أو كود الطالب
+                let index = users.findIndex(u => 
+                    (u.email && userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
+                    (u.studentId && userData.studentId && u.studentId === userData.studentId)
+                );
+
+                if (index !== -1) {
+                    users[index] = { ...users[index], ...userData };
+                } else {
+                    users.push(userData);
+                }
+
+                record.users = users;
+
+                let updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(record)
+                });
+
+                if (updateResponse.ok) {
+                    alert(successMsg);
+                } else {
+                    alert('تم الحفظ محلياً فقط، تعذر الاتصال بالسحابة!');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ في المزامنة السحابية!');
+            }
+        }
 
         // زر تسجيل الخروج
         document.getElementById('logoutBtn').addEventListener('click', function() {
