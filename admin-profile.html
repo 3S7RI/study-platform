@@ -70,6 +70,9 @@
     </div>
 
     <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
@@ -83,27 +86,53 @@
         if (role === 'sub') {
             document.getElementById('badgeText').textContent = sessionStorage.getItem('adminBadge') || 'مشرف';
             document.getElementById('adminNameText').textContent = 'مشرف فرعي';
-            document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
+            document.getElementById('adminDescTest').textContent = 'فريق إدارة منصة رحلة دراسية';
             document.getElementById('adminEmailText').textContent = email;
             document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
         }
 
-        // حفظ وتحميل الصورة
-        const savedAvatar = localStorage.getItem('adminAvatar_' + email);
+        // تحميل صورة الأدمن (محلياً أو من السحابة لو متوفرة)
         const previewContainer = document.getElementById('avatarPreviewContainer');
+        let savedAvatar = localStorage.getItem('adminAvatar_' + email);
+        
         if (savedAvatar) {
             previewContainer.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
         }
 
-        document.getElementById('avatarInput').addEventListener('change', function(e) {
+        // رفع وتغيير صورة الأدمن من الجهاز وتحديثها في الـ LocalStorage والسحابة (عشان تظهر من أي جهاز)
+        document.getElementById('avatarInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
+                reader.onload = async function(event) {
                     const base64Image = event.target.result;
                     localStorage.setItem('adminAvatar_' + email, base64Image);
                     previewContainer.innerHTML = `<img src="${base64Image}" alt="Admin Avatar">`;
-                    alert('تم تحديث صورتك بنجاح! ✅');
+
+                    // تحديثها في السحابة أيضاً لضمان المزامنة
+                    try {
+                        let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                            headers: { 'X-Master-Key': API_KEY }
+                        });
+                        let data = await res.json();
+                        let rec = data.record;
+
+                        if (!rec.admins) rec.admins = {};
+                        rec.admins[email.replace('.', '_')] = base64Image;
+
+                        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Master-Key': API_KEY
+                            },
+                            body: JSON.stringify(rec)
+                        });
+                    } catch (err) {
+                        console.log('خطأ في مزامنة صورة الأدمن بالسحابة:', err);
+                    }
+
+                    alert('تم تحديث صورتك بنجاح وحفظها! ✅');
                 };
                 reader.readAsDataURL(file);
             }
