@@ -11,6 +11,7 @@
             --card-bg: #ffffff;
             --text-color: #333333;
             --border-color: #eee;
+            --stat-num-color: #1e3c72;
         }
         [data-theme="dark"] {
             --bg-color: #121212;
@@ -18,13 +19,13 @@
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
             --border-color: #333333;
+            --stat-num-color: #ffffff; /* إصلاح اختفاء الأرقام في الوضع الداكن */
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
         
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* تعديل الهيدر للتحكم بتموضع العناصر بدقة */
         header { 
             display: flex; 
             justify-content: space-between; 
@@ -38,13 +39,12 @@
             gap: 10px; 
         }
 
-        /* تصغير حجم النص ليكون متناسقاً في السطر الواحد */
         header h1 { 
             font-size: 0.95rem; 
             text-align: center; 
             flex-grow: 1; 
             margin: 0 5px; 
-            order: 2; /* في المنتصف */
+            order: 2; 
         }
         
         .admin-profile-btn { 
@@ -54,7 +54,7 @@
             background: transparent; 
             border: none; 
             cursor: pointer; 
-            order: 1; /* أقصى اليمين في نظام RTL */
+            order: 1; 
             flex-shrink: 0;
         }
         
@@ -67,7 +67,6 @@
             background: #e2e8f0; 
         }
         
-        /* زر الداكن/الفاتح على أقصى اليسار */
         .btn-theme { 
             background: #34495e; 
             color: white; 
@@ -77,7 +76,7 @@
             cursor: pointer; 
             font-weight: bold; 
             font-size: 0.8rem; 
-            order: 3; /* أقصى اليسار في نظام RTL */
+            order: 3; 
             flex-shrink: 0;
             white-space: nowrap;
         }
@@ -85,7 +84,9 @@
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--card-bg); padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-right: 5px solid #2a5298; }
         .stat-card h3 { color: #888; font-size: 0.85rem; margin-bottom: 5px; }
-        .stat-card p { color: var(--header-bg); font-size: 1.5rem; font-weight: bold; }
+        
+        /* ضبط لون أرقام الإحصائيات ليصبح واضحاً دائماً */
+        .stat-card p { color: var(--stat-num-color); font-size: 1.5rem; font-weight: bold; }
 
         .section-box { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 15px; margin-bottom: 20px; overflow-x: auto; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
@@ -102,21 +103,36 @@
         th, td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; white-space: nowrap; }
         th { background: rgba(0,0,0,0.02); color: var(--text-color); font-weight: bold; }
         tr:hover { background: rgba(0,0,0,0.01); }
+
+        /* شارة التوثيق الزرقاء الاحترافية */
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            background-color: #1da1f2;
+            border-radius: 50%;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
+        .verified-badge svg {
+            width: 10px;
+            height: 10px;
+            fill: white;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <header>
-            <!-- أقصى اليمين: صورة بروفايل الأدمن -->
             <a href="admin-profile.html" class="admin-profile-btn" title="بروفايل الأدمن">
                 <img src="" alt="صورة الأدمن" class="header-avatar" id="headerAdminAvatar" onerror="this.src='https://via.placeholder.com/40?text=Admin'">
             </a>
             
-            <!-- المنتصف: العنوان بمقاس مصغر ومناسب -->
             <h1 id="headerTitle">⚡ لوحة التحكم المركزية</h1>
             
-            <!-- أقصى اليسار: زر تغيير الثيم -->
             <button class="btn-theme" id="themeToggleBtn">🌙 داكن</button>
         </header>
 
@@ -127,7 +143,7 @@
             </div>
             <div class="stat-card" style="border-right-color: #8e44ad;" id="adminsCountCard">
                 <h3>طاقم الأدمنز والمشرفين</h3>
-                <p id="totalAdminsCount" style="color: #8e44ad;">0</p>
+                <p id="totalAdminsCount">0</p>
             </div>
         </div>
 
@@ -169,6 +185,15 @@
             alert('غير مصرح لك بالدخول!');
             window.location.href = 'login.html';
         }
+
+        // إعداد شارة التوثيق الزرقاء بصيغة SVG
+        const verifiedBadgeHTML = `
+            <span class="verified-badge" title="حساب موثق">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </span>
+        `;
 
         // إدارة الثيم (فاتح / داكن)
         const themeBtn = document.getElementById('themeToggleBtn');
@@ -296,7 +321,7 @@
                 let adminName = adm.name || adm.email.split('@')[0];
 
                 html += `<tr>
-                    <td><b>${adminName}</b> ${isVerified ? '<span style="color:#3498db;">✔️</span>' : ''}</td>
+                    <td><b>${adminName}</b> ${isVerified ? verifiedBadgeHTML : ''}</td>
                     <td>${adm.email}</td>
                     <td><b style="color: ${isMasterRole ? '#8e44ad' : '#2980b9'}">${isMasterRole ? 'متحكم كامل ⚡' : 'أدمن عادي 🛡️'}</b></td>
                     <td><span style="color: ${isBlocked ? 'red' : 'green'}; font-weight: bold;">${isBlocked ? 'محظور 🔴' : 'نشط 🟢'}</span></td>
