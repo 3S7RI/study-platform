@@ -15,20 +15,11 @@
             --border-color: #e5e7eb;
         }
 
-        [data-theme="dark"] {
-            --bg-color: #111827;
-            --card-bg: #1f2937;
-            --text-main: #f9fafb;
-            --text-secondary: #9ca3af;
-            --border-color: #374151;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            transition: background-color 0.3s, color 0.3s;
         }
 
         body {
@@ -44,18 +35,14 @@
         .profile-container {
             background-color: var(--card-bg);
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
             padding: 30px;
-            position: relative;
             border: 1px solid var(--border-color);
         }
 
         .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 20px;
         }
 
@@ -65,7 +52,7 @@
             color: var(--text-secondary);
             font-size: 1rem;
             cursor: pointer;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 5px;
             text-decoration: none;
@@ -93,16 +80,14 @@
             border-radius: 50%;
             object-fit: cover;
             border: 3px solid var(--primary-color);
+            background: #e2e8f0;
         }
 
         .admin-name {
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
+            color: var(--text-main);
         }
 
         .admin-email {
@@ -137,12 +122,6 @@
             font-weight: 600;
         }
 
-        .actions-section {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
         .btn {
             width: 100%;
             padding: 12px;
@@ -156,25 +135,24 @@
             justify-content: center;
             gap: 8px;
             text-decoration: none;
-        }
-
-        .btn-primary {
             background-color: var(--primary-color);
             color: white;
+            transition: background 0.2s;
         }
 
-        .btn-primary:hover {
+        .btn:hover {
             background-color: var(--primary-hover);
         }
 
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             color: var(--text-secondary);
+            font-size: 1.1rem;
         }
     </style>
 </head>
-<body data-theme="light">
+<body>
 
     <div class="profile-container">
         <div class="header-actions">
@@ -184,7 +162,7 @@
         </div>
 
         <div id="profileContent">
-            <div class="loading">جاري تحميل بيانات البروفايل...</div>
+            <div class="loading">جاري مزامنة وسحب البيانات من قاعدة البيانات...</div>
         </div>
     </div>
 
@@ -192,41 +170,55 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // ضبط الذاكرة مؤقتاً لتجنب أي مشاكل قراءة مستقبلية
-        localStorage.setItem('isAdminLoggedIn', 'true');
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-
-        async function fetchAdminProfile() {
+        async function initProfileFromCloud() {
             try {
+                // سحب الإيميل الحالي من الذاكرة أو الاعتماد على المطور الأساسي كقيمة افتراضية لضمان عدم التعطل
+                let currentEmail = localStorage.getItem('adminEmail') || sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
+
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: {
                         'X-Master-Key': API_KEY,
                         'X-Access-Key': API_KEY
                     }
                 });
+
+                if (!response.ok) throw new Error('فشل الاتصال بقاعدة البيانات السحابية');
+
                 let result = await response.json();
                 let rec = result.record || {};
-                
-                // جلب الإيميل أو استخدام إيميل المطور الأساسي مباشرة
-                let currentEmail = sessionStorage.getItem('adminEmail') || localStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
                 let admins = rec.admins || [];
+
+                // البحث عن الأدمن الحالي داخل البيانات المخزنة في الـ Bin
                 let currentAdmin = admins.find(a => a.email === currentEmail) || admins[0];
 
                 if (currentAdmin) {
+                    // تحديث الذاكرة المحلية تلقائياً لضمان استمرار الجلسة من أي جهاز
+                    localStorage.setItem('adminEmail', currentAdmin.email);
+                    localStorage.setItem('isAdminLoggedIn', 'true');
                     renderProfile(currentAdmin);
                 } else {
-                    document.getElementById('profileContent').innerHTML = '<div class="loading">لم يتم العثور على بيانات الأدمن.</div>';
+                    document.getElementById('profileContent').innerHTML = `
+                        <div class="loading" style="color: #ef4444;">لم يتم العثور على حساب مطابق في السحابة.</div>
+                        <div class="actions-section" style="margin-top: 15px;">
+                            <a href="admin.html" class="btn">العودة للوحة التحكم</a>
+                        </div>
+                    `;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('profileContent').innerHTML = '<div class="loading">حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>';
+                document.getElementById('profileContent').innerHTML = `
+                    <div class="loading" style="color: #ef4444;">خطأ في الاتصال بالإنترنت أو قاعدة البيانات.</div>
+                    <div class="actions-section" style="margin-top: 15px;">
+                        <a href="admin.html" class="btn">إعادة المحاولة</a>
+                    </div>
+                `;
             }
         }
 
         function renderProfile(admin) {
             const container = document.getElementById('profileContent');
             
-            let roleText = admin.role === 'sub' ? 'أدمن فرعي' : 'متحكم رئيسي';
+            let roleText = admin.role === 'sub' ? 'أدمن فرعي 🛡️' : 'متحكم رئيسي ⚡';
             let avatarUrl = admin.profileImage && admin.profileImage.trim() !== '' ? admin.profileImage : 'https://via.placeholder.com/110?text=Admin';
 
             container.innerHTML = `
@@ -241,22 +233,22 @@
                 <div class="info-card">
                     <div class="info-row">
                         <span class="info-label">الصلاحية:</span>
-                        <span class="info-value">${roleText}</span>
+                        <span class="info-value" style="color: #4f46e5;">${roleText}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">حالة الحساب:</span>
-                        <span class="info-value" style="color: #10b981;">نشط 🟢</span>
+                        <span class="info-label">حالة المزامنة:</span>
+                        <span class="info-value" style="color: #10b981;">متصل بالسحابة 🌐</span>
                     </div>
                 </div>
 
                 <div class="actions-section">
-                    <a href="admin.html" class="btn btn-primary">الذهاب للوحة التحكم الرئيسية</a>
+                    <a href="admin.html" class="btn">الذهاب للوحة التحكم الرئيسية</a>
                 </div>
             `;
         }
 
-        // تنفيذ الجلب مباشرة دون أي قيود طرد
-        fetchAdminProfile();
+        // تشغيل المزامنة فور فتح الصفحة
+        initProfileFromCloud();
     </script>
 </body>
 </html>
