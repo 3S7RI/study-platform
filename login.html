@@ -112,8 +112,8 @@
                 let adminRequests = record.adminRequests || [];
 
                 // 2. التحقق من الحظر لدى المشرفين والطلاب
-                let foundAdmin = adminsList.find(adm => adm.email.toLowerCase() === email);
-                let foundStudent = studentsList.find(st => st.email.toLowerCase() === email);
+                let foundAdmin = adminsList.find(adm => adm.email && adm.email.toLowerCase() === email);
+                let foundStudent = studentsList.find(st => st.email && st.email.toLowerCase() === email);
 
                 if ((foundAdmin && foundAdmin.status === 'blocked') || (foundStudent && foundStudent.status === 'blocked')) {
                     triggerBanned404();
@@ -127,14 +127,13 @@
                     sessionStorage.setItem('adminEmail', foundAdmin.email);
                     sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف');
                     
-                    alert(`أهلاً بك يا مشرفنا ${foundAdmin.name}!`);
+                    alert(`أهلاً بك يا مشرفنا ${foundAdmin.name || 'الأدمن'}!`);
                     window.location.href = 'admin.html';
                     return;
                 }
 
                 // 4. إذا حاول أي شخص تسجيل دخول بكلمة سر الأدمن بدون موافقة المطور
                 if (pass === ADMIN_SECRET_PASS && email !== MASTER_ADMIN_EMAIL) {
-                    // تسجيل طلب إشراف جديد للمطور
                     if (!adminRequests.some(req => req.email === email)) {
                         adminRequests.push({
                             email: email,
@@ -156,10 +155,28 @@
                     return;
                 }
 
-                // 5. التحقق من الطلاب العاديين
+                // 5. التحقق من الطلاب العاديين وحفظ صورتهم بأمان
                 if (foundStudent && foundStudent.password === pass) {
+
+                    // جلب الصورة القديمة المخزنة محلياً لعدم فقدانها لو لم تكن متوفرة بالسحابة
+                    let localUser = {};
+                    try {
+                        localUser = JSON.parse(localStorage.getItem('studentUser')) || {};
+                    } catch(e) {}
+
+                    // تحديد الصورة المفضلة (من السحابة أولاً ثم من الجهاز)
+                    let userAvatar = foundStudent.profileImage || foundStudent.profileImg;
+                    if (!userAvatar && localUser.email === foundStudent.email) {
+                        userAvatar = localUser.profileImage || localUser.profileImg;
+                    }
+
+                    // توحيد الخاصية في الكائن قبل التخزين
+                    foundStudent.profileImage = userAvatar || '';
+                    foundStudent.profileImg = userAvatar || '';
+
                     localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                     localStorage.setItem('isLoggedIn', 'true');
+
                     alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}!`);
                     window.location.href = 'main.html';
                 } else {
