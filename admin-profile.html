@@ -1,112 +1,130 @@
-<script>
-    const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-    const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بروفايل الأدمن - رحلة دراسية</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-secondary: #4b5563;
+            --border-color: #e5e7eb;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); padding: 30px; border: 1px solid var(--border-color); }
+        .header-actions { margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
+        .back-btn:hover { color: var(--primary-color); }
+        .profile-header { text-align: center; margin-bottom: 25px; }
+        .avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); background: #e2e8f0; }
+        .admin-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
+        .admin-email { color: var(--text-secondary); font-size: 0.95rem; }
+        .info-card { background-color: var(--bg-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem; }
+        .info-row:last-child { margin-bottom: 0; }
+        .info-label { color: var(--text-secondary); }
+        .info-value { font-weight: 600; }
+        .btn { width: 100%; padding: 12px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 10px; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-logout { background-color: #e74c3c; }
+        .btn-logout:hover { background-color: #c0392b; }
+        .loading { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 1.1rem; }
+    </style>
+</head>
+<body>
 
-    // التأكد أولاً أن الأدمن مسجل دخول من الأساس (نفس حماية لوحة التحكم)
-    if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-        alert('يجب تسجيل الدخول أولاً!');
-        window.location.href = 'login.html';
-    }
+    <div class="profile-container">
+        <div class="header-actions">
+            <a href="admin.html" class="back-btn"><span>←</span> عودة لوحة التحكم</a>
+        </div>
+        <div id="profileContent">
+            <div class="loading">جاري جلب البيانات...</div>
+        </div>
+    </div>
 
-    async function initProfileFromCloud() {
-        try {
-            // توحيد مصدر قراءة الإيميل من sessionStorage ليتطابق تماماً مع لوحة التحكم
-            let currentEmail = sessionStorage.getItem('adminEmail') || localStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-            let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                headers: {
-                    'X-Master-Key': API_KEY,
-                    'X-Access-Key': API_KEY
-                }
-            });
+        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'login.html';
+        }
 
-            if (!response.ok) throw new Error('فشل الاتصال بقاعدة البيانات السحابية');
-
-            let result = await response.json();
-            let rec = result.record || {};
-            let rawAdmins = rec.admins || [];
-            let adminsList = [];
-
-            // معالجة بيانات الأدمنز سواء كانت Array أو Object لضمان عدم حدوث أي خطأ في البحث
-            if (Array.isArray(rawAdmins)) {
-                adminsList = rawAdmins;
-            } else if (typeof rawAdmins === 'object' && rawAdmins !== null) {
-                adminsList = Object.keys(rawAdmins).map(key => {
-                    let val = rawAdmins[key];
-                    return (typeof val === 'object' && val !== null) ? { email: key, ...val } : { email: key, name: key.split('@')[0], role: 'sub' };
+        async function initProfileFromCloud() {
+            try {
+                let currentEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
+                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
+
+                let result = await response.json();
+                let rec = result.record || {};
+                let rawAdmins = rec.admins || [];
+                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
+
+                let currentAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentEmail.toLowerCase());
+                if (!currentAdmin && currentEmail === 'mohamad66xm@gmail.com') {
+                    currentAdmin = { name: 'محمد عشري', email: 'mohamad66xm@gmail.com', role: 'master', isVerified: true };
+                }
+
+                if (currentAdmin) {
+                    renderProfile(currentAdmin);
+                } else {
+                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على الحساب.</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالإنترنت.</div>`;
             }
+        }
 
-            // البحث عن الأدمن الحالي بالبريد الإلكتروني بدقة
-            let currentAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentEmail.toLowerCase());
+        function renderProfile(admin) {
+            const container = document.getElementById('profileContent');
+            let isMaster = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
+            let roleText = isMaster ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️';
+            let avatarUrl = admin.profileImage && admin.profileImage.trim() !== '' ? admin.profileImage : 'https://via.placeholder.com/110?text=Admin';
 
-            // لو مش موجود في القائمة بس هو المطور الأساسي، ننشئ له كائن افتراضي مؤقت عشان الصفحة تفتح وما تطردوش
-            if (!currentAdmin && currentEmail === 'mohamad66xm@gmail.com') {
-                currentAdmin = {
-                    name: 'محمد عشري',
-                    email: 'mohamad66xm@gmail.com',
-                    role: 'master',
-                    isVerified: true
-                };
-            }
-
-            if (currentAdmin) {
-                // تحديث الجلسة والتخزين المحلي لضمان استقرار التطبيق
-                sessionStorage.setItem('isAdminLoggedIn', 'true');
-                sessionStorage.setItem('adminEmail', currentAdmin.email);
-                renderProfile(currentAdmin);
-            } else {
-                document.getElementById('profileContent').innerHTML = `
-                    <div class="loading" style="color: #ef4444;">لم يتم العثور على حساب المشرف المطابق في السحابة.</div>
-                    <div class="actions-section" style="margin-top: 15px;">
-                        <a href="admin.html" class="btn">العودة لوحة التحكم</a>
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="avatar-wrapper">
+                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" onerror="this.src='https://via.placeholder.com/110?text=Admin'">
                     </div>
-                `;
-            }
-        } catch (err) {
-            console.error(err);
-            document.getElementById('profileContent').innerHTML = `
-                <div class="loading" style="color: #ef4444;">خطأ في الاتصال بالإنترنت أو قاعدة البيانات.</div>
-                <div class="actions-section" style="margin-top: 15px;">
-                    <a href="admin.html" class="btn">إعادة المحاولة</a>
+                    <h1 class="admin-name">${admin.name || 'محمد عشري'}</h1>
+                    <p class="admin-email">${admin.email || 'mohamad66xm@gmail.com'}</p>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-row">
+                        <span class="info-label">الصلاحية:</span>
+                        <span class="info-value" style="color: #4f46e5;">${roleText}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">حالة الحساب:</span>
+                        <span class="info-value" style="color: #10b981;">نشط ومتصل 🌐</span>
+                    </div>
+                </div>
+
+                <div class="actions-section">
+                    <a href="admin.html" class="btn">الذهاب لوحة التحكم الرئيسية</a>
+                    <button class="btn btn-logout" onclick="logoutAdmin()">تسجيل الخروج 🚪</button>
                 </div>
             `;
         }
-    }
 
-    function renderProfile(admin) {
-        const container = document.getElementById('profileContent');
-        
-        let isMaster = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
-        let roleText = isMaster ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️';
-        let avatarUrl = admin.profileImage && admin.profileImage.trim() !== '' ? admin.profileImage : 'https://via.placeholder.com/110?text=Admin';
+        function logoutAdmin() {
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
 
-        container.innerHTML = `
-            <div class="profile-header">
-                <div class="avatar-wrapper">
-                    <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" onerror="this.src='https://via.placeholder.com/110?text=Admin'">
-                </div>
-                <h1 class="admin-name">${admin.name || 'محمد عشري'}</h1>
-                <p class="admin-email">${admin.email || 'mohamad66xm@gmail.com'}</p>
-            </div>
-
-            <div class="info-card">
-                <div class="info-row">
-                    <span class="info-label">الصلاحية:</span>
-                    <span class="info-value" style="color: #4f46e5;">${roleText}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">حالة الحساب:</span>
-                    <span class="info-value" style="color: #10b981;">نشط ومتصل بالسحابة 🌐</span>
-                </div>
-            </div>
-
-            <div class="actions-section">
-                <a href="admin.html" class="btn">الذهاب للوحة التحكم الرئيسية</a>
-            </div>
-        `;
-    }
-
-    // تشغيل المزامنة فور فتح الصفحة
-    initProfileFromCloud();
-</script>
+        initProfileFromCloud();
+    </script>
+</body>
+</html>
