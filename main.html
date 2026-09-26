@@ -7,16 +7,25 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #f4f7f6; color: #333; }
+        
         .navbar { background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .navbar h2 { font-size: 1.4rem; }
-        .nav-buttons { display: flex; gap: 10px; align-items: center; }
-        .profile-btn { background-color: #27ae60; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: bold; transition: background 0.3s; }
-        .profile-btn:hover { background-color: #219653; }
-        .logout-btn { background-color: #e74c3c; color: white; padding: 8px 15px; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: bold; border: none; cursor: pointer; transition: background 0.3s; }
-        .logout-btn:hover { background-color: #c0392b; }
+        
+        /* زر صورة البروفايل في اليمين */
+        .profile-nav-btn { display: flex; align-items: center; text-decoration: none; background: rgba(255, 255, 255, 0.15); padding: 5px 12px; border-radius: 30px; transition: background 0.3s; border: 1px solid rgba(255,255,255,0.2); }
+        .profile-nav-btn:hover { background: rgba(255, 255, 255, 0.25); }
+        .profile-nav-btn img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid white; margin-left: 8px; }
+        .profile-nav-btn span { color: white; font-weight: bold; font-size: 0.9rem; }
+
+        /* عنوان المنصة في المنتصف */
+        .navbar-title { font-size: 1.3rem; font-weight: bold; text-align: center; flex-grow: 1; margin: 0 15px; }
+
+        /* عنصر وهمي من الناحية اليسار لضبط التوازن في التصميم */
+        .navbar-spacer { width: 90px; }
+
         .welcome-section { text-align: center; padding: 40px 20px; background-color: #ffffff; border-bottom: 2px solid #eee; }
         .welcome-section h1 { color: #1e3c72; font-size: 1.8rem; margin-bottom: 10px; }
         .welcome-section p { color: #666; font-size: 1rem; }
+        
         .sections-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
         .card { background: white; border-radius: 12px; padding: 25px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-top: 4px solid #2a5298; }
         .card h3 { color: #2a5298; font-size: 1.4rem; margin-bottom: 10px; }
@@ -28,11 +37,17 @@
 <body>
 
     <header class="navbar">
-        <h2>📚 رحلة دراسية</h2>
-        <div class="nav-buttons">
-            <a href="profile.html" class="profile-btn">👤 الملف الشخصي</a>
-            <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
-        </div>
+        <!-- 1. صورة البروفايل على اليمين -->
+        <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
+            <span id="navStudentName">حسابي</span>
+            <img id="navProfileImg" src="https://via.placeholder.com/40" alt="صورة البروفايل">
+        </a>
+
+        <!-- 2. اسم المنصة في النص -->
+        <div class="navbar-title">📚 رحلة دراسية</div>
+
+        <!-- 3. مساحة فارغة لضبط التوازن باليسار -->
+        <div class="navbar-spacer"></div>
     </header>
 
     <section class="welcome-section">
@@ -66,17 +81,22 @@
             window.location.href = 'index.html';
         }
 
-        // جلب بيانات الطالب وعرض اسمه الحقيقي في الترحيب
+        // جلب بيانات الطالب وعرض اسمه الحقيقي وصورة بروفايله في الناف بار والترحيب
         const userData = JSON.parse(localStorage.getItem('studentUser'));
-        if (userData && userData.fullName) {
-            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${userData.fullName} في منصتك! 🚀`;
-        }
+        if (userData) {
+            if (userData.fullName) {
+                document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${userData.fullName} في منصتك! 🚀`;
+                
+                // جلب الاسم الأول فقط لعرضه بجانب الصورة في الشريط العلوي بشكل أنيق
+                let firstName = userData.fullName.split(' ')[0];
+                document.getElementById('navStudentName').innerText = firstName;
+            }
 
-        // زر تسجيل الخروج
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.removeItem('isLoggedIn');
-            window.location.href = 'index.html';
-        });
+            // عرض صورة البروفايل الشخصية لو تم رفعها مسبقاً
+            if (userData.profileImg) {
+                document.getElementById('navProfileImg').src = userData.profileImg;
+            }
+        }
     </script>
 </body>
 </html>
