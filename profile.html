@@ -60,24 +60,41 @@
     <script>
         // استرجاع بيانات الطالب الحالي المسجل الدخول
         let currentUser = JSON.parse(localStorage.getItem('studentUser'));
+        let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
 
         if (!currentUser) {
             alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
         } else {
-            // عرض البيانات في الصفحة
+            // حل مشكلة الحسابات القديمة: لو المستخدم ملوش ID، بنولدله واحد تلقائياً ونحفظه
+            if (!currentUser.studentId) {
+                // نبحث عنه في القائمة أو ندي إي دي برقم تسلسلي جديد
+                let indexInList = studentsList.findIndex(st => st.email === currentUser.email);
+                let serialNum = indexInList !== -1 ? indexInList + 1 : studentsList.length + 1;
+                currentUser.studentId = 'STU-' + String(serialNum).padStart(4, '0');
+                
+                // تحديثه في القائمة المحلية
+                if (indexInList !== -1) {
+                    studentsList[indexInList].studentId = currentUser.studentId;
+                    localStorage.setItem('studentsList', JSON.stringify(studentsList));
+                }
+                localStorage.setItem('studentUser', JSON.stringify(currentUser));
+            }
+
+            // عرض البيانات في الصفحة بشكل مؤكد
             document.getElementById('studentName').textContent = currentUser.fullName || 'طالب جديد';
-            document.getElementById('studentIdBadge').textContent = 'الكود: ' + (currentUser.studentId || 'STU-0001');
+            document.getElementById('studentIdBadge').textContent = 'الكود: ' + currentUser.studentId;
             document.getElementById('studentEmail').textContent = currentUser.email || '-';
             document.getElementById('studentPhoneVal').textContent = currentUser.studentPhone || '-';
             document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-';
             
+            // عرض الصورة لو موجودة
             if (currentUser.profileImg) {
                 document.getElementById('profileImage').src = currentUser.profileImg;
             }
         }
 
-        // التعامل مع رفع وتغيير صورة البروفايل
+        // التعامل مع رفع وتغيير صورة البروفايل وحفظها فوريًا
         const imageInput = document.getElementById('imageInput');
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -91,8 +108,7 @@
                     currentUser.profileImg = base64Image;
                     localStorage.setItem('studentUser', JSON.stringify(currentUser));
 
-                    // تحديث القائمة الشاملة أيضاً
-                    let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
+                    // تحديث القائمة الشاملة أيضاً لضمان حفظها بالذاكرة
                     studentsList = studentsList.map(st => {
                         if (st.email === currentUser.email) {
                             st.profileImg = base64Image;
@@ -101,7 +117,7 @@
                     });
                     localStorage.setItem('studentsList', JSON.stringify(studentsList));
 
-                    alert('تم تحديث صورة البروفايل بنجاح يا بطل!');
+                    alert('تم تحديث صورة البروفايل بنجاح يا بطل! 🚀');
                 };
                 reader.readAsDataURL(file);
             }
