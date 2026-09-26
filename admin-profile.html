@@ -10,13 +10,26 @@
             --primary-hover: #4338ca;
             --bg-color: #f3f4f6;
             --card-bg: #ffffff;
+            --form-bg: #fafafa;
             --text-main: #1f2937;
             --text-secondary: #4b5563;
             --border-color: #e5e7eb;
+            --input-bg: #ffffff;
         }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --form-bg: #252525;
+            --text-main: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --border-color: #374151;
+            --input-bg: #2d2d2d;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); padding: 25px; border: 1px solid var(--border-color); }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; transition: background-color 0.3s, color 0.3s; }
+        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); padding: 25px; border: 1px solid var(--border-color); }
         .header-actions { margin-bottom: 15px; }
         .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 600; }
         .back-btn:hover { color: var(--primary-color); }
@@ -38,7 +51,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border: 2px solid white;
+            border: 2px solid var(--card-bg);
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             font-size: 0.85rem;
             transition: transform 0.2s;
@@ -46,19 +59,37 @@
         .upload-badge:hover { transform: scale(1.1); background: var(--primary-hover); }
 
         .admin-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 3px; color: var(--text-main); display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .verified-badge { color: #3498db; font-size: 1.1rem; title: "حساب موثق"; }
+        
+        /* شارة التوثيق الزرقاء الاحترافية */
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background-color: #1da1f2;
+            border-radius: 50%;
+            margin-right: 2px;
+            vertical-align: middle;
+        }
+        .verified-badge svg {
+            width: 11px;
+            height: 11px;
+            fill: white;
+        }
+
         .admin-email { color: var(--text-secondary); font-size: 0.88rem; }
         
-        .info-card { background-color: var(--bg-color); border-radius: 12px; padding: 12px 18px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.88rem; }
+        .info-card { background-color: var(--form-bg); border-radius: 12px; padding: 12px 18px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.88rem; }
         .info-row:last-child { margin-bottom: 0; }
         .info-label { color: var(--text-secondary); }
-        .info-value { font-weight: 600; }
+        .info-value { font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
-        .edit-form { margin-bottom: 15px; background: #fafafa; padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .edit-form { margin-bottom: 15px; background: var(--form-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: var(--text-secondary); }
-        .form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; font-size: 0.88rem; }
+        .form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 8px; outline: none; font-size: 0.88rem; }
         .form-group input:focus { border-color: var(--primary-color); }
 
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 8px; }
@@ -92,10 +123,24 @@
         let currentAdminData = null;
         let oldAdminEmail = '';
 
+        // تفعيل الثيم الداكن إذا كان مفعلاً في اللوحة
+        if (localStorage.getItem('adminTheme') === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
         }
+
+        // شارة التوثيق الزرقاء بصيغة SVG
+        const verifiedBadgeHTML = `
+            <span class="verified-badge" title="حساب موثق">
+                <svg viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+            </span>
+        `;
 
         async function initProfileFromCloud() {
             try {
@@ -144,7 +189,7 @@
                     </div>
                     <h1 class="admin-name">
                         <span id="displayAdminName">${admin.name || 'محمد عشري'}</span>
-                        ${isVerified ? '<span class="verified-badge" title="حساب موثق">✔️</span>' : ''}
+                        ${isVerified ? verifiedBadgeHTML : ''}
                     </h1>
                     <p class="admin-email" id="displayAdminEmail">${admin.email}</p>
                 </div>
@@ -156,7 +201,9 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">حالة التوثيق:</span>
-                        <span class="info-value" style="color: ${isVerified ? '#3498db' : '#888'};">${isVerified ? 'موثق رسمياً ✔️' : 'غير موثق ⚪'}</span>
+                        <span class="info-value" style="color: ${isVerified ? '#1da1f2' : '#888'};">
+                            ${isVerified ? 'موثق رسمياً ' + verifiedBadgeHTML : 'غير موثق ⚪'}
+                        </span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">حالة الحساب:</span>
@@ -164,7 +211,6 @@
                     </div>
                 </div>
 
-                <!-- نموذج تعديل معلومات الحساب المحدث -->
                 <div class="edit-form">
                     <div class="form-group">
                         <label>الاسم الكامل</label>
@@ -231,7 +277,6 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            // ضغط الصورة إلى أبعاد max 200x200 وجودة 0.7
             compressImage(file, 200, 200, 0.7, async function (compressedBase64) {
                 document.getElementById('adminAvatarImg').src = compressedBase64;
                 currentAdminData.profileImage = compressedBase64;
@@ -261,7 +306,6 @@
 
             await syncDataToCloud("تم حفظ كافة بيانات الأدمن بنجاح! ✅");
 
-            // التحديث في الجلسة إذا تغير البريد
             sessionStorage.setItem('adminEmail', newEmail);
             oldAdminEmail = newEmail;
 
@@ -276,7 +320,6 @@
             try {
                 if (!Array.isArray(globalRecord.admins)) globalRecord.admins = [];
                 
-                // البحث بالبريد القديم أو الجديد
                 let index = globalRecord.admins.findIndex(a => a.email && a.email.toLowerCase() === oldAdminEmail.toLowerCase());
                 if (index !== -1) {
                     globalRecord.admins[index] = currentAdminData;
