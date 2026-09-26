@@ -49,6 +49,10 @@
                 <input type="tel" id="parentPhone" placeholder="01xxxxxxxx0" required>
             </div>
             <div class="input-group">
+                <label>صورة البروفايل الشخصية</label>
+                <input type="file" id="profileImageInput" accept="image/*">
+            </div>
+            <div class="input-group">
                 <label>كلمة المرور</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" placeholder="********" required>
@@ -83,12 +87,52 @@
             }
         });
 
+        // دالة لتحويل الصورة المرفوعة إلى Base64 مع ضغط حجمها لتناسب السحابة وتثبت دائماً
+        function convertImageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 300;
+                        const MAX_HEIGHT = 300;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7)); // ضغط الجودة لـ 70% لتظل خفيفة ودائمة في السحابة
+                    };
+                    img.onerror = error => reject(error);
+                };
+                reader.onerror = error => reject(error);
+            });
+        }
+
         document.getElementById('submitBtn').addEventListener('click', async function() {
             const name = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
+            const imageFile = document.getElementById('profileImageInput').files[0];
 
             if (!name || !email || !sPhone || !pass) {
                 alert('من فضلك املأ الحقول المطلوبة أولاً!');
@@ -100,12 +144,14 @@
             btn.disabled = true;
 
             try {
-                // 1. جلب قائمة الطلاب الحالية من السحابة للتأكد من عدم تكرار الإيميل
+                // 1. جلب البيانات الحالية من السحابة (الطلاب والآدمنز معاً)
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 let result = await response.json();
-                let studentsList = result.record.users || [];
+                let currentRecord = result.record || {};
+                let studentsList = currentRecord.users || [];
+                let adminsData = currentRecord.admins || {};
 
                 const emailExists = studentsList.some(student => student.email === email);
                 const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
@@ -123,6 +169,16 @@
                     return;
                 }
 
+                // معالجة صورة البروفايل إن وجدت
+                let profileImageBase64 = "";
+                if (imageFile) {
+                    try {
+                        profileImageBase64 = await convertImageToBase64(imageFile);
+                    } catch (e) {
+                        console.log("خطأ في معالجة الصورة، سيتم المتابعة بدونها", e);
+                    }
+                }
+
                 // 2. توليد كود تعريف تسلسلي
                 const nextNumber = studentsList.length + 1;
                 const formattedId = String(nextNumber).padStart(4, '0');
@@ -134,7 +190,8 @@
                     email: email,
                     studentPhone: sPhone,
                     parentPhone: pPhone,
-                    password: pass
+                    password: pass,
+                    profileImage: profileImageBase64
                 };
 
                 // إرسال البيانات لجوجل شيت في الخلفية
@@ -145,7 +202,7 @@
                     body: JSON.stringify(userData)
                 }).catch(err => console.log(err));
 
-                // 3. إضافة الطالب الجديد لقائمة السحابة وتحديثها
+                // 3. إضافة الطالب الجديد للقائمة والحفاظ على بيانات الآدمنز كما هي تماماً
                 studentsList.push(userData);
 
                 await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -154,7 +211,10 @@
                         'Content-Type': 'application/json',
                         'X-Master-Key': API_KEY
                     },
-                    body: JSON.stringify({ users: studentsList })
+                    body: JSON.stringify({ 
+                        users: studentsList,
+                        admins: adminsData 
+                    })
                 });
                 
                 // حفظ الجلسة محلياً لفتح المنصة فوراً
