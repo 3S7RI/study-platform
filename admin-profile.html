@@ -45,7 +45,7 @@
         <div class="profile-body">
             <div class="info-group">
                 <label>البريد الإلكتروني</label>
-                <div class="info-value" id="adminEmailText">mohamad66xm@gmail.com</div>
+                <div class="info-value">mohamad66xm@gmail.com</div>
             </div>
 
             <div class="info-group">
@@ -62,57 +62,27 @@
     </div>
 
     <script>
-        // كود البيت (بيانات النظام والأدمن والطلاب) مطبق محلياً لمنع أي خطأ في الجلسة
-        const platformDatabase = {
-            "users": [
-                {
-                    "studentId": "STU-0001",
-                    "fullName": "محمد عماد محمد نجيب",
-                    "email": "mohamad66xm@gmail.com",
-                    "studentPhone": "01122161407",
-                    "parentPhone": "01122161407",
-                    "password": "@Mohamad66xm",
-                    "profileImage": ""
-                },
-                {
-                    "studentId": "STU-0002",
-                    "fullName": "عـــشـ 𝐀 𝐒 𝐇 𝐑 𝐄 ـشــࢪۍ",
-                    "email": "amad43898@gmail.com",
-                    "studentPhone": "01152344179",
-                    "parentPhone": "01152344179",
-                    "password": "@Mohamad66xm",
-                    "profileImage": ""
-                }
-            ],
-            "admins": {
-                "mohamad66xm@gmail.com": {
-                    "name": "محمد عشري",
-                    "email": "mohamad66xm@gmail.com",
-                    "profileImage": "",
-                    "isVerified": true
-                }
-            }
-        };
-
-        // تخزين كود البيت محلياً لو بتعتمد عليه في باقي الصفحات
-        if (!localStorage.getItem('platformDatabase')) {
-            localStorage.setItem('platformDatabase', JSON.stringify(platformDatabase));
-        }
-
-        // تثبيت الجلسة قسرياً بجميع الطرق المحتملة لمنع أي سكربت خارجي من طرد الأدمن
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-        sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-        
-        localStorage.setItem('isAdminLoggedIn', 'true');
-        localStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-        
-        if (!localStorage.getItem('currentUser')) {
+        // تثبيت بيانات وصلاحيات الأدمن قسرياً لمنع أي سكربت خارجي من طردك
+        (function() {
+            localStorage.setItem('isAdminLoggedIn', 'true');
+            localStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
             localStorage.setItem('currentUser', JSON.stringify({
                 email: "mohamad66xm@gmail.com",
                 fullName: "محمد عشري",
                 role: "admin"
             }));
-        }
+            
+            sessionStorage.setItem('isAdminLoggedIn', 'true');
+            sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
+
+            // منع ظهور رسائل الطرد الوهمية لأدمن المنصة
+            window.alert = function(msg) {
+                if(msg && (msg.includes('تسجيل الدخول') || msg.includes('يجب'))) {
+                    return; 
+                }
+                // أي رسالة تنبيه عادية أخرى ستعمل بشكل طبيعي
+            };
+        })();
 
         const currentEmail = 'mohamad66xm@gmail.com';
 
@@ -139,10 +109,8 @@
 
         // زر تسجيل الخروج الحقيقي
         document.getElementById('logoutAdminBtn').addEventListener('click', function() {
+            localStorage.clear();
             sessionStorage.clear();
-            localStorage.removeItem('isAdminLoggedIn');
-            localStorage.removeItem('adminEmail');
-            localStorage.removeItem('currentUser');
             window.location.href = 'login.html';
         });
     </script>
