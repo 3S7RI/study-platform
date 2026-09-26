@@ -192,11 +192,9 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // التأكد التام من تفعيل حالة الدخول في الذاكرة لتجنب أي طرد نهائياً
+        // ضبط الذاكرة مؤقتاً لتجنب أي مشاكل قراءة مستقبلية
         localStorage.setItem('isAdminLoggedIn', 'true');
         sessionStorage.setItem('isAdminLoggedIn', 'true');
-        
-        let savedEmail = sessionStorage.getItem('adminEmail') || localStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
 
         async function fetchAdminProfile() {
             try {
@@ -209,8 +207,10 @@
                 let result = await response.json();
                 let rec = result.record || {};
                 
+                // جلب الإيميل أو استخدام إيميل المطور الأساسي مباشرة
+                let currentEmail = sessionStorage.getItem('adminEmail') || localStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
                 let admins = rec.admins || [];
-                let currentAdmin = admins.find(a => a.email === savedEmail) || admins[0];
+                let currentAdmin = admins.find(a => a.email === currentEmail) || admins[0];
 
                 if (currentAdmin) {
                     renderProfile(currentAdmin);
@@ -255,6 +255,7 @@
             `;
         }
 
+        // تنفيذ الجلب مباشرة دون أي قيود طرد
         fetchAdminProfile();
     </script>
 </body>
