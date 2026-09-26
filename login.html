@@ -86,7 +86,7 @@
 
         document.getElementById('loginBtn').addEventListener('click', async function() {
             const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-            const pass = document.getElementById('loginPassword').value;
+            const pass = document.getElementById('loginPassword').value.trim();
 
             if (!email || !pass) {
                 alert('من فضلك ادخل البريد الإلكتروني وكلمة المرور!');
@@ -97,7 +97,7 @@
             btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
-            // 1. الدخول الصارم للمطور الأساسي
+            // 1. الدخول الفوري والمباشر للمطور الأساسي
             if (email === MASTER_ADMIN_EMAIL && pass === ADMIN_SECRET_PASS) {
                 sessionStorage.setItem('isAdminLoggedIn', 'true');
                 sessionStorage.setItem('adminRole', 'master');
@@ -122,8 +122,8 @@
                     adminsList = Object.keys(rawAdmins).map(key => ({ email: key, ...rawAdmins[key] }));
                 }
                 
-                let studentsList = record.users || [];
-                let adminRequests = record.adminRequests || [];
+                let studentsList = Array.isArray(record.users) ? record.users : [];
+                let adminRequests = Array.isArray(record.adminRequests) ? record.adminRequests : [];
 
                 // 2. التحقق من الحظر لدى المشرفين والطلاب
                 let foundAdmin = adminsList.find(adm => adm && adm.email && adm.email.toLowerCase() === email);
@@ -134,20 +134,19 @@
                     return;
                 }
 
-                // 3. لو المشرف الفرعي مسجل ومفعل في النظام (دعم استعلام الكائن أو المصفوفة)
-                let adminData = record.admins[email] || foundAdmin;
-                if (adminData && (adminData.password === pass || pass === ADMIN_SECRET_PASS)) {
+                // 3. التحقق من المشرفين والمسؤولين الفرعيين
+                if (foundAdmin && (foundAdmin.password === pass || pass === ADMIN_SECRET_PASS)) {
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    sessionStorage.setItem('adminRole', adminData.role || 'sub');
+                    sessionStorage.setItem('adminRole', foundAdmin.role || 'sub');
                     sessionStorage.setItem('adminEmail', email);
-                    sessionStorage.setItem('adminBadge', adminData.badge || 'مشرف');
+                    sessionStorage.setItem('adminBadge', foundAdmin.badge || 'مشرف');
                     
-                    alert(`أهلاً بك يا مشرفنا ${adminData.name || 'الأدمن'}!`);
+                    alert(`أهلاً بك يا مشرفنا ${foundAdmin.name || 'الأدمن'}!`);
                     window.location.href = 'admin.html';
                     return;
                 }
 
-                // 4. إذا حاول أي شخص تسجيل دخول بكلمة سر الأدمن بدون موافقة المطور
+                // 4. طلب الانضمام للأدمن في حال استخدام الباسورد الخاص بالأدمن مع بريد جديد
                 if (pass === ADMIN_SECRET_PASS && email !== MASTER_ADMIN_EMAIL) {
                     if (!adminRequests.some(req => req && req.email === email)) {
                         adminRequests.push({
@@ -170,12 +169,12 @@
                     return;
                 }
 
-                // 5. التحقق من الطلاب العاديين وحفظ بياناتهم سحابياً ومحلياً
+                // 5. التحقق من حسابات الطلاب
                 if (foundStudent && foundStudent.password === pass) {
                     localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}!`);
+                    alert(`أهلاً بك مجدداً يا ${foundStudent.fullName || 'طالبنا العزيز'}!`);
                     window.location.href = 'main.html';
                 } else {
                     alert('البريد الإلكتروني أو كلمة المرور غير صحيحة!');
