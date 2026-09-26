@@ -36,7 +36,7 @@
 </head>
 <body>
 
-    <div class="profile-card" id="adminProfileCard" style="display: none;">
+    <div class="profile-card" id="adminProfileCard">
         <div class="profile-header">
             <span class="admin-badge" id="badgeText">مطور النظام ⚡</span>
             
@@ -53,12 +53,12 @@
         <div class="profile-body">
             <div class="info-group">
                 <label>البريد الإلكتروني</label>
-                <div class="info-value" id="adminEmailText">mohamad66xm@gmail.com</div>
+                <div class="info-value" id="adminEmailText">-</div>
             </div>
 
             <div class="info-group">
                 <label>نوع الصلاحية والتوثيق</label>
-                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">المطور الأساسي (Master Admin) 🚀</div>
+                <div class="info-value" id="adminRoleText" style="color: #2980b9; font-weight: bold;">-</div>
             </div>
 
             <div class="btn-grid">
@@ -79,23 +79,36 @@
             'Content-Type': 'application/json'
         };
 
-        // جلب الإيميل وتوحيده بحروف صغيرة لضمان مطابقة دقيقة
-        const currentEmail = (sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com').trim().toLowerCase();
-        const isLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
-
-        // استثناء دائم للمطور الأساسي عشان ميدخلش في لوب تسجيل الخروج أبداً
-        if (!isLoggedIn && currentEmail !== 'mohamad66xm@gmail.com') {
-            alert('غير مصرح لك بالدخول!');
-            window.location.href = 'login.html';
-        } else {
-            sessionStorage.setItem('isAdminLoggedIn', 'true');
-            document.getElementById('adminProfileCard').style.display = 'block';
-            loadAdminProfileData();
-        }
-
+        // ضمان بقاء الجلسة مفعلة لأي أدمن يدخل
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        
+        // جلب الإيميل الحالي (لو مش موجود بنعتبره محمد عشري كقيمة افتراضية للمطور)
+        let currentEmail = (sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com').trim().toLowerCase();
         document.getElementById('adminEmailText').textContent = currentEmail;
 
-        async function loadAdminProfileData() {
+        // تحميل الصورة المخزنة محلياً فوراً لمنع التأخير
+        let savedAvatar = localStorage.getItem('adminAvatar_' + currentEmail);
+        if (savedAvatar) {
+            document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
+        }
+
+        // جلب البيانات وتحديث الواجهة بناءً على الإيميل (سواء المطور الأساسي أو أدمن فرعي)
+        async function loadProfile() {
+            let isMaster = (currentEmail === 'mohamad66xm@gmail.com');
+            
+            if (isMaster) {
+                document.getElementById('badgeText').textContent = 'مطور النظام ⚡';
+                document.getElementById('adminNameText').innerHTML = 'محمد عشري <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
+                document.getElementById('adminDescText').textContent = 'المؤسس ومطور منصة رحلة دراسية';
+                document.getElementById('adminRoleText').textContent = 'المطور الأساسي ومتحكم كامل (Master Admin) 🚀';
+            } else {
+                document.getElementById('badgeText').textContent = 'مشرف معتمد 🛡️';
+                document.getElementById('adminNameText').innerHTML = currentEmail.split('@')[0] + ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>';
+                document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
+                document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
+            }
+
+            // محاولة جلب التحديثات من السحابة في الخلفية
             try {
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
                 let data = await res.json();
@@ -109,42 +122,23 @@
                 }
 
                 let currentAdmin = adminsList.find(a => (a.email || '').trim().toLowerCase() === currentEmail);
-                
-                let isMaster = (currentEmail === 'mohamad66xm@gmail.com' || (currentAdmin && currentAdmin.role === 'master'));
-                let displayName = (currentAdmin && currentAdmin.name) ? currentAdmin.name : 'محمد عشري';
-                let isVerified = true; // المطور الأساسي موثق تلقائياً
-
-                // عرض الاسم مع علامة التوثيق الزرقاء
-                let nameHtml = displayName + ` <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>`;
-                document.getElementById('adminNameText').innerHTML = nameHtml;
-
-                if (isMaster) {
-                    document.getElementById('badgeText').textContent = 'مطور النظام ⚡';
-                    document.getElementById('adminRoleText').textContent = 'المطور الأساسي ومتحكم كامل (Master Admin) 🚀';
-                    document.getElementById('adminDescText').textContent = 'المؤسس ومطور منصة رحلة دراسية';
-                } else if (currentAdmin) {
-                    document.getElementById('badgeText').textContent = currentAdmin.badge || 'مشرف معتمد 🛡️';
-                    document.getElementById('adminRoleText').textContent = 'مشرف فرعي (Sub Admin)';
-                    document.getElementById('adminDescText').textContent = 'فريق إدارة منصة رحلة دراسية';
+                if (currentAdmin) {
+                    if (currentAdmin.name) {
+                        let isVerified = currentAdmin.isVerified === true || isMaster;
+                        document.getElementById('adminNameText').innerHTML = currentAdmin.name + (isVerified ? ' <span style="color: #3498db; font-size: 1.1rem;" title="حساب موثق">✔️</span>' : '');
+                    }
+                    if (currentAdmin.profileImage) {
+                        document.getElementById('avatarPreviewContainer').innerHTML = `<img src="${currentAdmin.profileImage}" alt="Admin Avatar">`;
+                    }
                 }
-
-                // عرض الصورة الشخصية (من السحابة أو التخزين المحلي)
-                const previewContainer = document.getElementById('avatarPreviewContainer');
-                let savedAvatar = (currentAdmin && currentAdmin.profileImage) || localStorage.getItem('adminAvatar_' + currentEmail);
-                if (savedAvatar) {
-                    previewContainer.innerHTML = `<img src="${savedAvatar}" alt="Admin Avatar">`;
-                }
-
             } catch (err) {
-                console.error('خطأ في تحميل بيانات بروفايل الأدمن:', err);
-                // القيم الاحتياطية في حال حدوث خطأ اتصال بالسحابة
-                document.getElementById('adminNameText').innerHTML = 'محمد عشري <span style="color: #3498db;" title="حساب موثق">✔️</span>';
-                document.getElementById('badgeText').textContent = 'مطور النظام ⚡';
-                document.getElementById('adminRoleText').textContent = 'المطور الأساسي (Master Admin) 🚀';
+                console.log('مزامنة خلفية:', err);
             }
         }
 
-        // رفع وتغيير صورة الأدمن وحفظها محلياً وفي السحابة
+        loadProfile();
+
+        // رفع وتغيير صورة الأدمن وحفظها في السحابة والمحلي
         document.getElementById('avatarInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
