@@ -9,16 +9,15 @@
         body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .login-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 450px; }
         .login-container h2 { text-align: center; color: #1e3c72; margin-bottom: 20px; font-size: 1.6rem; }
-        .input-group { margin-bottom: 15px; position: relative; }
+        .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 5px; color: #333; font-weight: bold; font-size: 0.9rem; }
-        
-        /* ظبطنا الحشو من الشمال عشان مكان أيقونة العين */
-        .input-group input { width: 100%; padding: 10px 45px 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
+        .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #2a5298; }
         
-        /* تصميم أيقونة العين لضمان ظهورها وثباتها جوه الحقل */
-        .toggle-password { position: absolute; left: 12px; top: 37px; cursor: pointer; font-size: 1.3rem; user-select: none; z-index: 10; }
-        
+        /* زرار إظهار كلمة المرور الواضح والصريح تحت الخانة عشان يظهر معاك 100% */
+        .show-pass-container { display: flex; align-items: center; gap: 5px; margin-top: 5px; margin-bottom: 15px; font-size: 0.85rem; color: #555; cursor: pointer; }
+        .show-pass-container input { width: auto; cursor: pointer; }
+
         .btn-submit { display: block; width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; text-align: center; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
         .btn-submit:hover { background-color: #2471a3; }
         .footer-text { text-align: center; margin-top: 15px; color: #666; font-size: 0.85rem; }
@@ -38,9 +37,14 @@
             <div class="input-group">
                 <label>كلمة المرور</label>
                 <input type="password" id="loginPassword" placeholder="********" required>
-                <!-- أيقونة العين لإظهار وإخفاء كلمة المرور -->
-                <span id="toggleEye" class="toggle-password">👁️‍🗨️</span>
             </div>
+            
+            <!-- خانة اختيار لإظهار كلمة المرور واضحة تحت الخانة تماماً -->
+            <div class="show-pass-container">
+                <input type="checkbox" id="showPasswordCheck">
+                <label for="showPasswordCheck" style="display:inline; cursor:pointer; font-weight:normal;">👁️ إظهار كلمة المرور</label>
+            </div>
+
             <button type="button" id="loginBtn" class="btn-submit">دخول إلى المنصة</button>
         </div>
         <div class="footer-text">
@@ -49,21 +53,19 @@
     </div>
 
     <script>
-        // تفعيل زر العين لإظهار/إخفاء كلمة المرور
+        // تفعيل زر إظهار كلمة المرور
         const passwordInput = document.getElementById('loginPassword');
-        const toggleEye = document.getElementById('toggleEye');
+        const showPasswordCheck = document.getElementById('showPasswordCheck');
 
-        toggleEye.addEventListener('click', function() {
-            if (passwordInput.type === 'password') {
+        showPasswordCheck.addEventListener('change', function() {
+            if (this.checked) {
                 passwordInput.type = 'text';
-                toggleEye.innerText = '👁️'; // عين مفتوحة
             } else {
                 passwordInput.type = 'password';
-                toggleEye.innerText = '👁️‍🗨️'; // عين مغلقة
             }
         });
 
-        // كود التحقق وتسجيل الدخول
+        // كود تسجيل الدخول
         document.getElementById('loginBtn').addEventListener('click', function() {
             const email = document.getElementById('loginEmail').value.trim();
             const pass = document.getElementById('loginPassword').value;
@@ -73,21 +75,16 @@
                 return;
             }
 
-            // جلب قائمة الطلاب المخزنة
             let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
-
-            // البحث بدقة عن الحساب المطابق للإيميل وكلمة المرور معاً
             let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
 
             if (foundStudent) {
-                // حفظ الجلسة وتوجيهه للداشبورد بشكل صحيح وحقيقي
                 localStorage.setItem('studentUser', JSON.stringify(foundStudent));
                 localStorage.setItem('isLoggedIn', 'true');
                 
                 alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
                 window.location.href = 'main.html';
             } else {
-                // رفض الدخول لو البيانات مش مطابقة أو الحساب مش مسجل
                 alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن هذا الحساب غير مسجل من قبل!');
             }
         });
