@@ -67,20 +67,22 @@
                 return;
             }
 
-            // فحص قائمة الطلاب المخزنة محلياً لمنع التكرار بدقة
+            // فحص شامل للقائمة المخزنة
             let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
             
-            const existingUser = studentsList.find(student => student.email === email || student.studentPhone === sPhone);
-            
-            if (existingUser) {
-                if (existingUser.email === email) {
-                    alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
-                    window.location.href = 'login.html';
-                    return;
-                } else {
-                    alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
-                    return;
-                }
+            // البحث عن الإيميل أو الهاتف في القائمة
+            const emailExists = studentsList.some(student => student.email === email);
+            const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
+
+            if (emailExists) {
+                alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (phoneExists) {
+                alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
+                return;
             }
 
             const userData = {
@@ -91,7 +93,7 @@
                 password: pass
             };
 
-            // إرسال البيانات لجوجل شيت للحساب الجديد فقط
+            // إرسال البيانات لجوجل شيت
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -99,14 +101,15 @@
                 body: JSON.stringify(userData)
             }).catch(err => console.log(err));
 
-            // حفظ الطالب الجديد في القائمة وتحديث الـ LocalStorage
+            // إضافة الحساب الجديد للقائمة وحفظه
             studentsList.push(userData);
             localStorage.setItem('studentsList', JSON.stringify(studentsList));
             
+            // حفظ الحساب الحالي لتسجيل الدخول الفوري
             localStorage.setItem('studentUser', JSON.stringify(userData));
             localStorage.setItem('isLoggedIn', 'true');
 
-            alert('تم تسجيل الحساب بنجاح يا بطل!');
+            alert('تم إنشاء الحساب بنجاح يا بطل!');
             window.location.href = 'main.html';
         });
     </script>
