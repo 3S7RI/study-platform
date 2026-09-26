@@ -3,66 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - الملف الشخصي</title>
+    <title>منصة رحلة دراسية - بروفايل الطالب</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: linear-gradient(135deg, #1e3c72, #2a5298); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .profile-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 450px; text-align: center; }
-        .profile-avatar { width: 90px; height: 90px; background-color: #2a5298; color: white; font-size: 2.5rem; display: flex; justify-content: center; align-items: center; border-radius: 50%; margin: 0 auto 15px auto; font-weight: bold; }
-        .profile-container h2 { color: #1e3c72; margin-bottom: 20px; font-size: 1.5rem; }
-        .info-group { background: #f8f9fa; padding: 12px 15px; border-radius: 8px; margin-bottom: 12px; text-align: right; border: 1px solid #e9ecef; }
-        .info-group label { display: block; font-size: 0.8rem; color: #666; margin-bottom: 3px; font-weight: bold; }
-        .info-group span { font-size: 1rem; color: #333; font-weight: 600; }
-        .btn-back { display: block; width: 100%; padding: 12px; background-color: #2a5298; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; text-align: center; cursor: pointer; text-decoration: none; margin-top: 20px; transition: background 0.3s; }
-        .btn-back:hover { background-color: #1e3c72; }
+        
+        /* تصميم صورة البروفايل */
+        .avatar-section { position: relative; width: 120px; height: 120px; margin: 0 auto 20px auto; }
+        .avatar-section img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid #2a5298; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .upload-btn { position: absolute; bottom: 0; right: 0; background: #27ae60; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .upload-btn input { display: none; }
+
+        .profile-container h2 { color: #1e3c72; margin-bottom: 5px; font-size: 1.5rem; }
+        .student-id { display: inline-block; background: #e8f4fd; color: #1e3c72; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 0.95rem; margin-bottom: 20px; }
+        
+        .info-card { text-align: right; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-right: 4px solid #2a5298; }
+        .info-card label { display: block; color: #666; font-size: 0.85rem; margin-bottom: 3px; }
+        .info-card span { color: #333; font-size: 1rem; font-weight: bold; }
+
+        .btn-logout { display: block; width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 15px; text-decoration: none; }
+        .btn-logout:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
 
     <div class="profile-container">
-        <div class="profile-avatar" id="avatarText">ط</div>
-        <h2>الملف الشخصي للطالب</h2>
-        
-        <div class="info-group">
-            <label>اسم الطالب الكامل</label>
-            <span id="pName">جاري التحميل...</span>
-        </div>
-        <div class="info-group">
-            <label>البريد الإلكتروني</label>
-            <span id="pEmail">جاري التحميل...</span>
-        </div>
-        <div class="info-group">
-            <label>رقم هاتف الطالب</label>
-            <span id="pStudentPhone">جاري التحميل...</span>
-        </div>
-        <div class="info-group">
-            <label>رقم هاتف ولي الأمر</label>
-            <span id="pParentPhone">جاري التحميل...</span>
+        <!-- صورة البروفايل وزر التعديل -->
+        <div class="avatar-section">
+            <img id="profileImage" src="https://via.placeholder.com/120" alt="صورة الطالب">
+            <label class="upload-btn" title="تغيير الصورة">
+                📷
+                <input type="file" id="imageInput" accept="image/*">
+            </label>
         </div>
 
-        <a href="main.html" class="btn-back">العودة إلى لوحة التحكم</a>
+        <h2 id="studentName">اسم الطالب</h2>
+        <div class="student-id" id="studentIdBadge">الكود: STU-0000</div>
+
+        <div class="info-card">
+            <label>البريد الإلكتروني</label>
+            <span id="studentEmail">example@gmail.com</span>
+        </div>
+        <div class="info-card">
+            <label>رقم هاتف الطالب</label>
+            <span id="studentPhoneVal">01xxxxxxxx0</span>
+        </div>
+        <div class="info-card">
+            <label>رقم هاتف ولي الأمر</label>
+            <span id="parentPhoneVal">01xxxxxxxx0</span>
+        </div>
+
+        <button type="button" class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
     </div>
 
     <script>
-        // التأكد من أن الطالب مسجل دخول، وإلا توجيهه لصفحة الدخول
-        if (localStorage.getItem('isLoggedIn') !== 'true') {
+        // استرجاع بيانات الطالب الحالي المسجل الدخول
+        let currentUser = JSON.parse(localStorage.getItem('studentUser'));
+
+        if (!currentUser) {
+            alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
-        }
-
-        // جلب بيانات الطالب الحالي من الـ LocalStorage
-        const currentUser = JSON.parse(localStorage.getItem('studentUser'));
-
-        if (currentUser) {
-            document.getElementById('pName').innerText = currentUser.fullName || 'غير متوفر';
-            document.getElementById('pEmail').innerText = currentUser.email || 'غير متوفر';
-            document.getElementById('pStudentPhone').innerText = currentUser.studentPhone || 'غير متوفر';
-            document.getElementById('pParentPhone').innerText = currentUser.parentPhone || 'غير متوفر';
+        } else {
+            // عرض البيانات في الصفحة
+            document.getElementById('studentName').textContent = currentUser.fullName || 'طالب جديد';
+            document.getElementById('studentIdBadge').textContent = 'الكود: ' + (currentUser.studentId || 'STU-0001');
+            document.getElementById('studentEmail').textContent = currentUser.email || '-';
+            document.getElementById('studentPhoneVal').textContent = currentUser.studentPhone || '-';
+            document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-';
             
-            // وضع أول حرف من اسم الطالب في الأفاتار (الصورة الرمزية)
-            if (currentUser.fullName) {
-                document.getElementById('avatarText').innerText = currentUser.fullName.charAt(0);
+            if (currentUser.profileImg) {
+                document.getElementById('profileImage').src = currentUser.profileImg;
             }
         }
+
+        // التعامل مع رفع وتغيير صورة البروفايل
+        const imageInput = document.getElementById('imageInput');
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64Image = event.target.result;
+                    document.getElementById('profileImage').src = base64Image;
+
+                    // تحديث الصورة في بيانات المستخدم الحالي
+                    currentUser.profileImg = base64Image;
+                    localStorage.setItem('studentUser', JSON.stringify(currentUser));
+
+                    // تحديث القائمة الشاملة أيضاً
+                    let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
+                    studentsList = studentsList.map(st => {
+                        if (st.email === currentUser.email) {
+                            st.profileImg = base64Image;
+                        }
+                        return st;
+                    });
+                    localStorage.setItem('studentsList', JSON.stringify(studentsList));
+
+                    alert('تم تحديث صورة البروفايل بنجاح يا بطل!');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // زر تسجيل الخروج
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('studentUser');
+            localStorage.setItem('isLoggedIn', 'false');
+            window.location.href = 'login.html';
+        });
     </script>
 </body>
 </html>
