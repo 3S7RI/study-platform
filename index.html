@@ -144,14 +144,16 @@
             btn.disabled = true;
 
             try {
-                // 1. جلب البيانات الحالية من السحابة (الطلاب والآدمنز معاً)
+                // 1. جلب البيانات الحالية من السحابة لضمان عدم مسح أي بيانات أخرى
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                    headers: { 
+                        'X-Master-Key': API_KEY,
+                        'X-Access-Key': API_KEY 
+                    }
                 });
                 let result = await response.json();
                 let currentRecord = result.record || {};
                 let studentsList = currentRecord.users || [];
-                let adminsData = currentRecord.admins || {};
 
                 const emailExists = studentsList.some(student => student.email === email);
                 const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
@@ -191,6 +193,7 @@
                     studentPhone: sPhone,
                     parentPhone: pPhone,
                     password: pass,
+                    status: 'active',
                     profileImage: profileImageBase64
                 };
 
@@ -202,19 +205,18 @@
                     body: JSON.stringify(userData)
                 }).catch(err => console.log(err));
 
-                // 3. إضافة الطالب الجديد للقائمة والحفاظ على بيانات الآدمنز كما هي تماماً
+                // 3. إضافة الطالب الجديد للقائمة وتحديث السحابة مع الحفاظ على باقي الكائنات (admins وغيرها)
                 studentsList.push(userData);
+                currentRecord.users = studentsList;
 
                 await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
+                        'X-Master-Key': API_KEY,
+                        'X-Access-Key': API_KEY
                     },
-                    body: JSON.stringify({ 
-                        users: studentsList,
-                        admins: adminsData 
-                    })
+                    body: JSON.stringify(currentRecord)
                 });
                 
                 // حفظ الجلسة محلياً لفتح المنصة فوراً
