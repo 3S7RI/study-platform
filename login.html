@@ -53,30 +53,20 @@
             // جلب قائمة الطلاب المخزنة
             let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
 
-            // البحث عن الطالب في القائمة
+            // البحث بدقة عن الحساب المطابق للإيميل وكلمة المرور معاً
             let foundStudent = studentsList.find(student => student.email === email && student.password === pass);
 
-            // لو مش موجود في القائمة، لكنه الإيميل المكتوب في الصورة، نسجل له بيانات مؤقتة عشان يدخل علطول وما يعطلوش
-            if (!foundStudent) {
-                foundStudent = {
-                    fullName: email.split('@')[0], // اسم مؤقت من الإيميل
-                    email: email,
-                    studentPhone: "غير متوفر",
-                    parentPhone: "غير متوفر",
-                    password: pass
-                };
+            if (foundStudent) {
+                // حفظ الجلسة وتوجيهه للداشبورد بشكل صحيح وحقيقي
+                localStorage.setItem('studentUser', JSON.stringify(foundStudent));
+                localStorage.setItem('isLoggedIn', 'true');
                 
-                // نضيّفه للقائمة عشان المرة الجاية يبقى حافظه
-                studentsList.push(foundStudent);
-                localStorage.setItem('studentsList', JSON.stringify(studentsList));
+                alert(`أهلاً بك مجدداً يا ${foundStudent.fullName}! تم تسجيل الدخول بنجاح.`);
+                window.location.href = 'main.html';
+            } else {
+                // رفض الدخول لو البيانات مش مطابقة أو الحساب مش مسجل
+                alert('البريد الإلكتروني أو كلمة المرور غير صحيحة، أو أن هذا الحساب غير مسجل من قبل!');
             }
-
-            // حفظ الجلسة وتوجيهه للداشبورد
-            localStorage.setItem('studentUser', JSON.stringify(foundStudent));
-            localStorage.setItem('isLoggedIn', 'true');
-            
-            alert(`أهلاً بك مجدداً يا بطل! تم تسجيل الدخول بنجاح.`);
-            window.location.href = 'main.html';
         });
     </script>
 </body>
