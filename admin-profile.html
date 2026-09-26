@@ -18,23 +18,56 @@
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .profile-container { background-color: var(--card-bg); width: 100%; max-width: 480px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); padding: 30px; border: 1px solid var(--border-color); }
         .header-actions { margin-bottom: 20px; }
-        .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; }
+        .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 1rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 600; }
         .back-btn:hover { color: var(--primary-color); }
         .profile-header { text-align: center; margin-bottom: 25px; }
+        
         .avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); background: #e2e8f0; }
-        .admin-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
-        .admin-email { color: var(--text-secondary); font-size: 0.95rem; }
-        .info-card { background-color: var(--bg-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem; }
+        
+        /* زر رفع الصورة المبتكر */
+        .upload-badge {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            background: var(--primary-color);
+            color: white;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            transition: transform 0.2s;
+        }
+        .upload-badge:hover { transform: scale(1.1); background: var(--primary-hover); }
+
+        .admin-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
+        .admin-email { color: var(--text-secondary); font-size: 0.9rem; }
+        
+        .info-card { background-color: var(--bg-color); border-radius: 12px; padding: 15px 20px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; }
         .info-row:last-child { margin-bottom: 0; }
         .info-label { color: var(--text-secondary); }
         .info-value { font-weight: 600; }
-        .btn { width: 100%; padding: 12px; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 10px; }
+
+        .edit-form { margin-bottom: 20px; background: #fafafa; padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: var(--text-secondary); }
+        .form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; font-size: 0.9rem; }
+        .form-group input:focus { border-color: var(--primary-color); }
+
+        .btn { width: 100%; padding: 12px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 10px; }
         .btn:hover { background-color: var(--primary-hover); }
+        .btn-save { background-color: #10b981; }
+        .btn-save:hover { background-color: #059669; }
         .btn-logout { background-color: #e74c3c; }
         .btn-logout:hover { background-color: #c0392b; }
-        .loading { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 1.1rem; }
+        .loading { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -44,13 +77,19 @@
             <a href="admin.html" class="back-btn"><span>←</span> عودة لوحة التحكم</a>
         </div>
         <div id="profileContent">
-            <div class="loading">جاري جلب البيانات...</div>
+            <div class="loading">جاري جلب بيانات البروفايل... ⏳</div>
         </div>
     </div>
+
+    <!-- مدخل ملف الصورة المخفي -->
+    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 
     <script>
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        
+        let globalRecord = {};
+        let currentAdminData = null;
 
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
@@ -66,23 +105,24 @@
                 if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
 
                 let result = await response.json();
-                let rec = result.record || {};
-                let rawAdmins = rec.admins || [];
+                globalRecord = result.record || {};
+                let rawAdmins = globalRecord.admins || [];
                 let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
 
-                let currentAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentEmail.toLowerCase());
-                if (!currentAdmin && currentEmail === 'mohamad66xm@gmail.com') {
-                    currentAdmin = { name: 'محمد عشري', email: 'mohamad66xm@gmail.com', role: 'master', isVerified: true };
+                currentAdminData = adminsList.find(a => a.email && a.email.toLowerCase() === currentEmail.toLowerCase());
+                
+                if (!currentAdminData && currentEmail === 'mohamad66xm@gmail.com') {
+                    currentAdminData = { name: 'محمد عشري', email: 'mohamad66xm@gmail.com', role: 'master', isVerified: true, profileImage: '' };
                 }
 
-                if (currentAdmin) {
-                    renderProfile(currentAdmin);
+                if (currentAdminData) {
+                    renderProfile(currentAdminData);
                 } else {
-                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على الحساب.</div>`;
+                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على بيانات الحساب.</div>`;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالإنترنت.</div>`;
+                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالإنترنت!</div>`;
             }
         }
 
@@ -95,10 +135,11 @@
             container.innerHTML = `
                 <div class="profile-header">
                     <div class="avatar-wrapper">
-                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" onerror="this.src='https://via.placeholder.com/110?text=Admin'">
+                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" id="adminAvatarImg" onerror="this.src='https://via.placeholder.com/110?text=Admin'">
+                        <label for="imageInput" class="upload-badge" title="تغيير صورة البروفايل">📷</label>
                     </div>
-                    <h1 class="admin-name">${admin.name || 'محمد عشري'}</h1>
-                    <p class="admin-email">${admin.email || 'mohamad66xm@gmail.com'}</p>
+                    <h1 class="admin-name" id="displayAdminName">${admin.name || 'محمد عشري'}</h1>
+                    <p class="admin-email">${admin.email}</p>
                 </div>
 
                 <div class="info-card">
@@ -112,11 +153,99 @@
                     </div>
                 </div>
 
+                <!-- نموذج تعديل معلومات الحساب -->
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label>الاسم الكامل</label>
+                        <input type="text" id="editAdminName" value="${admin.name || ''}" placeholder="اسم الأدمن">
+                    </div>
+                    <div class="form-group">
+                        <label>كلمة المرور الجديدة</label>
+                        <input type="password" id="editAdminPassword" value="${admin.password || ''}" placeholder="كلمة المرور">
+                    </div>
+                    <button type="button" class="btn btn-save" id="saveBtn" onclick="saveAdminChanges()">حفظ البيانات المحدثة 💾</button>
+                </div>
+
                 <div class="actions-section">
-                    <a href="admin.html" class="btn">الذهاب لوحة التحكم الرئيسية</a>
+                    <a href="admin.html" class="btn">الذهاب لوحة التحكم الرئيسية ⚡</a>
                     <button class="btn btn-logout" onclick="logoutAdmin()">تسجيل الخروج 🚪</button>
                 </div>
             `;
+        }
+
+        // تحويل ورفع الصورة
+        async function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert("حجم الصورة كبير جداً! يرجى اختيار صورة أقل من 2 ميجابايت.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function (event) {
+                const base64Image = event.target.result;
+                document.getElementById('adminAvatarImg').src = base64Image;
+                currentAdminData.profileImage = base64Image;
+                await syncDataToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // حفظ التغييرات على الاسم وكلمة المرور
+        async function saveAdminChanges() {
+            const newName = document.getElementById('editAdminName').value.trim();
+            const newPassword = document.getElementById('editAdminPassword').value.trim();
+
+            if (!newName) {
+                alert("يرجى إدخال اسم الأدمن!");
+                return;
+            }
+
+            currentAdminData.name = newName;
+            if (newPassword) currentAdminData.password = newPassword;
+
+            document.getElementById('saveBtn').innerText = "جاري الحفظ... ⏳";
+            document.getElementById('saveBtn').disabled = true;
+
+            await syncDataToCloud("تم حفظ بيانات الأدمن بنجاح! ✅");
+
+            document.getElementById('saveBtn').innerText = "حفظ البيانات المحدثة 💾";
+            document.getElementById('saveBtn').disabled = false;
+            document.getElementById('displayAdminName').textContent = newName;
+        }
+
+        // المزامنة الشاملة مع السحابة
+        async function syncDataToCloud(successMsg) {
+            try {
+                if (!Array.isArray(globalRecord.admins)) globalRecord.admins = [];
+                
+                let index = globalRecord.admins.findIndex(a => a.email && a.email.toLowerCase() === currentAdminData.email.toLowerCase());
+                if (index !== -1) {
+                    globalRecord.admins[index] = currentAdminData;
+                } else {
+                    globalRecord.admins.push(currentAdminData);
+                }
+
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(globalRecord)
+                });
+
+                if (response.ok) {
+                    alert(successMsg);
+                } else {
+                    alert("فشل تحديث البيانات في السحابة!");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء الاتصال بالخادم!");
+            }
         }
 
         function logoutAdmin() {
