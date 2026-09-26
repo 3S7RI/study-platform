@@ -14,7 +14,6 @@
         .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #2a5298; }
         
-        /* التعديل الجذري لضمان ظهور العين على الشمال جوه الحقل بالضبط */
         .password-wrapper { position: relative; width: 100%; }
         .password-wrapper input { width: 100%; padding-left: 45px !important; } 
         .toggle-password { position: absolute; left: 12px !important; right: auto !important; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; user-select: none; z-index: 10; }
@@ -64,6 +63,10 @@
 
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbxQlQEKRKgTZ93Nnpnyhp6jJnJH_LZs4fhkeS0L46bzPK5hMYDhTPILVwJtFA3Elvv7/exec';
+        
+        // بيانات سحابة JSONBin الخاصة بك
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
         const passwordInput = document.getElementById('password');
         const togglePassBtn = document.getElementById('togglePassBtn');
@@ -78,7 +81,7 @@
             }
         });
 
-        document.getElementById('submitBtn').addEventListener('click', function() {
+        document.getElementById('submitBtn').addEventListener('click', async function() {
             const name = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim();
             const sPhone = document.getElementById('studentPhone').value.trim();
@@ -90,51 +93,81 @@
                 return;
             }
 
-            let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
-            
-            const emailExists = studentsList.some(student => student.email === email);
-            const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'جاري إنشاء الحساب على السحابة...';
+            btn.disabled = true;
 
-            if (emailExists) {
-                alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
-                window.location.href = 'login.html';
-                return;
+            try {
+                // 1. جلب قائمة الطلاب الحالية من السحابة للتأكد من عدم تكرار الإيميل
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let studentsList = result.record.users || [];
+
+                const emailExists = studentsList.some(student => student.email === email);
+                const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
+
+                if (emailExists) {
+                    alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                if (phoneExists) {
+                    alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
+                    btn.textContent = 'تسجيل الحساب وانطلاق';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // 2. توليد كود تعريف تسلسلي
+                const nextNumber = studentsList.length + 1;
+                const formattedId = String(nextNumber).padStart(4, '0');
+                const studentId = 'STU-' + formattedId;
+
+                const userData = {
+                    studentId: studentId,
+                    fullName: name,
+                    email: email,
+                    studentPhone: sPhone,
+                    parentPhone: pPhone,
+                    password: pass
+                };
+
+                // إرسال البيانات لجوجل شيت في الخلفية
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                }).catch(err => console.log(err));
+
+                // 3. إضافة الطالب الجديد لقائمة السحابة وتحديثها
+                studentsList.push(userData);
+
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ users: studentsList })
+                });
+                
+                // حفظ الجلسة محلياً لفتح المنصة فوراً
+                localStorage.setItem('studentUser', JSON.stringify(userData));
+                localStorage.setItem('isLoggedIn', 'true');
+
+                alert('تم إنشاء الحساب بنجاح على السحابة يا بطل! كود تعريفك هو: ' + studentId);
+                window.location.href = 'main.html';
+
+            } catch (error) {
+                console.error('خطأ في الاتصال بالسحابة:', error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة، تأكد من إنترنتك وحاول مرة أخرى.');
+                btn.textContent = 'تسجيل الحساب وانطلاق';
+                btn.disabled = false;
             }
-
-            if (phoneExists) {
-                alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
-                return;
-            }
-
-            // --- توليد الكود التسلسلي بصيغة 4 أرقام منسقة (0001، 0002، ...) ---
-            const nextNumber = studentsList.length + 1;
-            const formattedId = String(nextNumber).padStart(4, '0');
-            const studentId = 'STU-' + formattedId;
-
-            const userData = {
-                studentId: studentId,
-                fullName: name,
-                email: email,
-                studentPhone: sPhone,
-                parentPhone: pPhone,
-                password: pass
-            };
-
-            fetch(scriptURL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData)
-            }).catch(err => console.log(err));
-
-            studentsList.push(userData);
-            localStorage.setItem('studentsList', JSON.stringify(studentsList));
-            
-            localStorage.setItem('studentUser', JSON.stringify(userData));
-            localStorage.setItem('isLoggedIn', 'true');
-
-            alert('تم إنشاء الحساب بنجاح يا بطل! كود تعريفك هو: ' + studentId);
-            window.location.href = 'main.html';
         });
     </script>
 </body>
