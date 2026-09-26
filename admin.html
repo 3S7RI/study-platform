@@ -119,11 +119,10 @@
                 let result = await response.json();
                 let rec = result.record || {};
 
-                let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
+                let currentAdminEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
-                let isMasterUser = (currentSessionRole === 'master');
+                let isMasterUser = (currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com');
 
-                // تحويل بيانات الأدمنز سواء كانت Array أو Object لضمان التوافق التام
                 let rawAdmins = rec.admins;
                 let adminsList = [];
                 if (Array.isArray(rawAdmins)) {
@@ -139,16 +138,8 @@
                     });
                 }
 
-                if (!isMasterUser && currentAdminEmail) {
-                    let foundAdmin = adminsList.find(a => a.email === currentAdminEmail);
-                    if (foundAdmin && (foundAdmin.role === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com')) {
-                        isMasterUser = true;
-                        sessionStorage.setItem('adminRole', 'master');
-                    }
-                }
-
-                // فتح لوحة المطور إذا كان هو المطور الأساسي أو حسابه ماستر
-                if (isMasterUser || currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com') {
+                // فتح لوحة المطور الأساسي مباشرة لإيميلك لضمان عدم ظهور أي قيود
+                if (isMasterUser || currentAdminEmail === 'mohamad66xm@gmail.com') {
                     document.getElementById('masterAdminSection').style.display = 'block';
                     document.getElementById('requestsSection').style.display = 'block';
                     document.getElementById('addStudentBtn').style.display = 'inline-block';
@@ -170,6 +161,7 @@
 
         document.getElementById('logoutAdminBtn').addEventListener('click', function() {
             sessionStorage.clear();
+            localStorage.clear();
             window.location.href = 'login.html';
         });
 
@@ -258,7 +250,6 @@
             wrapper.innerHTML = html;
         }
 
-        // توثيق أو إلغاء توثيق الأدمن من لوحة التحكم ومزامنتها بالسحابة
         window.toggleVerifyAdmin = async function(adminEmail) {
             let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
             let data = await res.json();
@@ -267,18 +258,12 @@
             if (rec.admins) {
                 if (Array.isArray(rec.admins)) {
                     rec.admins = rec.admins.map(a => {
-                        if (a.email === adminEmail) {
-                            a.isVerified = !a.isVerified;
-                        }
+                        if (a.email === adminEmail) a.isVerified = !a.isVerified;
                         return a;
                     });
                 } else if (typeof rec.admins === 'object') {
-                    let key = adminEmail.replace(/\./g, '_');
-                    // التعامل مع الهيكل في حال كان Object
                     if (rec.admins[adminEmail]) {
                         rec.admins[adminEmail].isVerified = !rec.admins[adminEmail].isVerified;
-                    } else if (rec.admins[key]) {
-                        rec.admins[key].isVerified = !rec.admins[key].isVerified;
                     }
                 }
             }
@@ -289,7 +274,7 @@
                 body: JSON.stringify(rec)
             });
 
-            alert('تم تحديث حالة التوثيق بنجاح ومزامنتها بالسحابة! 🔄');
+            alert('تم تحديث حالة التوثيق بنجاح! 🔄');
             fetchCloudAllData();
         };
 
@@ -339,8 +324,6 @@
             let data = await res.json();
             let rec = data.record || {};
 
-            if (!rec.admins) rec.admins = [];
-            
             let newAdminObj = {
                 name: name,
                 email: email,
@@ -354,6 +337,7 @@
             if (Array.isArray(rec.admins)) {
                 rec.admins.push(newAdminObj);
             } else {
+                if (!rec.admins) rec.admins = {};
                 rec.admins[email] = newAdminObj;
             }
 
@@ -373,7 +357,6 @@
             let rec = data.record || {};
 
             rec.adminRequests = (rec.adminRequests || []).filter(r => r.email !== email);
-            if (!rec.admins) rec.admins = [];
 
             let approvedAdmin = {
                 name: email.split('@')[0],
@@ -388,6 +371,7 @@
             if (Array.isArray(rec.admins)) {
                 rec.admins.push(approvedAdmin);
             } else {
+                if (!rec.admins) rec.admins = {};
                 rec.admins[email] = approvedAdmin;
             }
 
@@ -427,6 +411,11 @@
                     }
                     return a;
                 });
+            } else if (rec.admins && typeof rec.admins === 'object') {
+                if (rec.admins[email]) {
+                    let currentRole = rec.admins[email].role;
+                    rec.admins[email].role = (currentRole === 'master' ? 'sub' : 'master');
+                }
             }
 
             await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -448,6 +437,10 @@
                         if (a.email === email) a.status = a.status === 'blocked' ? 'active' : 'blocked';
                         return a;
                     });
+                } else if (rec.admins && typeof rec.admins === 'object') {
+                    if (rec.admins[email]) {
+                        rec.admins[email].status = rec.admins[email].status === 'blocked' ? 'active' : 'blocked';
+                    }
                 }
             } else {
                 if (Array.isArray(rec.users)) {
@@ -478,7 +471,6 @@
                     rec.admins = rec.admins.filter(a => a.email !== email);
                 } else if (rec.admins && typeof rec.admins === 'object') {
                     delete rec.admins[email];
-                    delete rec.admins[email.replace(/\./g, '_')];
                 }
             } else {
                 if (Array.isArray(rec.users)) {
