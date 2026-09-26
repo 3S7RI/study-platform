@@ -32,6 +32,10 @@
 
         .btn-logout { display: block; width: 100%; padding: 12px; background-color: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; text-decoration: none; }
         .btn-logout:hover { background-color: #c0392b; }
+
+        /* زر حذف الحساب */
+        .btn-delete { display: block; width: 100%; padding: 12px; background-color: #c0392b; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        .btn-delete:hover { background-color: #962d22; }
     </style>
 </head>
 <body>
@@ -70,9 +74,14 @@
         <a href="main.html" class="btn-back">العودة للرئيسية 🏠</a>
 
         <button type="button" class="btn-logout" id="logoutBtn">تسجيل الخروج</button>
+        <button type="button" class="btn-delete" id="deleteAccountBtn">حذف الحساب نهائياً 🗑️</button>
     </div>
 
     <script>
+        // بيانات سحابة JSONBin
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
         // استرجاع بيانات الطالب الحالي المسجل الدخول
         let currentUser = JSON.parse(localStorage.getItem('studentUser'));
         let studentsList = JSON.parse(localStorage.getItem('studentsList')) || [];
@@ -81,22 +90,9 @@
             alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
         } else {
-            // حل مشكلة الحسابات القديمة: لو المستخدم ملوش ID، بنولدله واحد تلقائياً ونحفظه
-            if (!currentUser.studentId) {
-                let indexInList = studentsList.findIndex(st => st.email === currentUser.email);
-                let serialNum = indexInList !== -1 ? indexInList + 1 : studentsList.length + 1;
-                currentUser.studentId = 'STU-' + String(serialNum).padStart(4, '0');
-                
-                if (indexInList !== -1) {
-                    studentsList[indexInList].studentId = currentUser.studentId;
-                    localStorage.setItem('studentsList', JSON.stringify(studentsList));
-                }
-                localStorage.setItem('studentUser', JSON.stringify(currentUser));
-            }
-
             // عرض البيانات في الصفحة بشكل مؤكد
             document.getElementById('studentName').textContent = currentUser.fullName || 'طالب جديد';
-            document.getElementById('studentIdBadge').textContent = 'الكود: ' + currentUser.studentId;
+            document.getElementById('studentIdBadge').textContent = 'الكود: ' + (currentUser.studentId || 'STU-0000');
             document.getElementById('studentEmail').textContent = currentUser.email || '-';
             document.getElementById('studentPhoneVal').textContent = currentUser.studentPhone || '-';
             document.getElementById('parentPhoneVal').textContent = currentUser.parentPhone || '-';
@@ -149,6 +145,55 @@
             localStorage.removeItem('studentUser');
             localStorage.setItem('isLoggedIn', 'false');
             window.location.href = 'login.html';
+        });
+
+        // زر حذف الحساب نهائياً من المنصة والسحابة
+        document.getElementById('deleteAccountBtn').addEventListener('click', async function() {
+            const confirmDelete = confirm('هل أنت متأكد أنك تريد حذف حسابك نهائياً من المنصة؟ لا يمكن التراجع عن هذا الاجراء!');
+            if (!confirmDelete) return;
+
+            const btn = document.getElementById('deleteAccountBtn');
+            btn.textContent = 'جاري حذف الحساب...';
+            btn.disabled = true;
+
+            try {
+                // 1. جلب أحدث قائمة من السحابة
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let cloudUsers = result.record.users || [];
+
+                // 2. تصفية الحسابات وإزالة الحساب الحالي
+                let updatedUsers = cloudUsers.filter(st => st.email !== currentUser.email);
+
+                // 3. تحديث السحابة بالبيانات الجديدة
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ users: updatedUsers })
+                });
+
+                // 4. حذف البيانات من التخزين المحلي للموبايل
+                localStorage.removeItem('studentUser');
+                localStorage.setItem('isLoggedIn', 'false');
+                
+                let localStudents = JSON.parse(localStorage.getItem('studentsList')) || [];
+                let filteredLocal = localStudents.filter(st => st.email !== currentUser.email);
+                localStorage.setItem('studentsList', JSON.stringify(filteredLocal));
+
+                alert('تم حذف حسابك بنجاح من المنصة والسحابة. نتمى لك التوفيق دائماً!');
+                window.location.href = 'index.html';
+
+            } catch (error) {
+                console.error('خطأ أثناء الحذف:', error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة للحذف، تأكد من الإنترنت وحاول مرة أخرى.');
+                btn.textContent = 'حذف الحساب نهائياً 🗑️';
+                btn.disabled = false;
+            }
         });
     </script>
 </body>
