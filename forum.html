@@ -33,19 +33,11 @@
             --input-border: #444;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; user-select: none; -webkit-user-select: none; }
-        
-        /* طبقة الحماية السوداء لمنع تصوير الشاشة والسكرين شوت */
-        #securityScreenOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000000; z-index: 999999; display: none;
-            justify-content: center; align-items: center; color: #ff4d4d;
-            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
-        }
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
 
         .navbar { 
             background: var(--navbar-bg); color: white; padding: 10px 15px; 
-            display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 10px;
+            display: flex; justify-content: space-between; align-items: center; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
         }
         
@@ -55,20 +47,20 @@
         }
         .back-home-btn:hover { background: rgba(255, 255, 255, 0.25); }
 
-        .navbar-title { font-size: 1.1rem; font-weight: bold; color: white; white-space: nowrap; justify-self: center; text-align: center; }
+        .navbar-title { font-size: 1.05rem; font-weight: bold; color: white; white-space: nowrap; text-align: center; flex: 1; margin: 0 10px; }
 
         .theme-toggle-btn { 
             background: var(--btn-bg); border: 1px solid var(--btn-border); color: white; border-radius: 50%; 
-            cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; justify-self: end;
+            cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0;
         }
 
-        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .container { max-width: 600px; width: 100%; margin: 20px auto; padding: 0 15px; }
 
         .create-post-card {
-            background: var(--card-bg); padding: 20px; border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 4px solid #8b5cf6;
+            background: var(--card-bg); padding: 15px; border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #8b5cf6;
         }
-        .create-post-card h3 { margin-bottom: 12px; color: var(--welcome-h1); font-size: 1.2rem; }
+        .create-post-card h3 { margin-bottom: 12px; color: var(--welcome-h1); font-size: 1.1rem; }
         .create-post-card textarea {
             width: 100%; height: 90px; padding: 12px; border-radius: 8px;
             border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);
@@ -90,9 +82,9 @@
         }
         .post-submit-btn:hover { opacity: 0.9; }
 
-        .posts-feed { display: flex; flex-direction: column; gap: 20px; }
+        .posts-feed { display: flex; flex-direction: column; gap: 15px; }
         .post-card {
-            background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            background: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
         .post-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
         .post-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; }
@@ -134,15 +126,9 @@
 </head>
 <body id="pageBody">
 
-    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
-    <div id="securityScreenOverlay">
-        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
-    </div>
-
     <header class="navbar">
         <a href="main.html" class="back-home-btn" title="العودة للرئيسية">🏠</a>
-        <div></div>
-        <div class="navbar-title">💬 منتدى الأسئلة (خاص بالأدمن والطلاب)</div>
+        <div class="navbar-title">منتدى الأسئلة 💬</div>
         <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
     </header>
 
@@ -200,22 +186,6 @@
         let mediaRecorder = null;
         let audioChunks = [];
         let isRecording = false;
-
-        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
-        const securityOverlay = document.getElementById('securityScreenOverlay');
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
-                e.preventDefault();
-                triggerBlackScreen();
-            }
-        });
-        window.addEventListener('blur', () => { triggerBlackScreen(); });
-        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
-        function triggerBlackScreen() {
-            securityOverlay.style.display = 'flex';
-            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
-        }
-        document.addEventListener('contextmenu', e => e.preventDefault());
 
         // الثيم المحفوظ بدقة
         const pageBody = document.getElementById('pageBody');
