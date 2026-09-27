@@ -21,7 +21,22 @@
             --border-color: #333333;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg-color); color: var(--text-color); padding: 15px; }
+        body { 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            padding: 15px; 
+            user-select: none; 
+            -webkit-user-select: none; 
+        }
+        
+        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
+        #securityScreenOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000000; z-index: 999999; display: none;
+            justify-content: center; align-items: center; color: #ff4d4d;
+            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
+        }
+
         .container { max-width: 800px; margin: 0 auto; }
         
         header { background: var(--header-bg); color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
@@ -46,25 +61,40 @@
         .explanation-box { background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #0284c7; border-right: 3px solid #0284c7; }
 
         .result-box { background: var(--card-bg); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
+        
+        .exam-select-card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-right: 4px solid #6366f1; }
+        .exam-select-card h3 { font-size: 1.1rem; margin-bottom: 5px; }
+        .exam-select-card p { font-size: 0.85rem; color: #666; }
+        .start-exam-btn { background: #6366f1; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
+    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
+    <div id="securityScreenOverlay">
+        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
+    </div>
+
     <div class="container">
         <header>
-            <h1 id="examTitle" style="font-size: 1.1rem;">📝 جاري تحميل الامتحان...</h1>
-            <div class="timer-box" id="timerDisplay">⏳ الوقت: --:--</div>
+            <h1 id="examHeaderTitle" style="font-size: 1.1rem;">📝 قائمة الامتحانات الإلكترونية</h1>
+            <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
+            <a href="main.html" style="color: white; text-decoration: none; font-size: 0.9rem; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 6px;">الرئيسية 🏠</a>
         </header>
 
         <div class="result-box" id="examResultBox">
             <h2 id="resultGradeText" style="margin-bottom: 10px; color: #1e3c72;">لقد حصلت على الدرجة</h2>
             <p id="resultPercentageText" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 15px;">النسبة: 0%</p>
             <p id="essayNote" style="color: #e67e22; font-size: 0.85rem; margin-bottom: 15px; display: none;">⚠️ تم تسجيل إجاباتك المقالية وفي انتظار مراجعة وتصحيح الأدمن.</p>
-            <button onclick="window.location.href='student.html'" style="background: #0284c7; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">العودة للرئيسية 🏠</button>
+            <button onclick="location.reload()" style="background: #0284c7; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">العودة لقائمة الامتحانات 📋</button>
         </div>
 
         <div id="examContainer">
-            <p style="text-align: center; color: #888;">جاري جلب الأسئلة...</p>
+            <p style="text-align: center; color: #888; padding: 40px;">جاري جلب الامتحانات...</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; color: #777;">
+            جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
         </div>
     </div>
 
@@ -72,44 +102,93 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
+        let allExams = [];
         let currentExam = null;
         let timerInterval = null;
         let timeLeft = 0;
 
-        async function initStudentExam() {
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'login.html';
+        }
+
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
+        const securityOverlay = document.getElementById('securityScreenOverlay');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
+                e.preventDefault();
+                triggerBlackScreen();
+            }
+        });
+        window.addEventListener('blur', () => { triggerBlackScreen(); });
+        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
+        function triggerBlackScreen() {
+            securityOverlay.style.display = 'flex';
+            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
+        }
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        async function fetchExamsList() {
             try {
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
                 let data = await res.json();
-                let exams = data.record.exams || [];
+                allExams = data.record.exams || [];
 
-                if (exams.length === 0) {
-                    document.getElementById('examContainer').innerHTML = '<p style="text-align:center; color:#888;">لا توجد امتحانات متاحة حالياً.</p>';
-                    return;
-                }
-
-                currentExam = exams[0]; // افتراضياً أول امتحان نشط
-                document.getElementById('examTitle').textContent = `🎯 ${currentExam.title}`;
-
-                // تفعيل خاصية منع الريفريش / تسليم تلقائي
-                if (currentExam.autoSubmitOnRefresh) {
-                    window.addEventListener('beforeunload', (e) => {
-                        e.preventDefault();
-                        submitExamDueToRefresh();
-                    });
-                }
-
-                // بدء العد التنازلي بالدقائق المحددة
-                timeLeft = (parseInt(currentExam.durationMinutes) || 15) * 60;
-                startTimer();
-
-                renderExamQuestions(currentExam.questions);
+                renderExamsSelectionList(allExams);
 
             } catch (e) {
                 console.error(e);
-                document.getElementById('examContainer').innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الامتحان.</p>';
+                document.getElementById('examContainer').innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الامتحانات.</p>';
             }
+        }
+
+        function renderExamsSelectionList(exams) {
+            const container = document.getElementById('examContainer');
+            
+            // تحقق إذا لم يتم نشر امتحانات بعد
+            if (!exams || exams.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
+                        <h3 style="color: var(--header-bg); margin-bottom: 5px;">لم يتم نشر امتحانات بعد</h3>
+                        <p style="color: #666; font-size: 0.9rem;">ترقبوا.. سيتم نشر الامتحانات والاختبارات التفاعلية قريباً.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            exams.forEach((exam, index) => {
+                if (exam.isClosed) return; // تخطي الامتحانات المغلقة
+
+                let card = document.createElement('div');
+                card.className = 'exam-select-card';
+                card.innerHTML = `
+                    <div>
+                        <h3>🎯 ${exam.title}</h3>
+                        <p>المدة: ${exam.durationMinutes || 15} دقائق | عدد الأسئلة: ${(exam.questions || []).length}</p>
+                        ${exam.prerequisite ? `<p style="font-size:0.75rem; color:#d97706; margin-top:4px;">🔒 يعتمد على: ${exam.prerequisite}</p>` : ''}
+                    </div>
+                    <button class="start-exam-btn" onclick="startSpecificExam(${index})">دخول الامتحان 🚀</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function startSpecificExam(index) {
+            currentExam = allExams[index];
+            if (!currentExam) return;
+
+            document.getElementById('examHeaderTitle').textContent = `🎯 ${currentExam.title}`;
+            document.getElementById('timerDisplay').style.display = 'block';
+
+            timeLeft = (parseInt(currentExam.durationMinutes) || 15) * 60;
+            startTimer();
+            renderExamQuestions(currentExam.questions);
         }
 
         function startTimer() {
@@ -122,7 +201,7 @@
                 }
                 let mins = Math.floor(timeLeft / 60);
                 let secs = timeLeft % 60;
-                document.getElementById('timerDisplay'].textContent = `⏳ الوقت: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                document.getElementById('timerDisplay').textContent = `⏳ الوقت: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
                 timeLeft--;
             }, 1000);
         }
@@ -199,7 +278,6 @@
                     hasEssay = true;
                 }
 
-                // عرض الشرح إن وجد
                 if (q.explanation) {
                     let qBox = document.getElementById(`qBox-${qIndex}`);
                     let expDiv = document.createElement('div');
@@ -211,28 +289,22 @@
 
             let percentage = totalObjective > 0 ? Math.round((score / totalObjective) * 100) : 100;
 
-            document.getElementById('resultGradeText'].textContent = `النتيجة: ${score} من ${totalObjective} (أسئلة موضوعية)`;
-            document.getElementById('resultPercentageText'].textContent = `النسبة: ${percentage}%`;
+            document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalObjective} (أسئلة موضوعية)`;
+            document.getElementById('resultPercentageText').textContent = `النسبة: ${percentage}%`;
             if (hasEssay) document.getElementById('essayNote').style.display = 'block';
             document.getElementById('examResultBox').style.display = 'block';
 
-            // تعطيل الإدخال
             document.querySelectorAll('input, textarea, button[type="submit"]').forEach(el => el.disabled = true);
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // حفظ النتيجة سحابياً لإحصائيات الأدمن
             saveStudentResultToCloud(score, percentage);
-        }
-
-        function submitExamDueToRefresh() {
-            // تسجيل تسليم تلقائي لو قفل أو عمل ريفريش
-            console.log('تم تسليم الامتحان تلقائياً بسبب مغادرة الصفحة.');
         }
 
         async function saveStudentResultToCloud(score, percentage) {
             try {
-                let studentEmail = sessionStorage.getItem('userEmail') || 'طالب مجهول';
-                let studentName = sessionStorage.getItem('userName') || studentEmail.split('@')[0];
+                let studentUser = JSON.parse(localStorage.getItem('studentUser')) || {};
+                let studentEmail = studentUser.email || 'طالب مجهول';
+                let studentName = studentUser.fullName || studentEmail.split('@')[0];
 
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
@@ -260,7 +332,7 @@
             }
         }
 
-        initStudentExam();
+        fetchExamsList();
     </script>
 </body>
 </html>
