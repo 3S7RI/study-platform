@@ -25,8 +25,23 @@
             --input-bg: #0f172a;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
+        body { 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            padding: 15px; 
+            transition: background 0.3s, color 0.3s; 
+            user-select: none; 
+            -webkit-user-select: none; 
+        }
         
+        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
+        #securityScreenOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000000; z-index: 999999; display: none;
+            justify-content: center; align-items: center; color: #ff4d4d;
+            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
+        }
+
         .container { max-width: 1200px; margin: 0 auto; }
         
         header { 
@@ -153,6 +168,11 @@
 </head>
 <body>
 
+    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
+    <div id="securityScreenOverlay">
+        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
+    </div>
+
     <div class="container">
         <header>
             <a href="admin-profile.html" class="admin-profile-btn" title="بروفايل الأدمن">
@@ -180,7 +200,6 @@
                 <button class="btn-add" onclick="openUploadModal()">➕ رفع ملزمة أو ملف جديد</button>
             </div>
 
-            <!-- قائمة الملفات الحالية المرفوعة مع زر الحذف والمعاينة -->
             <div id="adminFilesList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                 <p style="color: #888; text-align: center;">جاري تحميل الملفات...</p>
             </div>
@@ -227,6 +246,10 @@
             <div id="tableWrapper">
                 <div style="text-align: center; padding: 20px; color: #888;">جاري جلب بيانات الطلاب...</div>
             </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; color: #888;">
+            جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
         </div>
     </div>
 
@@ -352,6 +375,22 @@
             window.location.href = 'login.html';
         }
 
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
+        const securityOverlay = document.getElementById('securityScreenOverlay');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
+                e.preventDefault();
+                triggerBlackScreen();
+            }
+        });
+        window.addEventListener('blur', () => { triggerBlackScreen(); });
+        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
+        function triggerBlackScreen() {
+            securityOverlay.style.display = 'flex';
+            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
+        }
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
                 <svg viewBox="0 0 24 24">
@@ -428,10 +467,7 @@
                     renderStudents(globalRecordData.users || []);
                 }
 
-                // تحميل وعرض قائمة الملفات في لوحة التحكم للأدمن
                 renderAdminFiles(globalRecordData.studyFiles || []);
-                
-                // تحميل وعرض قائمة الامتحانات النشطة
                 loadAdminExamsList(globalRecordData.exams || []);
 
             } catch (err) {
@@ -440,7 +476,6 @@
             }
         }
 
-        // دوال نظام الامتحانات الجديد (Google Form Style)
         function openExamBuilderModal() {
             document.getElementById('examBuilderModal').classList.add('active');
             document.getElementById('builderQuestionsContainer').innerHTML = '';
@@ -639,7 +674,6 @@
             body.innerHTML = html;
         }
 
-        // إظهار وإخفاء نافذة رفع الملفات
         function openUploadModal() {
             document.getElementById('uploadFileModal').classList.add('active');
         }
@@ -650,7 +684,6 @@
             if (e.target.classList.contains('modal-overlay')) closeUploadModal();
         }
 
-        // عرض قائمة الملفات في قسم الملفات باللوحة
         function renderAdminFiles(files) {
             const listContainer = document.getElementById('adminFilesList');
             if (!files || files.length === 0) {
@@ -674,7 +707,6 @@
             listContainer.innerHTML = html;
         }
 
-        // دالة رفع ملف جديد سحابياً
         async function adminUploadFile() {
             const title = document.getElementById('modalFileTitle').value.trim();
             const description = document.getElementById('modalFileDesc').value.trim();
@@ -723,7 +755,6 @@
             }
         }
 
-        // دالة حذف ملف بواسطة الأدمن
         async function deleteAdminFile(index) {
             if (!confirm('هل أنت متأكد من حذف هذا الملف نهائياً من منصة الطلاب؟')) return;
 
@@ -817,7 +848,6 @@
             wrapper.innerHTML = html;
         }
 
-        // فتح النافذة العائمة للتحكم الكامل وبحث الصلاحيات
         function openUserModal(email, type) {
             const modal = document.getElementById('userControlModal');
             const modalBody = document.getElementById('modalControlBody');
@@ -836,7 +866,6 @@
                 let isBlocked = admin.status === 'blocked';
                 let isMasterRole = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
                 let isVerified = admin.isVerified === true;
-
                 let canEdit = isMasterUser;
 
                 modalBody.innerHTML = `
@@ -930,110 +959,4 @@
 
         async function saveAdminModalChanges(email) {
             let admin = (globalRecordData.admins || []).find(a => a.email === email);
-            if (admin) {
-                admin.name = document.getElementById('modalEditAdminName').value;
-                admin.phone = document.getElementById('modalEditAdminPhone').value;
-                await updateCloudData();
-                closeControlModal();
-                initDashboard();
-            }
-        }
-
-        async function saveStudentModalChanges(email) {
-            let student = (globalRecordData.users || []).find(u => u.email === email);
-            if (student) {
-                student.fullName = document.getElementById('modalEditStudentName').value;
-                student.studentId = document.getElementById('modalEditStudentId').value;
-                student.studentPhone = document.getElementById('modalEditStudentPhone').value;
-                student.rank = document.getElementById('modalEditStudentRank').value;
-                await updateCloudData();
-                closeControlModal();
-                initDashboard();
-            }
-        }
-
-        async function updateCloudData() {
-            await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, { method: 'PUT', headers: cloudHeaders, body: JSON.stringify(globalRecordData) });
-        }
-
-        function closeControlModal() {
-            document.getElementById('userControlModal').classList.remove('active');
-        }
-
-        function closeControlModalOnOuterClick(e) {
-            if (e.target.classList.contains('modal-overlay')) closeControlModal();
-        }
-
-        window.toggleVerifyAdmin = async function(email) {
-            let adm = (globalRecordData.admins || []).find(a => a.email === email);
-            if (adm) { adm.isVerified = !adm.isVerified; await updateCloudData(); openUserModal(email, 'admin'); initDashboard(); }
-        };
-
-        window.toggleAdminRole = async function(email) {
-            let adm = (globalRecordData.admins || []).find(a => a.email === email);
-            if (adm) { adm.role = adm.role === 'master' ? 'sub' : 'master'; await updateCloudData(); openUserModal(email, 'admin'); initDashboard(); }
-        };
-
-        window.toggleBlockStatus = async function(email, type) {
-            if (type === 'admin') {
-                let adm = (globalRecordData.admins || []).find(a => a.email === email);
-                if (adm) adm.status = adm.status === 'blocked' ? 'active' : 'blocked';
-            } else {
-                let st = (globalRecordData.users || []).find(u => u.email === email);
-                if (st) st.status = st.status === 'blocked' ? 'active' : 'blocked';
-            }
-            await updateCloudData();
-            openUserModal(email, type);
-            initDashboard();
-        };
-
-        window.deleteRecord = async function(email, type) {
-            if (!confirm(`هل أنت متأكد من الحذف النهائي لـ (${email})؟`)) return;
-            if (type === 'admin') globalRecordData.admins = globalRecordData.admins.filter(a => a.email !== email);
-            else globalRecordData.users = globalRecordData.users.filter(u => u.email !== email);
-            await updateCloudData();
-            closeControlModal();
-            initDashboard();
-        };
-
-        window.addNewStudentManual = async function() {
-            let name = prompt("اسم الطالب:"); if (!name) return;
-            let email = prompt("البريد الإلكتروني:"); if (!email) return;
-            let phone = prompt("الهاتف:") || "-";
-            let studentId = prompt("كود الطالب:") || "STU-" + Math.floor(1000 + Math.random() * 9000);
-            let password = prompt("كلمة المرور:") || "123456";
-
-            if (!globalRecordData.users) globalRecordData.users = [];
-            globalRecordData.users.push({ fullName: name, email, studentPhone: phone, studentId, password, status: 'active', profileImage: '' });
-            await updateCloudData();
-            initDashboard();
-        };
-
-        window.addNewAdminManual = async function() {
-            let name = prompt("اسم المشرف:"); if (!name) return;
-            let email = prompt("البريد الإلكتروني:"); if (!email) return;
-            let password = prompt("كلمة المرور:") || "@Mohamad66xm01122161407";
-            let role = prompt("الرتبة (master / sub):") || "sub";
-
-            if (!globalRecordData.admins) globalRecordData.admins = [];
-            globalRecordData.admins.push({ name, email, password, role, status: 'active', isVerified: false, profileImage: '' });
-            await updateCloudData();
-            initDashboard();
-        };
-
-        window.approveAdminReq = async function(email, role) {
-            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
-            if (!globalRecordData.admins) globalRecordData.admins = globalRecordData.admins || [];
-            globalRecordData.admins.push({ name: email.split('@')[0], email, password: '@Mohamad66xm01122161407', role, status: 'active', isVerified: false, profileImage: '' });
-            await updateCloudData();
-            initDashboard();
-        };
-
-        window.rejectAdminReq = async function(email, role) {
-            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
-            await updateCloudData();
-            initDashboard();
-        };
-    </script>
-</body>
-</html>
+            if
