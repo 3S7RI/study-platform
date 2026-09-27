@@ -367,7 +367,6 @@
         let globalRecordData = { users: [], admins: [], studyFiles: [], exams: [], adminRequests: [] };
         let studentBinData = { exams: [], examResults: [] };
 
-        // تسجيل الدخول الافتراضي
         sessionStorage.setItem('isAdminLoggedIn', 'true');
         sessionStorage.setItem('adminRole', 'master');
         sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
@@ -424,35 +423,36 @@
 
         async function initDashboard() {
             try {
-                // جلب الـ BIN الرئيسي
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { 
                     method: 'GET',
                     headers: cloudHeaders 
                 });
                 if (response.ok) {
                     let result = await response.json();
-                    globalRecordData = Object.assign(globalRecordData, result.record || {});
+                    if (result && result.record) {
+                        globalRecordData = Object.assign(globalRecordData, result.record);
+                    }
                 }
             } catch (err) {
                 console.warn("خطأ في جلب بيانات Bin الرئيسي:", err);
             }
 
             try {
-                // جلب BIN الامتحانات والطلاب
                 let stRes = await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}/latest`, { 
                     method: 'GET',
                     headers: cloudHeaders 
                 });
                 if (stRes.ok) {
                     let stResult = await stRes.json();
-                    studentBinData = Object.assign(studentBinData, stResult.record || {});
+                    if (stResult && stResult.record) {
+                        studentBinData = Object.assign(studentBinData, stResult.record);
+                    }
                 }
             } catch (e) {
                 console.warn("خطأ في جلب بيانات bin الامتحانات:", e);
+            } finally {
+                renderUIComponents();
             }
-
-            // تحديث الواجهة فوراً بعد التحميل بغض النظر عن النجاح أو الفشل
-            renderUIComponents();
         }
 
         function renderUIComponents() {
@@ -980,4 +980,4 @@
                     </div>
 
                     <div class="modal-actions-grid">
-                        <button class="btn-block" 
+                        <button class="btn-block" onclick="toggleBlockSt
