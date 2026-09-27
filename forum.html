@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منتدى النقاش الطلابي - منصة رحلة دراسية</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s; }
+        
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --navbar-bg: linear-gradient(135deg, #1e3c72, #2a5298);
+            --card-bg: #ffffff;
+            --card-text: #777;
+            --welcome-bg: #ffffff;
+            --welcome-h1: #1e3c72;
+            --welcome-p: #666;
+            --btn-bg: rgba(255, 255, 255, 0.15);
+            --btn-border: rgba(255, 255, 255, 0.2);
+            --input-bg: #fff;
+            --input-border: #ccc;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --navbar-bg: linear-gradient(135deg, #0d1b2a, #1b263b);
+            --card-bg: #1e1e1e;
+            --card-text: #aaa;
+            --welcome-bg: #1e1e1e;
+            --welcome-h1: #ffffff;
+            --welcome-p: #bbb;
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.15);
+            --input-bg: #2a2a2a;
+            --input-border: #444;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+        
+        .navbar { 
+            background: var(--navbar-bg); 
+            color: white; 
+            padding: 10px 15px; 
+            display: grid; 
+            grid-template-columns: auto auto 1fr auto; 
+            align-items: center; 
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        .profile-nav-btn { 
+            display: flex; 
+            align-items: center; 
+            text-decoration: none; 
+            background: var(--btn-bg); 
+            padding: 4px 10px; 
+            border-radius: 30px; 
+            border: 1px solid var(--btn-border); 
+            gap: 8px; 
+            justify-self: start;
+        }
+
+        .nav-avatar-frame {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-avatar-frame img { 
+            width: 34px; 
+            height: 34px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            z-index: 2;
+            position: relative;
+            background: #1e293b;
+        }
+
+        .profile-nav-btn span { color: white; font-weight: bold; font-size: 0.85rem; white-space: nowrap; }
+
+        .back-home-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .back-home-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .navbar-title { 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: white; 
+            white-space: nowrap; 
+            justify-self: center;
+            text-align: center;
+        }
+
+        .theme-toggle-btn { 
+            background: var(--btn-bg); 
+            border: 1px solid var(--btn-border); 
+            color: white; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            width: 38px; 
+            height: 38px; 
+            flex-shrink: 0; 
+            justify-self: end;
+        }
+
+        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+
+        .create-post-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            border-top: 4px solid #8b5cf6;
+        }
+        .create-post-card h3 { margin-bottom: 15px; color: var(--welcome-h1); font-size: 1.2rem; }
+        .create-post-card textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-color);
+            resize: none;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+        .post-submit-btn {
+            background-color: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: opacity 0.2s;
+        }
+        .post-submit-btn:hover { opacity: 0.9; }
+
+        .posts-feed { display: flex; flex-direction: column; gap: 20px; }
+        .post-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; }
+        .post-author-info h4 { font-size: 0.95rem; color: var(--text-color); }
+        .post-author-info span { font-size: 0.75rem; color: var(--card-text); }
+        
+        .post-content { font-size: 1rem; line-height: 1.6; margin-bottom: 15px; word-break: break-word; }
+        
+        .comments-section {
+            border-top: 1px solid rgba(0,0,0,0.08);
+            padding-top: 12px;
+            margin-top: 10px;
+        }
+        .comment-item {
+            background: rgba(0,0,0,0.02);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .dark-mode .comment-item { background: rgba(255,255,255,0.03); }
+        .comment-author { font-weight: bold; font-size: 0.85rem; color: #8b5cf6; margin-bottom: 2px; }
+        
+        .add-comment-box {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .add-comment-box input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+        .add-comment-box button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body id="pageBody">
+
+    <header class="navbar">
+        <!-- اليمين: زر العودة للرئيسية -->
+        <a href="main.html" class="back-home-btn" title="العودة للرئيسية">
+            🏠
+        </a>
+
+        <!-- فاصل أو مكان فارغ -->
+        <div></div>
+
+        <!-- المنتصف: العنوان -->
+        <div class="navbar-title">💬 منتدى النقاش الطلابي</div>
+
+        <!-- اليسار: زر تبديل الوضع -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
+    </header>
+
+    <div class="container">
+        <!-- كارد كتابة منشور جديد -->
+        <div class="create-post-card">
+            <h3>شارك سؤالاً أو فكرة مع زملائك 💡</h3>
+            <textarea id="postContentInput" placeholder="اكتب سؤالك الدراسي أو استفسارك هنا..."></textarea>
+            <button class="post-submit-btn" onclick="createNewPost()">نشر في المنتدى</button>
+        </div>
+
+        <!-- قائمة المنشورات -->
+        <div id="postsFeed" class="posts-feed">
+            <p style="text-align: center; color: var(--card-text);">جاري تحميل المناقشات...</p>
+        </div>
+    </div>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+        const defaultFemaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%23e6007a'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%23e6007a'/></svg>";
+
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+
+        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'index.html';
+        }
+
+        const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
+
+        // جلب المنشورات عند تحميل الصفحة
+        loadForumData();
+
+        async function loadForumData() {
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await res.json();
+                let forumPosts = data.record.forumPosts || [];
+                renderPosts(forumPosts);
+            } catch (e) {
+                console.error("خطأ في جلب المنشورات:", e);
+                document.getElementById('postsFeed').innerHTML = '<p style="text-align:center; color: red;">فشل تحميل المناقشات. تحقق من الاتصال.</p>';
+            }
+        }
+
+        function renderPosts(posts) {
+            const feed = document.getElementById('postsFeed');
+            if (posts.length === 0) {
+                feed.innerHTML = '<p style="text-align: center; color: var(--card-text);">لا توجد منشورات حالياً.. كن أول من يشارك!</p>';
+                return;
+            }
+
+            feed.innerHTML = '';
+            // ترتيب المنشورات من الأحدث للأقدم
+            posts.slice().reverse().forEach((post, index) => {
+                let realIndex = posts.length - 1 - index;
+                let defaultImg = (post.gender === 'female') ? defaultFemaleSvg : defaultMaleSvg;
+                let userImg = post.profileImage || defaultImg;
+
+                let commentsHtml = '';
+                if (post.comments && post.comments.length > 0) {
+                    post.comments.forEach(c => {
+                        commentsHtml += `
+                            <div class="comment-item">
+                                <div class="comment-author">${c.authorName}</div>
+                                <div>${c.text}</div>
+                            </div>
+                        `;
+                    });
+                }
+
+                let card = document.createElement('div');
+                card.className = 'post-card';
+                card.innerHTML = `
+                    <div class="post-header">
+                        <img src="${userImg}" class="post-avatar" alt="صورة">
+                        <div class="post-author-info">
+                            <h4>${post.authorName}</h4>
+                            <span>${post.date || 'منذ قليل'}</span>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="comments-section">
+                        <div id="commentsList_${realIndex}">${commentsHtml}</div>
+                        <div class="add-comment-box">
+                            <input type="text" id="commentInput_${realIndex}" placeholder="اكتب تعليقاً أو إجابة...">
+                            <button onclick="addComment(${realIndex})">إرسال</button>
+                        </div>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        async function createNewPost() {
+            let content = document.getElementById('postContentInput').value.trim();
+            if (!content) {
+                alert('الرجاء كتابة محتوى المنشور أولاً!');
+                return;
+            }
+
+            let authorName = userData.fullName || (isAdminLoggedIn === 'true' ? 'الأدمن' : 'طالب');
+            let profileImage = userData.profileImage || userData.profileImg || '';
+            let gender = userData.gender || 'male';
+            let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+
+            let newPost = {
+                authorName: authorName,
+                profileImage: profileImage,
+                gender: gender,
+                content: content,
+                date: dateStr,
+                comments: []
+            };
+
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await res.json();
+                let record = data.record;
+                if (!record.forumPosts) record.forumPosts = [];
+                
+                record.forumPosts.push(newPost);
+
+                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify(record)
+                });
+
+                if (updateRes.ok) {
+                    document.getElementById('postContentInput').value = '';
+                    loadForumData();
+                } else {
+                    alert('فشل نشر السؤال، حاول مرة أخرى.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء الاتصال بالسحابة.');
+            }
+        }
+
+        async function addComment(postIndex) {
+            let input = document.getElementById(`commentInput_${postIndex}`);
+            let text = input.value.trim();
+            if (!text) return;
+
+            let authorName = userData.fullName || (isAdminLoggedIn === 'true' ? 'الأدمن' : 'طالب');
+
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await res.json();
+                let record = data.record;
+
+                if (record.forumPosts && record.forumPosts[postIndex]) {
+                    if (!record.forumPosts[postIndex].comments) {
+                        record.forumPosts[postIndex].comments = [];
+                    }
+                    record.forumPosts[postIndex].comments.push({
+                        authorName: authorName,
+                        text: text
+                    });
+
+                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(record)
+                    });
+
+                    if (updateRes.ok) {
+                        input.value = '';
+                        loadForumData();
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء إضافة التعليق.');
+            }
+        }
+
+        // نظام الوضع الليلي والنهاري
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const pageBody = document.getElementById('pageBody');
+
+        if (localStorage.getItem('theme') === 'dark') {
+            pageBody.classList.add('dark-mode');
+            themeToggleBtn.textContent = '☀️';
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            pageBody.classList.toggle('dark-mode');
+            if (pageBody.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent, themeToggleBtn.textContent = '🌙';
+            }
+        });
+    </script>
+</body>
+</html>
