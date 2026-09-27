@@ -186,6 +186,20 @@
             </div>
         </div>
 
+        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة في لوحة الأدمن -->
+        <div class="section-box" style="border-top: 4px solid #8e44ad; margin-top: 20px;">
+            <div class="section-header">
+                <h2>📊 إدارة الامتحانات والإحصائيات (أسلوب جوجل فورم)</h2>
+                <div>
+                    <button class="btn-approve" onclick="openExamBuilderModal()">➕ إنشاء امتحان جديد</button>
+                    <button class="btn-verify" onclick="openExamStatsModal()" style="margin-right: 5px;">📈 إحصائيات الامتحانات</button>
+                </div>
+            </div>
+            <div id="adminExamsList" style="margin-top: 15px;">
+                <p style="color: #888; text-align: center;">جاري تحميل الامتحانات...</p>
+            </div>
+        </div>
+
         <div class="section-box" id="requestsSection" style="display: none; border: 2px solid #f39c12;">
             <div class="section-header">
                 <h2 style="color: #d35400;">📩 طلبات الانضمام كـ أدمن (المعلقة)</h2>
@@ -212,6 +226,63 @@
             </div>
             <div id="tableWrapper">
                 <div style="text-align: center; padding: 20px; color: #888;">جاري جلب بيانات الطلاب...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إنشاء امتحان متكاملة (Google Form Style) -->
+    <div class="modal-overlay" id="examBuilderModal">
+        <div class="modal-card" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>إنشاء اختبار ذكي جديد 📝</h3>
+                <button class="close-modal" onclick="closeExamBuilderModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: right;">
+                <div style="background: rgba(0,0,0,0.02); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+                    <h4 style="margin-bottom: 8px; font-size: 0.9rem; color: #1e3c72;">⚙️ إعدادات الامتحان العامة:</h4>
+                    <div class="modal-field">
+                        <label>عنوان الامتحان:</label>
+                        <input type="text" id="builderExamTitle" placeholder="مثلاً: اختبار الفيزياء الشامل">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="modal-field">
+                            <label>وقت الامتحان (بالدقائق):</label>
+                            <input type="number" id="builderDuration" value="15" min="1">
+                        </div>
+                        <div class="modal-field">
+                            <label>عدد المحاولات المسموحة:</label>
+                            <input type="number" id="builderAttempts" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="modal-field" style="margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="builderAutoSubmit" checked style="width: 16px; height: 16px;">
+                            <span>تسليم تلقائي وحفظ لو الطالب غادر الصفحة أو عمل ريفريش</span>
+                        </label>
+                    </div>
+                </div>
+
+                <h4 style="margin: 10px 0; font-size: 0.9rem; color: #1e3c72;">📋 أسئلة الامتحان:</h4>
+                <div id="builderQuestionsContainer" style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto; padding-left: 5px;"></div>
+
+                <button onclick="addBuilderQuestion()" style="background: #34495e; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-top: 10px;">➕ إضافة سؤال جديد</button>
+
+                <div class="modal-actions-grid" style="margin-top: 20px;">
+                    <button class="btn-approve btn-full" onclick="saveNewExamToCloud()">نشر الامتحان للطلاب فوراً 🚀</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إحصائيات الامتحانات -->
+    <div class="modal-overlay" id="examStatsModal">
+        <div class="modal-card" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>📈 لوحة إحصائيات ونتائج الطلاب 🎯</h3>
+                <button class="close-modal" onclick="closeExamStatsModal()">✕</button>
+            </div>
+            <div class="modal-body" id="examStatsBody" style="text-align: right;">
+                <p style="text-align: center; color: #888;">جاري جلب إحصائيات الامتحانات...</p>
             </div>
         </div>
     </div>
@@ -359,11 +430,213 @@
 
                 // تحميل وعرض قائمة الملفات في لوحة التحكم للأدمن
                 renderAdminFiles(globalRecordData.studyFiles || []);
+                
+                // تحميل وعرض قائمة الامتحانات النشطة
+                loadAdminExamsList(globalRecordData.exams || []);
 
             } catch (err) {
                 console.error(err);
                 document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
             }
+        }
+
+        // دوال نظام الامتحانات الجديد (Google Form Style)
+        function openExamBuilderModal() {
+            document.getElementById('examBuilderModal').classList.add('active');
+            document.getElementById('builderQuestionsContainer').innerHTML = '';
+            addBuilderQuestion();
+        }
+        function closeExamBuilderModal() {
+            document.getElementById('examBuilderModal').classList.remove('active');
+        }
+
+        function openExamStatsModal() {
+            document.getElementById('examStatsModal').classList.add('active');
+            renderExamStatistics();
+        }
+        function closeExamStatsModal() {
+            document.getElementById('examStatsModal').classList.remove('active');
+        }
+
+        function addBuilderQuestion() {
+            const container = document.getElementById('builderQuestionsContainer');
+            let qIndex = container.children.length;
+
+            let box = document.createElement('div');
+            box.style.cssText = "background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);";
+            box.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: #888;">سؤال رقم ${qIndex + 1}</span>
+                    <select class="q-type" onchange="toggleQuestionType(this)" style="padding: 3px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <option value="mcq">اختيار من متعدد</option>
+                        <option value="tf">صح وخطأ</option>
+                        <option value="essay">سؤال مقالي</option>
+                    </select>
+                </div>
+                <div class="modal-field" style="margin-bottom: 5px;">
+                    <input type="text" class="q-text" placeholder="نص السؤال..." style="font-size: 0.82rem;">
+                </div>
+                <div class="modal-field" style="margin-bottom: 5px;">
+                    <input type="url" class="q-image" placeholder="رابط صورة السؤال (اختياري)..." style="font-size: 0.75rem;">
+                </div>
+                <div class="options-container">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px;">
+                        <input type="text" class="opt-0" placeholder="الاختيار الأول" style="padding:5px; font-size:0.78rem; border-radius:5px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">
+                        <input type="text" class="opt-1" placeholder="الاختيار الثاني" style="padding:5px; font-size:0.78rem; border-radius:5px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">
+                        <input type="text" class="opt-2" placeholder="الاختيار الثالث" style="padding:5px; font-size:0.78rem; border-radius:5px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">
+                        <input type="text" class="opt-3" placeholder="الاختيار الرابع" style="padding:5px; font-size:0.78rem; border-radius:5px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">
+                    </div>
+                    <div class="modal-field">
+                        <label style="font-size: 0.72rem; color: #27ae60; font-weight: bold;">رقم الإجابة الصح (0، 1، 2، 3):</label>
+                        <input type="number" min="0" max="3" class="correct-idx" value="0" style="width: 60px; font-size: 0.8rem;">
+                    </div>
+                </div>
+                <div class="modal-field" style="margin-top: 5px;">
+                    <input type="text" class="q-explanation" placeholder="شرح الإجابة (تظهر للطالب بعد الحل)..." style="font-size: 0.75rem;">
+                </div>
+            `;
+            container.appendChild(box);
+        }
+
+        function toggleQuestionType(selectElem) {
+            let box = selectElem.closest('div').parentElement;
+            let optContainer = box.querySelector('.options-container');
+            if (selectElem.value === 'essay') {
+                optContainer.style.display = 'none';
+            } else if (selectElem.value === 'tf') {
+                optContainer.style.display = 'block';
+                optContainer.querySelector('div').style.display = 'none';
+                optContainer.querySelector('.correct-idx').parentElement.innerHTML = `
+                    <label style="font-size: 0.72rem; color: #27ae60; font-weight: bold;">الإجابة الصحيحة:</label>
+                    <select class="correct-tf" style="width: 100px; padding: 4px; font-size: 0.75rem; border-radius: 4px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                        <option value="true">صح (True)</option>
+                        <option value="false">خطأ (False)</option>
+                    </select>
+                `;
+            } else {
+                optContainer.style.display = 'block';
+                optContainer.querySelector('div').style.display = 'grid';
+            }
+        }
+
+        async function saveNewExamToCloud() {
+            let title = document.getElementById('builderExamTitle').value.trim();
+            let durationMinutes = document.getElementById('builderDuration').value;
+            let allowedAttempts = document.getElementById('builderAttempts').value;
+            let autoSubmitOnRefresh = document.getElementById('builderAutoSubmit').checked;
+
+            if (!title) { alert('اكتب عنوان الامتحان!'); return; }
+
+            let qBoxes = document.querySelectorAll('#builderQuestionsContainer > div');
+            let questions = [];
+
+            qBoxes.forEach(box => {
+                let type = box.querySelector('.q-type').value;
+                let questionText = box.querySelector('.q-text').value.trim();
+                let imageUrl = box.querySelector('.q-image').value.trim();
+                let explanation = box.querySelector('.q-explanation').value.trim();
+                let correctAnswer = 0;
+
+                let options = [];
+                if (type === 'mcq') {
+                    options = [
+                        box.querySelector('.opt-0').value.trim(),
+                        box.querySelector('.opt-1').value.trim(),
+                        box.querySelector('.opt-2').value.trim(),
+                        box.querySelector('.opt-3').value.trim()
+                    ];
+                    correctAnswer = parseInt(box.querySelector('.correct-idx').value) || 0;
+                } else if (type === 'tf') {
+                    options = ['صح', 'خطأ'];
+                    let tfSelect = box.querySelector('.correct-tf');
+                    correctAnswer = tfSelect ? tfSelect.value : 'true';
+                }
+
+                if (questionText) {
+                    questions.push({ type, questionText, imageUrl, options, correctAnswer, explanation });
+                }
+            });
+
+            if (questions.length === 0) { alert('أضف سؤالاً صحيحاً واحداً على الأقل!'); return; }
+
+            try {
+                if (!globalRecordData.exams) globalRecordData.exams = [];
+                globalRecordData.exams.push({
+                    title,
+                    durationMinutes,
+                    allowedAttempts,
+                    autoSubmitOnRefresh,
+                    questions,
+                    createdAt: new Date().toLocaleDateString('ar-EG')
+                });
+
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(globalRecordData)
+                });
+
+                if (res.ok) {
+                    alert('تم نشر الامتحان بنجاح للطلاب! 🎉');
+                    closeExamBuilderModal();
+                    loadAdminExamsList(globalRecordData.exams);
+                }
+            } catch (e) {
+                console.error(e);
+                alert('خطأ أثناء حفظ الامتحان بالسحابة.');
+            }
+        }
+
+        function loadAdminExamsList(exams) {
+            const container = document.getElementById('adminExamsList');
+            if (!exams || exams.length === 0) {
+                container.innerHTML = '<p style="color: #888; text-align: center;">لا توجد امتحانات نشطة حالياً.</p>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>عنوان الامتحان</th><th>المدة</th><th>الأسئلة</th><th>التحكم</th></tr></thead><tbody>`;
+            exams.forEach((ex, index) => {
+                html += `<tr>
+                    <td><b>📝 ${ex.title}</b></td>
+                    <td>${ex.durationMinutes || 15} دقيقة</td>
+                    <td>${ex.questions.length} أسئلة</td>
+                    <td>
+                        <button class="btn-danger" onclick="deleteAdminExam(${index})">حذف 🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function deleteAdminExam(index) {
+            if (!confirm('هل أنت متأكد من حذف هذا الامتحان نهائياً؟')) return;
+            globalRecordData.exams.splice(index, 1);
+            await updateCloudData();
+            loadAdminExamsList(globalRecordData.exams);
+        }
+
+        function renderExamStatistics() {
+            const body = document.getElementById('examStatsBody');
+            let results = globalRecordData.examResults || [];
+
+            if (results.length === 0) {
+                body.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">لا توجد نتائج مسجلة للطلاب حتى الآن.</p>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>اسم الطالب</th><th>الامتحان</th><th>الدرجة</th><th>النسبة</th><th>التاريخ</th></tr></thead><tbody>`;
+            results.forEach(res => {
+                html += `<tr>
+                    <td><b>${res.studentName}</b></td>
+                    <td>${res.examTitle}</td>
+                    <td><b>${res.score}</b></td>
+                    <td><span style="color: green; font-weight: bold;">${res.percentage}%</span></td>
+                    <td>${res.date}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            body.innerHTML = html;
         }
 
         // إظهار وإخفاء نافذة رفع الملفات
@@ -750,7 +1023,7 @@
 
         window.approveAdminReq = async function(email, role) {
             globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
-            if (!globalRecordData.admins) globalRecordData.admins = [];
+            if (!globalRecordData.admins) globalRecordData.admins = globalRecordData.admins || [];
             globalRecordData.admins.push({ name: email.split('@')[0], email, password: '@Mohamad66xm01122161407', role, status: 'active', isVerified: false, profileImage: '' });
             await updateCloudData();
             initDashboard();
