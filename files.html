@@ -33,9 +33,17 @@
             --input-border: #444;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; user-select: none; -webkit-user-select: none; }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            min-height: 100vh; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            /* منع النسخ والتحديد بالكامل */
+            -webkit-touch-callout: none;
+        }
         
-        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
+        /* طبقة الحماية السوداء لمنع تصوير الشاشة والسكرين شوت والتسجيل */
         #securityScreenOverlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #000000; z-index: 999999; display: none;
@@ -129,24 +137,9 @@
             border-right: 4px solid #0284c7;
         }
 
-        .file-icon {
-            font-size: 2.2rem;
-            margin-bottom: 12px;
-        }
-
-        .file-title {
-            font-size: 1.05rem;
-            font-weight: bold;
-            color: var(--text-color);
-            margin-bottom: 8px;
-        }
-
-        .file-desc {
-            font-size: 0.85rem;
-            color: var(--card-text);
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
+        .file-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .file-title { font-size: 1.05rem; font-weight: bold; color: var(--text-color); margin-bottom: 8px; }
+        .file-desc { font-size: 0.85rem; color: var(--card-text); margin-bottom: 15px; line-height: 1.5; }
 
         .file-meta {
             display: flex;
@@ -160,7 +153,8 @@
         }
         .dark-mode .file-meta { border-top-color: rgba(255,255,255,0.05); }
 
-        .download-btn {
+        /* زر التصفح الآمن (بدون تحميل أو سكرين شوت) */
+        .view-btn {
             background-color: #0284c7;
             color: white;
             text-decoration: none;
@@ -170,9 +164,43 @@
             font-weight: bold;
             font-size: 0.9rem;
             display: block;
+            border: none;
+            cursor: pointer;
+            width: 100%;
             transition: opacity 0.2s;
         }
-        .download-btn:hover { opacity: 0.9; }
+        .view-btn:hover { opacity: 0.9; }
+
+        /* نافذة معاينة الملزمة الآمنة */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-card {
+            background: var(--card-bg); width: 100%; max-width: 700px;
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); overflow: hidden;
+            display: flex; flex-direction: column; max-height: 85vh;
+        }
+        .modal-header {
+            padding: 15px 20px; background: var(--welcome-h1); color: white;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .close-modal { background: none; border: none; font-size: 1.3rem; color: white; cursor: pointer; }
+        .modal-body {
+            padding: 20px; overflow-y: auto; flex: 1; text-align: right;
+            font-size: 0.95rem; line-height: 1.8; color: var(--text-color);
+            position: relative;
+        }
+        /* علامة مائية أمنية داخل المعاينة */
+        .watermark-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 2rem; font-weight: bold; color: rgba(150, 150, 150, 0.12);
+            pointer-events: none; z-index: 10; white-space: nowrap;
+        }
     </style>
 </head>
 <body id="pageBody">
@@ -182,26 +210,39 @@
         ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
     </div>
 
+    <!-- نافذة معاينة الملزمة الآمنة -->
+    <div class="modal-overlay" id="fileModal" onclick="if(event.target===this) closeFileModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalFileTitle">معاينة الملزمة</h3>
+                <button class="close-modal" onclick="closeFileModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalFileBody">
+                <div class="watermark-overlay">رحلة دراسية - محمي من السرقة</div>
+                <!-- محتوى المعاينة الآمن -->
+            </div>
+        </div>
+    </div>
+
     <header class="navbar">
-        <a href="main.html" class="back-home-btn" title="العودة للرئيسية">
-            🏠
-        </a>
-
+        <a href="main.html" class="back-home-btn" title="العودة للرئيسية">🏠</a>
         <div></div>
-
         <div class="navbar-title">📁 مكتبة الملازم والملفات</div>
-
         <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
     </header>
 
     <div class="container">
         <div class="page-header">
             <h1>مرحباً بك في مكتبة الملازم الدراسية 📖</h1>
-            <p>قم بتحميل مذكرات الشرح، كتب المراجعة النهائية، وملفات الـ PDF لكل المواد بسهولة.</p>
+            <p>تصفح مذكرات الشرح ومراجعات الـ PDF بأمان كامل (التحميل والتقاط الصور محظور لحماية الملكية).</p>
         </div>
 
         <div id="filesGrid" class="files-grid">
-            <p style="text-align: center; color: var(--card-text); grid-column: 1 / -1;">جاري تحميل الملفات والملازم...</p>
+            <p style="text-align: center; color: var(--card-text); grid-column: 1 / -1;">جاري التحقق من الملازم المنشورة...</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; color: var(--card-text);">
+            جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
         </div>
     </div>
 
@@ -214,10 +255,10 @@
 
         if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
         }
 
-        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot والتسجيل ---
         const securityOverlay = document.getElementById('securityScreenOverlay');
         document.addEventListener('keydown', (e) => {
             if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
@@ -233,76 +274,77 @@
         }
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        const defaultFiles = [
-            {
-                title: "مذكرة الشرح المنهجي - الباب الأول",
-                description: "شرح وافي ومبسط لأهم مفاهيم الباب الأول مع أمثلة محلولة.",
-                subject: "مادة عامة",
-                size: "4.2 MB",
-                date: "2026/03/01",
-                link: "#"
-            },
-            {
-                title: "بنك الأسئلة والتدريبات الشاملة",
-                description: "مجموعة ضخمة من الأسئلة المتنوعة لنظام التقييم الجديد مع الحلول.",
-                subject: "تدريبات",
-                size: "6.8 MB",
-                date: "2026/03/05",
-                link: "#"
-            },
-            {
-                title: "مراجعة ليلة الامتحان والملخصات الذهبية",
-                description: "أهم النقاط والرسومات والقوانين المرشحة للامتحان النهائي.",
-                subject: "مراجعة نهائية",
-                size: "3.1 MB",
-                date: "2026/03/10",
-                link: "#"
-            }
-        ];
-
         loadFilesData();
 
         async function loadFilesData() {
             try {
-                let res = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
-                let response = await fetch(res, {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
-                let data = await response.json();
-                let filesList = (data.record.studyFiles && data.record.studyFiles.length > 0) 
-                                ? data.record.studyFiles 
-                                : defaultFiles;
+                let data = await res.json();
+                let filesList = data.record.studyFiles || [];
                 
                 renderFiles(filesList);
             } catch (e) {
                 console.error("خطأ في جلب الملفات:", e);
-                renderFiles(defaultFiles);
+                renderFiles([]);
             }
         }
 
         function renderFiles(files) {
             const grid = document.getElementById('filesGrid');
-            grid.innerHTML = '';
+            
+            // في حال عدم وجود ملازم منشورة بعد
+            if (!files || files.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
+                        <h3 style="color: var(--welcome-h1); margin-bottom: 5px;">لم يتم نشر ملازم دراسية بعد</h3>
+                        <p style="color: var(--card-text); font-size: 0.9rem;">ترقبوا.. سيتم نشر أحدث المذكرات والشروحات قريباً من قِبل إدارة المنصة.</p>
+                    </div>
+                `;
+                return;
+            }
 
-            files.forEach(file => {
+            grid.innerHTML = '';
+            files.forEach((file, index) => {
                 let card = document.createElement('div');
                 card.className = 'file-card';
                 card.innerHTML = `
                     <div>
                         <div class="file-icon">📄</div>
                         <div class="file-title">${file.title}</div>
-                        <div class="file-desc">${file.description || 'ملزمة دراسية معتمدة.'}</div>
+                        <div class="file-desc">${file.description || 'ملزمة دراسية معتمدة من المنصة.'}</div>
                     </div>
                     <div>
                         <div class="file-meta">
-                            <span>📂 ${file.subject || 'ملزمة'}</span>
-                            <span>💾 ${file.size || 'PDF'}</span>
+                            <span>📂 ${file.subject || 'ملزمة عامة'}</span>
+                            <span>🔒 محمي وآمن</span>
                         </div>
-                        <a href="${file.link}" target="_blank" class="download-btn">تحميل / معاينة الملف 📥</a>
+                        <button class="view-btn" onclick="openFilePreview(${index})">تصفح وقراءة الملزمة 👁️</button>
                     </div>
                 `;
                 grid.appendChild(card);
             });
+
+            window.allLoadedFiles = files;
+        }
+
+        function openFilePreview(index) {
+            const file = window.allLoadedFiles[index];
+            if (!file) return;
+
+            document.getElementById('modalFileTitle').textContent = file.title;
+            document.getElementById('modalFileBody').innerHTML = `
+                <div class="watermark-overlay">رحلة دراسية - حقوق الملكية محفوظة للمهندس محمد عشري</div>
+                <div style="font-weight: bold; color: var(--welcome-h1); margin-bottom: 12px; font-size: 1.1rem;">محتوى الملزمة الشرحي:</div>
+                <div style="white-space: pre-line; word-break: break-word;">${file.content || file.description || 'هذه الملزمة محمية بالكامل ضد التحميل والنسخ. يمكنك القراءة والمراجعة من داخل المنصة فقط.'}</div>
+            `;
+            document.getElementById('fileModal').classList.add('active');
+        }
+
+        function closeFileModal() {
+            document.getElementById('fileModal').classList.remove('active');
         }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
