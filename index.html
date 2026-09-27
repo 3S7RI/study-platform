@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل طالب جديد</title>
-    <!-- كود تحقق جوجل -->
     <meta name="google-site-verification" content="MC3Rq1pTIdJP0dN2fwFucfpowlsfzQnmTTtvVxj9O28" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -16,7 +15,6 @@
         .input-group input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.3s; }
         .input-group input:focus { border-color: #2a5298; }
         
-        /* تنسيق مخصص وجميل لزر رفع الصورة */
         .file-upload-wrapper {
             position: relative;
             display: flex;
@@ -29,35 +27,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .file-upload-wrapper:hover {
-            background: #eef4ff;
-            border-color: #1e3c72;
-        }
-        .file-upload-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-        .file-upload-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #2a5298;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        .file-preview {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            object-fit: cover;
-            display: none;
-            border: 2px solid #27ae60;
-        }
+        .file-upload-wrapper:hover { background: #eef4ff; border-color: #1e3c72; }
+        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .file-upload-label { display: flex; align-items: center; gap: 10px; color: #2a5298; font-weight: 600; font-size: 0.9rem; }
+        .file-preview { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; display: none; border: 2px solid #27ae60; }
 
         .password-wrapper { position: relative; width: 100%; }
         .password-wrapper input { width: 100%; padding-left: 45px !important; } 
@@ -170,28 +143,22 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 300;
-                        const MAX_HEIGHT = 300;
+                        const MAX_WIDTH = 250;
+                        const MAX_HEIGHT = 250;
                         let width = img.width;
                         let height = img.height;
 
                         if (width > height) {
-                            if (width > MAX_WIDTH) {
-                                height *= MAX_WIDTH / width;
-                                width = MAX_WIDTH;
-                            }
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
                         } else {
-                            if (height > MAX_HEIGHT) {
-                                width *= MAX_HEIGHT / height;
-                                height = MAX_HEIGHT;
-                            }
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
                         }
 
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
                     };
                     img.onerror = error => reject(error);
                 };
@@ -220,28 +187,16 @@
 
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 
-                        'X-Master-Key': API_KEY,
-                        'X-Access-Key': API_KEY 
-                    }
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
                 let result = await response.json();
                 let currentRecord = result.record || {};
                 let studentsList = Array.isArray(currentRecord.users) ? currentRecord.users : [];
 
                 const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === email);
-                const phoneExists = studentsList.some(student => student.studentPhone === sPhone);
-
                 if (emailExists) {
-                    alert('عذراً يا بطل! البريد الإلكتروني هذا مسجل مسبقاً، سيتم توجيهك لصفحة تسجيل الدخول.');
+                    alert('البريد الإلكتروني هذا مسجل مسبقاً!');
                     window.location.href = 'login.html';
-                    return;
-                }
-
-                if (phoneExists) {
-                    alert('رقم هاتف الطالب هذا مسجل بحساب آخر بالفعل!');
-                    btn.textContent = 'تسجيل الحساب وانطلاق';
-                    btn.disabled = false;
                     return;
                 }
 
@@ -250,13 +205,12 @@
                     try {
                         profileImageBase64 = await convertImageToBase64(imageFile);
                     } catch (e) {
-                        console.error("خطأ في معالجة الصورة، سيتم المتابعة بدونها", e);
+                        console.error("خطأ في معالجة الصورة", e);
                     }
                 }
 
                 const nextNumber = studentsList.length + 1;
-                const formattedId = String(nextNumber).padStart(4, '0');
-                const studentId = 'STU-' + formattedId;
+                const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
                 const userData = {
                     studentId: studentId,
@@ -290,17 +244,17 @@
                     body: JSON.stringify(currentRecord)
                 });
 
-                if (!updateRes.ok) throw new Error('فشل حفظ البيانات في السحابة');
+                if (!updateRes.ok) throw new Error('فشل حفظ البيانات');
 
                 localStorage.setItem('studentUser', JSON.stringify(userData));
                 localStorage.setItem('isLoggedIn', 'true');
 
-                alert('تم إنشاء الحساب بنجاح على السحابة يا بطل! كود تعريفك هو: ' + studentId);
+                alert('تم إنشاء الحساب بنجاح! كودك هو: ' + studentId);
                 window.location.href = 'main.html';
 
             } catch (error) {
-                console.error('خطأ في الاتصال بالسحابة:', error);
-                alert('حدث خطأ أثناء الاتصال بالسحابة، تأكد من اتصالك بالإنترنت وحاول مرة أخرى.');
+                console.error(error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة!');
                 btn.textContent = 'تسجيل الحساب وانطلاق';
                 btn.disabled = false;
             }
