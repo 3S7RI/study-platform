@@ -105,11 +105,18 @@
 
         .comments-section { border-top: 1px solid rgba(0,0,0,0.08); padding-top: 12px; margin-top: 10px; }
         .comment-item {
-            background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 6px; margin-bottom: 8px; font-size: 0.9rem;
+            background: rgba(0,0,0,0.02); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 0.9rem;
+            border-right: 3px solid #8b5cf6;
         }
         .dark-mode .comment-item { background: rgba(255,255,255,0.03); }
-        .comment-author { font-weight: bold; font-size: 0.85rem; color: #8b5cf6; margin-bottom: 2px; }
+        .comment-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .comment-author { font-weight: bold; font-size: 0.88rem; color: #8b5cf6; }
         
+        /* وسوم الأدمن المميزة والاحترافية */
+        .admin-badge-master { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+        .admin-badge-full { background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+        .admin-badge-sub { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+
         .add-comment-box { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
         .add-comment-box input {
             flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--input-border);
@@ -164,6 +171,10 @@
         <div id="postsFeed" class="posts-feed">
             <p style="text-align: center; color: var(--card-text);">جاري تحميل الأسئلة والمناقشات...</p>
         </div>
+        
+        <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; color: var(--card-text);">
+            جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
+        </div>
     </div>
 
     <script>
@@ -174,10 +185,11 @@
 
         const isLoggedIn = localStorage.getItem('isLoggedIn');
         const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+        const adminRole = sessionStorage.getItem('adminRole') || 'sub';
 
         if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
         }
 
         const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
@@ -310,11 +322,25 @@
                 let commentsHtml = '';
                 if (post.comments && post.comments.length > 0) {
                     post.comments.forEach(c => {
+                        let badgeHtml = '';
+                        if (c.isAdmin) {
+                            if (c.role === 'master') {
+                                badgeHtml = `<span class="admin-badge-master">⚡ مطور رئيسي موثق</span>`;
+                            } else if (c.role === 'full') {
+                                badgeHtml = `<span class="admin-badge-full">🛡️ مشرف عام متحكم</span>`;
+                            } else {
+                                badgeHtml = `<span class="admin-badge-sub">📌 مشرف موثق</span>`;
+                            }
+                        }
+
                         commentsHtml += `
                             <div class="comment-item">
-                                <div class="comment-author">${c.authorName} ${c.isAdmin ? '🛡️ (الأدمن)' : ''}</div>
-                                <div>${c.text}</div>
-                                ${c.audio ? `<audio controls class="post-audio" style="margin-top:5px;"><source src="${c.audio}" type="audio/webm"></audio>` : ''}
+                                <div class="comment-header-row">
+                                    <span class="comment-author">${c.authorName}</span>
+                                    ${badgeHtml}
+                                </div>
+                                <div style="margin-top: 4px;">${c.text}</div>
+                                ${c.audio ? `<audio controls class="post-audio" style="margin-top:6px;"><source src="${c.audio}" type="audio/webm"></audio>` : ''}
                             </div>
                         `;
                     });
@@ -406,7 +432,7 @@
             let text = input.value.trim();
             if (!text && !recordedAudioBase64) return;
 
-            let authorName = isUserAdmin ? 'الأدمن (محمد عشري)' : (userData.fullName || 'أدمن');
+            let authorName = adminRole === 'master' ? 'محمد عماد (مؤسس المنصة)' : 'مشرف المنصة';
 
             try {
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
@@ -423,7 +449,8 @@
                         authorName: authorName,
                         text: text,
                         audio: recordedAudioBase64,
-                        isAdmin: true
+                        isAdmin: true,
+                        role: adminRole
                     });
 
                     let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
