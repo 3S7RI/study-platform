@@ -30,6 +30,16 @@
             justify-content: center; 
             align-items: center; 
             padding: 20px; 
+            user-select: none; 
+            -webkit-user-select: none; 
+        }
+        
+        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت وتصوير الشاشة */
+        #securityScreenOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000000; z-index: 999999; display: none;
+            justify-content: center; align-items: center; color: #ff4d4d;
+            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
         }
         
         .profile-container { background-color: var(--card-bg); width: 100%; max-width: 520px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); padding: 25px; border: 1px solid var(--border-color); position: relative; overflow: hidden; }
@@ -153,6 +163,8 @@
 </head>
 <body>
 
+    <div id="securityScreenOverlay">تنبيه أمني: ممنوع التقاط صورة للشاشة!</div>
+
     <div class="profile-container" id="profileCardMain">
         <div id="cardPatternBg" class="card-bg-pattern"></div>
 
@@ -188,6 +200,22 @@
         if (!sessionStorage.getItem('adminEmail')) {
             sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
         }
+
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot والتسجيل ---
+        const securityOverlay = document.getElementById('securityScreenOverlay');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
+                e.preventDefault();
+                triggerBlackScreen();
+            }
+        });
+        window.addEventListener('blur', () => { triggerBlackScreen(); });
+        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
+        function triggerBlackScreen() {
+            securityOverlay.style.display = 'flex';
+            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
+        }
+        document.addEventListener('contextmenu', e => e.preventDefault());
 
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
@@ -364,13 +392,6 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>إعدادات التوثيق (العلامة الزرقاء)</label>
-                        <div class="toggle-switch-container" style="justify-content: space-between; width: 100%;">
-                            <span>توثيق الحساب بالعلامة الزرقاء الخضراء/السماوية</span>
-                            <input type="checkbox" id="editAdminVerifiedToggle" ${isVerified ? 'checked' : ''} style="width: 20px; height: 20px;">
-                        </div>
-                    </div>
-                    <div class="form-group">
                         <label>كلمة المرور الجديدة</label>
                         <input type="password" id="editAdminPassword" value="${admin.password || ''}" placeholder="كلمة المرور">
                     </div>
@@ -388,7 +409,7 @@
         }
 
         function searchUserProfile() {
-            const query = document.getElementById('adminSearchQuery'].value.trim().toLowerCase();
+            const query = document.getElementById('adminSearchQuery').value.trim().toLowerCase();
             const modal = document.getElementById('searchModal');
             const modalContent = document.getElementById('modalContent');
             
@@ -556,14 +577,10 @@
             currentAdminData.phone = document.getElementById('editAdminPhone').value.trim();
             currentAdminData.bgPattern = document.getElementById('editAdminBgPattern').value;
             currentAdminData.bgPatternEnabled = document.getElementById('editAdminPatternToggle').checked;
-            
-            // تحديث حالة التوثيق من الزر المخصص
-            currentAdminData.isVerified = document.getElementById('editAdminVerifiedToggle').checked;
-
             let newPass = document.getElementById('editAdminPassword').value.trim();
             if (newPass) currentAdminData.password = newPass;
 
-            await syncDataToCloud("تم حفظ بيانات الأدمن وتحديث حالة التوثيق بنجاح! ✅");
+            await syncDataToCloud("تم حفظ بيانات الأدمن بنجاح! ✅");
             sessionStorage.setItem('adminEmail', currentAdminData.email);
             oldAdminEmail = currentAdminData.email;
             renderProfile(currentAdminData);
