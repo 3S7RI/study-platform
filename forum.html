@@ -79,6 +79,7 @@
         .post-submit-btn {
             background-color: #8b5cf6; color: white; border: none; padding: 10px 20px;
             border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem; width: 100%;
+            transition: background-color 0.3s;
         }
         .post-submit-btn:hover { opacity: 0.9; }
 
@@ -93,7 +94,6 @@
         .post-author-info h4 { font-size: 0.95rem; color: var(--text-color); display: flex; align-items: center; gap: 5px; }
         .post-author-info span { font-size: 0.75rem; color: var(--card-text); }
         
-        /* زر حذف السؤال الخاص بكل سؤال */
         .delete-post-btn {
             background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);
             padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
@@ -160,8 +160,8 @@
                 <button type="button" onclick="removeSelectedImage()" style="background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; cursor: pointer; position: absolute; top: -5px; right: -5px;">✕</button>
             </div>
 
-            <!-- تم تعديل اسم الزر ليصبح "نشر" فقط -->
-            <button class="post-submit-btn" onclick="createNewQuestionPost()">نشر</button>
+            <!-- زر النشر / إرسال التسجيل -->
+            <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر</button>
         </div>
 
         <div id="postsFeed" class="posts-feed">
@@ -233,6 +233,7 @@
 
         async function toggleVoiceRecording() {
             const btn = document.getElementById('recordVoiceBtn');
+            const submitBtn = document.getElementById('postSubmitBtn');
             const status = document.getElementById('mediaStatusIndicator');
 
             if (!isRecording) {
@@ -248,7 +249,7 @@
                         reader.readAsDataURL(audioBlob);
                         reader.onloadend = () => {
                             recordedAudioBase64 = reader.result;
-                            status.textContent = "تم تسجيل الفويس بنجاح 🎙️⚡";
+                            status.textContent = "تم تجهيز التسجيل الصوتي بنجاح 🎙️⚡";
                         };
                     };
 
@@ -257,7 +258,11 @@
                     btn.style.background = "#ef4444";
                     btn.style.color = "white";
                     btn.textContent = "⏹️ إيقاف التسجيل";
-                    status.textContent = "جاري التسجيل... 🎙️";
+                    
+                    // تغيير شكل ولون ونص زر النشر أثناء التسجيل ليصبح "إرسال التسجيل"
+                    submitBtn.textContent = "إرسال التسجيل";
+                    submitBtn.style.backgroundColor = "#ef4444";
+                    status.textContent = "جاري تسجيل الصوت الآن... 🎙️";
                 } catch (err) {
                     alert('يرجى السماح باستخدام الميكروفون لتسجيل الفويس!');
                 }
@@ -267,6 +272,39 @@
                 btn.style.background = "";
                 btn.style.color = "";
                 btn.textContent = "🎙️ تسجيل فويس";
+                
+                // إعادة الزر لوضعه الطبيعي أو تركه جاهزاً للنشر
+                submitBtn.textContent = "نشر";
+                submitBtn.style.backgroundColor = "#8b5cf6";
+            }
+        }
+
+        // دالة موحدة للتحكم بالزر حسب حالة التسجيل
+        function handlePostSubmitAction() {
+            if (isRecording && mediaRecorder) {
+                // إذا كان الضغط أثناء التسجيل الحي، نوقف التسجيل ونحفظه مباشرة مع المنشور
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = async () => {
+                        recordedAudioBase64 = reader.result;
+                        isRecording = false;
+                        
+                        // إعادة تعيين زر التسجيل
+                        const btn = document.getElementById('recordVoiceBtn');
+                        btn.style.background = "";
+                        btn.style.color = "";
+                        btn.textContent = "🎙️ تسجيل فويس";
+
+                        // تنفيذ النشر مباشرة
+                        await createNewQuestionPost();
+                    };
+                };
+                mediaRecorder.stop();
+            } else {
+                // النشر العادي (نص، صورة، أو فويس مسجل مسبقاً)
+                createNewQuestionPost();
             }
         }
 
@@ -297,8 +335,6 @@
             posts.slice().reverse().forEach((post, index) => {
                 let realIndex = posts.length - 1 - index;
                 let userImg = post.profileImage || defaultMaleSvg;
-
-                // التحقق مما إذا كان المستخدم الحالي هو صاحب السؤال أو أدمن ليتمكن من الحذف
                 let canDelete = isUserAdmin || (userData.fullName && post.authorName === userData.fullName);
 
                 let commentsHtml = '';
@@ -349,7 +385,7 @@
                         </div>
                         ${canDelete ? `<button class="delete-post-btn" onclick="deleteQuestionPost(${realIndex})">🗑️ حذف</button>` : ''}
                     </div>
-                    <div class="post-content">${post.content}</div>
+                    ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
                     ${post.image ? `<img src="${post.image}" class="post-media-img">` : ''}
                     ${post.audio ? `<audio controls class="post-audio"><source src="${post.audio}" type="audio/webm"></audio>` : ''}
                     
@@ -404,6 +440,12 @@
                     removeSelectedImage();
                     recordedAudioBase64 = "";
                     document.getElementById('mediaStatusIndicator').textContent = "";
+                    
+                    // إعادة ضبط الزر للنشر العادي
+                    const submitBtn = document.getElementById('postSubmitBtn');
+                    submitBtn.textContent = "نشر";
+                    submitBtn.style.backgroundColor = "#8b5cf6";
+
                     loadForumData();
                 }
             } catch (e) {
