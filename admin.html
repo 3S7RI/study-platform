@@ -364,15 +364,13 @@
         const STUDENT_BIN_ID = '6ab9234dffd5d16053349267'; 
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
-        let globalRecordData = {};
-        let studentBinData = {};
+        let globalRecordData = { users: [], admins: [], studyFiles: [], exams: [], adminRequests: [] };
+        let studentBinData = { exams: [], examResults: [] };
 
-        // تعيين جلسة افتراضية للتجربة إن لم تكن متوفرة
-        if (!sessionStorage.getItem('isAdminLoggedIn')) {
-            sessionStorage.setItem('isAdminLoggedIn', 'true');
-            sessionStorage.setItem('adminRole', 'master');
-            sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-        }
+        // تسجيل الدخول الافتراضي
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('adminRole', 'master');
+        sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
 
         const securityOverlay = document.getElementById('securityScreenOverlay');
         document.addEventListener('keydown', (e) => {
@@ -419,7 +417,6 @@
 
         const cloudHeaders = {
             'X-Master-Key': API_KEY,
-            'X-Access-Key': API_KEY,
             'Content-Type': 'application/json'
         };
 
@@ -427,57 +424,67 @@
 
         async function initDashboard() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
+                // جلب الـ BIN الرئيسي
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { 
+                    method: 'GET',
+                    headers: cloudHeaders 
+                });
                 if (response.ok) {
                     let result = await response.json();
-                    globalRecordData = result.record || {};
+                    globalRecordData = Object.assign(globalRecordData, result.record || {});
                 }
-
-                try {
-                    let stRes = await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}/latest`, { headers: cloudHeaders });
-                    if (stRes.ok) {
-                        let stResult = await stRes.json();
-                        studentBinData = stResult.record || {};
-                    }
-                } catch (e) {
-                    console.warn("لم يتم جلب بيانات bin الامتحانات:", e);
-                }
-
-                let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
-                let currentSessionRole = sessionStorage.getItem('adminRole');
-                let isMasterUser = (currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com');
-
-                let rawAdmins = globalRecordData.admins || [];
-                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
-
-                let loggedAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentAdminEmail.toLowerCase());
-                if (loggedAdmin && loggedAdmin.profileImage) {
-                    document.getElementById('headerAdminAvatar').src = loggedAdmin.profileImage;
-                }
-
-                if (isMasterUser) {
-                    document.getElementById('masterAdminSection').style.display = 'block';
-                    document.getElementById('requestsSection').style.display = 'block';
-                    document.getElementById('addStudentBtn').style.display = 'inline-block';
-                    document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي';
-                    
-                    renderRequests(globalRecordData.adminRequests || []);
-                    renderAdmins(adminsList);
-                    renderStudents(globalRecordData.users || []);
-                } else {
-                    document.getElementById('adminsCountCard').style.display = 'none';
-                    renderStudents(globalRecordData.users || []);
-                }
-
-                renderAdminFiles(globalRecordData.studyFiles || []);
-                
-                let activeExams = (studentBinData.exams && studentBinData.exams.length > 0) ? studentBinData.exams : (globalRecordData.exams || []);
-                loadAdminExamsList(activeExams);
-
             } catch (err) {
-                console.error(err);
-                document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
+                console.warn("خطأ في جلب بيانات Bin الرئيسي:", err);
             }
+
+            try {
+                // جلب BIN الامتحانات والطلاب
+                let stRes = await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}/latest`, { 
+                    method: 'GET',
+                    headers: cloudHeaders 
+                });
+                if (stRes.ok) {
+                    let stResult = await stRes.json();
+                    studentBinData = Object.assign(studentBinData, stResult.record || {});
+                }
+            } catch (e) {
+                console.warn("خطأ في جلب بيانات bin الامتحانات:", e);
+            }
+
+            // تحديث الواجهة فوراً بعد التحميل بغض النظر عن النجاح أو الفشل
+            renderUIComponents();
+        }
+
+        function renderUIComponents() {
+            let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
+            let currentSessionRole = sessionStorage.getItem('adminRole');
+            let isMasterUser = (currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com');
+
+            let rawAdmins = globalRecordData.admins || [];
+            let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
+
+            let loggedAdmin = adminsList.find(a => a.email && a.email.toLowerCase() === currentAdminEmail.toLowerCase());
+            if (loggedAdmin && loggedAdmin.profileImage) {
+                document.getElementById('headerAdminAvatar').src = loggedAdmin.profileImage;
+            }
+
+            if (isMasterUser) {
+                document.getElementById('masterAdminSection').style.display = 'block';
+                document.getElementById('requestsSection').style.display = 'block';
+                document.getElementById('addStudentBtn').style.display = 'inline-block';
+                document.getElementById('headerTitle').textContent = '⚡ لوحة المطور الأساسي';
+                
+                renderRequests(globalRecordData.adminRequests || []);
+                renderAdmins(adminsList);
+            } else {
+                document.getElementById('adminsCountCard').style.display = 'none';
+            }
+
+            renderStudents(globalRecordData.users || []);
+            renderAdminFiles(globalRecordData.studyFiles || []);
+            
+            let activeExams = (studentBinData.exams && studentBinData.exams.length > 0) ? studentBinData.exams : (globalRecordData.exams || []);
+            loadAdminExamsList(activeExams);
         }
 
         async function updateCloudData() {
@@ -646,7 +653,7 @@
         function loadAdminExamsList(exams) {
             const container = document.getElementById('adminExamsList');
             if (!exams || exams.length === 0) {
-                container.innerHTML = '<p style="color: #888; text-align: center;">لا توجد امتحانات نشطة حالياً.</p>';
+                container.innerHTML = '<p style="color: #888; text-align: center; padding: 10px;">لا توجد امتحانات نشطة حالياً.</p>';
                 return;
             }
 
@@ -721,7 +728,7 @@
         function renderAdminFiles(files) {
             const listContainer = document.getElementById('adminFilesList');
             if (!files || files.length === 0) {
-                listContainer.innerHTML = '<p style="color: #888; text-align: center;">لا توجد ملفات مرفوعة حالياً.</p>';
+                listContainer.innerHTML = '<p style="color: #888; text-align: center; padding: 10px;">لا توجد ملفات مرفوعة حالياً.</p>';
                 return;
             }
 
@@ -849,7 +856,7 @@
             const wrapper = document.getElementById('tableWrapper');
             document.getElementById('totalStudentsCount').textContent = users ? users.length : 0;
             if (!users || users.length === 0) {
-                wrapper.innerHTML = '<p style="text-align: center; color: #888; padding: 10px;">لا يوجد طلاب.</p>';
+                wrapper.innerHTML = '<p style="text-align: center; color: #888; padding: 10px;">لا يوجد طلاب مسجلين حتى الآن.</p>';
                 return;
             }
             let html = `<table><thead><tr><th>الكود</th><th>اسم الطالب</th><th>البريد</th><th>الهاتف</th><th>الحالة</th></tr></thead><tbody>`;
@@ -973,5 +980,4 @@
                     </div>
 
                     <div class="modal-actions-grid">
-                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر'}</button>
-                        <button 
+                        <button class="btn-block" 
