@@ -188,6 +188,65 @@
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
 
         .badge-dot { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; display: none; }
+
+        /* تصميم شيك ولذيذ لأزرار قائمة الأصدقاء (الحظر، الحذف، الدردشة) في أقصى الشمال بمسافة معقولة */
+        .friend-item-card {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: var(--input-bg); 
+            padding: 10px 12px; 
+            border-radius: 12px; 
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .friend-info-trigger {
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            cursor: pointer;
+            flex: 1;
+            min-width: 0;
+        }
+        .friend-info-trigger img {
+            width: 38px; 
+            height: 38px; 
+            border-radius: 50%; 
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+        }
+        .friend-info-trigger .friend-name-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .friend-actions-group {
+            display: flex; 
+            gap: 6px; 
+            align-items: center;
+            margin-right: 12px; /* مسافة معقولة ومنسقة تمنع التصاق الأزرار بالاسم أو الحافة */
+        }
+        .friend-action-icon-btn {
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .friend-action-icon-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-chat-action { background: var(--primary-color); }
+        .btn-block-action { background: #f59e0b; }
+        .btn-delete-action { background: #ef4444; }
     </style>
 </head>
 <body>
@@ -222,6 +281,13 @@
                 <div class="form-group"><label>رقم هاتف الطالب</label><input type="tel" id="editPhone"></div>
                 <div class="form-group"><label>رقم هاتف ولي الأمر</label><input type="tel" id="editParentPhone"></div>
                 <div class="form-group">
+                    <label>السماح للأصدقاء بمقارنة المستوى والتقدم معك</label>
+                    <label class="toggle-switch-container" style="margin-top: 5px;">
+                        <input type="checkbox" id="editAllowComparison">
+                        <span>تفعيل ميزة المقارنة مع الأصدقاء</span>
+                    </label>
+                </div>
+                <div class="form-group">
                     <label>تخصيص رموز خلفية البروفايل</label>
                     <div class="pattern-control-row">
                         <select id="editBgPattern">
@@ -243,7 +309,7 @@
         </div>
     </div>
 
-    <!-- نافذة إضافة صديق (تنفذ الإضافة فقط) -->
+    <!-- نافذة إضافة صديق -->
     <div class="modal-overlay" id="addFriendModal" onclick="closeAddModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -281,6 +347,32 @@
         </div>
     </div>
 
+    <!-- نافذة الشاشة العائمة لبروفايل الصديق (بدون تحكم ومع إخفاء البيانات) -->
+    <div class="modal-overlay" id="peerProfileModal" onclick="if(event.target===this) closePeerProfileModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>معلومات الصديق 👤</h3>
+                <button class="close-modal" onclick="closePeerProfileModal()">✕</button>
+            </div>
+            <div class="modal-body" id="peerProfileContent" style="text-align: center;">
+                <!-- يتم تعبئتها ديناميكياً -->
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة المقارنة الشاملة بين الطالب وصديقه -->
+    <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>📊 مقارنة المستويات والأداء</h3>
+                <button class="close-modal" onclick="closeComparisonModal()">✕</button>
+            </div>
+            <div class="modal-body" id="comparisonModalContent" style="text-align: right;">
+                <!-- يتم تعبئة الإحصائيات هنا -->
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة المحادثة الفردية الذكية -->
     <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
         <div class="modal-card" style="max-width: 400px;">
@@ -301,7 +393,7 @@
         </div>
     </div>
 
-    <!-- نافذة البحث / التفاصيل -->
+    <!-- نافذة البحث / التفاصيل العامة -->
     <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -327,6 +419,30 @@
             window.location.href = 'login.html';
         }
 
+        // دالة لاختصار الاسم إلى أول اسمين فقط
+        function getFirstTwoNames(fullName) {
+            if (!fullName) return 'طالب رحلة';
+            let parts = fullName.trim().split(/\s+/);
+            if (parts.length >= 2) {
+                return `${parts[0]} ${parts[1]}`;
+            }
+            return parts[0];
+        }
+
+        // دالة لإخفاء جزء من رقم الهاتف أو البريد الإلكتروني للخصوصية
+        function maskPhoneNumber(phone) {
+            if (!phone || phone.length < 7) return '01122*****40';
+            return phone.substring(0, 5) + '*****' + phone.substring(phone.length - 2);
+        }
+
+        function maskEmail(email) {
+            if (!email || !email.includes('@')) return 'stu*****@domain.com';
+            let parts = email.split('@');
+            let namePart = parts[0];
+            let maskedName = namePart.length > 3 ? namePart.substring(0, 3) + '*****' : 'stu*****';
+            return maskedName + '@' + parts[1];
+        }
+
         function getStudentImage(userObj) {
             if (userObj && userObj.profileImage && userObj.profileImage.trim() !== '') {
                 return userObj.profileImage;
@@ -336,12 +452,12 @@
 
         function getRankDetails(rank) {
             switch (rank) {
-                case 'bronze': return { title: 'ضعيف (Level 1)', class: 'rank-frame-bronze', badgeClass: 'badge-bronze', icon: '🥉', levelNum: 1 };
-                case 'silver': return { title: 'متوسط (Level 2)', class: 'rank-frame-silver', badgeClass: 'badge-silver', icon: '🥈', levelNum: 2 };
-                case 'gold': return { title: 'قوي (Level 3)', class: 'rank-frame-gold', badgeClass: 'badge-gold', icon: '🥇', levelNum: 3 };
-                case 'diamond': return { title: 'قوي جداً (Level 4)', class: 'rank-frame-diamond', badgeClass: 'badge-diamond', icon: '💎', levelNum: 4 };
-                case 'mythic': return { title: 'أسطوري (Level 5)', class: 'rank-frame-mythic', badgeClass: 'badge-mythic', icon: '👑', levelNum: 5 };
-                default: return { title: 'جديد (Level 0)', class: 'rank-frame-unranked', badgeClass: 'badge-unranked', icon: '⚪', levelNum: 0 };
+                case 'bronze': return { title: 'ضعيف (Level 1)', class: 'rank-frame-bronze', badgeClass: 'badge-bronze', icon: '🥉', levelNum: 1, score: 30 };
+                case 'silver': return { title: 'متوسط (Level 2)', class: 'rank-frame-silver', badgeClass: 'badge-silver', icon: '🥈', levelNum: 2, score: 55 };
+                case 'gold': return { title: 'قوي (Level 3)', class: 'rank-frame-gold', badgeClass: 'badge-gold', icon: '🥇', levelNum: 3, score: 75 };
+                case 'diamond': return { title: 'قوي جداً (Level 4)', class: 'rank-frame-diamond', badgeClass: 'badge-diamond', icon: '💎', levelNum: 4, score: 90 };
+                case 'mythic': return { title: 'أسطوري (Level 5)', class: 'rank-frame-mythic', badgeClass: 'badge-mythic', icon: '👑', levelNum: 5, score: 98 };
+                default: return { title: 'جديد (Level 0)', class: 'rank-frame-unranked', badgeClass: 'badge-unranked', icon: '⚪', levelNum: 0, score: 10 };
             }
         }
 
@@ -408,6 +524,7 @@
             let rankInfo = getRankDetails(rankKey);
             let patternChoice = student.bgPattern || 'mixed';
             let isPatternEnabled = student.bgPatternEnabled !== false;
+            let allowComparison = student.allowComparison !== false; // مفتاح إعدادات المقارنة
             let pendingCount = (student.friendRequests || []).length;
             let studentIdVal = student.studentId || 'STU-0000';
 
@@ -418,6 +535,7 @@
             document.getElementById('editParentPhone').value = student.parentPhone || '';
             document.getElementById('editBgPattern').value = patternChoice;
             document.getElementById('editPatternToggle').checked = isPatternEnabled;
+            document.getElementById('editAllowComparison').checked = allowComparison;
 
             container.innerHTML = `
                 <div class="profile-header">
@@ -431,7 +549,6 @@
                     </div>
                     <h1 class="student-name">${student.fullName}</h1>
                     
-                    <!-- عرض الـ ID مع زر النسخ السريع -->
                     <div class="student-id-container">
                         <span style="color: var(--text-secondary); font-size: 0.85rem;" id="studentIdText">كود الطالب: ${studentIdVal}</span>
                         <button class="copy-id-btn" onclick="copyStudentId('${studentIdVal}')">
@@ -439,7 +556,6 @@
                         </button>
                     </div>
                     
-                    <!-- الأزرار الثلاثة المنظمة بجانب بعضها -->
                     <div class="profile-actions-bar">
                         <button class="profile-action-btn btn-add" onclick="openAddFriendModal()">
                             ➕ إضافة
@@ -464,7 +580,6 @@
             `;
         }
 
-        // دالة نسخ الـ ID للحافظة
         function copyStudentId(idToCopy) {
             navigator.clipboard.writeText(idToCopy).then(() => {
                 alert('تم نسخ كود الـ ID بنجاح! 📋');
@@ -539,13 +654,13 @@
                 '<span style="color: var(--text-secondary);">لا توجد طلبات جديدة.</span>' :
                 currentStudentData.friendRequests.map(id => {
                     let senderObj = users.find(u => u.studentId === id);
-                    let sName = senderObj ? senderObj.fullName : id;
+                    let sName = senderObj ? getFirstTwoNames(senderObj.fullName) : id;
                     let sImg = getStudentImage(senderObj);
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <img src="${sImg}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
-                                <span>${sName}</span>
+                        <div class="friend-item-card">
+                            <div class="friend-info-trigger" onclick="openPeerProfile('${id}')">
+                                <img src="${sImg}">
+                                <span class="friend-name-text">${sName}</span>
                             </div>
                             <div>
                                 <button onclick="acceptFriendRequest('${id}')" style="background: #10b981; color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem;">قبول</button>
@@ -559,22 +674,145 @@
                 '<span style="color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</span>' :
                 currentStudentData.friends.map(fId => {
                     let friendObj = users.find(u => u.studentId === fId);
-                    let fName = friendObj ? friendObj.fullName : fId;
+                    let fFullName = friendObj ? friendObj.fullName : fId;
+                    let fShortName = getFirstTwoNames(fFullName);
                     let fImg = getStudentImage(friendObj);
                     return `
-                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <img src="${fImg}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
-                                <span>${fName}</span>
+                        <div class="friend-item-card">
+                            <!-- الضغط على الصورة أو الاسم يفتح الشاشة العائمة لبروفايل الصديق بدون أزرار تحكم -->
+                            <div class="friend-info-trigger" onclick="openPeerProfile('${fId}')" title="عرض الملف الشخصي">
+                                <img src="${fImg}">
+                                <span class="friend-name-text">${fShortName}</span>
                             </div>
-                            <div style="display: flex; gap: 4px;">
-                                <button onclick="openChat('${fId}', '${fName}', '${fImg}')" style="background: var(--primary-color); color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">دردشة 💬</button>
-                                <button onclick="blockFriend('${fId}')" style="background: #f59e0b; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">حظر</button>
-                                <button onclick="removeFriend('${fId}')" style="background: #ef4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.75rem;">حذف</button>
+                            <!-- التلت أزرار (الدردشة، الحظر، الحذف) بشكل شيك ولذيذ في أقصى الشمال بمسافة معقولة ومنسقة -->
+                            <div class="friend-actions-group">
+                                <button class="friend-action-icon-btn btn-chat-action" onclick="openChat('${fId}', '${fFullName}', '${fImg}')" title="دردشة">
+                                    💬 دردشة
+                                </button>
+                                <button class="friend-action-icon-btn btn-block-action" onclick="blockFriend('${fId}')" title="حظر">
+                                    حظر
+                                </button>
+                                <button class="friend-action-icon-btn btn-delete-action" onclick="removeFriend('${fId}')" title="حذف">
+                                    حذف
+                                </button>
                             </div>
                         </div>
                     `;
                 }).join('');
+        }
+
+        // فتح الشاشة العائمة لبروفايل الصديق (بدون أي أزرار تحكم للطالب، مع إخفاء الأجزاء الحساسة من الهاتف والإيميل)
+        function openPeerProfile(friendId) {
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let friend = users.find(u => u.studentId === friendId);
+            if (!friend) { alert('تعذر العثور على بيانات الصديق!'); return; }
+
+            let imgUrl = getStudentImage(friend);
+            let rankInfo = getRankDetails(friend.rank || 'bronze');
+            let maskedPhone = maskPhoneNumber(friend.studentPhone);
+            let maskedEmail = maskEmail(friend.email);
+
+            const modal = document.getElementById('peerProfileModal');
+            const content = document.getElementById('peerProfileContent');
+
+            content.innerHTML = `
+                <div class="modal-avatar-wrapper ${rankInfo.class}">
+                    <img src="${imgUrl}" alt="صورة الصديق">
+                </div>
+                <div class="level-badge-box ${rankInfo.badgeClass}">
+                    <span>${rankInfo.icon}</span>
+                    <span>${rankInfo.title}</span>
+                </div>
+                <h2 style="font-size:1.2rem; color:var(--text-main); margin-bottom:6px;">${friend.fullName}</h2>
+                <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">كود الصديق: ${friend.studentId}</p>
+                
+                <div style="background: var(--input-bg); padding: 12px; border-radius: 10px; border: 1.5px solid var(--border-color); text-align: right; margin-bottom: 15px; font-size: 0.85rem;">
+                    <p style="margin-bottom: 6px; color: var(--text-main);">📱 الهاتف: <strong>${maskedPhone}</strong></p>
+                    <p style="color: var(--text-main);">📧 البريد الإلكتروني: <strong>${maskedEmail}</strong></p>
+                </div>
+
+                <!-- زر المقارنة الشاملة بين الطالب وصديقه -->
+                <button class="btn" onclick="openComparisonModal('${friend.studentId}')">
+                    📊 مقارنة بيني وبين صديقي
+                </button>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closePeerProfileModal() {
+            document.getElementById('peerProfileModal').classList.remove('active');
+        }
+
+        // نافذة مقارنة المستويات والأداء الشاملة
+        function openComparisonModal(friendId) {
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let friend = users.find(u => u.studentId === friendId);
+            if (!friend) return;
+
+            // التحقق مما إذا كان الصديق يسمح بالمقارنة في إعداداته
+            if (friend.allowComparison === false) {
+                alert('عذراً، هذا الصديق قام بتعطيل ميزة المقارنة في إعدادات حسابه.');
+                return;
+            }
+
+            let myRankInfo = getRankDetails(currentStudentData.rank || 'bronze');
+            let friendRankInfo = getRankDetails(friend.rank || 'bronze');
+
+            let myScore = myRankInfo.score;
+            let friendScore = friendRankInfo.score;
+
+            const modal = document.getElementById('comparisonModal');
+            const content = document.getElementById('comparisonModalContent');
+
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h4 style="font-size: 1.05rem; color: var(--primary-color);">مقارنة الأداء والتقدم الدراسي</h4>
+                    <p style="font-size: 0.78rem; color: var(--text-secondary);">تحليل شامل للمستوى والوقت على المنصة والامتحانات</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; text-align: center;">
+                    <div style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+                        <img src="${getStudentImage(currentStudentData)}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-bottom: 5px;">
+                        <h5 style="font-size: 0.85rem; color: var(--text-main);">أنا (${getFirstTwoNames(currentStudentData.fullName)})</h5>
+                        <p style="font-size: 0.75rem; color: var(--primary-color); font-weight: bold; margin-top: 4px;">${myRankInfo.title}</p>
+                    </div>
+                    <div style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);">
+                        <img src="${getStudentImage(friend)}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover; margin-bottom: 5px;">
+                        <h5 style="font-size: 0.85rem; color: var(--text-main);">${getFirstTwoNames(friend.fullName)}</h5>
+                        <p style="font-size: 0.75rem; color: #10b981; font-weight: bold; margin-top: 4px;">${friendRankInfo.title}</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem;">
+                    <div style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>معدل التقدم العام</span>
+                            <span>أنت (${myScore}%) vs صديقك (${friendScore}%)</span>
+                        </div>
+                        <div style="width: 100%; background: #334155; height: 8px; border-radius: 4px; overflow: hidden; display: flex;">
+                            <div style="width: ${myScore}%; background: var(--primary-color);"></div>
+                            <div style="width: ${100 - myScore}%; background: transparent;"></div>
+                        </div>
+                    </div>
+
+                    <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>⏱️ الوقت النشط ع المنصة</span>
+                        <strong>14 ساعة vs 12 ساعة</strong>
+                    </div>
+
+                    <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>📝 الامتحانات المجتازة</span>
+                        <strong>8 اختبارات vs 7 اختبارات</strong>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.add('active');
+        }
+
+        function closeComparisonModal() {
+            document.getElementById('comparisonModal').classList.remove('active');
         }
 
         async function sendFriendRequestToId(targetId) {
@@ -660,7 +898,7 @@
 
         function openChat(friendId, friendName, friendImg) {
             activeChatFriendId = friendId;
-            document.getElementById('chatWithTitle').innerText = friendName;
+            document.getElementById('chatWithTitle').innerText = getFirstTwoNames(friendName);
             document.getElementById('chatHeaderAvatar').src = friendImg;
             document.getElementById('chatModal').classList.add('active');
             renderChatMessages();
@@ -707,12 +945,10 @@
             await syncStudentDataToCloud("");
         }
 
-        // معالجة رفع وتحديث صورة البروفايل وحفظها بالسحابة فوراً مع تأكيد المرئي
         function handleStudentImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // ضغط حجم الصورة قليلاً لتجنب مشاكل الحد الأقصى لحجم البيانات في JSONBin
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = function(event) {
@@ -742,14 +978,11 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // تحويل الصورة إلى صيغة مسرعة ومضغوطة Base64 JPEG
                     currentStudentData.profileImage = canvas.toDataURL('image/jpeg', 0.85);
 
-                    // تحديث الصورة في الواجهة مباشرة قبل الرفع
                     const avatarImgElem = document.getElementById('studentAvatarImg');
                     if (avatarImgElem) avatarImgElem.src = currentStudentData.profileImage;
 
-                    // مزامنة البيانات وتحديث السحابة مع رسالة تأكيد صريحة
                     syncStudentDataToCloud("تم تحديث ورفع صورة البروفايل بنجاح! 📸✅");
                 };
             };
@@ -761,6 +994,7 @@
             currentStudentData.parentPhone = document.getElementById('editParentPhone').value.trim();
             currentStudentData.bgPattern = document.getElementById('editBgPattern').value;
             currentStudentData.bgPatternEnabled = document.getElementById('editPatternToggle').checked;
+            currentStudentData.allowComparison = document.getElementById('editAllowComparison').checked;
 
             await syncStudentDataToCloud("تم حفظ كافة التعديلات بنجاح! ✅");
             closeSettingsModal();
