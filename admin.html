@@ -193,7 +193,7 @@
             </div>
         </div>
 
-        <!-- قسم إدارة الملازم والملفات الجديد -->
+        <!-- قسم إدارة الملازم والملفات -->
         <div class="section-box" style="border-top: 4px solid #0284c7;">
             <div class="section-header">
                 <h2>📚 إدارة الملازم والملفات الدراسية</h2>
@@ -205,7 +205,7 @@
             </div>
         </div>
 
-        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة في لوحة الأدمن -->
+        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة -->
         <div class="section-box" style="border-top: 4px solid #8e44ad; margin-top: 20px;">
             <div class="section-header">
                 <h2>📊 إدارة الامتحانات والإحصائيات (أسلوب جوجل فورم)</h2>
@@ -253,7 +253,7 @@
         </div>
     </div>
 
-    <!-- نافذة إنشاء امتحان متكاملة (Google Form Style) -->
+    <!-- نافذة إنشاء امتحان متكاملة -->
     <div class="modal-overlay" id="examBuilderModal">
         <div class="modal-card" style="max-width: 600px;">
             <div class="modal-header">
@@ -365,10 +365,17 @@
     </div>
 
     <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        // Bin الحسابات والبروفايلات والأدمنز والطلاب
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
+        
+        // Bin الامتحانات والإحصائيات والنتائج
+        const STUDENT_BIN_ID = '6ab9234dffd5d16053349267'; 
+        
+        // الـ API Key الخاص بك
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
         let globalRecordData = {};
+        let studentBinData = {};
 
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
@@ -429,10 +436,22 @@
 
         async function initDashboard() {
             try {
+                // جلب بيانات الحسابات الموحدة من BIN_ID
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
+                if (!response.ok) throw new Error('فشل الاتصال بالسحابة الرئيسية');
                 let result = await response.json();
                 globalRecordData = result.record || {};
+
+                // جلب بيانات الامتحانات والإحصائيات من STUDENT_BIN_ID
+                try {
+                    let stRes = await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}/latest`, { headers: cloudHeaders });
+                    if (stRes.ok) {
+                        let stResult = await stRes.json();
+                        studentBinData = stResult.record || {};
+                    }
+                } catch (e) {
+                    console.warn("لم يتم جلب بيانات bin الامتحانات:", e);
+                }
 
                 let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
@@ -468,7 +487,10 @@
                 }
 
                 renderAdminFiles(globalRecordData.studyFiles || []);
-                loadAdminExamsList(globalRecordData.exams || []);
+                
+                // عرض الامتحانات من Bin الامتحانات
+                let activeExams = (studentBinData.exams) ? studentBinData.exams : (globalRecordData.exams || []);
+                loadAdminExamsList(activeExams);
 
             } catch (err) {
                 console.error(err);
@@ -594,28 +616,35 @@
 
             if (questions.length === 0) { alert('أضف سؤالاً صحيحاً واحداً على الأقل!'); return; }
 
-            try {
-                if (!globalRecordData.exams) globalRecordData.exams = [];
-                globalRecordData.exams.push({
-                    title,
-                    durationMinutes,
-                    allowedAttempts,
-                    autoSubmitOnRefresh,
-                    questions,
-                    createdAt: new Date().toLocaleDateString('ar-EG')
-                });
+            let newExamObj = {
+                title,
+                durationMinutes,
+                allowedAttempts,
+                autoSubmitOnRefresh,
+                questions,
+                createdAt: new Date().toLocaleDateString('ar-EG')
+            };
 
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+            try {
+                // الحفظ المباشر في Bin الامتحانات الخاص بالطالب
+                if (!studentBinData.exams) studentBinData.exams = [];
+                studentBinData.exams.push(newExamObj);
+
+                await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}`, {
                     method: 'PUT',
                     headers: cloudHeaders,
-                    body: JSON.stringify(globalRecordData)
+                    body: JSON.stringify(studentBinData)
                 });
 
-                if (res.ok) {
-                    alert('تم نشر الامتحان بنجاح للطلاب! 🎉');
-                    closeExamBuilderModal();
-                    loadAdminExamsList(globalRecordData.exams);
-                }
+                // نسخة احتياطية في Bin الأدمن الرئيسي
+                if (!globalRecordData.exams) globalRecordData.exams = [];
+                globalRecordData.exams.push(newExamObj);
+                await updateCloudData();
+
+                alert('تم نشر الامتحان بنجاح للطلاب! 🎉');
+                closeExamBuilderModal();
+                loadAdminExamsList(studentBinData.exams);
+
             } catch (e) {
                 console.error(e);
                 alert('خطأ أثناء حفظ الامتحان بالسحابة.');
@@ -634,7 +663,7 @@
                 html += `<tr>
                     <td><b>📝 ${ex.title}</b></td>
                     <td>${ex.durationMinutes || 15} دقيقة</td>
-                    <td>${ex.questions.length} أسئلة</td>
+                    <td>${ex.questions ? ex.questions.length : 0} أسئلة</td>
                     <td>
                         <button class="btn-danger" onclick="deleteAdminExam(${index})">حذف 🗑️</button>
                     </td>
@@ -646,14 +675,27 @@
 
         async function deleteAdminExam(index) {
             if (!confirm('هل أنت متأكد من حذف هذا الامتحان نهائياً؟')) return;
-            globalRecordData.exams.splice(index, 1);
-            await updateCloudData();
-            loadAdminExamsList(globalRecordData.exams);
+            
+            if (studentBinData.exams) {
+                studentBinData.exams.splice(index, 1);
+                await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(studentBinData)
+                });
+            }
+
+            if (globalRecordData.exams) {
+                globalRecordData.exams.splice(index, 1);
+                await updateCloudData();
+            }
+
+            loadAdminExamsList(studentBinData.exams || []);
         }
 
         function renderExamStatistics() {
             const body = document.getElementById('examStatsBody');
-            let results = globalRecordData.examResults || [];
+            let results = studentBinData.examResults || globalRecordData.examResults || [];
 
             if (results.length === 0) {
                 body.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">لا توجد نتائج مسجلة للطلاب حتى الآن.</p>';
@@ -731,24 +773,17 @@
                     date: new Date().toLocaleDateString('ar-EG')
                 });
 
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: cloudHeaders,
-                    body: JSON.stringify(globalRecordData)
-                });
+                await updateCloudData();
 
-                if (updateRes.ok) {
-                    alert('تم رفع الملزمة ونشرها بنجاح للطلاب! 🎉');
-                    document.getElementById('modalFileTitle').value = '';
-                    document.getElementById('modalFileDesc').value = '';
-                    document.getElementById('modalFileLink').value = '';
-                    document.getElementById('modalFileSubject').value = '';
-                    document.getElementById('modalFileSize').value = '';
-                    closeUploadModal();
-                    renderAdminFiles(globalRecordData.studyFiles);
-                } else {
-                    alert('فشل الحفظ، حاول مرة أخرى.');
-                }
+                alert('تم رفع الملزمة ونشرها بنجاح للطلاب! 🎉');
+                document.getElementById('modalFileTitle').value = '';
+                document.getElementById('modalFileDesc').value = '';
+                document.getElementById('modalFileLink').value = '';
+                document.getElementById('modalFileSubject').value = '';
+                document.getElementById('modalFileSize').value = '';
+                closeUploadModal();
+                renderAdminFiles(globalRecordData.studyFiles);
+
             } catch (e) {
                 console.error(e);
                 alert('حدث خطأ في الاتصال بالسحابة.');
@@ -761,17 +796,9 @@
             try {
                 if (globalRecordData.studyFiles) {
                     globalRecordData.studyFiles.splice(index, 1);
-
-                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: cloudHeaders,
-                        body: JSON.stringify(globalRecordData)
-                    });
-
-                    if (updateRes.ok) {
-                        alert('تم حذف الملف بنجاح.');
-                        renderAdminFiles(globalRecordData.studyFiles);
-                    }
+                    await updateCloudData();
+                    alert('تم حذف الملف بنجاح.');
+                    renderAdminFiles(globalRecordData.studyFiles);
                 }
             } catch (e) {
                 console.error(e);
@@ -942,21 +969,4 @@
                                 <option value="bronze" ${rank === 'bronze' ? 'selected' : ''}>ضعيف (Level 1)</option>
                                 <option value="silver" ${rank === 'silver' ? 'selected' : ''}>متوسط (Level 2)</option>
                                 <option value="gold" ${rank === 'gold' ? 'selected' : ''}>قوي (Level 3)</option>
-                                <option value="diamond" ${rank === 'diamond' ? 'selected' : ''}>قوي جداً (Level 4)</option>
-                                <option value="mythic" ${rank === 'mythic' ? 'selected' : ''}>أسطوري (Level 5)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions-grid">
-                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب</button>
-                        <button class="btn-approve btn-full" onclick="saveStudentModalChanges('${student.email}')">حفظ التعديلات 💾</button>
-                    </div>
-                `;
-            }
-        }
-
-        async function saveAdminModalChanges(email) {
-            let admin = (globalRecordData.admins || []).find(a => a.email === email);
-            if
+                           
