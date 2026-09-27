@@ -3,652 +3,311 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الملف الشخصي للطالب - رحلة دراسية</title>
+    <title>الملف الشخصي - رحلة دراسية</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s; }
-        
         :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --navbar-bg: linear-gradient(135deg, #1e3c72, #2a5298);
-            --card-bg: #ffffff;
-            --card-text: #555;
-            --input-bg: #fff;
-            --input-border: #ddd;
-        }
-
-        body.dark-mode {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
             --bg-color: #0f172a;
-            --text-color: #e0e0e0;
-            --navbar-bg: linear-gradient(135deg, #0d1b2a, #1b263b);
             --card-bg: #1e293b;
-            --card-text: #bbb;
-            --input-bg: #0f172a;
-            --input-border: #334155;
+            --form-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #1e293b;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; padding-bottom: 40px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, border-color 0.3s; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         
-        /* قفل التمرير الخلفي عند فتح المودال */
-        body.modal-open { overflow: hidden !important; touch-action: none; }
-
-        .navbar { background: var(--navbar-bg); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .navbar a { color: white; text-decoration: none; font-weight: bold; font-size: 0.9rem; background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 6px; }
-        .navbar h1 { font-size: 1.1rem; }
-
-        .profile-container { max-width: 600px; margin: 30px auto; background: var(--card-bg); padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .profile-header { text-align: center; margin-bottom: 25px; }
+        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 520px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); padding: 25px; border: 1px solid var(--border-color); }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 600; }
+        .back-btn:hover { color: var(--primary-color); }
         
-        /* =========================================================
-           إطارات وصور البروفايل والمستويات المتقدمة
-           ========================================================= */
+        .profile-header { text-align: center; margin-bottom: 20px; }
+        
+        /* إطار البروفايل والخلفية الشفافة */
         .avatar-wrapper { 
-            position: relative; 
-            width: 110px; 
-            height: 110px; 
-            margin: 0 auto 15px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
+            position: relative; width: 110px; height: 110px; margin: 0 auto 12px; 
+            border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center;
         }
-        
-        .avatar-wrapper img { 
-            width: 96px; 
-            height: 96px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            background: #1e293b; 
-            z-index: 2;
-            position: relative;
+        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
+
+        .bg-pattern-overlay {
+            position: absolute; width: 145px; height: 145px; border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 1;
+            background-repeat: repeat; background-size: 26px 26px;
         }
 
-        /* 1. مجهول */
-        .rank-frame-unranked img { border: 3px dashed #64748b; }
-        
-        /* 2. برونزي */
-        .rank-frame-bronze img { border: 3px solid #d97706; box-shadow: 0 0 12px rgba(217, 119, 6, 0.4); }
-        
-        /* 3. فضي */
-        .rank-frame-silver img { border: 3px solid #cbd5e1; box-shadow: 0 0 12px rgba(203, 213, 225, 0.5); }
-        
-        /* 4. ذهبي */
-        .rank-frame-gold img { border: 3px solid #eab308; box-shadow: 0 0 18px rgba(234, 179, 8, 0.6); }
-        
-        /* 5. ماسي */
-        .rank-frame-diamond img { border: 3px solid #06b6d4; box-shadow: 0 0 20px rgba(6, 182, 212, 0.7); }
-        
-        /* 6. أسطوري - هالة نارية/ذهبية متحركة */
-        .rank-frame-mythic {
-            position: relative;
+        /* إطارات المستويات والوميض */
+        .rank-frame-bronze { background: linear-gradient(45deg, #a77044, #cd7f32); box-shadow: 0 0 12px rgba(205, 127, 50, 0.5); animation: bronzePulse 2s infinite alternate; }
+        .rank-frame-silver { background: linear-gradient(45deg, #95a5a6, #e2e8f0); box-shadow: 0 0 14px rgba(149, 165, 166, 0.6); animation: silverPulse 2s infinite alternate; }
+        .rank-frame-gold { background: linear-gradient(45deg, #f1c40f, #d4af37, #ffeaa7); box-shadow: 0 0 18px rgba(241, 196, 15, 0.8); animation: goldPulse 1.8s infinite alternate; }
+        .rank-frame-diamond { background: linear-gradient(45deg, #00d2ff, #3a7bd5, #e0f7fa); box-shadow: 0 0 22px rgba(0, 210, 255, 0.9); animation: diamondPulse 1.6s infinite alternate; }
+        .rank-frame-mythic { 
+            background: linear-gradient(135deg, #ff007f, #7928ca, #4facfe, #ff0080); background-size: 300% 300%; 
+            box-shadow: 0 0 25px rgba(255, 0, 128, 0.9), 0 0 10px rgba(121, 40, 202, 0.7); 
+            animation: mythicGlow 2.5s ease infinite, mythicGradient 4s ease infinite; 
         }
-        .rank-frame-mythic::before {
-            content: '';
-            position: absolute;
-            width: 106px;
-            height: 106px;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, #f43f5e, #eab308, #a855f7, #f43f5e);
-            animation: rotateMythicGlow 3s linear infinite;
-            z-index: 1;
-            filter: blur(4px);
-        }
-        .rank-frame-mythic img {
-            border: 3px solid #ffffff;
-            box-shadow: 0 0 25px rgba(244, 63, 94, 0.8);
-        }
+        .rank-frame-unranked { background: var(--border-color); }
 
-        @keyframes rotateMythicGlow {
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes bronzePulse { 0% { box-shadow: 0 0 8px rgba(205,127,50,0.4); } 100% { box-shadow: 0 0 16px rgba(205,127,50,0.8); } }
+        @keyframes silverPulse { 0% { box-shadow: 0 0 8px rgba(149,165,166,0.4); } 100% { box-shadow: 0 0 18px rgba(149,165,166,0.9); } }
+        @keyframes goldPulse { 0% { box-shadow: 0 0 10px rgba(241,196,15,0.5); } 100% { box-shadow: 0 0 22px rgba(241,196,15,1); } }
+        @keyframes diamondPulse { 0% { box-shadow: 0 0 12px rgba(0,210,255,0.5); } 100% { box-shadow: 0 0 26px rgba(0,210,255,1); } }
+        @keyframes mythicGlow { 0% { box-shadow: 0 0 15px rgba(255,0,127,0.7); } 50% { box-shadow: 0 0 28px rgba(0,210,255,0.9); } 100% { box-shadow: 0 0 15px rgba(255,0,127,0.7); } }
+        @keyframes mythicGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .mythic-pattern-rotate { animation: patternRotate 20s linear infinite; }
+        @keyframes patternRotate { 0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); } 50% { transform: translate(-50%, -50%) rotate(180deg) scale(1.08); } 100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); } }
 
         .upload-badge {
-            position: absolute; bottom: 2px; left: 2px; background: #2a5298; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 0.9rem; transition: transform 0.2s, background 0.2s; z-index: 10;
+            position: absolute; bottom: 2px; left: 2px; background: var(--primary-color); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 0.85rem; transition: transform 0.2s; z-index: 5;
         }
-        .upload-badge:hover { transform: scale(1.1); background: #1e3c72; }
+        .upload-badge:hover { transform: scale(1.1); background: var(--primary-hover); }
 
-        .profile-header h2 { color: var(--text-color); font-size: 1.5rem; margin-bottom: 5px; }
-        .student-badge-code { display: inline-block; background: #27ae60; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; }
-
-        /* الأوسمة والشارات */
-        .badges-wrapper { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-
-        .rank-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; border: 1px solid transparent; box-shadow: 0 2px 6px rgba(0,0,0,0.15); backdrop-filter: blur(4px); }
-        .rank-badge svg { width: 16px; height: 16px; flex-shrink: 0; }
+        .student-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
         
-        .rank-unranked { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border-color: #64748b; }
-        .rank-bronze { background: rgba(217, 119, 6, 0.15); color: #f59e0b; border-color: #d97706; }
-        .rank-silver { background: rgba(203, 213, 225, 0.2); color: #e2e8f0; border-color: #94a3b8; }
-        .rank-gold { background: rgba(234, 179, 8, 0.2); color: #facc15; border-color: #eab308; }
-        .rank-diamond { background: rgba(6, 182, 212, 0.2); color: #38bdf8; border-color: #06b6d4; }
-        .rank-mythic { background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(168, 85, 247, 0.25)); color: #f43f5e; border-color: #f43f5e; animation: mythicGlow 2s infinite alternate; }
-
-        @keyframes mythicGlow {
-            0% { box-shadow: 0 0 5px rgba(244, 63, 94, 0.4); }
-            100% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.8); }
+        .level-badge-box {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 6px 16px; border-radius: 10px; background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.88rem; font-weight: 600; margin-bottom: 10px;
         }
 
-        /* شارات تحديد الجنس بديل الإيموجيات */
-        .gender-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid transparent; }
-        .gender-chip-male { background: rgba(0, 162, 255, 0.12); color: #00a2ff; border-color: rgba(0, 162, 255, 0.4); }
-        .gender-chip-female { background: rgba(230, 0, 122, 0.12); color: #e6007a; border-color: rgba(230, 0, 122, 0.4); }
-
-        /* بطاقات اختيار الجنس العصرية */
-        .gender-selector-group { margin-bottom: 20px; }
-        .gender-selector-group label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; color: var(--card-text); }
-        .gender-cards-wrapper { display: flex; gap: 12px; }
+        .edit-form { background: var(--form-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 15px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: var(--text-secondary); }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 8px; outline: none; font-size: 0.88rem; }
         
-        .gender-card {
-            flex: 1;
-            background: rgba(0,0,0,0.03);
-            border: 2px solid var(--input-border);
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-weight: bold;
-            font-size: 0.9rem;
-            color: var(--card-text);
-        }
-
-        .gender-card svg { width: 22px; height: 22px; fill: currentColor; }
-        .gender-card.male-card.active { background: rgba(0, 162, 255, 0.12); border-color: #00a2ff; color: #00a2ff; box-shadow: 0 0 12px rgba(0, 162, 255, 0.3); }
-        .gender-card.female-card.active { background: rgba(230, 0, 122, 0.12); border-color: #e6007a; color: #e6007a; box-shadow: 0 0 12px rgba(230, 0, 122, 0.3); }
-
-        /* قسم البحث */
-        .doc-search-section { background: rgba(0,0,0,0.02); border: 1px solid var(--input-border); padding: 15px; border-radius: 12px; margin-bottom: 20px; }
-        .doc-search-section h3 { font-size: 0.95rem; color: #2a5298; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-        .doc-search-section input { width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color); border-radius: 8px; font-size: 0.9rem; outline: none; margin-bottom: 10px; }
-        
-        .search-row { display: flex; gap: 8px; }
-        .search-row button { padding: 8px 16px; background: #2a5298; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-
-        .info-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 25px; }
-        .info-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; color: var(--card-text); }
-        .info-group input { width: 100%; padding: 10px 12px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); border-radius: 8px; font-size: 0.95rem; outline: none; }
-        .info-group input:disabled { opacity: 0.8; cursor: not-allowed; }
-
-        .btn-action { display: block; width: 100%; padding: 12px; background-color: #27ae60; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; text-align: center; transition: background 0.3s; margin-top: 10px; }
-        .btn-action:hover { background-color: #219653; }
-        .btn-action:disabled { opacity: 0.7; cursor: not-allowed; }
-        
-        .btn-logout { background-color: #e74c3c; margin-top: 12px; }
-        .btn-logout:hover { background-color: #c0392b; }
-
-        .btn-delete { background-color: #7f1d1d; color: #fca5a5; margin-top: 8px; border: 1px solid #991b1b; }
-        .btn-delete:hover { background-color: #991b1b; color: white; }
-
-        /* Modal النافذة العائمة مع ضبط السكرول */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 440px; max-height: 85vh; overflow-y: auto; border-radius: 20px; border: 1px solid var(--input-border); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4); transform: scale(0.9); transition: transform 0.3s ease; position: relative; }
-        .modal-overlay.active .modal-card { transform: scale(1); }
-        
-        .modal-header { padding: 15px 20px; background: rgba(0,0,0,0.03); border-bottom: 1px solid var(--input-border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: var(--card-bg); z-index: 10; }
-        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--card-text); cursor: pointer; }
-
-        .modal-body { padding: 20px; text-align: center; }
-        
-        .modal-info-list { margin-top: 15px; text-align: right; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 12px; border: 1px solid var(--input-border); }
-        .modal-info-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--input-border); font-size: 0.85rem; }
-        .modal-info-item:last-child { border-bottom: none; }
+        .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-top: 5px; }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-logout { background-color: #ef4444; margin-top: 10px; }
+        .btn-logout:hover { background-color: #dc2626; }
+        .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
     </style>
 </head>
-<body id="pageBody">
-
-    <header class="navbar">
-        <a href="main.html">🏠 العودة للرئيسية</a>
-        <h1>الملف الشخصي</h1>
-        <button id="themeToggleBtn" style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;" title="تغيير الوضع">🌙</button>
-    </header>
+<body>
 
     <div class="profile-container">
-        <div class="profile-header">
-            <div class="avatar-wrapper" id="avatarWrapper">
-                <img id="profileImg" src="" alt="صورة الطالب">
-                <label for="editImageInput" class="upload-badge" title="تغيير الصورة الشخصية">📷</label>
-            </div>
-            <h2 id="profileName">اسم الطالب</h2>
-            <span class="student-badge-code" id="profileStudentId">STU-0000</span>
-            
-            <div class="badges-wrapper">
-                <div id="profileRankBadge"></div>
-                <div id="profileGenderBadge"></div>
-            </div>
+        <div class="header-actions">
+            <a href="main.html" class="back-btn"><span>←</span> الرئيسية</a>
+            <button class="back-btn" onclick="logoutStudent()" style="color: #ef4444;">تسجيل الخروج 🚪</button>
         </div>
-
-        <!-- قسم البحث الفوري للزملاء والطلاب -->
-        <div class="doc-search-section">
-            <h3>🔍 البحث عن بروفايل طالب آخر</h3>
-            <div class="search-row">
-                <input type="text" id="studentSearchInput" placeholder="ادخل ID الطالب أو اسمه..." onkeydown="if(event.key==='Enter') searchOtherStudent()">
-                <button onclick="searchOtherStudent()">بحث</button>
-            </div>
-        </div>
-
-        <input type="file" id="editImageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-
-        <div class="info-grid">
-            <div class="info-group">
-                <label>الاسم الكامل</label>
-                <input type="text" id="editFullName">
-            </div>
-
-            <!-- بطاقات اختيار الجنس العصرية -->
-            <div class="gender-selector-group">
-                <label>تحديد الجنس</label>
-                <div class="gender-cards-wrapper">
-                    <div class="gender-card male-card" id="genderMaleCard" onclick="selectGender('male')">
-                        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 5 5 5.006 5.006 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3.003 3.003 0 0 1-3 3zm9 11v-1a7 7 0 0 0-14 0v1a1 1 0 0 0 2 0v-1a5 5 0 0 1 10 0v1a1 1 0 0 0 2 0z"/></svg>
-                        <span>ذكر</span>
-                    </div>
-                    <div class="gender-card female-card" id="genderFemaleCard" onclick="selectGender('female')">
-                        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 5 5 5.006 5.006 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3.003 3.003 0 0 1-3 3zm9 11v-1a7 7 0 0 0-14 0v1a1 1 0 0 0 2 0v-1a5 5 0 0 1 10 0v1a1 1 0 0 0 2 0z"/></svg>
-                        <span>أنثى</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="info-group">
-                <label>البريد الإلكتروني (غير قابل للتعديل)</label>
-                <input type="email" id="editEmail" disabled>
-            </div>
-            <div class="info-group">
-                <label>رقم هاتف الطالب</label>
-                <input type="tel" id="editStudentPhone">
-            </div>
-            <div class="info-group">
-                <label>رقم هاتف ولي الأمر</label>
-                <input type="tel" id="editParentPhone">
-            </div>
-        </div>
-
-        <button type="button" id="saveChangesBtn" class="btn-action">حفظ التعديلات 💾</button>
-        <button type="button" id="logoutBtn" class="btn-action btn-logout">تسجيل الخروج 🚪</button>
-        <button type="button" id="deleteAccountBtn" class="btn-action btn-delete">حذف الحساب نهائياً 🗑️</button>
-    </div>
-
-    <!-- Modal النافذة العائمة للبحث عن الطلاب -->
-    <div class="modal-overlay" id="studentSearchModal" onclick="closeModalOnOuterClick(event)">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>بيانات الطالب 🎓</h3>
-                <button class="close-modal" onclick="closeModal()">✕</button>
-            </div>
-            <div class="modal-body" id="modalStudentContent">
-                <!-- بيانات البحث مشفرة لحماية الخصوصية -->
-            </div>
+        <div id="studentProfileContent">
+            <div class="loading">جاري تحميل بيانات البروفايل... ⏳</div>
         </div>
     </div>
+
+    <input type="file" id="studentImageInput" accept="image/*" style="display: none;" onchange="handleStudentImageUpload(event)">
 
     <script>
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
-
-        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
-        const defaultFemaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%23e6007a'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%23e6007a'/></svg>";
-
-        const cloudHeaders = {
-            'X-Master-Key': API_KEY,
-            'X-Access-Key': API_KEY,
-            'Content-Type': 'application/json'
-        };
+        
+        let globalRecord = {};
+        let currentStudentData = null;
 
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
             window.location.href = 'login.html';
         }
 
-        let userData = JSON.parse(localStorage.getItem('studentUser')) || {};
-
-        // ضبط جنس الحساب بشكل افتراضي لو مش موجود
-        if (!userData.gender) userData.gender = 'male';
-
-        document.getElementById('profileName').textContent = userData.fullName || 'طالب رحلة دراسية';
-        document.getElementById('profileStudentId').textContent = userData.studentId || 'STU-0000';
-        document.getElementById('editFullName').value = userData.fullName || '';
-        document.getElementById('editEmail').value = userData.email || '';
-        document.getElementById('editStudentPhone').value = userData.studentPhone || '';
-        document.getElementById('editParentPhone').value = userData.parentPhone || '';
-
-        // تحديث خيار بطاقة الجنس الحالية
-        updateGenderUI(userData.gender);
-
-        // تحديث صورة البروفايل والإطار
-        updateProfileAvatarAndFrame();
-
-        // إظهار الشارات
-        document.getElementById('profileRankBadge').innerHTML = getRankBadgeHTML(userData.rank || 'unranked');
-        document.getElementById('profileGenderBadge').innerHTML = getGenderBadgeHTML(userData.gender);
-
-        function selectGender(gender) {
-            userData.gender = gender;
-            updateGenderUI(gender);
-            updateProfileAvatarAndFrame();
-            document.getElementById('profileGenderBadge').innerHTML = getGenderBadgeHTML(gender);
+        function getStudentImage(userObj) {
+            if (userObj && userObj.profileImage && userObj.profileImage.trim() !== '') {
+                return userObj.profileImage;
+            }
+            return "https://via.placeholder.com/150/1e293b/94a3b8?text=لا+توجد+صورة";
         }
 
-        function updateGenderUI(gender) {
-            const maleCard = document.getElementById('genderMaleCard');
-            const femaleCard = document.getElementById('genderFemaleCard');
-            if (gender === 'female') {
-                femaleCard.classList.add('active');
-                maleCard.classList.remove('active');
-            } else {
-                maleCard.classList.add('active');
-                femaleCard.classList.remove('active');
+        function getRankDetails(rank) {
+            switch (rank) {
+                case 'bronze': return { title: 'ضعيف (Level 1)', class: 'rank-frame-bronze', levelNum: 1 };
+                case 'silver': return { title: 'متوسط (Level 2)', class: 'rank-frame-silver', levelNum: 2 };
+                case 'gold': return { title: 'قوي (Level 3)', class: 'rank-frame-gold', levelNum: 3 };
+                case 'diamond': return { title: 'قوي جداً (Level 4)', class: 'rank-frame-diamond', levelNum: 4 };
+                case 'mythic': return { title: 'أسطوري (Level 5)', class: 'rank-frame-mythic', levelNum: 5 };
+                default: return { title: 'جديد (Level 0)', class: 'rank-frame-unranked', levelNum: 0 };
             }
         }
 
-        function updateProfileAvatarAndFrame() {
-            const imgElem = document.getElementById('profileImg');
-            const wrapperElem = document.getElementById('avatarWrapper');
+        // دالة توليد الأشكال الخلفية الشفافة بناءً على خيار المستخدم (عشوائي، مدمج، أو شكل محدد)
+        function getPatternOverlay(patternChoice, levelNum) {
+            if (levelNum < 3) return ''; // تظهر من المستوى الثالث فأعلى
 
-            // تحديث الصورة الافتراضية بناءً على النوع لو مفيش صورة مرفوعة
-            if (userData.profileImage || userData.profileImg) {
-                imgElem.src = userData.profileImage || userData.profileImg;
-            } else {
-                imgElem.src = (userData.gender === 'female') ? defaultFemaleSvg : defaultMaleSvg;
-            }
-
-            // تحديث كلاس الإطار
-            wrapperElem.className = 'avatar-wrapper rank-frame-' + (userData.rank || 'unranked');
-        }
-
-        function getRankBadgeHTML(rankKey) {
-            const ranks = {
-                'unranked': { name: 'مجهول', class: 'rank-unranked', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>` },
-                'bronze': { name: 'ضعيف (Level 1)', class: 'rank-bronze', svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-5.45 8-12V5l-8-3z"/></svg>` },
-                'silver': { name: 'متوسط (Level 2)', class: 'rank-silver', svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>` },
-                'gold': { name: 'قوي (Level 3)', class: 'rank-gold', svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>` },
-                'diamond': { name: 'قوي جداً (Level 4)', class: 'rank-diamond', svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 9l10 13 10-13-10-7zm0 3.21L18.42 9 12 17.35 5.58 9 12 5.21z"/></svg>` },
-                'mythic': { name: 'أسطوري (Level 5)', class: 'rank-mythic', svg: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1.1 0 2 .9 2 2 0 .74-.4 1.38-1 1.72V7h2a5 5 0 0 1 5 5v1.17c.6.34 1 .98 1 1.72a2 2 0 0 1-2 2c-.74 0-1.38-.4-1.72-1H17.1c-.48 2.83-2.95 5-5.9 5s-5.42-2.17-5.9-5H5.12c-.34.6-.98 1-1.72 1a2 2 0 0 1-2-2c0-.74.4-1.38 1-1.72V12a5 5 0 0 1 5-5h2V5.72c-.6-.34-1-.98-1-1.72 0-1.1.9-2 2-2z"/></svg>` }
+            let strokeColor = levelNum === 3 ? '%23f1c40f' : (levelNum === 4 ? '%2300d2ff' : '%23ff007f');
+            let animClass = levelNum === 5 ? 'mythic-pattern-rotate' : '';
+            
+            // خيارات الأشكال المتاحة
+            let symbols = {
+                star: '<polygon points=\'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2\'/>',
+                heart: '<path d=\'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z\'/>',
+                crown: '<path d=\'M2 4l3 12h14l3-12-6 7-4-5-4 5-6-7zm3 16h14\'/>',
+                lightning: '<path d=\'M13 2L3 14h9l-1 8 10-12h-9l1-8z\'/>',
+                shield: '<path d=\'M12 2l10 5v6c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V7l10-5z\'/>'
             };
 
-            let key = (rankKey && ranks[rankKey]) ? rankKey : 'unranked';
-            let rank = ranks[key];
-            return `<span class="rank-badge ${rank.class}">${rank.svg} ${rank.name}</span>`;
-        }
-
-        function getGenderBadgeHTML(gender) {
-            if (gender === 'female') {
-                return `<span class="gender-chip gender-chip-female">أنثى</span>`;
-            }
-            return `<span class="gender-chip gender-chip-male">ذكر</span>`;
-        }
-
-        function maskEmail(email) {
-            if (!email || !email.includes('@')) return '******';
-            let parts = email.split('@');
-            let name = parts[0];
-            let visibleName = name.length > 2 ? name.substring(0, 2) + '*****' : name + '***';
-            return visibleName + '@' + parts[1];
-        }
-
-        function maskPhone(phone) {
-            if (!phone || phone.length < 8) return '01******';
-            return phone.substring(0, 4) + '****' + phone.substring(phone.length - 3);
-        }
-
-        async function searchOtherStudent() {
-            const query = document.getElementById('studentSearchInput').value.trim().toLowerCase();
-            const modal = document.getElementById('studentSearchModal');
-            const modalContent = document.getElementById('modalStudentContent');
-
-            if (!query) {
-                alert('اكتب كود أو اسم الطالب!');
-                return;
+            let chosenSvgContent = symbols.star; // افتراضي
+            if (patternChoice === 'heart') chosenSvgContent = symbols.heart;
+            else if (patternChoice === 'crown') chosenSvgContent = symbols.crown;
+            else if (patternChoice === 'lightning') chosenSvgContent = symbols.lightning;
+            else if (patternChoice === 'shield') chosenSvgContent = symbols.shield;
+            else if (patternChoice === 'mixed' || patternChoice === 'random' || !patternChoice) {
+                // دمج أو اختيار عشوائي متعدد الأشكال
+                chosenSvgContent = symbols.star + symbols.heart + symbols.crown;
             }
 
-            document.body.classList.add('modal-open');
-            modal.classList.add('active');
-            modalContent.innerHTML = '<p style="padding:20px;">جاري البحث عن بيانات الطالب... ⏳</p>';
+            let svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 24 24' fill='none' stroke='${strokeColor}' stroke-width='1.3'>${chosenSvgContent}</svg>`;
+            let svgPattern = `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`;
 
+            return `<div class="bg-pattern-overlay ${animClass}" style="background-image: url(&quot;${svgPattern}&quot;); opacity: ${0.12 + (levelNum * 0.04)};"></div>`;
+        }
+
+        async function initStudentProfile() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                let result = await response.json();
-                let users = result.record.users || [];
+                let localUser = JSON.parse(localStorage.getItem('studentUser') || '{}');
+                let userEmail = localUser.email || '';
 
-                let found = users.find(u => 
-                    (u.studentId && u.studentId.toLowerCase() === query) ||
-                    (u.fullName && u.fullName.toLowerCase().includes(query))
-                );
-
-                if (found) {
-                    let fallbackImg = (found.gender === 'female') ? defaultFemaleSvg : defaultMaleSvg;
-                    let imgUrl = found.profileImage || found.profileImg || fallbackImg;
-                    
-                    modalContent.innerHTML = `
-                        <div class="avatar-wrapper rank-frame-${found.rank || 'unranked'}" style="margin-bottom:10px;">
-                            <img src="${imgUrl}" alt="صورة الطالب">
-                        </div>
-                        <h2 style="font-size:1.1rem; color:var(--text-color); margin-bottom:4px;">${found.fullName}</h2>
-                        <div class="badges-wrapper" style="margin-bottom:12px;">
-                            ${getRankBadgeHTML(found.rank || 'unranked')}
-                            ${getGenderBadgeHTML(found.gender || 'male')}
-                        </div>
-
-                        <div class="modal-info-list">
-                            <div class="modal-info-item">
-                                <label>كود الطالب:</label>
-                                <span>${found.studentId || 'STU-0000'}</span>
-                            </div>
-                            <div class="modal-info-item">
-                                <label>البريد الإلكتروني:</label>
-                                <span>${maskEmail(found.email)}</span>
-                            </div>
-                            <div class="modal-info-item">
-                                <label>رقم هاتف الطالب:</label>
-                                <span>${maskPhone(found.studentPhone)}</span>
-                            </div>
-                            <div class="modal-info-item">
-                                <label>رقم ولي الأمر:</label>
-                                <span>${maskPhone(found.parentPhone)}</span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    modalContent.innerHTML = `<div style="padding:20px; color:#e74c3c;"><p>❌ لم يتم العثور على طالب بهذه البيانات!</p></div>`;
-                }
-            } catch (e) {
-                console.error(e);
-                modalContent.innerHTML = `<div style="padding:20px; color:#e74c3c;"><p>حدث خطأ أثناء الاتصال بالسحابة!</p></div>`;
-            }
-        }
-
-        function closeModal() {
-            document.body.classList.remove('modal-open');
-            document.getElementById('studentSearchModal').classList.remove('active');
-        }
-
-        function closeModalOnOuterClick(e) {
-            if (e.target.classList.contains('modal-overlay')) closeModal();
-        }
-
-        function convertImageToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = event => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 200;
-                        const MAX_HEIGHT = 200;
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                        } else {
-                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.7));
-                    };
-                    img.onerror = error => reject(error);
-                };
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        async function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            try {
-                let base64Img = await convertImageToBase64(file);
-                document.getElementById('profileImg').src = base64Img;
-                userData.profileImage = base64Img;
-                userData.profileImg = base64Img;
-
-                await syncStudentToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
-            } catch (e) {
-                console.error("خطأ في معالجة الصورة", e);
-                alert("تعذر معالجة الصورة المحددة!");
-            }
-        }
-
-        document.getElementById('saveChangesBtn').addEventListener('click', async function() {
-            const newName = document.getElementById('editFullName').value.trim();
-            const newSPhone = document.getElementById('editStudentPhone').value.trim();
-            const newPPhone = document.getElementById('editParentPhone').value.trim();
-
-            if (!newName || !newSPhone) {
-                alert('الاسم ورقم الهاتف حقول أساسية ولا يمكن تركها فارغة!');
-                return;
-            }
-
-            userData.fullName = newName;
-            userData.studentPhone = newSPhone;
-            userData.parentPhone = newPPhone;
-
-            const saveBtn = document.getElementById('saveChangesBtn');
-            saveBtn.textContent = 'جاري الحفظ بالسحابة... ⏳';
-            saveBtn.disabled = true;
-
-            await syncStudentToCloud("تم تحديث بيانات بروفايلك بنجاح يا بطل! ⚡");
-
-            document.getElementById('profileName').textContent = newName;
-            saveBtn.textContent = 'حفظ التعديلات 💾';
-            saveBtn.disabled = false;
-        });
-
-        async function syncStudentToCloud(successMsg) {
-            localStorage.setItem('studentUser', JSON.stringify(userData));
-
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                if (!response.ok) throw new Error('فشل جلب البيانات السحابية');
-
-                let result = await response.json();
-                let record = result.record || {};
-                let users = Array.isArray(record.users) ? record.users : [];
-
-                let index = users.findIndex(u => 
-                    (u.email && userData.email && u.email.toLowerCase() === userData.email.toLowerCase()) || 
-                    (u.studentId && userData.studentId && u.studentId === userData.studentId)
-                );
-
-                if (index !== -1) {
-                    users[index] = { ...users[index], ...userData };
-                } else {
-                    users.push(userData);
-                }
-
-                record.users = users;
-
-                let updateResponse = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: cloudHeaders,
-                    body: JSON.stringify(record)
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
+                let result = await response.json();
+                globalRecord = result.record || {};
+                let usersList = Array.isArray(globalRecord.users) ? globalRecord.users : [];
 
-                if (updateResponse.ok) {
-                    alert(successMsg);
+                currentStudentData = usersList.find(u => u.email && u.email.toLowerCase() === userEmail.toLowerCase()) || usersList[0];
+
+                if (currentStudentData) {
+                    renderStudentProfile(currentStudentData);
                 } else {
-                    alert('تم الحفظ محلياً فقط، تعذر الاتصال بالسحابة!');
+                    document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على بيانات الطالب.</div>`;
                 }
             } catch (err) {
                 console.error(err);
-                alert('حدث خطأ في المزامنة السحابية!');
+                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالخادم!</div>`;
             }
         }
 
-        // حذف الحساب نهائياً
-        document.getElementById('deleteAccountBtn').addEventListener('click', async function() {
-            const confirmDelete = confirm("⚠️ هل أنت أوتق أنك تريد حذف حسابك نهائياً؟ هذا الإجراء لا يمكن التراجع عنه!");
-            if (!confirmDelete) return;
+        function renderStudentProfile(student) {
+            const container = document.getElementById('studentProfileContent');
+            let avatarUrl = getStudentImage(student);
+            let rankKey = student.rank || 'bronze';
+            let rankInfo = getRankDetails(rankKey);
+            let patternChoice = student.bgPattern || 'mixed';
+            let patternHTML = getPatternOverlay(patternChoice, rankInfo.levelNum);
 
-            const deleteBtn = document.getElementById('deleteAccountBtn');
-            deleteBtn.textContent = 'جاري حذف الحساب... ⏳';
-            deleteBtn.disabled = true;
+            container.innerHTML = `
+                <div class="profile-header">
+                    <div class="avatar-wrapper ${rankInfo.class}">
+                        ${patternHTML}
+                        <img src="${avatarUrl}" alt="صورة الطالب" id="studentAvatarImg">
+                        <label for="studentImageInput" class="upload-badge" title="تغيير الصورة">📷</label>
+                    </div>
+                    <div class="level-badge-box">
+                        <span>${rankInfo.title}</span>
+                        <span style="color:#f1c40f;">★</span>
+                    </div>
+                    <h1 class="student-name">${student.fullName}</h1>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">كود الطالب: ${student.studentId || 'STU-0000'}</p>
+                </div>
 
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label>الاسم الكامل</label>
+                        <input type="text" id="editName" value="${student.fullName || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم هاتف الطالب</label>
+                        <input type="tel" id="editPhone" value="${student.studentPhone || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم هاتف ولي الأمر</label>
+                        <input type="tel" id="editParentPhone" value="${student.parentPhone || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>تخصيص أشكال خلفية البروفايل (تظهر من المستوى الثالث فأعلى)</label>
+                        <select id="editBgPattern">
+                            <option value="mixed" ${patternChoice === 'mixed' ? 'selected' : ''}>✨ مدمج (تشكيلة متعددة متناسقة)</option>
+                            <option value="star" ${patternChoice === 'star' ? 'selected' : ''}>🌟 نجوم ورموز حماسية</option>
+                            <option value="heart" ${patternChoice === 'heart' ? 'selected' : ''}>💖 قلوب وورد رقيقة</option>
+                            <option value="crown" ${patternChoice === 'crown' ? 'selected' : ''}>👑 تيجان ورموز ملكية</option>
+                            <option value="lightning" ${patternChoice === 'lightning' ? 'selected' : ''}>⚡ صواعق وطاقة قوية</option>
+                            <option value="shield" ${patternChoice === 'shield' ? 'selected' : ''}>🛡️ دروع وحماية</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn" id="saveStudentBtn" onclick="saveStudentChanges()">حفظ التعديلات والخيارات 💾</button>
+                </div>
+            `;
+        }
+
+        function handleStudentImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width, height = img.height;
+                    if (width > height) { if (width > 200) { height *= 200 / width; width = 200; } }
+                    else { if (height > 200) { width *= 200 / height; height = 200; } }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    let base64Img = canvas.toDataURL('image/jpeg', 0.6);
+
+                    document.getElementById('studentAvatarImg').src = base64Img;
+                    currentStudentData.profileImage = base64Img;
+                    syncStudentDataToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
+                };
+            };
+        }
+
+        async function saveStudentChanges() {
+            currentStudentData.fullName = document.getElementById('editName').value.trim();
+            currentStudentData.studentPhone = document.getElementById('editPhone').value.trim();
+            currentStudentData.parentPhone = document.getElementById('editParentPhone').value.trim();
+            currentStudentData.bgPattern = document.getElementById('editBgPattern').value;
+
+            await syncStudentDataToCloud("تم حفظ كافة التعديلات بنجاح! ✅");
+            renderStudentProfile(currentStudentData);
+        }
+
+        async function syncStudentDataToCloud(successMsg) {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                let result = await response.json();
-                let record = result.record || {};
-                let users = Array.isArray(record.users) ? record.users : [];
+                let users = globalRecord.users || [];
+                let idx = users.findIndex(u => u.email.toLowerCase() === currentStudentData.email.toLowerCase());
+                if (idx !== -1) users[idx] = currentStudentData;
+                globalRecord.users = users;
 
-                // إزالة الحساب
-                record.users = users.filter(u => 
-                    (u.studentId !== userData.studentId) && 
-                    (u.email !== userData.email)
-                );
-
-                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                     method: 'PUT',
-                    headers: cloudHeaders,
-                    body: JSON.stringify(record)
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    body: JSON.stringify(globalRecord)
                 });
 
-                alert('تم حذف حسابك نهائياً بنجاح.');
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.href = 'index.html';
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ أثناء الاتصال بالسحابة لحذف الحساب!');
-                deleteBtn.textContent = 'حذف الحساب نهائياً 🗑️';
-                deleteBtn.disabled = false;
+                if (res.ok) {
+                    localStorage.setItem('studentUser', JSON.stringify(currentStudentData));
+                    alert(successMsg);
+                } else {
+                    alert("فشل الحفظ في السحابة!");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ في الاتصال!");
             }
-        });
-
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('studentUser');
-            window.location.href = 'index.html';
-        });
-
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const pageBody = document.getElementById('pageBody');
-
-        if (localStorage.getItem('theme') === 'dark') {
-            pageBody.classList.add('dark-mode');
-            themeToggleBtn.textContent = '☀️';
         }
 
-        themeToggleBtn.addEventListener('click', function() {
-            pageBody.classList.toggle('dark-mode');
-            if (pageBody.classList.contains('dark-mode')) {
-                localStorage.setItem('theme', 'dark');
-                themeToggleBtn.textContent = '☀️';
-            } else {
-                localStorage.setItem('theme', 'light');
-                themeToggleBtn.textContent = '🌙';
-            }
-        });
+        function logoutStudent() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        initStudentProfile();
     </script>
 </body>
 </html>
