@@ -33,7 +33,15 @@
             --input-border: #444;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; user-select: none; -webkit-user-select: none; }
+        
+        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
+        #securityScreenOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #000000; z-index: 999999; display: none;
+            justify-content: center; align-items: center; color: #ff4d4d;
+            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
+        }
         
         .navbar { 
             background: var(--navbar-bg); 
@@ -169,8 +177,12 @@
 </head>
 <body id="pageBody">
 
+    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
+    <div id="securityScreenOverlay">
+        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
+    </div>
+
     <header class="navbar">
-        <!-- زر العودة للرئيسية -->
         <a href="main.html" class="back-home-btn" title="العودة للرئيسية">
             🏠
         </a>
@@ -179,7 +191,6 @@
 
         <div class="navbar-title">📁 مكتبة الملازم والملفات</div>
 
-        <!-- زر تبديل الوضع -->
         <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
     </header>
 
@@ -189,9 +200,7 @@
             <p>قم بتحميل مذكرات الشرح، كتب المراجعة النهائية، وملفات الـ PDF لكل المواد بسهولة.</p>
         </div>
 
-        <!-- قائمة الملفات والملازم -->
         <div id="filesGrid" class="files-grid">
-            <!-- سيتم تحميل الملفات تلقائياً هنا أو عرض الملفات الافتراضية -->
             <p style="text-align: center; color: var(--card-text); grid-column: 1 / -1;">جاري تحميل الملفات والملازم...</p>
         </div>
     </div>
@@ -208,7 +217,22 @@
             window.location.href = 'index.html';
         }
 
-        // ملفات افتراضية كمثال، ويمكن جلبها من السحابة لو أحببت
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
+        const securityOverlay = document.getElementById('securityScreenOverlay');
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
+                e.preventDefault();
+                triggerBlackScreen();
+            }
+        });
+        window.addEventListener('blur', () => { triggerBlackScreen(); });
+        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
+        function triggerBlackScreen() {
+            securityOverlay.style.display = 'flex';
+            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
+        }
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
         const defaultFiles = [
             {
                 title: "مذكرة الشرح المنهجي - الباب الأول",
@@ -245,7 +269,6 @@
                     headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
                 });
                 let data = await response.json();
-                // لو فيه ملفات مضافة سحابياً عبر لوحة التحكم هنعرضها، وإلا هنعرض الملفات الافتراضية
                 let filesList = (data.record.studyFiles && data.record.studyFiles.length > 0) 
                                 ? data.record.studyFiles 
                                 : defaultFiles;
@@ -268,7 +291,7 @@
                     <div>
                         <div class="file-icon">📄</div>
                         <div class="file-title">${file.title}</div>
-                        <div class="file-desc">${file.description}</div>
+                        <div class="file-desc">${file.description || 'ملزمة دراسية معتمدة.'}</div>
                     </div>
                     <div>
                         <div class="file-meta">
@@ -282,7 +305,6 @@
             });
         }
 
-        // نظام الوضع الليلي والنهاري
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const pageBody = document.getElementById('pageBody');
 
