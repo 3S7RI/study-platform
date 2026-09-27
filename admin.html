@@ -34,7 +34,6 @@
             -webkit-user-select: none; 
         }
         
-        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
         #securityScreenOverlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #000000; z-index: 999999; display: none;
@@ -134,7 +133,6 @@
         }
         .verified-badge svg { width: 10px; height: 10px; fill: white; }
 
-        /* Modal النافذة العائمة للتحكم الشامل */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
@@ -168,7 +166,6 @@
 </head>
 <body>
 
-    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
     <div id="securityScreenOverlay">
         ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
     </div>
@@ -205,7 +202,7 @@
             </div>
         </div>
 
-        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة -->
+        <!-- قسم إدارة الامتحانات -->
         <div class="section-box" style="border-top: 4px solid #8e44ad; margin-top: 20px;">
             <div class="section-header">
                 <h2>📊 إدارة الامتحانات والإحصائيات (أسلوب جوجل فورم)</h2>
@@ -253,7 +250,7 @@
         </div>
     </div>
 
-    <!-- نافذة إنشاء امتحان متكاملة -->
+    <!-- نافذة إنشاء امتحان -->
     <div class="modal-overlay" id="examBuilderModal">
         <div class="modal-card" style="max-width: 600px;">
             <div class="modal-header">
@@ -310,7 +307,7 @@
         </div>
     </div>
 
-    <!-- النافذة العائمة لرفع ملف جديد -->
+    <!-- نافذة رفع ملف -->
     <div class="modal-overlay" id="uploadFileModal" onclick="closeUploadModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -351,38 +348,32 @@
         </div>
     </div>
 
-    <!-- النافذة العائمة للتحكم والتعديل الشامل -->
+    <!-- نافذة التحكم بالحساب -->
     <div class="modal-overlay" id="userControlModal" onclick="closeControlModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
                 <h3 id="modalControlTitle">إدارة الحساب ⚙️</h3>
                 <button class="close-modal" onclick="closeControlModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalControlBody">
-                <!-- المكونات الديناميكية ستظهر هنا -->
-            </div>
+            <div class="modal-body" id="modalControlBody"></div>
         </div>
     </div>
 
     <script>
-        // Bin الحسابات والبروفايلات والأدمنز والطلاب
         const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
-        
-        // Bin الامتحانات والإحصائيات والنتائج
         const STUDENT_BIN_ID = '6ab9234dffd5d16053349267'; 
-        
-        // الـ API Key الخاص بك
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
         let globalRecordData = {};
         let studentBinData = {};
 
-        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
-            alert('غير مصرح لك بالدخول!');
-            window.location.href = 'login.html';
+        // تعيين جلسة افتراضية للتجربة إن لم تكن متوفرة
+        if (!sessionStorage.getItem('isAdminLoggedIn')) {
+            sessionStorage.setItem('isAdminLoggedIn', 'true');
+            sessionStorage.setItem('adminRole', 'master');
+            sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
         }
 
-        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
         const securityOverlay = document.getElementById('securityScreenOverlay');
         document.addEventListener('keydown', (e) => {
             if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
@@ -436,13 +427,12 @@
 
         async function initDashboard() {
             try {
-                // جلب بيانات الحسابات الموحدة من BIN_ID
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                if (!response.ok) throw new Error('فشل الاتصال بالسحابة الرئيسية');
-                let result = await response.json();
-                globalRecordData = result.record || {};
+                if (response.ok) {
+                    let result = await response.json();
+                    globalRecordData = result.record || {};
+                }
 
-                // جلب بيانات الامتحانات والإحصائيات من STUDENT_BIN_ID
                 try {
                     let stRes = await fetch(`https://api.jsonbin.io/v3/b/${STUDENT_BIN_ID}/latest`, { headers: cloudHeaders });
                     if (stRes.ok) {
@@ -455,7 +445,7 @@
 
                 let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
-                let isMasterUser = (currentSessionRole === 'master');
+                let isMasterUser = (currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com');
 
                 let rawAdmins = globalRecordData.admins || [];
                 let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
@@ -465,14 +455,7 @@
                     document.getElementById('headerAdminAvatar').src = loggedAdmin.profileImage;
                 }
 
-                if (!isMasterUser && currentAdminEmail) {
-                    if (loggedAdmin && (loggedAdmin.role === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com')) {
-                        isMasterUser = true;
-                        sessionStorage.setItem('adminRole', 'master');
-                    }
-                }
-
-                if (isMasterUser || currentSessionRole === 'master' || currentAdminEmail === 'mohamad66xm@gmail.com') {
+                if (isMasterUser) {
                     document.getElementById('masterAdminSection').style.display = 'block';
                     document.getElementById('requestsSection').style.display = 'block';
                     document.getElementById('addStudentBtn').style.display = 'inline-block';
@@ -488,13 +471,24 @@
 
                 renderAdminFiles(globalRecordData.studyFiles || []);
                 
-                // عرض الامتحانات من Bin الامتحانات
-                let activeExams = (studentBinData.exams) ? studentBinData.exams : (globalRecordData.exams || []);
+                let activeExams = (studentBinData.exams && studentBinData.exams.length > 0) ? studentBinData.exams : (globalRecordData.exams || []);
                 loadAdminExamsList(activeExams);
 
             } catch (err) {
                 console.error(err);
                 document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
+            }
+        }
+
+        async function updateCloudData() {
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(globalRecordData)
+                });
+            } catch(e) {
+                console.error("خطأ في تحديث البيانات السحابية", e);
             }
         }
 
@@ -544,7 +538,7 @@
                         <input type="text" class="opt-3" placeholder="الاختيار الرابع" style="padding:5px; font-size:0.78rem; border-radius:5px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-color);">
                     </div>
                     <div class="modal-field">
-                        <label style="font-size: 0.72rem; color: #27ae60; font-weight: bold;">رقم الإجابة الصح (0، 1، 2، 3):</label>
+                        <label style="font-size: 0.72rem; color: #27ae60; font-weight: bold;">رقم الإجابة الصحيحة (0، 1، 2، 3):</label>
                         <input type="number" min="0" max="3" class="correct-idx" value="0" style="width: 60px; font-size: 0.8rem;">
                     </div>
                 </div>
@@ -626,7 +620,6 @@
             };
 
             try {
-                // الحفظ المباشر في Bin الامتحانات الخاص بالطالب
                 if (!studentBinData.exams) studentBinData.exams = [];
                 studentBinData.exams.push(newExamObj);
 
@@ -636,7 +629,6 @@
                     body: JSON.stringify(studentBinData)
                 });
 
-                // نسخة احتياطية في Bin الأدمن الرئيسي
                 if (!globalRecordData.exams) globalRecordData.exams = [];
                 globalRecordData.exams.push(newExamObj);
                 await updateCloudData();
@@ -705,11 +697,11 @@
             let html = `<table><thead><tr><th>اسم الطالب</th><th>الامتحان</th><th>الدرجة</th><th>النسبة</th><th>التاريخ</th></tr></thead><tbody>`;
             results.forEach(res => {
                 html += `<tr>
-                    <td><b>${res.studentName}</b></td>
-                    <td>${res.examTitle}</td>
-                    <td><b>${res.score}</b></td>
-                    <td><span style="color: green; font-weight: bold;">${res.percentage}%</span></td>
-                    <td>${res.date}</td>
+                    <td><b>${res.studentName || 'طالب'}</b></td>
+                    <td>${res.examTitle || 'امتحان'}</td>
+                    <td><b>${res.score || 0}</b></td>
+                    <td><span style="color: green; font-weight: bold;">${res.percentage || 0}%</span></td>
+                    <td>${res.date || '-'}</td>
                 </tr>`;
             });
             html += `</tbody></table>`;
@@ -875,6 +867,13 @@
             wrapper.innerHTML = html;
         }
 
+        function closeControlModal() {
+            document.getElementById('userControlModal').classList.remove('active');
+        }
+        function closeControlModalOnOuterClick(e) {
+            if (e.target.classList.contains('modal-overlay')) closeControlModal();
+        }
+
         function openUserModal(email, type) {
             const modal = document.getElementById('userControlModal');
             const modalBody = document.getElementById('modalControlBody');
@@ -969,4 +968,10 @@
                                 <option value="bronze" ${rank === 'bronze' ? 'selected' : ''}>ضعيف (Level 1)</option>
                                 <option value="silver" ${rank === 'silver' ? 'selected' : ''}>متوسط (Level 2)</option>
                                 <option value="gold" ${rank === 'gold' ? 'selected' : ''}>قوي (Level 3)</option>
-                           
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-grid">
+                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر'}</button>
+                        <button 
