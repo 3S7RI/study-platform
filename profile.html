@@ -71,7 +71,6 @@
 
         .student-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
         
-        /* مستطيلات المستويات المحدثة بألوان قوية ومميزة ومتناسقة مع الرتبة والأيقونة يميناً */
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             padding: 7px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;
@@ -132,6 +131,7 @@
         </div>
     </div>
 
+    <!-- نافذة البحث / التفاصيل -->
     <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -139,6 +139,32 @@
                 <button class="close-modal" onclick="closeModal()">✕</button>
             </div>
             <div class="modal-body" id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- نافذة الأصدقاء الجديدة والمدمجة -->
+    <div class="modal-overlay" id="friendsModal" onclick="closeFriendsModalOnOuterClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>👥 قائمة الأصدقاء وإدارة الطلبات</h3>
+                <button class="close-modal" onclick="closeFriendsModal()">✕</button>
+            </div>
+            <div class="modal-body" id="friendsModalContent" style="text-align: right;">
+                <div style="margin-bottom: 15px;">
+                    <h4 style="font-size: 0.9rem; color: var(--primary-color); margin-bottom: 8px;">إضافة صديق جديد</h4>
+                    <div class="search-input-group">
+                        <input type="text" id="addFriendQuery" placeholder="أدخل كود ID الصديق..." />
+                        <button onclick="sendFriendRequest()">إضافة</button>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
+                    <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">طلبات الصداقة الواردة</h4>
+                    <div id="friendRequestsList" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">لا توجد طلبات جديدة.</div>
+                    
+                    <h4 style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">أصدقائي النشطون</h4>
+                    <div id="myFriendsList" style="font-size: 0.85rem; color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -255,10 +281,10 @@
                     
                     <!-- الأزرار الموحدة للإعدادات والأصدقاء -->
                     <div class="profile-actions-bar" style="display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 20px;">
-                        <button id="openSettingsBtn" class="btn-primary" style="background: var(--primary-color); color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <button id="openSettingsBtn" class="btn-primary" style="background: var(--primary-color); color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="scrollToSettings()">
                             ⚙️ إعدادات الملف
                         </button>
-                        <button id="openFriendsBtn" class="btn-secondary" style="background: #374151; color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <button id="openFriendsBtn" class="btn-secondary" style="background: #374151; color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openFriendsModal()">
                             👥 الأصدقاء
                         </button>
                     </div>
@@ -272,7 +298,7 @@
                     </div>
                 </div>
 
-                <div class="edit-form">
+                <div class="edit-form" id="settingsSection">
                     <div class="form-group">
                         <label>الاسم الكامل</label>
                         <input type="text" id="editName" value="${student.fullName || ''}">
@@ -307,6 +333,13 @@
             `;
         }
 
+        function scrollToSettings() {
+            const settings = document.getElementById('settingsSection');
+            if (settings) {
+                settings.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
         function searchPeerProfile() {
             const query = document.getElementById('studentSearchQuery').value.trim().toLowerCase();
             const modal = document.getElementById('searchModal');
@@ -338,7 +371,8 @@
                     </div>
                     <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:4px;">${found.fullName}</h2>
                     <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">كود الطالب: ${found.studentId || 'غير محدد'}</p>
-                    <p style="font-size:0.85rem; color:#10b981;">الحالة: طالب مسجل ونشط ✅</p>
+                    <p style="font-size:0.85rem; color:#10b981; margin-bottom: 12px;">الحالة: طالب مسجل ونشط ✅</p>
+                    <button class="btn" onclick="sendFriendRequestToId('${found.studentId}')">إرسال طلب صداقة ➕</button>
                 `;
             } else {
                 modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>لم يتم العثور على طالب بهذا الاسم أو الكود!</p></div>`;
@@ -347,6 +381,144 @@
 
         function closeModal() { document.getElementById('searchModal').classList.remove('active'); }
         function closeModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
+
+        // وظائف نافذة الأصدقاء التفاعلية
+        function openFriendsModal() {
+            document.getElementById('friendsModal').classList.add('active');
+            renderFriendsLists();
+        }
+
+        function closeFriendsModal() {
+            document.getElementById('friendsModal').classList.remove('active');
+        }
+
+        function closeFriendsModalOnOuterClick(e) {
+            if (e.target.classList.contains('modal-overlay')) closeFriendsModal();
+        }
+
+        function renderFriendsLists() {
+            if (!currentStudentData) return;
+            
+            // تهيئة الحقول إذا لم تكن موجودة
+            if (!currentStudentData.friends) currentStudentData.friends = [];
+            if (!currentStudentData.friendRequests) currentStudentData.friendRequests = [];
+
+            const reqContainer = document.getElementById('friendRequestsList');
+            const friendsContainer = document.getElementById('myFriendsList');
+
+            // عرض الطلبات الواردة
+            if (currentStudentData.friendRequests.length === 0) {
+                reqContainer.innerHTML = '<span style="color: var(--text-secondary);">لا توجد طلبات صداقة جديدة.</span>';
+            } else {
+                reqContainer.innerHTML = currentStudentData.friendRequests.map(id => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
+                        <span>كود: ${id}</span>
+                        <div>
+                            <button onclick="acceptFriendRequest('${id}')" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">قبول</button>
+                            <button onclick="rejectFriendRequest('${id}')" style="background: #ef4444; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-right: 4px;">رفض</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // عرض الأصدقاء الحاليين
+            if (currentStudentData.friends.length === 0) {
+                friendsContainer.innerHTML = '<span style="color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</span>';
+            } else {
+                let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+                friendsContainer.innerHTML = currentStudentData.friends.map(fId => {
+                    let friendObj = users.find(u => u.studentId === fId);
+                    let fName = friendObj ? friendObj.fullName : fId;
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
+                            <span>👤 ${fName} (${fId})</span>
+                            <button onclick="removeFriend('${fId}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem;">إزالة</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function sendFriendRequest() {
+            let inputVal = document.getElementById('addFriendQuery').value.trim();
+            if (!inputVal) { alert('أدخل كود الصديق أولاً!'); return; }
+            await sendFriendRequestToId(inputVal);
+            document.getElementById('addFriendQuery').value = '';
+        }
+
+        async function sendFriendRequestToId(targetId) {
+            if (targetId === currentStudentData.studentId) {
+                alert('لا يمكنك إضافة نفسك كصديق!');
+                return;
+            }
+
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let targetUser = users.find(u => u.studentId && u.studentId.toLowerCase() === targetId.toLowerCase());
+
+            if (!targetUser) {
+                alert('لم يتم العثور على طالب بهذا الكود!');
+                return;
+            }
+
+            if (!targetUser.friendRequests) targetUser.friendRequests = [];
+            if (!targetUser.friends) targetUser.friends = [];
+
+            if (targetUser.friends.includes(currentStudentData.studentId)) {
+                alert('أنتما صديقان بالفعل!');
+                return;
+            }
+
+            if (targetUser.friendRequests.includes(currentStudentData.studentId)) {
+                alert('تم إرسال طلب صُداقة مسبقاً لهذا الطالب!');
+                return;
+            }
+
+            targetUser.friendRequests.push(currentStudentData.studentId);
+            await syncStudentDataToCloud("تم إرسال طلب الصداقة بنجاح! 📨");
+            closeModal();
+        }
+
+        async function acceptFriendRequest(friendId) {
+            if (!currentStudentData.friends) currentStudentData.friends = [];
+            if (!currentStudentData.friendRequests) currentStudentData.friendRequests = [];
+
+            currentStudentData.friends.push(friendId);
+            currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== friendId);
+
+            // إضافة المستخدم الحالي أيضاً لقائمة أصدقاء الطرف الآخر لتتم المزامنة ثنائياً
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let friendObj = users.find(u => u.studentId === friendId);
+            if (friendObj) {
+                if (!friendObj.friends) friendObj.friends = [];
+                if (!friendObj.friends.includes(currentStudentData.studentId)) {
+                    friendObj.friends.push(currentStudentData.studentId);
+                }
+            }
+
+            await syncStudentDataToCloud("تم قبول طلب الصداقة بنجاح! 🎉");
+            renderFriendsLists();
+        }
+
+        async function rejectFriendRequest(friendId) {
+            if (!currentStudentData.friendRequests) return;
+            currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== friendId);
+            await syncStudentDataToCloud("تم رفض طلب الصداقة.");
+            renderFriendsLists();
+        }
+
+        async function removeFriend(friendId) {
+            if (!confirm('هل أنت متأكد من إزالة هذا الصديق؟')) return;
+            if (currentStudentData.friends) {
+                currentStudentData.friends = currentStudentData.friends.filter(id => id !== friendId);
+            }
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let friendObj = users.find(u => u.studentId === friendId);
+            if (friendObj && friendObj.friends) {
+                friendObj.friends = friendObj.friends.filter(id => id !== currentStudentData.studentId);
+            }
+            await syncStudentDataToCloud("تم إزالة الصديق بنجاح.");
+            renderFriendsLists();
+        }
 
         function handleStudentImageUpload(e) {
             const file = e.target.files[0];
@@ -400,7 +572,7 @@
 
                 if (res.ok) {
                     localStorage.setItem('studentUser', JSON.stringify(currentStudentData));
-                    alert(successMsg);
+                    if (successMsg) alert(successMsg);
                 } else {
                     alert("فشل الحفظ في السحابة!");
                 }
