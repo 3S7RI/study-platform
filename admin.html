@@ -193,7 +193,7 @@
             </div>
         </div>
 
-        <!-- قسم إدارة الملازم والملفات الجديد -->
+        <!-- قسم إدارة الملازم والملفات -->
         <div class="section-box" style="border-top: 4px solid #0284c7;">
             <div class="section-header">
                 <h2>📚 إدارة الملازم والملفات الدراسية</h2>
@@ -205,7 +205,7 @@
             </div>
         </div>
 
-        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة في لوحة الأدمن -->
+        <!-- قسم إدارة الامتحانات والإحصائيات الشاملة (مرتبط بالبين الجديد للمحتوى والامتحانات) -->
         <div class="section-box" style="border-top: 4px solid #8e44ad; margin-top: 20px;">
             <div class="section-header">
                 <h2>📊 إدارة الامتحانات والإحصائيات (أسلوب جوجل فورم)</h2>
@@ -365,10 +365,15 @@
     </div>
 
     <script>
+        // الـ Bin القديم لحسابات الطلاب والأدمنز والأمان
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        // الـ Bin الجديد للـ امتحانات وإحصائيات الطلاب
+        const CONTENT_BIN_ID = '6ab9234dffd5d16053349267';
+        
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
         let globalRecordData = {};
+        let globalContentData = {};
 
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
             alert('غير مصرح لك بالدخول!');
@@ -429,10 +434,22 @@
 
         async function initDashboard() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders });
-                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
-                let result = await response.json();
-                globalRecordData = result.record || {};
+                // جلب بيانات الحسابات من البين القديم ومحتوى الامتحانات من البين الجديد بالتوازي
+                let [resMain, resContent] = await Promise.all([
+                    fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: cloudHeaders }),
+                    fetch(`https://api.jsonbin.io/v3/b/${CONTENT_BIN_ID}/latest`, { headers: cloudHeaders })
+                ]);
+
+                if (!resMain.ok) throw new Error('فشل الاتصال بسحابة الحسابات');
+                let resultMain = await resMain.json();
+                globalRecordData = resultMain.record || {};
+
+                if (resContent.ok) {
+                    let resultContent = await resContent.json();
+                    globalContentData = resultContent.record || {};
+                } else {
+                    globalContentData = { exams: [], examResults: [] };
+                }
 
                 let currentAdminEmail = sessionStorage.getItem('adminEmail') || '';
                 let currentSessionRole = sessionStorage.getItem('adminRole');
@@ -468,7 +485,7 @@
                 }
 
                 renderAdminFiles(globalRecordData.studyFiles || []);
-                loadAdminExamsList(globalRecordData.exams || []);
+                loadAdminExamsList(globalContentData.exams || []);
 
             } catch (err) {
                 console.error(err);
@@ -595,8 +612,8 @@
             if (questions.length === 0) { alert('أضف سؤالاً صحيحاً واحداً على الأقل!'); return; }
 
             try {
-                if (!globalRecordData.exams) globalRecordData.exams = [];
-                globalRecordData.exams.push({
+                if (!globalContentData.exams) globalContentData.exams = [];
+                globalContentData.exams.push({
                     title,
                     durationMinutes,
                     allowedAttempts,
@@ -605,16 +622,16 @@
                     createdAt: new Date().toLocaleDateString('ar-EG')
                 });
 
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${CONTENT_BIN_ID}`, {
                     method: 'PUT',
                     headers: cloudHeaders,
-                    body: JSON.stringify(globalRecordData)
+                    body: JSON.stringify(globalContentData)
                 });
 
                 if (res.ok) {
-                    alert('تم نشر الامتحان بنجاح للطلاب! 🎉');
+                    alert('تم نشر الامتحان بنجاح للطلاب على البين المخصص! 🎉');
                     closeExamBuilderModal();
-                    loadAdminExamsList(globalRecordData.exams);
+                    loadAdminExamsList(globalContentData.exams);
                 }
             } catch (e) {
                 console.error(e);
@@ -646,14 +663,21 @@
 
         async function deleteAdminExam(index) {
             if (!confirm('هل أنت متأكد من حذف هذا الامتحان نهائياً؟')) return;
-            globalRecordData.exams.splice(index, 1);
-            await updateCloudData();
-            loadAdminExamsList(globalRecordData.exams);
+            globalContentData.exams.splice(index, 1);
+            
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${CONTENT_BIN_ID}`, {
+                method: 'PUT',
+                headers: cloudHeaders,
+                body: JSON.stringify(globalContentData)
+            });
+            if (res.ok) {
+                loadAdminExamsList(globalContentData.exams);
+            }
         }
 
         function renderExamStatistics() {
             const body = document.getElementById('examStatsBody');
-            let results = globalRecordData.examResults || [];
+            let results = globalContentData.examResults || [];
 
             if (results.length === 0) {
                 body.innerHTML = '<p style="text-align: center; color: #888; padding: 20px;">لا توجد نتائج مسجلة للطلاب حتى الآن.</p>';
@@ -959,4 +983,167 @@
 
         async function saveAdminModalChanges(email) {
             let admin = (globalRecordData.admins || []).find(a => a.email === email);
-            if
+            if (!admin) return;
+
+            admin.name = document.getElementById('modalEditAdminName').value.trim();
+            admin.phone = document.getElementById('modalEditAdminPhone').value.trim();
+
+            await updateCloudData();
+            alert('تم تحديث بيانات المشرف بنجاح.');
+            closeControlModal();
+            location.reload();
+        }
+
+        async function saveStudentModalChanges(email) {
+            let student = (globalRecordData.users || []).find(u => u.email === email);
+            if (!student) return;
+
+            student.fullName = document.getElementById('modalEditStudentName').value.trim();
+            student.studentId = document.getElementById('modalEditStudentId').value.trim();
+            student.studentPhone = document.getElementById('modalEditStudentPhone').value.trim();
+            student.rank = document.getElementById('modalEditStudentRank').value;
+
+            await updateCloudData();
+            alert('تم تحديث بيانات الطالب بنجاح.');
+            closeControlModal();
+            location.reload();
+        }
+
+        async function toggleVerifyAdmin(email) {
+            let admin = (globalRecordData.admins || []).find(a => a.email === email);
+            if (admin) {
+                admin.isVerified = !admin.isVerified;
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderAdmins(globalRecordData.admins);
+            }
+        }
+
+        async function toggleAdminRole(email) {
+            let admin = (globalRecordData.admins || []).find(a => a.email === email);
+            if (admin) {
+                admin.role = (admin.role === 'master') ? 'sub' : 'master';
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderAdmins(globalRecordData.admins);
+            }
+        }
+
+        async function toggleBlockStatus(email, type) {
+            if (type === 'admin') {
+                let admin = (globalRecordData.admins || []).find(a => a.email === email);
+                if (admin) {
+                    admin.status = (admin.status === 'blocked') ? 'active' : 'blocked';
+                    await updateCloudData();
+                    openUserModal(email, 'admin');
+                    renderAdmins(globalRecordData.admins);
+                }
+            } else {
+                let student = (globalRecordData.users || []).find(u => u.email === email);
+                if (student) {
+                    student.status = (student.status === 'blocked') ? 'active' : 'blocked';
+                    await updateCloudData();
+                    openUserModal(email, 'user');
+                    renderStudents(globalRecordData.users);
+                }
+            }
+        }
+
+        async function deleteRecord(email, type) {
+            if (!confirm(`هل أنت متأكد من حذف هذا ${type === 'admin' ? 'المشرف' : 'الطالب'} نهائياً؟`)) return;
+
+            if (type === 'admin') {
+                globalRecordData.admins = globalRecordData.admins.filter(a => a.email !== email);
+            } else {
+                globalRecordData.users = globalRecordData.users.filter(u => u.email !== email);
+            }
+
+            await updateCloudData();
+            closeControlModal();
+            alert('تم الحذف بنجاح.');
+            location.reload();
+        }
+
+        async function approveAdminReq(email, role) {
+            let reqs = globalRecordData.adminRequests || [];
+            let targetReq = reqs.find(r => r.email === email);
+            if (!targetReq) return;
+
+            globalRecordData.adminRequests = reqs.filter(r => r.email !== email);
+            if (!globalRecordData.admins) globalRecordData.admins = [];
+            
+            globalRecordData.admins.push({
+                email: targetReq.email,
+                name: targetReq.email.split('@')[0],
+                role: role,
+                status: 'active',
+                isVerified: false
+            });
+
+            await updateCloudData();
+            alert(`تم قبول ${email} كـ ${role === 'master' ? 'متحكم كامل' : 'أدمن'} بنجاح.`);
+            location.reload();
+        }
+
+        async function rejectAdminReq(email) {
+            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
+            await updateCloudData();
+            alert('تم رفض الطلب.');
+            location.reload();
+        }
+
+        async function addNewAdminManual() {
+            let email = prompt('أدخل البريد الإلكتروني للأدمن الجديد:');
+            if (!email) return;
+
+            if (!globalRecordData.admins) globalRecordData.admins = [];
+            globalRecordData.admins.push({
+                email: email.trim(),
+                name: email.split('@')[0],
+                role: 'sub',
+                status: 'active',
+                isVerified: false
+            });
+
+            await updateCloudData();
+            alert('تم إضافة الأدمن بنجاح.');
+            location.reload();
+        }
+
+        async function addNewStudentManual() {
+            let email = prompt('أدخل بريد الطالب الجديد:');
+            let name = prompt('أدخل اسم الطالب:');
+            if (!email || !name) return;
+
+            if (!globalRecordData.users) globalRecordData.users = [];
+            globalRecordData.users.push({
+                email: email.trim(),
+                fullName: name.trim(),
+                studentId: 'STU-' + Math.floor(1000 + Math.random() * 9000),
+                status: 'active',
+                rank: 'unranked'
+            });
+
+            await updateCloudData();
+            alert('تم إضافة الطالب بنجاح.');
+            location.reload();
+        }
+
+        async function updateCloudData() {
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: cloudHeaders,
+                body: JSON.stringify(globalRecordData)
+            });
+            if (!res.ok) throw new Error('فشل حفظ البيانات بالسحابة');
+        }
+
+        function closeControlModal() {
+            document.getElementById('userControlModal').classList.remove('active');
+        }
+        function closeControlModalOnOuterClick(e) {
+            if (e.target.classList.contains('modal-overlay')) closeControlModal();
+        }
+    </script>
+</body>
+</html>
