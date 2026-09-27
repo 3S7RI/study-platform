@@ -17,16 +17,6 @@
             --input-bg: #1e293b;
         }
 
-        [data-theme="light"] {
-            --bg-color: #f1f5f9;
-            --card-bg: #ffffff;
-            --form-bg: #f8fafc;
-            --text-main: #0f172a;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --input-bg: #ffffff;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, border-color 0.3s; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         
@@ -70,11 +60,22 @@
         .search-input-group button { padding: 10px 18px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; transition: 0.2s; white-space: nowrap; flex-shrink: 0; }
         .search-input-group button:hover { background: var(--primary-hover); }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
+        /* ===== الشاشة العائمة والتأثيرات الخمسة للإطارات ===== */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(15, 23, 42, 0.75); 
+            backdrop-filter: blur(10px); 
+            display: flex; align-items: center; justify-content: center; 
+            z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 15px; 
+        }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 440px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.9); transition: transform 0.3s ease; position: relative; }
-        .modal-overlay.active .modal-card { transform: scale(1); }
+        .modal-card { 
+            background: var(--card-bg); width: 100%; max-width: 440px; border-radius: 20px; 
+            border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); 
+            overflow: hidden; transform: scale(0.85) translateY(20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; 
+        }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
         
         .modal-header { padding: 15px 20px; background: var(--form-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .modal-header h3 { font-size: 1rem; color: var(--text-main); }
@@ -82,9 +83,52 @@
         .close-modal:hover { color: #ef4444; }
 
         .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; }
-        .modal-avatar-wrapper { position: relative; width: 80px; height: 80px; margin: 0 auto 12px; }
-        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); }
         
+        /* إطارات وتأثيرات صور الطلاب المخصصة حسب الرتبة */
+        .modal-avatar-wrapper { position: relative; width: 100px; height: 100px; margin: 0 auto 12px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; }
+
+        /* 1. البرونزي */
+        .rank-frame-bronze {
+            background: linear-gradient(45deg, #a77044, #ff8c00);
+            box-shadow: 0 0 15px rgba(211, 84, 0, 0.6);
+        }
+        /* 2. الفضي */
+        .rank-frame-silver {
+            background: linear-gradient(45deg, #bdc3c7, #2c3e50);
+            box-shadow: 0 0 15px rgba(189, 195, 199, 0.7);
+        }
+        /* 3. الذهبي */
+        .rank-frame-gold {
+            background: linear-gradient(45deg, #f1c40f, #f39c12, #ffeaa7);
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.85);
+            animation: goldGlow 2s infinite alternate;
+        }
+        /* 4. الماسي */
+        .rank-frame-diamond {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5, #00ffff);
+            box-shadow: 0 0 22px rgba(0, 210, 255, 0.9);
+            animation: diamondGlow 1.8s infinite alternate;
+        }
+        /* 5. الأسطوري */
+        .rank-frame-mythic {
+            background: linear-gradient(45deg, #ff007f, #7928ca, #ff0080);
+            box-shadow: 0 0 25px rgba(255, 0, 128, 0.95);
+            animation: mythicGlow 1.5s infinite alternate;
+        }
+        /* لا توجد رتبة / عادي */
+        .rank-frame-unranked {
+            background: var(--border-color);
+        }
+
+        @keyframes goldGlow { 0% { box-shadow: 0 0 12px rgba(241,196,15,0.5); } 100% { box-shadow: 0 0 25px rgba(241,196,15,1); } }
+        @keyframes diamondGlow { 0% { box-shadow: 0 0 12px rgba(0,210,255,0.5); } 100% { box-shadow: 0 0 28px rgba(0,210,255,1); } }
+        @keyframes mythicGlow { 0% { box-shadow: 0 0 15px rgba(255,0,128,0.6); } 100% { box-shadow: 0 0 32px rgba(255,0,128,1); } }
+
+        .rank-badge-tag {
+            display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 12px; color: #fff;
+        }
+
         .modal-info-list { margin-top: 15px; text-align: right; background: var(--form-bg); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color); }
         .modal-field { text-align: right; margin-bottom: 10px; }
         .modal-field label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 3px; }
@@ -101,7 +145,6 @@
         .btn-logout { background-color: #ef4444; }
         .btn-logout:hover { background-color: #dc2626; }
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); font-size: 0.95rem; }
-        .permission-warning { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 10px; border-radius: 8px; font-size: 0.82rem; margin-top: 10px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -115,6 +158,7 @@
         </div>
     </div>
 
+    <!-- الشاشة العائمة بتأثيرات الحركة -->
     <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -143,11 +187,18 @@
 
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
-                <svg viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </span>
         `;
+
+        // دالة التأكد من جلب صورة المستخدم المرفوعة الحقيقية
+        function getUserImage(userObj) {
+            if (userObj && userObj.profileImage && userObj.profileImage.trim() !== '') {
+                return userObj.profileImage;
+            }
+            // إذا لم يرفع المستخدم صورة، يتم إرجاع رمز تعبيري بديل بدلاً من انكسار الصورة
+            return "https://via.placeholder.com/150/1e293b/94a3b8?text=لا+توجد+صورة";
+        }
 
         async function initProfileFromCloud() {
             try {
@@ -161,8 +212,7 @@
 
                 let result = await response.json();
                 globalRecord = result.record || {};
-                let rawAdmins = globalRecord.admins || [];
-                let adminsList = Array.isArray(rawAdmins) ? rawAdmins : [];
+                let adminsList = Array.isArray(globalRecord.admins) ? globalRecord.admins : [];
 
                 currentAdminData = adminsList.find(a => a.email && a.email.toLowerCase() === currentEmail.toLowerCase());
                 
@@ -185,13 +235,13 @@
             const container = document.getElementById('profileContent');
             let isMaster = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
             let roleText = isMaster ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️';
-            let avatarUrl = admin.profileImage && admin.profileImage.trim() !== '' ? admin.profileImage : 'https://via.placeholder.com/105?text=Admin';
+            let avatarUrl = getUserImage(admin);
             let isVerified = admin.isVerified === true;
 
             container.innerHTML = `
                 <div class="profile-header">
                     <div class="avatar-wrapper">
-                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" id="adminAvatarImg" onerror="this.src='https://via.placeholder.com/105?text=Admin'">
+                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" id="adminAvatarImg">
                         <label for="imageInput" class="upload-badge" title="تغيير صورة البروفايل">📷</label>
                     </div>
                     <h1 class="admin-name">
@@ -249,6 +299,18 @@
             `;
         }
 
+        // تفاصيل الرتب والإطارات المتوهجة
+        function getRankDetails(rank) {
+            switch (rank) {
+                case 'bronze': return { title: '🥉 برونزي (Level 1)', class: 'rank-frame-bronze', bg: '#a77044' };
+                case 'silver': return { title: '🥈 فضي (Level 2)', class: 'rank-frame-silver', bg: '#7f8c8d' };
+                case 'gold': return { title: '🥇 ذهبي (Level 3)', class: 'rank-frame-gold', bg: '#f1c40f' };
+                case 'diamond': return { title: '💎 ماسي (Level 4)', class: 'rank-frame-diamond', bg: '#00d2ff' };
+                case 'mythic': return { title: '🔥 أسطوري (Level 5)', class: 'rank-frame-mythic', bg: '#ff007f' };
+                default: return { title: '⚪ مجهول / جديد', class: 'rank-frame-unranked', bg: '#64748b' };
+            }
+        }
+
         function searchUserProfile() {
             const query = document.getElementById('adminSearchQuery').value.trim().toLowerCase();
             const modal = document.getElementById('searchModal');
@@ -277,18 +339,20 @@
                 (a.name && a.name.toLowerCase().includes(query))
             );
 
-            let currentSessionRole = sessionStorage.getItem('adminRole');
-            let isMasterUser = (currentSessionRole === 'master' || sessionStorage.getItem('adminEmail') === 'mohamad66xm@gmail.com');
+            let isMasterUser = (sessionStorage.getItem('adminRole') === 'master' || sessionStorage.getItem('adminEmail') === 'mohamad66xm@gmail.com');
 
             if (foundStudent) {
-                let imgUrl = foundStudent.profileImage || foundStudent.profileImg || 'https://via.placeholder.com/80?text=Student';
-                let rank = foundStudent.rank || 'unranked';
+                // جلب صورة الطالب الحقيقية المرفوعة
+                let imgUrl = getUserImage(foundStudent);
+                let rankKey = foundStudent.rank || 'unranked';
+                let rankInfo = getRankDetails(rankKey);
                 let isBlocked = foundStudent.status === 'blocked';
 
                 modalContent.innerHTML = `
-                    <div class="modal-avatar-wrapper">
-                        <img src="${imgUrl}" alt="صورة الطالب">
+                    <div class="modal-avatar-wrapper ${rankInfo.class}">
+                        <img src="${imgUrl}" alt="صورة الطالب الشخصية">
                     </div>
+                    <span class="rank-badge-tag" style="background:${rankInfo.bg}">${rankInfo.title}</span>
                     <h2 style="font-size:1.1rem; color:var(--text-main); margin-bottom:4px;">${foundStudent.fullName}</h2>
                     <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">طالب مسجل</p>
 
@@ -306,14 +370,14 @@
                             <input type="text" id="modalStudentPhone" value="${foundStudent.studentPhone || ''}">
                         </div>
                         <div class="modal-field">
-                            <label>المستوى الدراسي:</label>
+                            <label>المستوى وتأثير البروفايل:</label>
                             <select id="modalStudentRank">
-                                <option value="unranked" ${rank === 'unranked' ? 'selected' : ''}>مجهول</option>
-                                <option value="bronze" ${rank === 'bronze' ? 'selected' : ''}>ضعيف (Level 1)</option>
-                                <option value="silver" ${rank === 'silver' ? 'selected' : ''}>متوسط (Level 2)</option>
-                                <option value="gold" ${rank === 'gold' ? 'selected' : ''}>قوي (Level 3)</option>
-                                <option value="diamond" ${rank === 'diamond' ? 'selected' : ''}>قوي جداً (Level 4)</option>
-                                <option value="mythic" ${rank === 'mythic' ? 'selected' : ''}>أسطوري (Level 5)</option>
+                                <option value="unranked" ${rankKey === 'unranked' ? 'selected' : ''}>مجهول / جديد</option>
+                                <option value="bronze" ${rankKey === 'bronze' ? 'selected' : ''}>🥉 برونزي (Level 1)</option>
+                                <option value="silver" ${rankKey === 'silver' ? 'selected' : ''}>🥈 فضي (Level 2)</option>
+                                <option value="gold" ${rankKey === 'gold' ? 'selected' : ''}>🥇 ذهبي (Level 3)</option>
+                                <option value="diamond" ${rankKey === 'diamond' ? 'selected' : ''}>💎 ماسي (Level 4)</option>
+                                <option value="mythic" ${rankKey === 'mythic' ? 'selected' : ''}>🔥 أسطوري (Level 5)</option>
                             </select>
                         </div>
                     </div>
@@ -325,19 +389,19 @@
                     </div>
                 `;
             } else if (foundAdmin) {
+                // جلب صورة الأدمن الحقيقية المرفوعة
+                let imgUrl = getUserImage(foundAdmin);
                 let isMasterRole = (foundAdmin.role === 'master' || foundAdmin.email === 'mohamad66xm@gmail.com');
                 let isVerified = foundAdmin.isVerified === true;
                 let isBlocked = foundAdmin.status === 'blocked';
                 let canEdit = isMasterUser;
 
                 modalContent.innerHTML = `
-                    <div class="modal-avatar-wrapper">
-                        <img src="${foundAdmin.profileImage || 'https://via.placeholder.com/80?text=Admin'}" alt="صورة الأدمن">
+                    <div class="modal-avatar-wrapper rank-frame-unranked" style="border: 3px solid var(--primary-color);">
+                        <img src="${imgUrl}" alt="صورة الأدمن الشخصية">
                     </div>
                     <h2 style="font-size:1.1rem; color:var(--text-main); margin-bottom:4px;">${foundAdmin.name || 'مشرف'} ${isVerified ? verifiedBadgeHTML : ''}</h2>
                     <p style="font-size:0.8rem; color:#6366f1; margin-bottom:12px;">${isMasterRole ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️'}</p>
-
-                    ${!canEdit ? `<div class="permission-warning">⚠️ غير مصرح لك بتعديل بيانات مشرف آخر</div>` : ''}
 
                     <div class="modal-info-list">
                         <div class="modal-field">
@@ -377,7 +441,7 @@
                 student.studentId = document.getElementById('modalStudentId').value;
                 student.studentPhone = document.getElementById('modalStudentPhone').value;
                 student.rank = document.getElementById('modalStudentRank').value;
-                await syncDataToCloud("تم تحديث بيانات الطالب بنجاح! ⚡");
+                await syncDataToCloud("تم تحديث بيانات الطالب وتحديث إطار الرتبة والصورة بنجاح! ⚡");
                 closeModal();
             }
         }
@@ -452,10 +516,10 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            compressImage(file, 200, 200, 0.7, async function (compressedBase64) {
+            compressImage(file, 200, 200, 0.6, async function (compressedBase64) {
                 document.getElementById('adminAvatarImg').src = compressedBase64;
                 currentAdminData.profileImage = compressedBase64;
-                await syncDataToCloud("تم حفظ صورة البروفايل في السحابة بنجاح! 📸");
+                await syncDataToCloud("تم رفع وحفظ صورة البروفايل الخاصة بك في السحابة بنجاح! 📸");
             });
         }
 
