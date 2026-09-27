@@ -143,7 +143,7 @@
 
         .modal-field { text-align: right; margin-bottom: 10px; }
         .modal-field label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 3px; }
-        .modal-field input, .modal-field select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.85rem; outline: none; }
+        .modal-field input, .modal-field select, .modal-field textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.85rem; outline: none; }
 
         .modal-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
         .modal-actions-grid button { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.82rem; cursor: pointer; }
@@ -173,6 +173,19 @@
             </div>
         </div>
 
+        <!-- قسم إدارة الملازم والملفات الجديد -->
+        <div class="section-box" style="border-top: 4px solid #0284c7;">
+            <div class="section-header">
+                <h2>📚 إدارة الملازم والملفات الدراسية</h2>
+                <button class="btn-add" onclick="openUploadModal()">➕ رفع ملزمة أو ملف جديد</button>
+            </div>
+
+            <!-- قائمة الملفات الحالية المرفوعة مع زر الحذف والمعاينة -->
+            <div id="adminFilesList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                <p style="color: #888; text-align: center;">جاري تحميل الملفات...</p>
+            </div>
+        </div>
+
         <div class="section-box" id="requestsSection" style="display: none; border: 2px solid #f39c12;">
             <div class="section-header">
                 <h2 style="color: #d35400;">📩 طلبات الانضمام كـ أدمن (المعلقة)</h2>
@@ -199,6 +212,47 @@
             </div>
             <div id="tableWrapper">
                 <div style="text-align: center; padding: 20px; color: #888;">جاري جلب بيانات الطلاب...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- النافذة العائمة لرفع ملف جديد -->
+    <div class="modal-overlay" id="uploadFileModal" onclick="closeUploadModalOnOuterClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>رفع ملزمة أو ملف جديد 📂</h3>
+                <button class="close-modal" onclick="closeUploadModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: right;">
+                <div class="modal-field">
+                    <label>عنوان الملزمة أو الملف:</label>
+                    <input type="text" id="modalFileTitle" placeholder="مثلاً: مراجعة الباب الأول كيمياء">
+                </div>
+
+                <div class="modal-field">
+                    <label>وصف مختصر:</label>
+                    <textarea id="modalFileDesc" placeholder="شرح مبسط لمحتوى الملزمة..." style="height: 70px; resize: none;"></textarea>
+                </div>
+
+                <div class="modal-field">
+                    <label>رابط التحميل المباشر (Google Drive / PDF):</label>
+                    <input type="url" id="modalFileLink" placeholder="https://drive.google.com/...">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="modal-field">
+                        <label>المادة أو التصنيف:</label>
+                        <input type="text" id="modalFileSubject" placeholder="مثلاً: كيمياء">
+                    </div>
+                    <div class="modal-field">
+                        <label>حجم الملف:</label>
+                        <input type="text" id="modalFileSize" placeholder="مثلاً: 4.5 MB">
+                    </div>
+                </div>
+
+                <div class="modal-actions-grid" style="margin-top: 15px;">
+                    <button class="btn-approve btn-full" onclick="adminUploadFile()">حفظ ونشر للطلاب 🚀</button>
+                </div>
             </div>
         </div>
     </div>
@@ -303,9 +357,121 @@
                     renderStudents(globalRecordData.users || []);
                 }
 
+                // تحميل وعرض قائمة الملفات في لوحة التحكم للأدمن
+                renderAdminFiles(globalRecordData.studyFiles || []);
+
             } catch (err) {
                 console.error(err);
                 document.getElementById('tableWrapper').innerHTML = '<p style="color:red; text-align:center;">حدث خطأ أثناء جلب البيانات من السحابة.</p>';
+            }
+        }
+
+        // إظهار وإخفاء نافذة رفع الملفات
+        function openUploadModal() {
+            document.getElementById('uploadFileModal').classList.add('active');
+        }
+        function closeUploadModal() {
+            document.getElementById('uploadFileModal').classList.remove('active');
+        }
+        function closeUploadModalOnOuterClick(e) {
+            if (e.target.classList.contains('modal-overlay')) closeUploadModal();
+        }
+
+        // عرض قائمة الملفات في قسم الملفات باللوحة
+        function renderAdminFiles(files) {
+            const listContainer = document.getElementById('adminFilesList');
+            if (!files || files.length === 0) {
+                listContainer.innerHTML = '<p style="color: #888; text-align: center;">لا توجد ملفات مرفوعة حالياً.</p>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>عنوان الملزمة</th><th>التصنيف</th><th>الحجم</th><th>التحكم</th></tr></thead><tbody>`;
+            files.forEach((file, index) => {
+                html += `<tr>
+                    <td><b>📄 ${file.title}</b></td>
+                    <td>${file.subject || 'ملزمة عامة'}</td>
+                    <td>${file.size || 'PDF'}</td>
+                    <td>
+                        <a href="${file.link}" target="_blank" class="btn-verify" style="padding: 4px 10px; text-decoration: none; display: inline-block;">معاينة 🔗</a>
+                        <button class="btn-danger" onclick="deleteAdminFile(${index})">حذف 🗑️</button>
+                    </td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            listContainer.innerHTML = html;
+        }
+
+        // دالة رفع ملف جديد سحابياً
+        async function adminUploadFile() {
+            const title = document.getElementById('modalFileTitle').value.trim();
+            const description = document.getElementById('modalFileDesc').value.trim();
+            const link = document.getElementById('modalFileLink').value.trim();
+            const subject = document.getElementById('modalFileSubject').value.trim() || 'ملزمة عامة';
+            const size = document.getElementById('modalFileSize').value.trim() || 'PDF';
+
+            if (!title || !link) {
+                alert('الرجاء كتابة عنوان الملزمة ورابط التحميل على الأقل!');
+                return;
+            }
+
+            try {
+                if (!globalRecordData.studyFiles) globalRecordData.studyFiles = [];
+
+                globalRecordData.studyFiles.push({
+                    title: title,
+                    description: description,
+                    link: link,
+                    subject: subject,
+                    size: size,
+                    date: new Date().toLocaleDateString('ar-EG')
+                });
+
+                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(globalRecordData)
+                });
+
+                if (updateRes.ok) {
+                    alert('تم رفع الملزمة ونشرها بنجاح للطلاب! 🎉');
+                    document.getElementById('modalFileTitle').value = '';
+                    document.getElementById('modalFileDesc').value = '';
+                    document.getElementById('modalFileLink').value = '';
+                    document.getElementById('modalFileSubject').value = '';
+                    document.getElementById('modalFileSize').value = '';
+                    closeUploadModal();
+                    renderAdminFiles(globalRecordData.studyFiles);
+                } else {
+                    alert('فشل الحفظ، حاول مرة أخرى.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ في الاتصال بالسحابة.');
+            }
+        }
+
+        // دالة حذف ملف بواسطة الأدمن
+        async function deleteAdminFile(index) {
+            if (!confirm('هل أنت متأكد من حذف هذا الملف نهائياً من منصة الطلاب؟')) return;
+
+            try {
+                if (globalRecordData.studyFiles) {
+                    globalRecordData.studyFiles.splice(index, 1);
+
+                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: cloudHeaders,
+                        body: JSON.stringify(globalRecordData)
+                    });
+
+                    if (updateRes.ok) {
+                        alert('تم حذف الملف بنجاح.');
+                        renderAdminFiles(globalRecordData.studyFiles);
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء الحذف.');
             }
         }
 
@@ -398,7 +564,7 @@
                 let isMasterRole = (admin.role === 'master' || admin.email === 'mohamad66xm@gmail.com');
                 let isVerified = admin.isVerified === true;
 
-                let canEdit = isMasterUser; // فقط المتحكم الرئيسي يقدر يغير بيانات الأدمن
+                let canEdit = isMasterUser;
 
                 modalBody.innerHTML = `
                     <div class="modal-avatar-wrapper">
@@ -590,7 +756,7 @@
             initDashboard();
         };
 
-        window.rejectAdminReq = async function(email) {
+        window.rejectAdminReq = async function(email, role) {
             globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
             await updateCloudData();
             initDashboard();
