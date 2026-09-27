@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتبة الملازم والملفات - منصة رحلة دراسية</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s; }
+        
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --navbar-bg: linear-gradient(135deg, #1e3c72, #2a5298);
+            --card-bg: #ffffff;
+            --card-text: #666;
+            --welcome-h1: #1e3c72;
+            --btn-bg: rgba(255, 255, 255, 0.15);
+            --btn-border: rgba(255, 255, 255, 0.2);
+            --input-bg: #fff;
+            --input-border: #ccc;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --navbar-bg: linear-gradient(135deg, #0d1b2a, #1b263b);
+            --card-bg: #1e1e1e;
+            --card-text: #aaa;
+            --welcome-h1: #ffffff;
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.15);
+            --input-bg: #2a2a2a;
+            --input-border: #444;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
+        
+        .navbar { 
+            background: var(--navbar-bg); 
+            color: white; 
+            padding: 10px 15px; 
+            display: grid; 
+            grid-template-columns: auto auto 1fr auto; 
+            align-items: center; 
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        
+        .back-home-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .back-home-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .navbar-title { 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            color: white; 
+            white-space: nowrap; 
+            justify-self: center;
+            text-align: center;
+        }
+
+        .theme-toggle-btn { 
+            background: var(--btn-bg); 
+            border: 1px solid var(--btn-border); 
+            color: white; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            width: 38px; 
+            height: 38px; 
+            flex-shrink: 0; 
+            justify-self: end;
+        }
+
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+
+        .page-header {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            text-align: center;
+            border-top: 4px solid #0284c7;
+        }
+        .page-header h1 { color: var(--welcome-h1); font-size: 1.5rem; margin-bottom: 8px; }
+        .page-header p { color: var(--card-text); font-size: 0.95rem; }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .file-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            border-right: 4px solid #0284c7;
+        }
+
+        .file-icon {
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+        }
+
+        .file-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+
+        .file-desc {
+            font-size: 0.85rem;
+            color: var(--card-text);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .file-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--card-text);
+            margin-bottom: 15px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding-top: 10px;
+        }
+        .dark-mode .file-meta { border-top-color: rgba(255,255,255,0.05); }
+
+        .download-btn {
+            background-color: #0284c7;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: block;
+            transition: opacity 0.2s;
+        }
+        .download-btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body id="pageBody">
+
+    <header class="navbar">
+        <!-- زر العودة للرئيسية -->
+        <a href="main.html" class="back-home-btn" title="العودة للرئيسية">
+            🏠
+        </a>
+
+        <div></div>
+
+        <div class="navbar-title">📁 مكتبة الملازم والملفات</div>
+
+        <!-- زر تبديل الوضع -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>مرحباً بك في مكتبة الملازم الدراسية 📖</h1>
+            <p>قم بتحميل مذكرات الشرح، كتب المراجعة النهائية، وملفات الـ PDF لكل المواد بسهولة.</p>
+        </div>
+
+        <!-- قائمة الملفات والملازم -->
+        <div id="filesGrid" class="files-grid">
+            <!-- سيتم تحميل الملفات تلقائياً هنا أو عرض الملفات الافتراضية -->
+            <p style="text-align: center; color: var(--card-text); grid-column: 1 / -1;">جاري تحميل الملفات والملازم...</p>
+        </div>
+    </div>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+
+        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'index.html';
+        }
+
+        // ملفات افتراضية كمثال، ويمكن جلبها من السحابة لو أحببت
+        const defaultFiles = [
+            {
+                title: "مذكرة الشرح المنهجي - الباب الأول",
+                description: "شرح وافي ومبسط لأهم مفاهيم الباب الأول مع أمثلة محلولة.",
+                subject: "مادة عامة",
+                size: "4.2 MB",
+                date: "2026/03/01",
+                link: "#"
+            },
+            {
+                title: "بنك الأسئلة والتدريبات الشاملة",
+                description: "مجموعة ضخمة من الأسئلة المتنوعة لنظام التقييم الجديد مع الحلول.",
+                subject: "تدريبات",
+                size: "6.8 MB",
+                date: "2026/03/05",
+                link: "#"
+            },
+            {
+                title: "مراجعة ليلة الامتحان والملخصات الذهبية",
+                description: "أهم النقاط والرسومات والقوانين المرشحة للامتحان النهائي.",
+                subject: "مراجعة نهائية",
+                size: "3.1 MB",
+                date: "2026/03/10",
+                link: "#"
+            }
+        ];
+
+        loadFilesData();
+
+        async function loadFilesData() {
+            try {
+                let res = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
+                let response = await fetch(res, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await response.json();
+                // لو فيه ملفات مضافة سحابياً عبر لوحة التحكم هنعرضها، وإلا هنعرض الملفات الافتراضية
+                let filesList = (data.record.studyFiles && data.record.studyFiles.length > 0) 
+                                ? data.record.studyFiles 
+                                : defaultFiles;
+                
+                renderFiles(filesList);
+            } catch (e) {
+                console.error("خطأ في جلب الملفات:", e);
+                renderFiles(defaultFiles);
+            }
+        }
+
+        function renderFiles(files) {
+            const grid = document.getElementById('filesGrid');
+            grid.innerHTML = '';
+
+            files.forEach(file => {
+                let card = document.createElement('div');
+                card.className = 'file-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="file-icon">📄</div>
+                        <div class="file-title">${file.title}</div>
+                        <div class="file-desc">${file.description}</div>
+                    </div>
+                    <div>
+                        <div class="file-meta">
+                            <span>📂 ${file.subject || 'ملزمة'}</span>
+                            <span>💾 ${file.size || 'PDF'}</span>
+                        </div>
+                        <a href="${file.link}" target="_blank" class="download-btn">تحميل / معاينة الملف 📥</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // نظام الوضع الليلي والنهاري
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const pageBody = document.getElementById('pageBody');
+
+        if (localStorage.getItem('theme') === 'dark') {
+            pageBody.classList.add('dark-mode');
+            themeToggleBtn.textContent = '☀️';
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            pageBody.classList.toggle('dark-mode');
+            if (pageBody.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent = '🌙';
+            }
+        });
+    </script>
+</body>
+</html>
