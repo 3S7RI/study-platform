@@ -33,9 +33,9 @@
             --input-border: #444;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; user-select: none; }
+        body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; user-select: none; -webkit-user-select: none; }
         
-        /* طبقة الحماية السوداء لمنع التصوير */
+        /* طبقة الحماية السوداء لمنع تصوير الشاشة والسكرين شوت */
         #securityScreenOverlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: #000000; z-index: 999999; display: none;
@@ -86,7 +86,7 @@
 
         .post-submit-btn {
             background-color: #8b5cf6; color: white; border: none; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem; width: 100%;
         }
         .post-submit-btn:hover { opacity: 0.9; }
 
@@ -127,6 +127,7 @@
 </head>
 <body id="pageBody">
 
+    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
     <div id="securityScreenOverlay">
         ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
     </div>
@@ -139,12 +140,10 @@
     </header>
 
     <div class="container">
-        <!-- كارد النشر (يظهر للأدمن فقط أو للجميع حسب الرغبة، هنا متاح للجميع بالأسئلة والأدمن للرد) -->
         <div class="create-post-card">
             <h3 id="createPostTitle">اطرح سؤالك أو استفسارك الدراسي 💡</h3>
             <textarea id="postContentInput" placeholder="اكتب سؤالك بوضوح..."></textarea>
             
-            <!-- زر رفع صورة وتسجيل فويس زي الواتساب -->
             <div class="post-tools-row">
                 <div class="media-upload-btns">
                     <label class="media-btn" style="cursor: pointer;">
@@ -190,16 +189,23 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // الحماية السوداء ضد التصوير
+        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
+        const securityOverlay = document.getElementById('securityScreenOverlay');
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p')) {
+            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
                 e.preventDefault();
-                document.getElementById('securityScreenOverlay').style.display = 'flex';
-                setTimeout(() => { document.getElementById('securityScreenOverlay').style.display = 'none'; }, 3000);
+                triggerBlackScreen();
             }
         });
+        window.addEventListener('blur', () => { triggerBlackScreen(); });
+        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
+        function triggerBlackScreen() {
+            securityOverlay.style.display = 'flex';
+            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
+        }
+        document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // الثيم المحفوظ
+        // الثيم المحفوظ بدقة
         const pageBody = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -214,7 +220,6 @@
             themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
         });
 
-        // معاينة الصورة المرفوعة
         function previewPostImage(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -235,7 +240,6 @@
             document.getElementById('postImageInput').value = "";
         }
 
-        // تسجيل الفويس (صوت زي الواتساب)
         async function toggleVoiceRecording() {
             const btn = document.getElementById('recordVoiceBtn');
             const status = document.getElementById('mediaStatusIndicator');
@@ -316,7 +320,6 @@
                     });
                 }
 
-                // شرط الرد: الأدمن فقط هو من يمكنه الرد، أو إذا كان الطالب هو صاحب السؤال (حسب رغبتك في أن الأدمن فقط يرد)
                 let commentBoxHtml = `
                     <div class="add-comment-box">
                         <input type="text" id="commentInput_${realIndex}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'الردود مقتصرة على الأدمن فقط'}">
