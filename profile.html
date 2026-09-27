@@ -28,7 +28,7 @@
         
         .card-bg-pattern {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 0; opacity: 0.08; background-repeat: repeat; background-size: 35px 35px;
+            pointer-events: none; z-index: 0; opacity: 0.12; background-repeat: repeat; background-size: 35px 35px;
         }
 
         .profile-container > * { position: relative; z-index: 2; }
@@ -70,7 +70,6 @@
 
         .student-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
         
-        /* مستطيل المستوى الأيقونة في الناحية اليمين بجوار النص */
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             padding: 6px 16px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; margin-bottom: 10px;
@@ -83,6 +82,13 @@
         .badge-mythic { background-color: #831843; color: #fbcfe8; }
         .badge-unranked { background-color: #1e293b; color: #94a3b8; }
 
+        /* صندوق البحث الفوري */
+        .student-search-box { background: var(--form-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .student-search-box h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
+        .search-input-group { display: flex; gap: 8px; align-items: center; width: 100%; }
+        .search-input-group input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.88rem; background: var(--input-bg); color: var(--text-main); outline: none; }
+        .search-input-group button { padding: 10px 18px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; white-space: nowrap; flex-shrink: 0; }
+
         .edit-form { background: var(--form-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 15px; }
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: var(--text-secondary); }
@@ -94,6 +100,18 @@
         .toggle-switch-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
         .toggle-switch-container span { font-size: 0.8rem; color: var(--text-main); font-weight: 600; }
 
+        /* الشاشة العائمة لنتائج البحث */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 440px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.85) translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
+        .modal-header { padding: 15px 20px; background: var(--form-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer; }
+        .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        
+        .modal-avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 12px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
+
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-top: 5px; }
         .btn:hover { background-color: var(--primary-hover); }
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
@@ -102,6 +120,7 @@
 <body>
 
     <div class="profile-container" id="profileCardMain">
+        <!-- طبقة خلفية الرموز الشفافة -->
         <div id="cardPatternBg" class="card-bg-pattern"></div>
 
         <div class="header-actions">
@@ -111,6 +130,17 @@
         
         <div id="studentProfileContent">
             <div class="loading">جاري تحميل بيانات البروفايل... ⏳</div>
+        </div>
+    </div>
+
+    <!-- الشاشة العائمة لنتائج البحث عن طالب -->
+    <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>تفاصيل بروفايل الطالب 🔍</h3>
+                <button class="close-modal" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
         </div>
     </div>
 
@@ -227,6 +257,14 @@
                     <p style="color: var(--text-secondary); font-size: 0.85rem;">كود الطالب: ${student.studentId || 'STU-0000'}</p>
                 </div>
 
+                <div class="student-search-box">
+                    <h3>🔍 البحث عن بروفايل طالب آخر</h3>
+                    <div class="search-input-group">
+                        <input type="text" id="studentSearchQuery" placeholder="أدخل كود ID أو اسم الطالب..." onkeydown="if(event.key==='Enter') searchPeerProfile()">
+                        <button onclick="searchPeerProfile()">بحث</button>
+                    </div>
+                </div>
+
                 <div class="edit-form">
                     <div class="form-group">
                         <label>الاسم الكامل</label>
@@ -261,6 +299,47 @@
                 </div>
             `;
         }
+
+        function searchPeerProfile() {
+            const query = document.getElementById('studentSearchQuery').value.trim().toLowerCase();
+            const modal = document.getElementById('searchModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            if (!query) { alert('اكتب بيانات البحث أولاً!'); return; }
+
+            modal.classList.add('active');
+            modalContent.innerHTML = '<p style="font-size:0.9rem; padding:20px;">جاري البحث... ⏳</p>';
+
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let found = users.find(u => 
+                (u.studentId && u.studentId.toLowerCase() === query) ||
+                (u.fullName && u.fullName.toLowerCase().includes(query))
+            );
+
+            if (found) {
+                let imgUrl = getStudentImage(found);
+                let rankKey = found.rank || 'bronze';
+                let rankInfo = getRankDetails(rankKey);
+                
+                modalContent.innerHTML = `
+                    <div class="modal-avatar-wrapper ${rankInfo.class}">
+                        <img src="${imgUrl}" alt="صورة الطالب">
+                    </div>
+                    <div class="level-badge-box ${rankInfo.badgeClass}">
+                        <span>${rankInfo.icon}</span>
+                        <span>${rankInfo.title}</span>
+                    </div>
+                    <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:4px;">${found.fullName}</h2>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">كود الطالب: ${found.studentId || 'غير محدد'}</p>
+                    <p style="font-size:0.85rem; color:#10b981;">الحالة: طالب مسجل ونشط ✅</p>
+                `;
+            } else {
+                modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>لم يتم العثور على طالب بهذا الاسم أو الكود!</p></div>`;
+            }
+        }
+
+        function closeModal() { document.getElementById('searchModal').classList.remove('active'); }
+        function closeModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
         function handleStudentImageUpload(e) {
             const file = e.target.files[0];
