@@ -30,15 +30,6 @@
             color: var(--text-color); 
             padding: 15px; 
             transition: background 0.3s, color 0.3s; 
-            user-select: none; 
-            -webkit-user-select: none; 
-        }
-        
-        #securityScreenOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000000; z-index: 999999; display: none;
-            justify-content: center; align-items: center; color: #ff4d4d;
-            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
         }
 
         .container { max-width: 1200px; margin: 0 auto; }
@@ -108,7 +99,6 @@
         .section-header h2 { color: var(--header-bg); font-size: 1.1rem; }
 
         .btn-approve { background: #27ae60; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        .btn-master { background: #8e44ad; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-verify { background: #3498db; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-block { background: #e67e22; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .btn-danger { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; border: none; font-weight: bold; }
@@ -119,6 +109,17 @@
         th { background: rgba(0,0,0,0.02); color: var(--text-color); font-weight: bold; }
         tr.clickable-row { cursor: pointer; transition: background 0.2s; }
         tr.clickable-row:hover { background: rgba(99, 102, 241, 0.08); }
+
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+        .status-online { background-color: #27ae60; box-shadow: 0 0 6px #27ae60; }
+        .status-offline { background-color: #95a5a6; }
 
         .verified-badge {
             display: inline-flex; align-items: center; justify-content: center;
@@ -155,14 +156,9 @@
         .modal-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
         .modal-actions-grid button { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.82rem; cursor: pointer; }
         .btn-full { grid-column: span 2; }
-        .permission-warning { background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; padding: 10px; border-radius: 8px; font-size: 0.82rem; margin-top: 10px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <div id="securityScreenOverlay">
-        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
-    </div>
 
     <div class="container">
         <header>
@@ -331,7 +327,7 @@
         </div>
     </div>
 
-    <!-- نافذة التحكم بالحساب -->
+    <!-- نافذة التحكم بالحساب (الشاشة العائمة) -->
     <div class="modal-overlay" id="userControlModal" onclick="closeControlModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
@@ -343,7 +339,6 @@
     </div>
 
     <script>
-        // الاعتماد على بين واحد فقط وتجاهل أي بين ثاني نهائياً
         const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
@@ -352,21 +347,6 @@
         sessionStorage.setItem('isAdminLoggedIn', 'true');
         sessionStorage.setItem('adminRole', 'master');
         sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
-
-        const securityOverlay = document.getElementById('securityScreenOverlay');
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p')) {
-                e.preventDefault();
-                triggerBlackScreen();
-            }
-        });
-        window.addEventListener('blur', () => { triggerBlackScreen(); });
-        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
-        function triggerBlackScreen() {
-            securityOverlay.style.display = 'flex';
-            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
-        }
-        document.addEventListener('contextmenu', e => e.preventDefault());
 
         const verifiedBadgeHTML = `
             <span class="verified-badge" title="حساب موثق">
@@ -400,7 +380,6 @@
 
         initDashboard();
 
-        // دالة جلب البيانات من البين الواحد فقط
         async function initDashboard() {
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { 
@@ -463,7 +442,6 @@
             loadAdminExamsList(globalRecordData.exams || []);
         }
 
-        // امتحانات وإدارة ملفات
         function openExamBuilderModal() {
             document.getElementById('examBuilderModal').classList.add('active');
             document.getElementById('builderQuestionsContainer').innerHTML = '';
@@ -522,7 +500,6 @@
 
         async function saveNewExamToCloud() {
             let title = document.getElementById('builderExamTitle').value.trim();
-            let durationMinutes = document.getElementById('builderDuration').value;
             if (!title) { alert('اكتب عنوان الامتحان!'); return; }
 
             let qBoxes = document.querySelectorAll('#builderQuestionsContainer > div');
@@ -546,7 +523,7 @@
 
             if (!globalRecordData.exams) globalRecordData.exams = [];
             globalRecordData.exams.push({
-                title, durationMinutes, questions,
+                title, durationMinutes: document.getElementById('builderDuration').value, questions,
                 createdAt: new Date().toLocaleDateString('ar-EG')
             });
 
@@ -613,12 +590,15 @@
         async function adminUploadFile() {
             const title = document.getElementById('modalFileTitle').value.trim();
             const link = document.getElementById('modalFileLink').value.trim();
-            const subject = document.getElementById('modalFileSubject').value.trim() || 'ملزمة عامة';
-            const size = document.getElementById('modalFileSize').value.trim() || 'PDF';
             if (!title || !link) { alert('اكتب عنوان الملزمة ورابط التحميل!'); return; }
 
             if (!globalRecordData.studyFiles) globalRecordData.studyFiles = [];
-            globalRecordData.studyFiles.push({ title, link, subject, size, date: new Date().toLocaleDateString('ar-EG') });
+            globalRecordData.studyFiles.push({ 
+                title, link, 
+                subject: document.getElementById('modalFileSubject').value.trim() || 'ملزمة عامة', 
+                size: document.getElementById('modalFileSize').value.trim() || 'PDF', 
+                date: new Date().toLocaleDateString('ar-EG') 
+            });
             await updateCloudData();
             alert('تم نشر الملزمة بنجاح! 🎉');
             closeUploadModal();
@@ -640,17 +620,16 @@
             }
             let html = `<table><thead><tr><th>البريد</th><th>التحكم</th></tr></thead><tbody>`;
             requests.forEach(req => {
-                html += `<tr><td><b>${req.email}</b></td><td><button class="btn-approve" onclick="approveAdminReq('${req.email}', 'sub')">قبول 🛡️</button> <button class="btn-danger" onclick="rejectAdminReq('${req.email}')">رفض ❌</button></td></tr>`;
+                html += `<tr><td><b>${req.email}</b></td><td><button class="btn-approve" onclick="approveAdminReq('${req.email}')">قبول 🛡️</button> <button class="btn-danger" onclick="rejectAdminReq('${req.email}')">رفض ❌</button></td></tr>`;
             });
             html += `</tbody></table>`;
             wrapper.innerHTML = html;
         }
 
-        async function approveAdminReq(email, role) {
-            let reqs = globalRecordData.adminRequests || [];
-            globalRecordData.adminRequests = reqs.filter(r => r.email !== email);
+        async function approveAdminReq(email) {
+            globalRecordData.adminRequests = (globalRecordData.adminRequests || []).filter(r => r.email !== email);
             if (!globalRecordData.admins) globalRecordData.admins = [];
-            globalRecordData.admins.push({ email, role, status: 'active', name: email.split('@')[0] });
+            globalRecordData.admins.push({ email, role: 'sub', status: 'active', name: email.split('@')[0], verified: false });
             await updateCloudData();
             renderUIComponents();
             alert('تم قبول طلب الأدمن بنجاح.');
@@ -668,8 +647,11 @@
             if (!admins || admins.length === 0) { wrapper.innerHTML = '<p style="text-align: center; color: #888;">لا يوجد مشرفين.</p>'; return; }
             let html = `<table><thead><tr><th>الاسم</th><th>البريد</th><th>الحالة</th></tr></thead><tbody>`;
             admins.forEach(adm => {
+                let isOnline = adm.isOnline === true;
+                let statusHtml = isOnline ? `<span class="status-dot status-online" title="متصل (Online)"></span>` : `<span class="status-dot status-offline" title="غير متصل (Offline)"></span>`;
                 let isBlocked = adm.status === 'blocked';
-                html += `<tr class="clickable-row" onclick="openUserModal('${adm.email}', 'admin')"><td><b>${adm.name || adm.email}</b></td><td>${adm.email}</td><td><span style="color:${isBlocked?'red':'green'}">${isBlocked?'محظور':'نشط'}</span></td></tr>`;
+                let verifiedIcon = adm.verified ? verifiedBadgeHTML : '';
+                html += `<tr class="clickable-row" onclick="openUserModal('${adm.email}', 'admin')"><td><b>${adm.name || adm.email}</b> ${verifiedIcon}</td><td>${adm.email}</td><td>${statusHtml} <span style="color:${isBlocked?'red':'inherit'}">${isBlocked?'(محظور)':''}</span></td></tr>`;
             });
             html += `</tbody></table>`;
             wrapper.innerHTML = html;
@@ -681,8 +663,10 @@
             if (!users || users.length === 0) { wrapper.innerHTML = '<p style="text-align: center; color: #888;">لا توجد طلاب.</p>'; return; }
             let html = `<table><thead><tr><th>الكود</th><th>الاسم</th><th>البريد</th><th>الحالة</th></tr></thead><tbody>`;
             users.forEach(st => {
+                let isOnline = st.isOnline === true;
+                let statusHtml = isOnline ? `<span class="status-dot status-online" title="متصل (Online)"></span>` : `<span class="status-dot status-offline" title="غير متصل (Offline)"></span>`;
                 let isBlocked = st.status === 'blocked';
-                html += `<tr class="clickable-row" onclick="openUserModal('${st.email}', 'user')"><td><b>${st.studentId || ''}</b></td><td>${st.fullName || ''}</td><td>${st.email || ''}</td><td><span style="color:${isBlocked?'red':'green'}">${isBlocked?'محظور':'نشط'}</span></td></tr>`;
+                html += `<tr class="clickable-row" onclick="openUserModal('${st.email}', 'user')"><td><b>${st.studentId || ''}</b></td><td>${st.fullName || ''}</td><td>${st.email || ''}</td><td>${statusHtml} <span style="color:${isBlocked?'red':'inherit'}">${isBlocked?'(محظور)':''}</span></td></tr>`;
             });
             html += `</tbody></table>`;
             wrapper.innerHTML = html;
@@ -691,6 +675,7 @@
         function closeControlModal() { document.getElementById('userControlModal').classList.remove('active'); }
         function closeControlModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeControlModal(); }
 
+        // الشاشة العائمة الكاملة للتحكم بالبروفايل والأزرار المخصصة للمطور
         function openUserModal(email, type) {
             const modal = document.getElementById('userControlModal');
             const modalBody = document.getElementById('modalControlBody');
@@ -700,27 +685,84 @@
             if (type === 'admin') {
                 let admin = (globalRecordData.admins || []).find(a => a.email === email);
                 if (!admin) return;
-                modalTitle.textContent = "إدارة المشرف 🛡️";
+                modalTitle.textContent = "بروفايل وإدارة المشرف 🛡️";
                 let isBlocked = admin.status === 'blocked';
+                let isVerified = admin.verified === true;
+                let roleText = admin.role === 'master' ? 'مطور أساسي (Master)' : (admin.role === 'senior' ? 'مشرف أول' : 'مشرف فرعي');
+                
                 modalBody.innerHTML = `
-                    <h3>${admin.name || 'أدمن'}</h3>
-                    <p style="color:#888; margin-bottom:10px;">${admin.email}</p>
+                    <div class="modal-avatar-wrapper">
+                        <img src="${admin.profileImage || 'https://via.placeholder.com/80?text=Admin'}" alt="صورة المشرف">
+                    </div>
+                    <div class="modal-info-list">
+                        <div class="modal-info-item"><label>الاسم:</label><span>${admin.name || 'غير متوفر'}</span></div>
+                        <div class="modal-info-item"><label>البريد:</label><span>${admin.email}</span></div>
+                        <div class="modal-info-item"><label>الصلاحية:</label><span>${roleText}</span></div>
+                        <div class="modal-info-item"><label>التوثيق:</label><span>${isVerified ? 'موثق ✅' : 'غير موثق ❌'}</span></div>
+                    </div>
                     <div class="modal-actions-grid">
+                        <button class="btn-verify" onclick="toggleVerifyAdmin('${admin.email}')">${isVerified ? 'إلغاء التوثيق' : 'توثيق الحساب'}</button>
+                        <button class="btn-approve" onclick="promoteAdminRole('${admin.email}')">ترقية المشرف ⬆️</button>
+                        <button class="btn-block" onclick="demoteAdminRole('${admin.email}')">خفض المشرف ⬇️</button>
                         <button class="btn-block" onclick="toggleBlockStatus('${admin.email}', 'admin')">${isBlocked ? 'فك الحظر' : 'حظر الحساب'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${admin.email}', 'admin')">حذف الحساب</button>
+                        <button class="btn-danger btn-full" onclick="deleteRecord('${admin.email}', 'admin')">حذف المشرف نهائياً 🗑️</button>
                     </div>`;
             } else {
                 let student = (globalRecordData.users || []).find(u => u.email === email);
                 if (!student) return;
-                modalTitle.textContent = "إدارة الطالب 🎓";
+                modalTitle.textContent = "بروفايل وإدارة الطالب 🎓";
                 let isBlocked = student.status === 'blocked';
+                
                 modalBody.innerHTML = `
-                    <h3>${student.fullName || 'طالب'}</h3>
-                    <p style="color:#888; margin-bottom:10px;">${student.email}</p>
+                    <div class="modal-avatar-wrapper">
+                        <img src="${student.profileImage || 'https://via.placeholder.com/80?text=Student'}" alt="صورة الطالب">
+                    </div>
+                    <div class="modal-info-list">
+                        <div class="modal-info-item"><label>كود الطالب:</label><span>${student.studentId || '-'}</span></div>
+                        <div class="modal-info-item"><label>الاسم الكامل:</label><span>${student.fullName || '-'}</span></div>
+                        <div class="modal-info-item"><label>البريد الإلكتروني:</label><span>${student.email}</span></div>
+                        <div class="modal-info-item"><label>الرتبة:</label><span>${student.rank || 'متدرب'}</span></div>
+                    </div>
                     <div class="modal-actions-grid">
-                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب</button>
+                        <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب ⛔'}</button>
+                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب 🗑️</button>
                     </div>`;
+            }
+        }
+
+        async function toggleVerifyAdmin(email) {
+            let admin = globalRecordData.admins.find(a => a.email === email);
+            if (admin) {
+                admin.verified = !admin.verified;
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderUIComponents();
+            }
+        }
+
+        async function promoteAdminRole(email) {
+            let admin = globalRecordData.admins.find(a => a.email === email);
+            if (admin) {
+                if (admin.role === 'sub') admin.role = 'senior';
+                else if (admin.role === 'senior') admin.role = 'master';
+                else { alert('هذا المشرف وصل لأعلى ترقية بالفعل!'); return; }
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderUIComponents();
+                alert('تمت ترقية المشرف بنجاح.');
+            }
+        }
+
+        async function demoteAdminRole(email) {
+            let admin = globalRecordData.admins.find(a => a.email === email);
+            if (admin) {
+                if (admin.role === 'master') admin.role = 'senior';
+                else if (admin.role === 'senior') admin.role = 'sub';
+                else { alert('هذا المشرف في أدنى مستوى صلاحية بالفعل!'); return; }
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderUIComponents();
+                alert('تم خفض رتبة المشرف بنجاح.');
             }
         }
 
@@ -755,7 +797,7 @@
             let email = prompt('أدخل البريد الإلكتروني للأدمن الجديد:');
             if (!email) return;
             if (!globalRecordData.admins) globalRecordData.admins = [];
-            globalRecordData.admins.push({ email, role: 'sub', status: 'active', name: email.split('@')[0] });
+            globalRecordData.admins.push({ email, role: 'sub', status: 'active', name: email.split('@')[0], verified: false });
             updateCloudData().then(() => { renderUIComponents(); alert('تمت الإضافة بنجاح.'); });
         }
 
