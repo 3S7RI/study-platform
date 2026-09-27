@@ -26,7 +26,6 @@
         
         .profile-container { background-color: var(--card-bg); width: 100%; max-width: 520px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); padding: 25px; border: 1px solid var(--border-color); position: relative; overflow: hidden; }
         
-        /* ضبط خلفية الرموز لتظهر بوضوح فوق الكارد وبألوان مميزة */
         .card-bg-pattern {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 1; opacity: 0.22; background-repeat: repeat; background-size: 40px 40px;
@@ -114,6 +113,9 @@
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-top: 5px; }
         .btn:hover { background-color: var(--primary-hover); }
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
+
+        /* مؤشر النقطة الحمراء للإشعارات */
+        .badge-dot { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -142,27 +144,44 @@
         </div>
     </div>
 
-    <!-- نافذة الأصدقاء الجديدة والمدمجة -->
+    <!-- نافذة الأصدقاء وإدارة الطلبات -->
     <div class="modal-overlay" id="friendsModal" onclick="closeFriendsModalOnOuterClick(event)">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>👥 قائمة الأصدقاء وإدارة الطلبات</h3>
+                <h3>👥 الأصدقاء والدردشة الذكية</h3>
                 <button class="close-modal" onclick="closeFriendsModal()">✕</button>
             </div>
             <div class="modal-body" id="friendsModalContent" style="text-align: right;">
                 <div style="margin-bottom: 15px;">
-                    <h4 style="font-size: 0.9rem; color: var(--primary-color); margin-bottom: 8px;">إضافة صديق جديد</h4>
+                    <h4 style="font-size: 0.9rem; color: var(--primary-color); margin-bottom: 8px;">إضافة صديق جديد بالكود</h4>
                     <div class="search-input-group">
                         <input type="text" id="addFriendQuery" placeholder="أدخل كود ID الصديق..." />
                         <button onclick="sendFriendRequest()">إضافة</button>
                     </div>
                 </div>
                 <div style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
-                    <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px;">طلبات الصداقة الواردة</h4>
+                    <h4 style="font-size: 0.9rem; color: #f59e0b; margin-bottom: 8px;">طلبات الصداقة الواردة</h4>
                     <div id="friendRequestsList" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">لا توجد طلبات جديدة.</div>
                     
-                    <h4 style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">أصدقائي النشطون</h4>
+                    <h4 style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px;">قائمة الأصدقاء والدردشة</h4>
                     <div id="myFriendsList" style="font-size: 0.85rem; color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة المحادثة الفردية الذكية -->
+    <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
+        <div class="modal-card" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="chatWithTitle">محادثة مع الصديق</h3>
+                <button class="close-modal" onclick="closeChatModal()">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 10px; text-align: right;">
+                <div id="chatMessagesBox" style="height: 250px; background: var(--input-bg); border-radius: 8px; padding: 10px; overflow-y: auto; margin-bottom: 10px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px;"></div>
+                <div class="search-input-group">
+                    <input type="text" id="chatInputMessage" placeholder="اكتب رسالتك الدراسية..." onkeydown="if(event.key==='Enter') sendChatMessage()" />
+                    <button onclick="sendChatMessage()">إرسال</button>
                 </div>
             </div>
         </div>
@@ -176,6 +195,7 @@
         
         let globalRecord = {};
         let currentStudentData = null;
+        let activeChatFriendId = null;
 
         if (localStorage.getItem('isLoggedIn') !== 'true') {
             alert('يجب تسجيل الدخول أولاً!');
@@ -263,6 +283,7 @@
             let rankInfo = getRankDetails(rankKey);
             let patternChoice = student.bgPattern || 'mixed';
             let isPatternEnabled = student.bgPatternEnabled !== false;
+            let pendingCount = (student.friendRequests || []).length;
 
             updateCardBackgroundPattern(patternChoice, rankInfo.levelNum, isPatternEnabled);
 
@@ -279,13 +300,14 @@
                     <h1 class="student-name">${student.fullName}</h1>
                     <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 15px;">كود الطالب: ${student.studentId || 'STU-0000'}</p>
                     
-                    <!-- الأزرار الموحدة للإعدادات والأصدقاء -->
+                    <!-- أزرار الإعدادات والأصدقاء مع مؤشر الإشعارات -->
                     <div class="profile-actions-bar" style="display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 20px;">
-                        <button id="openSettingsBtn" class="btn-primary" style="background: var(--primary-color); color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="scrollToSettings()">
+                        <button class="btn-primary" style="background: var(--primary-color); color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1;" onclick="scrollToSettings()">
                             ⚙️ إعدادات الملف
                         </button>
-                        <button id="openFriendsBtn" class="btn-secondary" style="background: #374151; color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openFriendsModal()">
-                            👥 الأصدقاء
+                        <button class="btn-secondary" style="background: #374151; color: #fff; padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; flex: 1; position: relative;" onclick="openFriendsModal()">
+                            👥 الأصدقاء والدردشة
+                            <span id="notifDot" class="badge-dot" style="display: ${pendingCount > 0 ? 'inline-block' : 'none'};">${pendingCount}</span>
                         </button>
                     </div>
                 </div>
@@ -299,18 +321,9 @@
                 </div>
 
                 <div class="edit-form" id="settingsSection">
-                    <div class="form-group">
-                        <label>الاسم الكامل</label>
-                        <input type="text" id="editName" value="${student.fullName || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>رقم هاتف الطالب</label>
-                        <input type="tel" id="editPhone" value="${student.studentPhone || ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>رقم هاتف ولي الأمر</label>
-                        <input type="tel" id="editParentPhone" value="${student.parentPhone || ''}">
-                    </div>
+                    <div class="form-group"><label>الاسم الكامل</label><input type="text" id="editName" value="${student.fullName || ''}"></div>
+                    <div class="form-group"><label>رقم هاتف الطالب</label><input type="tel" id="editPhone" value="${student.studentPhone || ''}"></div>
+                    <div class="form-group"><label>رقم هاتف ولي الأمر</label><input type="tel" id="editParentPhone" value="${student.parentPhone || ''}"></div>
                     <div class="form-group">
                         <label>تخصيص رموز خلفية البروفايل (تظهر من المستوى الثالث)</label>
                         <div class="pattern-control-row">
@@ -322,7 +335,7 @@
                                 <option value="lightning" ${patternChoice === 'lightning' ? 'selected' : ''}>⚡ صواعق وطاقة</option>
                                 <option value="shield" ${patternChoice === 'shield' ? 'selected' : ''}>🛡️ دروع وحماية</option>
                             </select>
-                            <label class="toggle-switch-container" title="تفعيل أو إيقاف الرموز في الخلفية">
+                            <label class="toggle-switch-container">
                                 <input type="checkbox" id="editPatternToggle" ${isPatternEnabled ? 'checked' : ''}>
                                 <span>تفعيل</span>
                             </label>
@@ -333,45 +346,28 @@
             `;
         }
 
-        function scrollToSettings() {
-            const settings = document.getElementById('settingsSection');
-            if (settings) {
-                settings.scrollIntoView({ behavior: 'smooth' });
-            }
-        }
+        function scrollToSettings() { document.getElementById('settingsSection').scrollIntoView({ behavior: 'smooth' }); }
 
         function searchPeerProfile() {
             const query = document.getElementById('studentSearchQuery').value.trim().toLowerCase();
             const modal = document.getElementById('searchModal');
             const modalContent = document.getElementById('modalContent');
-            
             if (!query) { alert('اكتب بيانات البحث أولاً!'); return; }
 
             modal.classList.add('active');
             modalContent.innerHTML = '<p style="font-size:0.9rem; padding:20px;">جاري البحث... ⏳</p>';
 
             let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
-            let found = users.find(u => 
-                (u.studentId && u.studentId.toLowerCase() === query) ||
-                (u.fullName && u.fullName.toLowerCase().includes(query))
-            );
+            let found = users.find(u => (u.studentId && u.studentId.toLowerCase() === query) || (u.fullName && u.fullName.toLowerCase().includes(query)));
 
             if (found) {
                 let imgUrl = getStudentImage(found);
-                let rankKey = found.rank || 'bronze';
-                let rankInfo = getRankDetails(rankKey);
-                
+                let rankInfo = getRankDetails(found.rank || 'bronze');
                 modalContent.innerHTML = `
-                    <div class="modal-avatar-wrapper ${rankInfo.class}">
-                        <img src="${imgUrl}" alt="صورة الطالب">
-                    </div>
-                    <div class="level-badge-box ${rankInfo.badgeClass}">
-                        <span>${rankInfo.icon}</span>
-                        <span>${rankInfo.title}</span>
-                    </div>
+                    <div class="modal-avatar-wrapper ${rankInfo.class}"><img src="${imgUrl}" alt="صورة الطالب"></div>
+                    <div class="level-badge-box ${rankInfo.badgeClass}"><span>${rankInfo.icon}</span><span>${rankInfo.title}</span></div>
                     <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:4px;">${found.fullName}</h2>
-                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">كود الطالب: ${found.studentId || 'غير محدد'}</p>
-                    <p style="font-size:0.85rem; color:#10b981; margin-bottom: 12px;">الحالة: طالب مسجل ونشط ✅</p>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px;">كود الطالب: ${found.studentId}</p>
                     <button class="btn" onclick="sendFriendRequestToId('${found.studentId}')">إرسال طلب صداقة ➕</button>
                 `;
             } else {
@@ -382,61 +378,50 @@
         function closeModal() { document.getElementById('searchModal').classList.remove('active'); }
         function closeModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
-        // وظائف نافذة الأصدقاء التفاعلية
+        // إدارة الأصدقاء والطلبات
         function openFriendsModal() {
             document.getElementById('friendsModal').classList.add('active');
             renderFriendsLists();
         }
-
-        function closeFriendsModal() {
-            document.getElementById('friendsModal').classList.remove('active');
-        }
-
-        function closeFriendsModalOnOuterClick(e) {
-            if (e.target.classList.contains('modal-overlay')) closeFriendsModal();
-        }
+        function closeFriendsModal() { document.getElementById('friendsModal').classList.remove('active'); }
+        function closeFriendsModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeFriendsModal(); }
 
         function renderFriendsLists() {
             if (!currentStudentData) return;
-            
-            // تهيئة الحقول إذا لم تكن موجودة
             if (!currentStudentData.friends) currentStudentData.friends = [];
             if (!currentStudentData.friendRequests) currentStudentData.friendRequests = [];
 
             const reqContainer = document.getElementById('friendRequestsList');
             const friendsContainer = document.getElementById('myFriendsList');
 
-            // عرض الطلبات الواردة
-            if (currentStudentData.friendRequests.length === 0) {
-                reqContainer.innerHTML = '<span style="color: var(--text-secondary);">لا توجد طلبات صداقة جديدة.</span>';
-            } else {
-                reqContainer.innerHTML = currentStudentData.friendRequests.map(id => `
+            reqContainer.innerHTML = currentStudentData.friendRequests.length === 0 ? 
+                '<span style="color: var(--text-secondary);">لا توجد طلبات جديدة.</span>' :
+                currentStudentData.friendRequests.map(id => `
                     <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
                         <span>كود: ${id}</span>
                         <div>
-                            <button onclick="acceptFriendRequest('${id}')" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">قبول</button>
-                            <button onclick="rejectFriendRequest('${id}')" style="background: #ef4444; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-right: 4px;">رفض</button>
+                            <button onclick="acceptFriendRequest('${id}')" style="background: #10b981; color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem;">قبول</button>
+                            <button onclick="rejectFriendRequest('${id}')" style="background: #ef4444; color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem; margin-right:4px;">رفض</button>
                         </div>
                     </div>
                 `).join('');
-            }
 
-            // عرض الأصدقاء الحاليين
-            if (currentStudentData.friends.length === 0) {
-                friendsContainer.innerHTML = '<span style="color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</span>';
-            } else {
-                let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
-                friendsContainer.innerHTML = currentStudentData.friends.map(fId => {
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            friendsContainer.innerHTML = currentStudentData.friends.length === 0 ?
+                '<span style="color: var(--text-secondary);">ليس لديك أصدقاء مضافين حتى الآن.</span>' :
+                currentStudentData.friends.map(fId => {
                     let friendObj = users.find(u => u.studentId === fId);
                     let fName = friendObj ? friendObj.fullName : fId;
                     return `
                         <div style="display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px;">
-                            <span>👤 ${fName} (${fId})</span>
-                            <button onclick="removeFriend('${fId}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8rem;">إزالة</button>
+                            <span>👤 ${fName}</span>
+                            <div>
+                                <button onclick="openChat('${fId}', '${fName}')" style="background: var(--primary-color); color:#fff; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.8rem;">دردشة 💬</button>
+                                <button onclick="removeFriend('${fId}')" style="background: none; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem; margin-right:6px;">إزالة</button>
+                            </div>
                         </div>
                     `;
                 }).join('');
-            }
         }
 
         async function sendFriendRequest() {
@@ -447,102 +432,106 @@
         }
 
         async function sendFriendRequestToId(targetId) {
-            if (targetId === currentStudentData.studentId) {
-                alert('لا يمكنك إضافة نفسك كصديق!');
-                return;
-            }
-
+            if (targetId === currentStudentData.studentId) { alert('لا يمكنك إضافة نفسك!'); return; }
             let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
             let targetUser = users.find(u => u.studentId && u.studentId.toLowerCase() === targetId.toLowerCase());
-
-            if (!targetUser) {
-                alert('لم يتم العثور على طالب بهذا الكود!');
-                return;
-            }
+            if (!targetUser) { alert('الطالب غير موجود!'); return; }
 
             if (!targetUser.friendRequests) targetUser.friendRequests = [];
-            if (!targetUser.friends) targetUser.friends = [];
-
-            if (targetUser.friends.includes(currentStudentData.studentId)) {
-                alert('أنتما صديقان بالفعل!');
-                return;
+            if (!targetUser.friendRequests.includes(currentStudentData.studentId)) {
+                targetUser.friendRequests.push(currentStudentData.studentId);
+                await syncStudentDataToCloud("تم إرسال طلب الصداقة بنجاح! 📨");
+                closeModal();
             }
-
-            if (targetUser.friendRequests.includes(currentStudentData.studentId)) {
-                alert('تم إرسال طلب صُداقة مسبقاً لهذا الطالب!');
-                return;
-            }
-
-            targetUser.friendRequests.push(currentStudentData.studentId);
-            await syncStudentDataToCloud("تم إرسال طلب الصداقة بنجاح! 📨");
-            closeModal();
         }
 
         async function acceptFriendRequest(friendId) {
-            if (!currentStudentData.friends) currentStudentData.friends = [];
-            if (!currentStudentData.friendRequests) currentStudentData.friendRequests = [];
-
             currentStudentData.friends.push(friendId);
             currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== friendId);
-
-            // إضافة المستخدم الحالي أيضاً لقائمة أصدقاء الطرف الآخر لتتم المزامنة ثنائياً
+            
             let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
             let friendObj = users.find(u => u.studentId === friendId);
             if (friendObj) {
                 if (!friendObj.friends) friendObj.friends = [];
-                if (!friendObj.friends.includes(currentStudentData.studentId)) {
-                    friendObj.friends.push(currentStudentData.studentId);
-                }
+                if (!friendObj.friends.includes(currentStudentData.studentId)) friendObj.friends.push(currentStudentData.studentId);
             }
 
-            await syncStudentDataToCloud("تم قبول طلب الصداقة بنجاح! 🎉");
+            await syncStudentDataToCloud("تم قبول طلب الصداقة! 🎉");
             renderFriendsLists();
         }
 
         async function rejectFriendRequest(friendId) {
-            if (!currentStudentData.friendRequests) return;
             currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== friendId);
-            await syncStudentDataToCloud("تم رفض طلب الصداقة.");
+            await syncStudentDataToCloud("تم رفض الطلب.");
             renderFriendsLists();
         }
 
         async function removeFriend(friendId) {
-            if (!confirm('هل أنت متأكد من إزالة هذا الصديق؟')) return;
-            if (currentStudentData.friends) {
-                currentStudentData.friends = currentStudentData.friends.filter(id => id !== friendId);
-            }
-            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
-            let friendObj = users.find(u => u.studentId === friendId);
-            if (friendObj && friendObj.friends) {
-                friendObj.friends = friendObj.friends.filter(id => id !== currentStudentData.studentId);
-            }
-            await syncStudentDataToCloud("تم إزالة الصديق بنجاح.");
+            if (!confirm('هل أنت متأكد من الإزالة؟')) return;
+            currentStudentData.friends = currentStudentData.friends.filter(id => id !== friendId);
+            await syncStudentDataToCloud("تمت الإزالة.");
             renderFriendsLists();
+        }
+
+        // الدردشة الفورية بين الأصدقاء
+        function openChat(friendId, friendName) {
+            activeChatFriendId = friendId;
+            document.getElementById('chatWithTitle').innerText = `محادثة مع: ${friendName}`;
+            document.getElementById('chatModal').classList.add('active');
+            renderChatMessages();
+        }
+        function closeChatModal() { document.getElementById('chatModal').classList.remove('active'); }
+
+        function renderChatMessages() {
+            if (!currentStudentData.chats) currentStudentData.chats = {};
+            let chatKey = [currentStudentData.studentId, activeChatFriendId].sort().join('_');
+            let messages = currentStudentData.chats[chatKey] || [];
+
+            const box = document.getElementById('chatMessagesBox');
+            box.innerHTML = messages.length === 0 ? '<div style="text-align:center; color:var(--text-secondary); margin-top:20px;">ابدأ المحادثة الدراسية...</div>' :
+                messages.map(m => `
+                    <div style="align-self: ${m.sender === currentStudentData.studentId ? 'flex-start' : 'flex-end'}; background: ${m.sender === currentStudentData.studentId ? 'var(--primary-color)' : '#334155'}; color:#fff; padding:6px 10px; border-radius:8px; max-width:80%;">
+                        ${m.text}
+                    </div>
+                `).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function sendChatMessage() {
+            let input = document.getElementById('chatInputMessage');
+            let text = input.value.trim();
+            if (!text) return;
+
+            if (!currentStudentData.chats) currentStudentData.chats = {};
+            let chatKey = [currentStudentData.studentId, activeChatFriendId].sort().join('_');
+            if (!currentStudentData.chats[chatKey]) currentStudentData.chats[chatKey] = [];
+
+            let msgObj = { sender: currentStudentData.studentId, text: text, time: Date.now() };
+            currentStudentData.chats[chatKey].push(msgObj);
+
+            // مزامنة الرسالة للطرف الآخر بالسحابة أيضاً
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let friendUser = users.find(u => u.studentId === activeChatFriendId);
+            if (friendUser) {
+                if (!friendUser.chats) friendUser.chats = {};
+                if (!friendUser.chats[chatKey]) friendUser.chats[chatKey] = [];
+                friendUser.chats[chatKey].push(msgObj);
+            }
+
+            input.value = '';
+            renderChatMessages();
+            await syncStudentDataToCloud("");
         }
 
         function handleStudentImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = function(event) {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    if (width > height) { if (width > 200) { height *= 200 / width; width = 200; } }
-                    else { if (height > 200) { width *= 200 / height; height = 200; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    let base64Img = canvas.toDataURL('image/jpeg', 0.6);
-
-                    document.getElementById('studentAvatarImg').src = base64Img;
-                    currentStudentData.profileImage = base64Img;
-                    syncStudentDataToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
-                };
+                currentStudentData.profileImage = event.target.result;
+                document.getElementById('studentAvatarImg').src = currentStudentData.profileImage;
+                syncStudentDataToCloud("تم تحديث الصورة بنجاح! 📸");
             };
         }
 
@@ -558,27 +547,20 @@
         }
 
         async function syncStudentDataToCloud(successMsg) {
-            try {
-                let users = globalRecord.users || [];
-                let idx = users.findIndex(u => u.email.toLowerCase() === currentStudentData.email.toLowerCase());
-                if (idx !== -1) users[idx] = currentStudentData;
-                globalRecord.users = users;
+            let users = globalRecord.users || [];
+            let idx = users.findIndex(u => u.email.toLowerCase() === currentStudentData.email.toLowerCase());
+            if (idx !== -1) users[idx] = currentStudentData;
+            globalRecord.users = users;
 
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    body: JSON.stringify(globalRecord)
-                });
+            let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                body: JSON.stringify(globalRecord)
+            });
 
-                if (res.ok) {
-                    localStorage.setItem('studentUser', JSON.stringify(currentStudentData));
-                    if (successMsg) alert(successMsg);
-                } else {
-                    alert("فشل الحفظ في السحابة!");
-                }
-            } catch (err) {
-                console.error(err);
-                alert("حدث خطأ في الاتصال!");
+            if (res.ok) {
+                localStorage.setItem('studentUser', JSON.stringify(currentStudentData));
+                if (successMsg) alert(successMsg);
             }
         }
 
