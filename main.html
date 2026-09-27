@@ -40,7 +40,7 @@
             color: white; 
             padding: 10px 15px; 
             display: grid; 
-            grid-template-columns: auto 1fr auto; 
+            grid-template-columns: auto auto 1fr auto; 
             align-items: center; 
             gap: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
@@ -102,6 +102,41 @@
 
         .profile-nav-btn span { color: white; font-weight: bold; font-size: 0.85rem; white-space: nowrap; }
 
+        /* زر الإشعارات الفوري في النافبار */
+        .nav-notification-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-notif-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .nav-notif-btn:hover { background: rgba(255, 255, 255, 0.25); }
+        .main-badge-dot {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            padding: 1px 5px;
+            border-radius: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
         .navbar-title { 
             font-size: 1.1rem; 
             font-weight: bold; 
@@ -136,7 +171,7 @@
         .card h3 { color: var(--welcome-h1); font-size: 1.4rem; margin-bottom: 10px; }
         .card p { color: var(--card-text); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5; }
         .card-btn { display: inline-block; background-color: #27ae60; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; width: 100%; transition: background 0.3s; }
-        .card-btn:hover { background-color: #219653; }
+        .card-btn:hover { opacity: 0.9; }
     </style>
 </head>
 <body id="pageBody">
@@ -149,6 +184,14 @@
             </div>
             <span id="navStudentName">حسابي</span>
         </a>
+
+        <!-- زر الإشعارات الفوري -->
+        <div class="nav-notification-wrapper">
+            <a href="profile.html" class="nav-notif-btn" title="الإشعارات وطلبات الصداقة">
+                🔔
+            </a>
+            <span id="mainNotifDot" class="main-badge-dot">0</span>
+        </div>
 
         <!-- المنتصف: اسم المنصة -->
         <div class="navbar-title">📚 رحلة دراسية</div>
@@ -173,6 +216,11 @@
             <p>اختبر نفسك في امتحانات تفاعلية واعرف درجتك فوراً.</p>
             <a href="#" class="card-btn">دخول الامتحانات</a>
         </div>
+        <div class="card" style="border-top-color: #8b5cf6;">
+            <h3>💬 منتدى النقاش الطلابي</h3>
+            <p>تناقش مع زملائك، اسأل في أي جزئية صعبة، وشارك أفكارك.</p>
+            <a href="forum.html" class="card-btn" style="background-color: #8b5cf6;">دخول المنتدى</a>
+        </div>
         <div class="card">
             <h3>📈 درجاتي ومستوايا</h3>
             <p>تابع تطور مستواك وشوف درجاتك السابقة.</p>
@@ -181,6 +229,9 @@
     </main>
 
     <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
         const defaultFemaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%23e6007a'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%23e6007a'/></svg>";
 
@@ -207,9 +258,34 @@
             navProfileImg.src = userData.profileImage || userData.profileImg || defaultImg;
             navAvatarFrame.className = 'nav-avatar-frame nav-frame-' + (userData.rank || 'unranked');
 
+            // جلب الإشعارات وعدد طلبات الصداقة تلقائياً من السحابة للنافبار
+            checkMainNotifications(userData.email);
+
         } else if (isAdminLoggedIn === 'true') {
             document.getElementById('navStudentName').innerText = 'الأدمن';
             navProfileImg.src = defaultMaleSvg;
+        }
+
+        async function checkMainNotifications(email) {
+            if (!email) return;
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await res.json();
+                let users = data.record.users || [];
+                let currentUser = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+                if (currentUser && currentUser.friendRequests && currentUser.friendRequests.length > 0) {
+                    const dot = document.getElementById('mainNotifDot');
+                    if (dot) {
+                        dot.innerText = currentUser.friendRequests.length;
+                        dot.style.display = 'inline-block';
+                    }
+                }
+            } catch (e) {
+                console.error("خطأ في تحديث إشعارات الرئيسية:", e);
+            }
         }
 
         // نظام الوضع الليلي والنهاري
