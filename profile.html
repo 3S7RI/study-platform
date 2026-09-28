@@ -35,7 +35,6 @@
             overflow-x: hidden;
         }
         
-        /* حاوية الإيموجي المتفرقة في الخلفية بالمساحات الفارغة فقط (بدون تداخل مع الحقول الخضراء) */
         .ambient-emoji {
             position: absolute;
             font-size: 1.3rem;
@@ -188,7 +187,6 @@
         .toggle-switch-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
         .toggle-switch-container span { font-size: 0.85rem; color: var(--text-main); font-weight: 600; }
 
-        /* شبكة اختيار الإيموجي في الشاشة العائمة بستايل لون المنصة */
         .emoji-picker-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -338,7 +336,6 @@
 </head>
 <body>
 
-    <!-- حاوية الإيموجي المتفرقة في الخلفية (موزعة بالأصفر بدون تداخل مع الحقول الخضراء) -->
     <div id="ambientEmojisContainer"></div>
 
     <div class="profile-container" id="profileCardMain">
@@ -356,7 +353,7 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- نافذة تعديل الملف الشخصي والإعدادات وتفعيل الرموز الشاملة -->
+    <!-- modal settings -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -393,7 +390,7 @@
         </div>
     </div>
 
-    <!-- نافذة اختيار الرموز العائمة (الشاشة العائمة حسب المستوى) -->
+    <!-- modal emojis -->
     <div class="modal-overlay" id="emojiSelectionModal" onclick="if(event.target===this) closeEmojiSelectionModal()">
         <div class="modal-card" style="max-width: 420px;">
             <div class="modal-header">
@@ -407,7 +404,8 @@
             </div>
         </div>
     </div>
-    <!-- نافذة تعديل الصورة الشخصية -->
+
+    <!-- modal avatar -->
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -424,7 +422,8 @@
             </div>
         </div>
     </div>
-    <!-- نافذة قائمة الأصدقاء -->
+
+    <!-- modal friends -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -439,7 +438,7 @@
         </div>
     </div>
 
-    <!-- نافذة طلبات الأصدقاء الواردة -->
+    <!-- modal requests -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -454,7 +453,7 @@
         </div>
     </div>
 
-    <!-- نافذة مقارنة المستوى مع صديق -->
+    <!-- modal comparison -->
     <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -466,7 +465,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const JSONBIN_BIN_ID = "67c06283ad19ca34f81014be";
         const JSONBIN_API_KEY = "$2a$10$Uv04Q.0jJgX4O9zLg3Gg4uO2WJ6kQ6YhV5bK1wWw8JqF0y0sQ3m2a"; 
@@ -497,6 +495,7 @@
             fetchStudentProfileData();
         });
 
+        // 1. الدالة الأساسية لجلب البيانات ورسم البروفايل
         async function fetchStudentProfileData() {
             const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-0001";
             try {
@@ -505,7 +504,7 @@
                 });
                 const data = await response.json();
                 
-                // التوافق التام: يدعم مصفوفة users القديمة أو students الحديثة
+                // دعم كافة الهياكل الممكنة للـ JSON الحالية للسحابة
                 allStudentsData = data.record.users || data.record.students || [];
                 
                 currentStudentData = allStudentsData.find(s => s.studentId === loggedInId || s.id === loggedInId);
@@ -526,6 +525,7 @@
             }
         }
 
+        // 2. دالة إظهار الإيموجي في خلفية الصفحة
         function renderAmbientEmojis() {
             const container = document.getElementById('ambientEmojisContainer');
             container.innerHTML = '';
@@ -637,9 +637,7 @@
             
             document.getElementById('settingsModal').classList.add('active');
         }
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('active');
-        }
+        function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('active'); }
 
         function openAvatarModal() {
             if (!currentStudentData) return;
@@ -648,9 +646,7 @@
             newAvatarBase64 = null;
             document.getElementById('avatarModal').classList.add('active');
         }
-        function closeAvatarModal() {
-            document.getElementById('avatarModal').classList.remove('active');
-        }
+        function closeAvatarModal() { document.getElementById('avatarModal').classList.remove('active'); }
 
         function openEmojiSelectionModal() {
             document.getElementById('emojiModalTitle').innerText = `اختر الرموز الخاصة بك 🎨`;
@@ -673,9 +669,7 @@
             document.getElementById('emojiSelectionModal').classList.add('active');
         }
 
-        function closeEmojiSelectionModal() {
-            document.getElementById('emojiSelectionModal').classList.remove('active');
-        }
+        function closeEmojiSelectionModal() { document.getElementById('emojiSelectionModal').classList.remove('active'); }
 
         function toggleEmojiSelection(emoji, element) {
             const index = selectedEmojisList.indexOf(emoji);
@@ -746,6 +740,7 @@
             alert('تم حفظ كافة التعديلات والإعدادات بنجاح في السحابة! 🚀');
         }
 
+        // 3. الدالة الأساسية لحفظ التعديلات إلى السحابة بدون مسح باقي بيانات المنصة
         async function saveStudentChangesToCloud() {
             const studentIndex = allStudentsData.findIndex(s => (s.studentId === currentStudentData.studentId || s.id === currentStudentData.id));
             if (studentIndex > -1) {
@@ -753,13 +748,11 @@
             }
 
             try {
-                // جلب كامل محتوى البين الحالي لضمان عدم ضياع الجداول الأخرى (أدمنز، امتحانات، إلخ)
                 const resLatest = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
                 const fullData = await resLatest.json();
                 
-                // تحديث مصفوفة users أو students حسب الموجود
                 if (fullData.record.users) {
                     fullData.record.users = allStudentsData;
                 } else {
