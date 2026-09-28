@@ -327,6 +327,13 @@
     </div>
 
     <script>
+        // تنظيف شامل لأي أثر قديم في الـ LocalStorage نهائياً
+        try {
+            localStorage.clear();
+        } catch (e) {
+            console.warn("Could not clear localStorage:", e);
+        }
+
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
@@ -536,14 +543,14 @@
                     return;
                 }
 
-                // 6. التحقق من حسابات الطلاب (الاعتماد كلياً على السحابة وتنسيق المفاتيح)
+                // 6. التحقق من حسابات الطلاب (الاعتماد كلياً على السحابة و session storage فقط)
                 if (foundStudent && foundStudent.password === pass) {
                     failedAttempts = 0;
                     
                     const userEmail = foundStudent.email || '';
                     const userId = foundStudent.studentId || foundStudent.id || '';
 
-                    // حفظ كافة أشكال المفاتيح التي تبحث عنها الصفحات المختلفة
+                    // الحفظ داخل الجلسة المؤقتة sessionStorage فقط
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('currentStudentEmail', userEmail);
                     sessionStorage.setItem('currentStudentId', userId);
@@ -552,7 +559,7 @@
 
                     alert(`أهلاً بك مجدداً يا ${foundStudent.fullName || foundStudent.name || 'طالبنا العزيز'}! 🎉`);
                     
-                    // التوجيه إلى الرئيسية للبدء مع إمكانية التنقل
+                    // التوجيه إلى الرئيسية
                     window.location.href = 'main.html';
                 } else {
                     failedAttempts++;
