@@ -43,8 +43,6 @@
             justify-content: center;
             align-items: center;
             padding: 30px 15px;
-            user-select: none;
-            -webkit-user-select: none;
             position: relative;
         }
 
@@ -67,14 +65,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             backdrop-filter: blur(10px);
             z-index: 100;
-        }
-
-        /* طبقة الحماية السوداء لمنع تصوير الشاشة */
-        #securityScreenOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000000; z-index: 999999; display: none;
-            justify-content: center; align-items: center; color: #ef4444;
-            font-size: 1.4rem; font-weight: bold; text-align: center; padding: 20px;
         }
 
         .register-container {
@@ -128,7 +118,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
-        /* رفع الملفات المعروض بشكل مبتكر */
         .file-upload-wrapper {
             position: relative;
             display: flex;
@@ -181,11 +170,6 @@
         <span id="themeIcon">☀️</span>
         <span id="themeText">الوضع الفاتح</span>
     </button>
-
-    <!-- شاشة الحماية السوداء -->
-    <div id="securityScreenOverlay">
-        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية المنصة.
-    </div>
 
     <div class="register-container">
         <div class="brand-header">
@@ -270,22 +254,6 @@
             }
         });
 
-        // --- نظام الحماية السوداء ---
-        const securityOverlay = document.getElementById('securityScreenOverlay');
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
-                e.preventDefault();
-                triggerBlackScreen();
-            }
-        });
-        window.addEventListener('blur', () => { triggerBlackScreen(); });
-        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
-        function triggerBlackScreen() {
-            securityOverlay.style.display = 'flex';
-            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
-        }
-        document.addEventListener('contextmenu', e => e.preventDefault());
-
         // --- إظهار وإخفاء كلمة المرور ---
         const passwordInput = document.getElementById('password');
         const togglePassBtn = document.getElementById('togglePassBtn');
@@ -349,40 +317,34 @@
             });
         }
 
-        // --- دالة التحقق الذكي الحازم من الحقول ---
+        // --- دالة التحقق الذكي من الحقول ---
         function validateInputs(name, email, sPhone, pPhone, pass) {
             let isValid = true;
             
-            // إعادة ضبط الرسائل
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
 
-            // 1. الاسم (كلمتين أو أكثر)
             if (name.trim().split(' ').filter(word => word.length > 0).length < 2) {
                 document.getElementById('nameError').style.display = 'block';
                 isValid = false;
             }
 
-            // 2. البريد الإلكتروني (صيغة صحيحة ونطاق معروف)
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             if (!emailRegex.test(email)) {
                 document.getElementById('emailError').style.display = 'block';
                 isValid = false;
             }
 
-            // 3. رقم هاتف الطالب المصرية (010, 011, 012, 015 وبطول 11 رقم)
             const phoneRegex = /^01[0125][0-9]{8}$/;
             if (!phoneRegex.test(sPhone)) {
                 document.getElementById('studentPhoneError').style.display = 'block';
                 isValid = false;
             }
 
-            // 4. رقم هاتف ولي الأمر (صحيح وغير مطابق لرقم الطالب)
             if (!phoneRegex.test(pPhone) || pPhone === sPhone) {
                 document.getElementById('parentPhoneError').style.display = 'block';
                 isValid = false;
             }
 
-            // 5. كلمة المرور
             if (pass.length < 6) {
                 document.getElementById('passError').style.display = 'block';
                 isValid = false;
@@ -402,7 +364,6 @@
             const pass = document.getElementById('password').value;
             const imageFile = profileImageInput.files[0];
 
-            // تنفيذ التحقق الحازم من الحقول
             if (!validateInputs(name, email, sPhone, pPhone, pass)) {
                 return;
             }
@@ -425,7 +386,6 @@
                     studentsList = currentRecord.students;
                 }
 
-                // منع البريد المكرر
                 const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === email);
                 if (emailExists) {
                     alert('هذا البريد الإلكتروني مسجل بالفعل! يمكنك تسجيل الدخول.');
