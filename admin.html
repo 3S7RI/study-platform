@@ -63,25 +63,6 @@
         .verified-badge { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; background-color: #1da1f2; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
         .verified-badge svg { width: 10px; height: 10px; fill: white; }
 
-        /* تأثيرات الإطارات والرتب */
-        .rank-frame-bronze { border: 3px solid #cd7f32 !important; box-shadow: 0 0 10px rgba(205, 127, 50, 0.4); }
-        .rank-frame-silver { border: 3px solid #c0c0c0 !important; box-shadow: 0 0 10px rgba(192, 192, 192, 0.4); }
-        .rank-frame-gold { border: 3px solid #ffd700 !important; box-shadow: 0 0 12px rgba(255, 215, 0, 0.6); }
-        .rank-frame-platinum { border: 3px solid #e5e4e2 !important; box-shadow: 0 0 12px rgba(229, 228, 226, 0.6); }
-        .rank-frame-diamond { border: 3px solid #b9f2ff !important; box-shadow: 0 0 15px rgba(185, 242, 255, 0.8); }
-        .rank-frame-mythic { border: 3px solid #ff4757 !important; box-shadow: 0 0 15px rgba(255, 71, 87, 0.8); }
-
-        .profile-rank-badge {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.78rem;
-            font-weight: bold;
-            background: rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
@@ -94,8 +75,8 @@
         .close-modal:hover { color: #ef4444; }
 
         .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; }
-        .modal-avatar-wrapper { position: relative; width: 80px; height: 80px; margin: 0 auto; }
-        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .modal-avatar-wrapper { position: relative; width: 80px; height: 80px; margin: 0 auto 12px; }
+        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); }
         
         .modal-info-list { margin: 15px 0; text-align: right; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color); }
         .modal-info-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
@@ -622,7 +603,7 @@
                     if (!isNaN(num) && num > lastAdminIdNum) lastAdminIdNum = num;
                 }
             });
-            globalRecordData.admins.push({ adminId: 'ADM-' + String(lastAdminIdNum + 1).padStart(4, '0'), email, role: 'sub', status: 'active', name: email.split('@')[0], verified: false, rank: 'gold' });
+            globalRecordData.admins.push({ adminId: 'ADM-' + String(lastAdminIdNum + 1).padStart(4, '0'), email, role: 'sub', status: 'active', name: email.split('@')[0], verified: false });
             await updateCloudData();
             renderUIComponents();
             alert('تم قبول طلب الأدمن بنجاح.');
@@ -682,14 +663,10 @@
                 let isVerified = admin.verified === true;
                 let roleText = admin.role === 'master' ? 'مطور أساسي (Master)' : 'مشرف فرعي';
                 let nextRoleText = admin.role === 'master' ? 'تحويل لمشرف فرعي' : 'ترقية لمطور أساسي (Master)';
-                let rankClass = `rank-frame-${admin.rank || 'mythic'}`;
                 
                 modalBody.innerHTML = `
-                    <div class="modal-avatar-wrapper ${rankClass}">
-                        <img src="${admin.profileImage || 'https://via.placeholder.com/80?text=Admin'}" alt="صورة المشرف">
-                    </div>
-                    <div class="profile-rank-badge">الرتبة: ${admin.rank || 'mythic'}</div>
-                    <div class="modal-info-list" style="margin-top: 15px;">
+                    <div class="modal-avatar-wrapper"><img src="${admin.profileImage || 'https://via.placeholder.com/80?text=Admin'}" alt="صورة المشرف"></div>
+                    <div class="modal-info-list">
                         <div class="modal-info-item"><label>كود الأدمن:</label><span>${admin.adminId || 'ADM-0001'}</span></div>
                         <div class="modal-info-item"><label>الاسم:</label><span>${admin.name || admin.fullName || 'غير متوفر'}</span></div>
                         <div class="modal-info-item"><label>البريد:</label><span>${admin.email}</span></div>
@@ -709,46 +686,22 @@
                 if (!student) return;
                 modalTitle.textContent = "بروفايل وإدارة الطالب 🎓";
                 let isBlocked = student.status === 'blocked';
-                let rankClass = `rank-frame-${student.rank || 'bronze'}`;
                 
                 modalBody.innerHTML = `
-                    <div class="modal-avatar-wrapper ${rankClass}">
-                        <img src="${student.profileImage || 'https://via.placeholder.com/80?text=Student'}" alt="صورة الطالب">
-                    </div>
-                    <div class="profile-rank-badge">الرتبة: ${student.rank || 'bronze'}</div>
-                    <div class="modal-info-list" style="margin-top: 15px;">
-                        <div class="modal-info-item"><label>كود الطالب:</label><span>${student.studentId || ''}</span></div>
-                        <div class="modal-info-item"><label>الاسم الكامل:</label><span>${student.fullName || ''}</span></div>
-                        <div class="modal-info-item"><label>البريد الإلكتروني:</label><span>${student.email || ''}</span></div>
-                        <div class="modal-info-item"><label>رقم الهاتف:</label><span>${student.studentPhone || 'غير مسجل'}</span></div>
+                    <div class="modal-avatar-wrapper"><img src="${student.profileImage || 'https://via.placeholder.com/80?text=Student'}" alt="صورة الطالب"></div>
+                    <div class="modal-info-list">
+                        <div class="modal-field"><label>كود الطالب:</label><input type="text" id="editStudentId" value="${student.studentId || ''}"></div>
+                        <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="editStudentName" value="${student.fullName || ''}"></div>
+                        <div class="modal-field"><label>البريد الإلكتروني:</label><input type="text" id="editStudentEmail" value="${student.email || ''}"></div>
+                        <div class="modal-field"><label>هاتف الطالب/ولي الأمر:</label><input type="text" id="editStudentPhone" value="${student.studentPhone || ''}"></div>
+                        <div class="modal-field"><label>الرتبة:</label><input type="text" id="editStudentRank" value="${student.rank || 'bronze'}"></div>
                     </div>
                     <div class="modal-actions-grid">
-                        <button class="btn-verify btn-full" onclick="openEditStudentForm('${student.email}')">تعديل ملف الطالب ✏️</button>
+                        <button class="btn-approve" onclick="saveStudentEdits('${student.email}')">حفظ التعديلات 💾</button>
                         <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب ⛔'}</button>
-                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب 🗑️</button>
+                        <button class="btn-danger btn-full" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب 🗑️</button>
                     </div>`;
             }
-        }
-
-        function openEditStudentForm(email) {
-            let student = globalRecordData.users.find(u => u.email === email);
-            if (!student) return;
-            const modalBody = document.getElementById('modalControlBody');
-            const modalTitle = document.getElementById('modalControlTitle');
-            modalTitle.textContent = "تعديل ملف الطالب ✏️";
-
-            modalBody.innerHTML = `
-                <div class="modal-field"><label>كود الطالب:</label><input type="text" id="editStudentId" value="${student.studentId || ''}"></div>
-                <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="editStudentName" value="${student.fullName || ''}"></div>
-                <div class="modal-field"><label>البريد الإلكتروني:</label><input type="text" id="editStudentEmail" value="${student.email || ''}"></div>
-                <div class="modal-field"><label>هاتف الطالب/ولي الأمر:</label><input type="text" id="editStudentPhone" value="${student.studentPhone || ''}"></div>
-                <div class="modal-field"><label>الرتبة:</label><input type="text" id="editStudentRank" value="${student.rank || 'bronze'}"></div>
-                <div class="modal-field"><label>رابط الصورة الشخصية:</label><input type="url" id="editStudentImg" value="${student.profileImage || ''}"></div>
-                <div class="modal-actions-grid">
-                    <button class="btn-approve btn-full" onclick="saveStudentEdits('${student.email}')">حفظ التعديلات بالسحابة 🚀</button>
-                    <button class="btn-block btn-full" onclick="openUserModal('${student.email}', 'user')">إرجاع للخلف ↩️</button>
-                </div>
-            `;
         }
 
         function openEditAdminForm(email) {
@@ -762,7 +715,6 @@
                 <div class="modal-field"><label>اسم المشرف:</label><input type="text" id="editAdminName" value="${admin.name || admin.fullName || ''}"></div>
                 <div class="modal-field"><label>البريد الإلكتروني:</label><input type="email" id="editAdminEmailVal" value="${admin.email || ''}"></div>
                 <div class="modal-field"><label>رقم الهاتف:</label><input type="text" id="editAdminPhone" value="${admin.phone || ''}"></div>
-                <div class="modal-field"><label>الرتبة:</label><input type="text" id="editAdminRank" value="${admin.rank || 'mythic'}"></div>
                 <div class="modal-field"><label>رابط الصورة الشخصية:</label><input type="url" id="editAdminImg" value="${admin.profileImage || ''}"></div>
                 <div class="modal-actions-grid">
                     <button class="btn-approve btn-full" onclick="saveAdminEdits('${admin.email}')">حفظ التعديلات بالسحابة 🚀</button>
@@ -778,4 +730,75 @@
                 admin.fullName = admin.name;
                 admin.email = document.getElementById('editAdminEmailVal').value.trim().toLowerCase();
                 admin.phone = document.getElementById('editAdminPhone').value.trim();
-                admin.rank = document.getElementById('editAd
+                admin.profileImage = document.getElementById('editAdminImg').value.trim();
+                await updateCloudData();
+                closeControlModal();
+                renderUIComponents();
+                alert('تم تعديل بيانات المشرف بنجاح! ⚡');
+            }
+        }
+
+        async function toggleAdminRole(email) {
+            let admin = globalRecordData.admins.find(a => a.email === email);
+            if (admin) {
+                admin.role = (admin.role === 'master' ? 'sub' : 'master');
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderUIComponents();
+            }
+        }
+
+        async function saveStudentEdits(oldEmail) {
+            let student = globalRecordData.users.find(u => u.email === oldEmail);
+            if (student) {
+                student.studentId = document.getElementById('editStudentId').value.trim();
+                student.fullName = document.getElementById('editStudentName').value.trim();
+                student.email = document.getElementById('editStudentEmail').value.trim().toLowerCase();
+                student.studentPhone = document.getElementById('editStudentPhone').value.trim();
+                student.rank = document.getElementById('editStudentRank').value.trim();
+                await updateCloudData();
+                closeControlModal();
+                renderUIComponents();
+                alert('تم تحديث بيانات الطالب وحفظها على السحابة بنجاح! ⚡');
+            }
+        }
+
+        async function toggleVerifyAdmin(email) {
+            let admin = globalRecordData.admins.find(a => a.email === email);
+            if (admin) {
+                admin.verified = !admin.verified;
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderUIComponents();
+            }
+        }
+
+        async function toggleBlockStatus(email, type) {
+            if (type === 'admin') {
+                let admin = globalRecordData.admins.find(a => a.email === email);
+                if (admin) admin.status = (admin.status === 'blocked' ? 'active' : 'blocked');
+            } else {
+                let student = globalRecordData.users.find(u => u.email === email);
+                if (student) student.status = (student.status === 'blocked' ? 'active' : 'blocked');
+            }
+            await updateCloudData();
+            closeControlModal();
+            renderUIComponents();
+            alert('تم تحديث حالة الحظر بنجاح.');
+        }
+
+        async function deleteRecord(email, type) {
+            if (!confirm('هل أنت متأكد من حذف هذا الحساب نهائياً؟')) return;
+            if (type === 'admin') {
+                globalRecordData.admins = globalRecordData.admins.filter(a => a.email !== email);
+            } else {
+                globalRecordData.users = globalRecordData.users.filter(u => u.email !== email);
+            }
+            await updateCloudData();
+            closeControlModal();
+            renderUIComponents();
+            alert('تم الحذف بنجاح.');
+        }
+    </script>
+</body>
+</html>
