@@ -205,13 +205,13 @@
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
         .badge-dot { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; display: none; }
 
-        /* تصميم مطور وموسع لقائمة الأصدقاء وأزرارها */
+        /* تصميم مطور وموسع لقائمة الأصدقاء وأزرارها لتأخذ أقصى اليمين واليسار */
         .friend-item-card {
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             background: var(--input-bg); 
-            padding: 10px 14px; 
+            padding: 10px 12px; 
             border-radius: 14px; 
             margin-bottom: 10px;
             border: 1.5px solid var(--border-color);
@@ -220,20 +220,31 @@
         .friend-info-trigger {
             display: flex; 
             align-items: center; 
-            gap: 12px; 
+            gap: 10px; 
             cursor: pointer;
             flex: 1;
             min-width: 0;
+            text-align: right;
         }
-        .friend-info-trigger img {
+        /* صورة بروفايل الصديق دائرية وتأخذ نفس تأثير إطار البروفايل المتحرك */
+        .friend-info-trigger .friend-avatar-wrap {
             width: 44px; 
             height: 44px; 
             border-radius: 50%; 
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .friend-info-trigger img {
+            width: 100%; 
+            height: 100%; 
+            border-radius: 50%; 
             object-fit: cover;
-            border: 1.5px solid var(--border-color);
         }
         .friend-info-trigger .friend-name-text {
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             font-weight: 700;
             color: var(--text-main);
             white-space: nowrap;
@@ -242,21 +253,23 @@
         }
         .friend-actions-group {
             display: flex; 
-            gap: 8px; 
+            gap: 5px; 
             align-items: center;
+            flex-shrink: 0;
         }
+        /* تصغير أزرار الدردشة والحظر والحذف لإعطاء براح ومساحة أوسع */
         .friend-action-icon-btn {
             border: none;
-            padding: 7px 12px;
-            border-radius: 9px;
+            padding: 6px 8px;
+            border-radius: 7px;
             cursor: pointer;
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-weight: 700;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
             color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             transition: transform 0.1s, opacity 0.2s;
             white-space: nowrap;
         }
@@ -264,6 +277,30 @@
         .btn-chat-action { background: var(--primary-color); }
         .btn-block-action { background: #f59e0b; }
         .btn-delete-action { background: #ef4444; }
+
+        /* تصميم زر المقارنة ليكون بنفس استايل رموز الخلفية تماماً */
+        .btn-comparison-style {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+            border: 1.5px solid var(--primary-color);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-comparison-style:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            background: linear-gradient(135deg, rgba(49, 65, 94, 0.9), rgba(22, 33, 58, 0.95));
+        }
     </style>
 </head>
 <body>
@@ -284,7 +321,6 @@
     <div class="footer-rights">
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
-
     <!-- نافذة تعديل الملف الشخصي (الإعدادات) -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
@@ -673,8 +709,8 @@
                     return `
                         <div class="friend-item-card">
                             <div class="friend-info-trigger" onclick="openPeerProfile('${id}')">
-                                <div class="avatar-wrapper ${sRank.class}" style="width: 44px; height: 44px; margin: 0; padding: 2px;">
-                                    <img src="${sImg}" style="width: 100%; height: 100%; border-radius: 50%;">
+                                <div class="friend-avatar-wrap ${sRank.class}">
+                                    <img src="${sImg}">
                                 </div>
                                 <span class="friend-name-text">${sName}</span>
                             </div>
@@ -697,8 +733,8 @@
                     return `
                         <div class="friend-item-card">
                             <div class="friend-info-trigger" onclick="openPeerProfile('${fId}')" title="عرض الملف الشخصي">
-                                <div class="avatar-wrapper ${fRank.class}" style="width: 44px; height: 44px; margin: 0; padding: 2px;">
-                                    <img src="${fImg}" style="width: 100%; height: 100%; border-radius: 50%;">
+                                <div class="friend-avatar-wrap ${fRank.class}">
+                                    <img src="${fImg}">
                                 </div>
                                 <span class="friend-name-text">${fShortName}</span>
                             </div>
@@ -743,11 +779,11 @@
                 <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:15px; direction: ltr;">كود الصديق: ${friend.studentId}</p>
                 
                 <div style="background: var(--input-bg); padding: 12px; border-radius: 10px; border: 1.5px solid var(--border-color); text-align: right; margin-bottom: 15px; font-size: 0.85rem;">
-                    <p style="margin-bottom: 6px; color: var(--text-main); direction: ltr; text-align: right;">📱 الهاتف: <strong style="direction: ltr; display: inline-block;">${maskedPhone}</strong></p>
-                    <p style="color: var(--text-main); direction: ltr; text-align: right;">📧 البريد: <strong style="direction: ltr; display: inline-block;">${maskedEmail}</strong></p>
+                    <p style="margin-bottom: 8px; color: var(--text-main); text-align: right;">📱 الهاتف: <strong style="direction: ltr; display: inline-block;">${maskedPhone}</strong></p>
+                    <p style="color: var(--text-main); text-align: right;">📧 البريد: <strong style="direction: ltr; display: inline-block;">${maskedEmail}</strong></p>
                 </div>
 
-                <button class="btn" onclick="openComparisonModal('${friend.studentId}')">
+                <button class="btn-comparison-style" onclick="openComparisonModal('${friend.studentId}')">
                     📊 مقارنة بيني وبين صديقي
                 </button>
             `;
