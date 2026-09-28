@@ -35,7 +35,7 @@
             overflow-x: hidden;
         }
         
-        /* حاوية الإيموجي المتفرقة في الخلفية بالمساحات الفارغة فقط (بدون تداخل مع الحقول الخضراء) */
+        /* حاوية الإيموجي المتفرقة في الخلفية بالمساحات الفارغة فقط */
         .ambient-emoji {
             position: absolute;
             font-size: 1.3rem;
@@ -188,7 +188,6 @@
         .toggle-switch-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
         .toggle-switch-container span { font-size: 0.85rem; color: var(--text-main); font-weight: 600; }
 
-        /* شبكة اختيار الإيموجي في الشاشة العائمة بستايل لون المنصة */
         .emoji-picker-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -338,7 +337,6 @@
 </head>
 <body>
 
-    <!-- حاوية الإيموجي المتفرقة في الخلفية (موزعة بالأصفر بدون تداخل مع الحقول الخضراء) -->
     <div id="ambientEmojisContainer"></div>
 
     <div class="profile-container" id="profileCardMain">
@@ -356,7 +354,6 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- نافذة تعديل الملف الشخصي والإعدادات وتفعيل الرموز الشاملة -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -393,7 +390,6 @@
         </div>
     </div>
 
-    <!-- نافذة اختيار الرموز العائمة (الشاشة العائمة حسب المستوى) -->
     <div class="modal-overlay" id="emojiSelectionModal" onclick="if(event.target===this) closeEmojiSelectionModal()">
         <div class="modal-card" style="max-width: 420px;">
             <div class="modal-header">
@@ -407,7 +403,7 @@
             </div>
         </div>
     </div>
-    <!-- نافذة تعديل الصورة الشخصية -->
+    
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -424,7 +420,6 @@
             </div>
         </div>
     </div>
-    <!-- نافذة قائمة الأصدقاء -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -439,7 +434,6 @@
         </div>
     </div>
 
-    <!-- نافذة طلبات الأصدقاء الواردة -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -454,7 +448,6 @@
         </div>
     </div>
 
-    <!-- نافذة مقارنة المستوى مع صديق -->
     <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -473,6 +466,7 @@
 
         let currentStudentData = null;
         let allStudentsData = [];
+        let fullBinDataObject = null;
         let newAvatarBase64 = null;
         let selectedEmojisList = [];
 
@@ -497,21 +491,29 @@
             fetchStudentProfileData();
         });
 
+        // دالة الاتصال وجلب البيانات المحسنة لحل مشكلة السحابة نهائياً
         async function fetchStudentProfileData() {
             const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-0001";
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
-                const data = await response.json();
+                if (!response.ok) throw new Error('فشل جلب البيانات من السحابة');
                 
-                // التوافق التام: يدعم مصفوفة users القديمة أو students الحديثة
-                allStudentsData = data.record.users || data.record.students || [];
+                const jsonResp = await response.json();
+                
+                // التوافق التام مع هيكل الـ Bin (سواء كان داخل record.users أو record مباشرة أو users مباشرة)
+                fullBinDataObject = jsonResp.record || jsonResp;
+                allStudentsData = fullBinDataObject.users || fullBinDataObject.students || [];
+
+                if (allStudentsData.length === 0 && Array.isArray(fullBinDataObject)) {
+                    allStudentsData = fullBinDataObject;
+                }
                 
                 currentStudentData = allStudentsData.find(s => s.studentId === loggedInId || s.id === loggedInId);
                 
                 if (!currentStudentData && allStudentsData.length > 0) {
-                    currentStudentData = allStudentsData[0]; 
+                    currentStudentData = allStudentsData[0]; // افتراضي أول طالب مسجل
                 }
 
                 if (currentStudentData) {
@@ -522,7 +524,7 @@
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
-                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">خطأ في الاتصال بالسحابة وجلب البيانات.</div>`;
+                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">خطأ في الاتصال بالسحابة وجلب البيانات. تأكد من اتصال الإنترنت أو مفتاح الـ API.</div>`;
             }
         }
 
@@ -753,17 +755,14 @@
             }
 
             try {
-                // جلب كامل محتوى البين الحالي لضمان عدم ضياع الجداول الأخرى (أدمنز، امتحانات، إلخ)
-                const resLatest = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': JSONBIN_API_KEY }
-                });
-                const fullData = await resLatest.json();
+                if (!fullBinDataObject) fullBinDataObject = {};
                 
-                // تحديث مصفوفة users أو students حسب الموجود
-                if (fullData.record.users) {
-                    fullData.record.users = allStudentsData;
+                if (fullBinDataObject.users) {
+                    fullBinDataObject.users = allStudentsData;
+                } else if (fullBinDataObject.students) {
+                    fullBinDataObject.students = allStudentsData;
                 } else {
-                    fullData.record.students = allStudentsData;
+                    fullBinDataObject.users = allStudentsData;
                 }
 
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
@@ -772,7 +771,7 @@
                         'Content-Type': 'application/json',
                         'X-Master-Key': JSONBIN_API_KEY
                     },
-                    body: JSON.stringify(fullData.record)
+                    body: JSON.stringify(fullBinDataObject)
                 });
                 if (!response.ok) throw new Error('فشل الحفظ بالسحابة');
             } catch (error) {
