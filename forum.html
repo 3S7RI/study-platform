@@ -68,7 +68,7 @@
         }
         
         .post-tools-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-        .media-upload-btns { display: flex; gap: 8px; }
+        .media-upload-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         .media-btn {
             background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6; color: #8b5cf6;
             padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;
@@ -79,7 +79,7 @@
         .post-submit-btn {
             background-color: #8b5cf6; color: white; border: none; padding: 10px 20px;
             border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem; width: 100%;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s; margin-top: 10px;
         }
         .post-submit-btn:hover { opacity: 0.9; }
 
@@ -118,12 +118,17 @@
         .admin-badge-full { background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
         .admin-badge-sub { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
 
-        .add-comment-box { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+        .add-comment-box { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
         .add-comment-box input {
-            flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--input-border);
+            flex: 1; min-width: 150px; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--input-border);
             background: var(--input-bg); color: var(--text-color); font-size: 0.9rem; outline: none;
         }
-        .add-comment-box button {
+        .comment-tools { display: flex; gap: 5px; align-items: center; }
+        .comment-mic-btn {
+            background: rgba(139, 92, 246, 0.1); border: 1px solid #8b5cf6; color: #8b5cf6;
+            padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold;
+        }
+        .add-comment-box button.send-btn {
             background: #2563eb; color: white; border: none; padding: 8px 15px;
             border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
         }
@@ -155,13 +160,14 @@
                 </div>
                 <span id="mediaStatusIndicator" style="font-size: 0.8rem; color: #10b981; font-weight: bold;"></span>
             </div>
+            
             <div id="imagePreviewContainer" style="margin-bottom: 10px; display: none; position: relative;">
                 <img id="imgPreviewTag" style="max-height: 120px; border-radius: 6px;">
                 <button type="button" onclick="removeSelectedImage()" style="background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; cursor: pointer; position: absolute; top: -5px; right: -5px;">✕</button>
             </div>
 
-            <!-- زر النشر / إرسال التسجيل -->
-            <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر</button>
+            <!-- زر النشر الشامل الموحد -->
+            <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر السؤال بالوسائط المرفقة 🚀</button>
         </div>
 
         <div id="postsFeed" class="posts-feed">
@@ -197,6 +203,11 @@
         let audioChunks = [];
         let isRecording = false;
 
+        // متغيرات خاصة بتسجيل الردود الصوتية للأدمن
+        let activeCommentRecorder = null;
+        let activeCommentChunks = [];
+        let activeCommentAudioBase64 = "";
+
         const pageBody = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -219,7 +230,7 @@
                 selectedBase64Image = event.target.result;
                 document.getElementById('imgPreviewTag').src = selectedBase64Image;
                 document.getElementById('imagePreviewContainer').style.display = 'block';
-                document.getElementById('mediaStatusIndicator').textContent = "تم إرفاق الصورة بنجاح ✅";
+                updateStatusText();
             };
             reader.readAsDataURL(file);
         }
@@ -227,13 +238,12 @@
         function removeSelectedImage() {
             selectedBase64Image = "";
             document.getElementById('imagePreviewContainer').style.display = 'none';
-            document.getElementById('mediaStatusIndicator').textContent = "";
             document.getElementById('postImageInput').value = "";
+            updateStatusText();
         }
 
         async function toggleVoiceRecording() {
             const btn = document.getElementById('recordVoiceBtn');
-            const submitBtn = document.getElementById('postSubmitBtn');
             const status = document.getElementById('mediaStatusIndicator');
 
             if (!isRecording) {
@@ -243,13 +253,13 @@
                     audioChunks = [];
 
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = async () => {
+                    mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         const reader = new FileReader();
                         reader.readAsDataURL(audioBlob);
                         reader.onloadend = () => {
                             recordedAudioBase64 = reader.result;
-                            status.textContent = "تم تجهيز التسجيل الصوتي بنجاح 🎙️⚡";
+                            updateStatusText();
                         };
                     };
 
@@ -258,10 +268,6 @@
                     btn.style.background = "#ef4444";
                     btn.style.color = "white";
                     btn.textContent = "⏹️ إيقاف التسجيل";
-                    
-                    // تغيير شكل ولون ونص زر النشر أثناء التسجيل ليصبح "إرسال التسجيل"
-                    submitBtn.textContent = "إرسال التسجيل";
-                    submitBtn.style.backgroundColor = "#ef4444";
                     status.textContent = "جاري تسجيل الصوت الآن... 🎙️";
                 } catch (err) {
                     alert('يرجى السماح باستخدام الميكروفون لتسجيل الفويس!');
@@ -272,17 +278,21 @@
                 btn.style.background = "";
                 btn.style.color = "";
                 btn.textContent = "🎙️ تسجيل فويس";
-                
-                // إعادة الزر لوضعه الطبيعي أو تركه جاهزاً للنشر
-                submitBtn.textContent = "نشر";
-                submitBtn.style.backgroundColor = "#8b5cf6";
+                updateStatusText();
             }
         }
 
-        // دالة موحدة للتحكم بالزر حسب حالة التسجيل
+        function updateStatusText() {
+            let parts = [];
+            if (selectedBase64Image) parts.push("📷 صورة");
+            if (recordedAudioBase64) parts.push("🎙️ صوت");
+            const status = document.getElementById('mediaStatusIndicator');
+            status.textContent = parts.length > 0 ? `المرفقات الحالية: ${parts.join(' + ')} جاهزة ✅` : "";
+        }
+
+        // دالة موحدة لضمان حفظ كل العناصر معاً في نفس النشرة
         function handlePostSubmitAction() {
             if (isRecording && mediaRecorder) {
-                // إذا كان الضغط أثناء التسجيل الحي، نوقف التسجيل ونحفظه مباشرة مع المنشور
                 mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
@@ -290,20 +300,15 @@
                     reader.onloadend = async () => {
                         recordedAudioBase64 = reader.result;
                         isRecording = false;
-                        
-                        // إعادة تعيين زر التسجيل
                         const btn = document.getElementById('recordVoiceBtn');
                         btn.style.background = "";
                         btn.style.color = "";
                         btn.textContent = "🎙️ تسجيل فويس";
-
-                        // تنفيذ النشر مباشرة
                         await createNewQuestionPost();
                     };
                 };
                 mediaRecorder.stop();
             } else {
-                // النشر العادي (نص، صورة، أو فويس مسجل مسبقاً)
                 createNewQuestionPost();
             }
         }
@@ -367,7 +372,12 @@
                 let commentBoxHtml = `
                     <div class="add-comment-box">
                         <input type="text" id="commentInput_${realIndex}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'الردود مقتصرة على الأدمن فقط'}">
-                        ${isUserAdmin ? `<button onclick="addAdminComment(${realIndex})">إرسال رد</button>` : ''}
+                        ${isUserAdmin ? `
+                            <div class="comment-tools">
+                                <button type="button" class="comment-mic-btn" id="commentMicBtn_${realIndex}" onclick="toggleCommentVoiceRecording(${realIndex})" title="تسجيل صوت للرد">🎙️</button>
+                                <button type="button" class="send-btn" onclick="submitAdminCommentAction(${realIndex})">إرسال</button>
+                            </div>
+                        ` : ''}
                     </div>
                     ${!isUserAdmin ? `<div class="admin-only-notice">⚠️ عذراً، الرد على الأسئلة مخصص للأدمن فقط لضمان الإجابة النموذجية.</div>` : ''}
                 `;
@@ -398,10 +408,61 @@
             });
         }
 
+        async function toggleCommentVoiceRecording(postIndex) {
+            const btn = document.getElementById(`commentMicBtn_${postIndex}`);
+
+            if (!activeCommentRecorder || activeCommentRecorder.state === "inactive") {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    activeCommentRecorder = new MediaRecorder(stream);
+                    activeCommentChunks = [];
+
+                    activeCommentRecorder.ondataavailable = e => activeCommentChunks.push(e.data);
+                    activeCommentRecorder.onstop = () => {
+                        const audioBlob = new Blob(activeCommentChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            activeCommentAudioBase64 = reader.result;
+                        };
+                    };
+
+                    activeCommentRecorder.start();
+                    btn.style.background = "#ef4444";
+                    btn.style.color = "white";
+                    btn.textContent = "⏹️";
+                } catch (err) {
+                    alert('يرجى السماح باستخدام الميكروفون!');
+                }
+            } else {
+                activeCommentRecorder.stop();
+                btn.style.background = "";
+                btn.style.color = "";
+                btn.textContent = "🎙️";
+            }
+        }
+
+        function submitAdminCommentAction(postIndex) {
+            if (activeCommentRecorder && activeCommentRecorder.state === "recording") {
+                activeCommentRecorder.onstop = async () => {
+                    const audioBlob = new Blob(activeCommentChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = async () => {
+                        activeCommentAudioBase64 = reader.result;
+                        await addAdminComment(postIndex);
+                    };
+                };
+                activeCommentRecorder.stop();
+            } else {
+                addAdminComment(postIndex);
+            }
+        }
+
         async function createNewQuestionPost() {
             let content = document.getElementById('postContentInput').value.trim();
             if (!content && !selectedBase64Image && !recordedAudioBase64) {
-                alert('الرجاء كتابة محتوى السؤال أو إرفاق صورة/تسجيل صوتي!');
+                alert('الرجاء كتابة محتوى السؤال أو إرفاق صورة أو تسجيل صوتي!');
                 return;
             }
 
@@ -440,17 +501,11 @@
                     removeSelectedImage();
                     recordedAudioBase64 = "";
                     document.getElementById('mediaStatusIndicator').textContent = "";
-                    
-                    // إعادة ضبط الزر للنشر العادي
-                    const submitBtn = document.getElementById('postSubmitBtn');
-                    submitBtn.textContent = "نشر";
-                    submitBtn.style.backgroundColor = "#8b5cf6";
-
                     loadForumData();
                 }
             } catch (e) {
                 console.error(e);
-                alert('حدث خطأ أثناء الاتصال بالسحابة.');
+                alert('حدث خطأ أثناء الاتصال بالسحابة وحفظ السؤال.');
             }
         }
 
@@ -486,7 +541,7 @@
         async function addAdminComment(postIndex) {
             let input = document.getElementById(`commentInput_${postIndex}`);
             let text = input.value.trim();
-            if (!text && !recordedAudioBase64) return;
+            if (!text && !activeCommentAudioBase64) return;
 
             let authorName = adminRole === 'master' ? 'محمد عماد (مؤسس المنصة)' : 'مشرف المنصة';
 
@@ -504,7 +559,7 @@
                     record.forumPosts[postIndex].comments.push({
                         authorName: authorName,
                         text: text,
-                        audio: recordedAudioBase64,
+                        audio: activeCommentAudioBase64,
                         isAdmin: true,
                         role: adminRole
                     });
@@ -517,7 +572,7 @@
 
                     if (updateRes.ok) {
                         input.value = '';
-                        recordedAudioBase64 = "";
+                        activeCommentAudioBase64 = "";
                         loadForumData();
                     }
                 }
