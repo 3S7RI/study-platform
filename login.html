@@ -334,10 +334,12 @@
         const ADMIN_SECRET_PASS = '@Mohamad66xm01122161407';
         const SUPPORT_WHATSAPP = '201038783039';
 
+        // هيدرز الاتصال بالسحابة لمنع الـ Cache
         const cloudHeaders = {
             'X-Master-Key': API_KEY,
             'X-Access-Key': API_KEY,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-Bin-Meta': 'false'
         };
 
         // --- التحكم في الثيم الداكن والفاتح ---
@@ -466,11 +468,13 @@
             }
 
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: cloudHeaders
+                // جلب أحدث نسخة مباشرة من السحابة بدون Cache
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
+                    headers: cloudHeaders,
+                    cache: 'no-cache'
                 });
                 let result = await response.json();
-                let record = result.record || {};
+                let record = result.record || result;
                 
                 let rawAdmins = record.admins;
                 let adminsList = [];
@@ -532,17 +536,24 @@
                     return;
                 }
 
-                // 6. التحقق من حسابات الطلاب (بدون localStorage)
+                // 6. التحقق من حسابات الطلاب (الاعتماد كلياً على السحابة وتنسيق المفاتيح)
                 if (foundStudent && foundStudent.password === pass) {
                     failedAttempts = 0;
                     
-                    // الاعتماد الحصري والآمن على sessionStorage
-                    sessionStorage.setItem('currentStudentEmail', foundStudent.email || '');
-                    sessionStorage.setItem('currentStudentId', foundStudent.studentId || foundStudent.id || '');
+                    const userEmail = foundStudent.email || '';
+                    const userId = foundStudent.studentId || foundStudent.id || '';
+
+                    // حفظ كافة أشكال المفاتيح التي تبحث عنها الصفحات المختلفة
                     sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('currentStudentEmail', userEmail);
+                    sessionStorage.setItem('currentStudentId', userId);
+                    sessionStorage.setItem('studentUser', JSON.stringify(foundStudent));
+                    sessionStorage.setItem('currentUser', JSON.stringify(foundStudent));
 
                     alert(`أهلاً بك مجدداً يا ${foundStudent.fullName || foundStudent.name || 'طالبنا العزيز'}! 🎉`);
-                    window.location.href = `profile.html?email=${encodeURIComponent(foundStudent.email)}&id=${encodeURIComponent(foundStudent.studentId || foundStudent.id)}`;
+                    
+                    // التوجيه إلى الرئيسية للبدء مع إمكانية التنقل
+                    window.location.href = 'main.html';
                 } else {
                     failedAttempts++;
                     if (failedAttempts >= 5) {
