@@ -185,7 +185,7 @@
                 <form id="addAdminForm" onsubmit="event.preventDefault(); submitNewAdmin();">
                     <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="newAdminName" placeholder="محمد عماد" required></div>
                     <div class="modal-field"><label>البريد الإلكتروني:</label><input type="email" id="newAdminEmail" placeholder="admin@gmail.com" required></div>
-                    <div class="modal-field"><label>رقم الهاتف:</label><input type="tel" id="newAdminPhone" placeholder="010xxxxxxxx"></div>
+                    <div class="modal-field"><label>رقم الهاتف:</label><input type="tel" id="newAdminPhone" placeholder="010xxxxxxxx" required></div>
                     <div class="modal-field"><label>كلمة المرور:</label><input type="password" id="newAdminPass" placeholder="••••••••" required></div>
                     <div class="modal-actions-grid"><button type="submit" class="btn-approve btn-full">إضافة وحفظ على السحابة 🚀</button></div>
                 </form>
@@ -204,7 +204,8 @@
                 <form id="addStudentForm" onsubmit="event.preventDefault(); submitNewStudent();">
                     <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="newStudentName" placeholder="اسم الطالب" required></div>
                     <div class="modal-field"><label>البريد الإلكتروني:</label><input type="email" id="newStudentEmail" placeholder="student@gmail.com" required></div>
-                    <div class="modal-field"><label>رقم هاتف الطالب / ولي الأمر:</label><input type="tel" id="newStudentPhone" placeholder="011xxxxxxxx"></div>
+                    <div class="modal-field"><label>رقم هاتف الطالب:</label><input type="tel" id="newStudentPhone" placeholder="011xxxxxxxx" required></div>
+                    <div class="modal-field"><label>رقم ولي الأمر:</label><input type="tel" id="newStudentParentPhone" placeholder="010xxxxxxxx" required></div>
                     <div class="modal-actions-grid"><button type="submit" class="btn-approve btn-full">إضافة وتوليد كود تسلسلي 🚀</button></div>
                 </form>
             </div>
@@ -383,7 +384,9 @@
             let phone = document.getElementById('newAdminPhone').value.trim();
             let password = document.getElementById('newAdminPass').value.trim();
 
-            if (!name || !email || !password) { alert('يرجى تعبئة الحقول الأساسية (الاسم، البريد، كلمة المرور)'); return; }
+            if (!name || !email || !phone || !password) { alert('يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح'); return; }
+            if (!email.includes('@') || !email.includes('.')) { alert('صيغة البريد الإلكتروني غير صحيحة!'); return; }
+            if (phone.length < 10) { alert('رقم الهاتف غير صحيح!'); return; }
 
             if (!globalRecordData.admins) globalRecordData.admins = [];
             
@@ -423,8 +426,9 @@
             let fullName = document.getElementById('newStudentName').value.trim();
             let email = document.getElementById('newStudentEmail').value.trim().toLowerCase();
             let studentPhone = document.getElementById('newStudentPhone').value.trim();
+            let parentPhone = document.getElementById('newStudentParentPhone').value.trim();
 
-            if (!fullName || !email) { alert('يرجى إدخال اسم الطالب وبريده الإلكتروني'); return; }
+            if (!fullName || !email || !studentPhone || !parentPhone) { alert('يرجى تعبئة جميع الحقول بما فيها رقم الطالب ورقم ولي الأمر!'); return; }
             if (!email.includes('@') || !email.includes('.')) { alert('صيغة البريد الإلكتروني غير صحيحة!'); return; }
 
             if (!globalRecordData.users) globalRecordData.users = [];
@@ -443,6 +447,7 @@
                 fullName,
                 email,
                 studentPhone,
+                parentPhone,
                 status: 'active',
                 rank: 'bronze'
             });
@@ -690,18 +695,40 @@
                 modalBody.innerHTML = `
                     <div class="modal-avatar-wrapper"><img src="${student.profileImage || 'https://via.placeholder.com/80?text=Student'}" alt="صورة الطالب"></div>
                     <div class="modal-info-list">
-                        <div class="modal-field"><label>كود الطالب:</label><input type="text" id="editStudentId" value="${student.studentId || ''}"></div>
-                        <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="editStudentName" value="${student.fullName || ''}"></div>
-                        <div class="modal-field"><label>البريد الإلكتروني:</label><input type="text" id="editStudentEmail" value="${student.email || ''}"></div>
-                        <div class="modal-field"><label>هاتف الطالب/ولي الأمر:</label><input type="text" id="editStudentPhone" value="${student.studentPhone || ''}"></div>
-                        <div class="modal-field"><label>الرتبة:</label><input type="text" id="editStudentRank" value="${student.rank || 'bronze'}"></div>
+                        <div class="modal-info-item"><label>كود الطالب:</label><span>${student.studentId || ''}</span></div>
+                        <div class="modal-info-item"><label>الاسم:</label><span>${student.fullName || ''}</span></div>
+                        <div class="modal-info-item"><label>البريد:</label><span>${student.email || ''}</span></div>
+                        <div class="modal-info-item"><label>هاتف الطالب:</label><span>${student.studentPhone || 'غير مسجل'}</span></div>
+                        <div class="modal-info-item"><label>رقم ولي الأمر:</label><span>${student.parentPhone || 'غير مسجل'}</span></div>
+                        <div class="modal-info-item"><label>الرتبة:</label><span>${student.rank || 'bronze'}</span></div>
                     </div>
                     <div class="modal-actions-grid">
-                        <button class="btn-approve" onclick="saveStudentEdits('${student.email}')">حفظ التعديلات 💾</button>
+                        <button class="btn-verify btn-full" onclick="openEditStudentForm('${student.email}')">تعديل بيانات الطالب ✏️</button>
                         <button class="btn-block" onclick="toggleBlockStatus('${student.email}', 'user')">${isBlocked ? 'فك الحظر' : 'حظر الطالب ⛔'}</button>
-                        <button class="btn-danger btn-full" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب 🗑️</button>
+                        <button class="btn-danger" onclick="deleteRecord('${student.email}', 'user')">حذف الطالب 🗑️</button>
                     </div>`;
             }
+        }
+
+        function openEditStudentForm(email) {
+            let student = globalRecordData.users.find(u => u.email === email);
+            if (!student) return;
+            const modalBody = document.getElementById('modalControlBody');
+            const modalTitle = document.getElementById('modalControlTitle');
+            modalTitle.textContent = "تعديل بيانات الطالب ✏️";
+
+            modalBody.innerHTML = `
+                <div class="modal-field"><label>كود الطالب:</label><input type="text" id="editStudentId" value="${student.studentId || ''}"></div>
+                <div class="modal-field"><label>الاسم الكامل:</label><input type="text" id="editStudentName" value="${student.fullName || ''}"></div>
+                <div class="modal-field"><label>البريد الإلكتروني:</label><input type="email" id="editStudentEmailVal" value="${student.email || ''}"></div>
+                <div class="modal-field"><label>هاتف الطالب:</label><input type="tel" id="editStudentPhoneVal" value="${student.studentPhone || ''}"></div>
+                <div class="modal-field"><label>رقم ولي الأمر:</label><input type="tel" id="editStudentParentPhoneVal" value="${student.parentPhone || ''}"></div>
+                <div class="modal-field"><label>الرتبة:</label><input type="text" id="editStudentRank" value="${student.rank || 'bronze'}"></div>
+                <div class="modal-actions-grid">
+                    <button class="btn-approve btn-full" onclick="saveStudentEdits('${student.email}')">حفظ التعديلات بالسحابة 🚀</button>
+                    <button class="btn-block btn-full" onclick="openUserModal('${student.email}', 'user')">إرجاع للخلف ↩️</button>
+                </div>
+            `;
         }
 
         function openEditAdminForm(email) {
@@ -753,8 +780,9 @@
             if (student) {
                 student.studentId = document.getElementById('editStudentId').value.trim();
                 student.fullName = document.getElementById('editStudentName').value.trim();
-                student.email = document.getElementById('editStudentEmail').value.trim().toLowerCase();
-                student.studentPhone = document.getElementById('editStudentPhone').value.trim();
+                student.email = document.getElementById('editStudentEmailVal').value.trim().toLowerCase();
+                student.studentPhone = document.getElementById('editStudentPhoneVal').value.trim();
+                student.parentPhone = document.getElementById('editStudentParentPhoneVal').value.trim();
                 student.rank = document.getElementById('editStudentRank').value.trim();
                 await updateCloudData();
                 closeControlModal();
