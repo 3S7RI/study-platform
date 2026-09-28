@@ -466,8 +466,8 @@
         </div>
     </div>
     <script>
-        const JSONBIN_BIN_ID = "67c06283ad19ca34f81014be";
-        const JSONBIN_API_KEY = "$2a$10$Uv04Q.0jJgX4O9zLg3Gg4uO2WJ6kQ6YhV5bK1wWw8JqF0y0sQ3m2a"; 
+        const JSONBIN_BIN_ID = "6ab78eaeffd5d1605330ce1e";
+        const JSONBIN_API_KEY = "$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe"; 
 
         let currentStudentData = null;
         let allStudentsData = [];
@@ -495,16 +495,18 @@
             fetchStudentProfileData();
         });
 
-        // 1. الدالة الأساسية لجلب البيانات ورسم البروفايل
+        // 1. الدالة الأساسية لجلب البيانات من السحابة مع معالجة CORS والـ Endpoints
         async function fetchStudentProfileData() {
             const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-0001";
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
+                if (!response.ok) throw new Error('فشل الاتصال بالسحابة');
+                
                 const data = await response.json();
                 
-                // دعم كافة الهياكل الممكنة للـ JSON الحالية للسحابة
+                // التوافق مع بنية الـ JSON الكاملة
                 allStudentsData = data.record.users || data.record.students || [];
                 
                 currentStudentData = allStudentsData.find(s => s.studentId === loggedInId || s.id === loggedInId);
@@ -525,7 +527,7 @@
             }
         }
 
-        // 2. دالة إظهار الإيموجي في خلفية الصفحة
+        // 2. إظهار الإيموجي في الخلفية
         function renderAmbientEmojis() {
             const container = document.getElementById('ambientEmojisContainer');
             container.innerHTML = '';
@@ -549,21 +551,23 @@
 
         function getRankFrameClass(rank) {
             if (!rank) return 'rank-frame-unranked';
-            if (rank === 'bronze') return 'rank-frame-bronze';
-            if (rank === 'silver') return 'rank-frame-silver';
-            if (rank === 'gold') return 'rank-frame-gold';
-            if (rank === 'diamond') return 'rank-frame-diamond';
-            if (rank === 'mythic') return 'rank-frame-mythic';
+            const r = rank.toLowerCase();
+            if (r.includes('bronze') || r.includes('برونزي')) return 'rank-frame-bronze';
+            if (r.includes('silver') || r.includes('فضي')) return 'rank-frame-silver';
+            if (r.includes('gold') || r.includes('ذهبي')) return 'rank-frame-gold';
+            if (r.includes('diamond') || r.includes('ماسي')) return 'rank-frame-diamond';
+            if (r.includes('mythic') || r.includes('أسطوري')) return 'rank-frame-mythic';
             return 'rank-frame-unranked';
         }
 
         function getLevelBadgeClass(rank) {
             if (!rank) return 'badge-unranked';
-            if (rank === 'bronze') return 'badge-bronze';
-            if (rank === 'silver') return 'badge-silver';
-            if (rank === 'gold') return 'badge-gold';
-            if (rank === 'diamond') return 'badge-diamond';
-            if (rank === 'mythic') return 'badge-mythic';
+            const r = rank.toLowerCase();
+            if (r.includes('bronze') || r.includes('برونزي')) return 'badge-bronze';
+            if (r.includes('silver') || r.includes('فضي')) return 'badge-silver';
+            if (r.includes('gold') || r.includes('ذهبي')) return 'badge-gold';
+            if (r.includes('diamond') || r.includes('ماسي')) return 'badge-diamond';
+            if (r.includes('mythic') || r.includes('أسطوري')) return 'badge-mythic';
             return 'badge-unranked';
         }
 
@@ -740,7 +744,7 @@
             alert('تم حفظ كافة التعديلات والإعدادات بنجاح في السحابة! 🚀');
         }
 
-        // 3. الدالة الأساسية لحفظ التعديلات إلى السحابة بدون مسح باقي بيانات المنصة
+        // 3. دالة الحفظ السحابي الكامل لعدم مسح الجداول الأخرى
         async function saveStudentChangesToCloud() {
             const studentIndex = allStudentsData.findIndex(s => (s.studentId === currentStudentData.studentId || s.id === currentStudentData.id));
             if (studentIndex > -1) {
