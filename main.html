@@ -276,26 +276,25 @@
             }
         });
 
-        // --- التحقق الآمن من تسجيل الدخول وتجنب حلقة التوجيه (Loop) ---
+        // --- التحقق المرن والصحيح من تسجيل دخول الطالب ---
         const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
+        const userData = rawUserData ? JSON.parse(rawUserData) : null;
 
-        // التأكد من أن المستخدم ليس في صفحة تسجيل الدخول بالفعل لتجنب التوجيه اللانهائي
-        const currentPage = window.location.pathname.split("/").pop();
-        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+        // التحقق: إذا لم يكن مسجلاً بأي طريقة (لا isLoggedIn ولا بيانات مستخدم مخزنة)
+        if (isLoggedIn !== 'true' && (!userData || Object.keys(userData).length === 0)) {
+            const currentPage = window.location.pathname.split("/").pop();
+            // نتأكد إننا مش في صفحة تسجيل الدخول عشان منعش في Loop
             if (currentPage !== 'login.html' && currentPage !== 'index.html') {
                 alert('يجب تسجيل الدخول أولاً!');
-                window.location.href = 'login.html'; // أو index.html حسب اسم صفحة الدخول لديك
+                window.location.href = 'index.html'; // أو login.html حسب اسم صفحة الدخول الأساسية
             }
         }
-
-        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
-        const userData = rawUserData ? JSON.parse(rawUserData) : {};
         
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        const studentName = userData.fullName || userData.name;
+        const studentName = userData ? (userData.fullName || userData.name) : null;
 
         if (userData && studentName) {
             let firstName = studentName.trim().split(' ')[0];
@@ -303,9 +302,10 @@
             document.getElementById('navStudentName').innerText = firstName;
             navProfileImg.src = userData.profileImage || userData.avatar || defaultMaleSvg;
             checkMainNotifications(userData.email);
-        } else if (isAdminLoggedIn === 'true') {
-            document.getElementById('studentWelcome').innerText = `أهلاً بك يا أدمن المنصة! 🚀`;
-            document.getElementById('navStudentName').innerText = 'الأدمن';
+        } else {
+            // كاحتياطي لو البيانات موجودة بشكل جزئي
+            document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
+            document.getElementById('navStudentName').innerText = 'حسابي';
             navProfileImg.src = defaultMaleSvg;
         }
 
