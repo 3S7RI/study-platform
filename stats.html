@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إحصائيات الطالب - منصة رحلة دراسية</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --navbar-bg: rgba(15, 23, 42, 0.9);
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.15);
+            --primary: #f59e0b;
+            --primary-hover: #d97706;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --navbar-bg: rgba(255, 255, 255, 0.9);
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-border: rgba(0, 0, 0, 0.1);
+            --primary: #d97706;
+            --primary-hover: #b45309;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        
+        .navbar { 
+            background: var(--navbar-bg); 
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 12px 20px; 
+            display: grid; 
+            grid-template-columns: auto auto 1fr auto; 
+            align-items: center; 
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .profile-nav-btn { 
+            display: flex; align-items: center; text-decoration: none; background: var(--btn-bg); 
+            padding: 6px 14px; border-radius: 30px; border: 1px solid var(--btn-border); gap: 10px; justify-self: start;
+        }
+
+        .nav-avatar-frame {
+            position: relative; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+
+        .nav-avatar-frame img { 
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover; z-index: 2; position: relative; background: #1e293b;
+            border: 2px solid var(--primary);
+        }
+
+        .profile-nav-btn span { color: var(--text-main); font-weight: bold; font-size: 0.9rem; white-space: nowrap; }
+
+        .back-home-btn {
+            background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); padding: 8px 16px;
+            border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 0.9rem; justify-self: center;
+        }
+        .back-home-btn:hover { background: var(--primary); color: white; }
+
+        .theme-toggle-btn { 
+            background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); border-radius: 50%; 
+            cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; justify-self: end;
+        }
+
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+        .welcome-stats {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px;
+            text-align: center; margin-bottom: 30px; box-shadow: var(--shadow); backdrop-filter: blur(12px);
+        }
+        .welcome-stats h1 { font-size: 1.8rem; margin-bottom: 8px; font-weight: 800; color: var(--text-main); }
+        .welcome-stats p { color: var(--text-sub); font-size: 1rem; }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 25px;
+            text-align: center; box-shadow: var(--shadow); backdrop-filter: blur(10px);
+        }
+        .stat-card .icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .stat-card h3 { color: var(--text-sub); font-size: 0.95rem; margin-bottom: 8px; font-weight: 600; }
+        .stat-card .number { color: var(--text-main); font-size: 2rem; font-weight: 800; }
+
+        .details-section {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 25px;
+            box-shadow: var(--shadow); backdrop-filter: blur(12px); margin-bottom: 30px;
+        }
+        .details-section h3 { font-size: 1.2rem; margin-bottom: 15px; color: var(--text-main); border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
+        
+        .empty-notice { text-align: center; color: var(--text-sub); padding: 20px; font-style: italic; }
+
+        footer { text-align: center; padding: 30px; color: var(--text-sub); font-size: 0.9rem; border-top: 1px solid var(--card-border); margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
+            <div class="nav-avatar-frame">
+                <img id="navProfileImg" src="" alt="صورة البروفايل">
+            </div>
+            <span id="navStudentName">حسابي</span>
+        </a>
+
+        <a href="main.html" class="back-home-btn">🏠 الرئيسية</a>
+
+        <div></div>
+
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
+    </header>
+
+    <div class="container">
+        <div class="welcome-stats">
+            <h1 id="statsTitle">إحصائيات وتقارير الطالب</h1>
+            <p>متابعة دقيقة لكل نشاطاتك، امتحاناتك، ومستواك التعليمي المستمد مباشرة من السحابة</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="border-top: 4px solid #3b82f6;">
+                <div class="icon">📝</div>
+                <h3>الامتحانات المنجزة</h3>
+                <div class="number" id="completedExamsCount">0</div>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #10b981;">
+                <div class="icon">⭐</div>
+                <h3>متوسط الدرجات</h3>
+                <div class="number" id="avgScore">0%</div>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #0ea5e9;">
+                <div class="icon">📑</div>
+                <h3>الملازم المحملة/المشاهدة</h3>
+                <div class="number" id="downloadedFilesCount">0</div>
+            </div>
+            <div class="stat-card" style="border-top: 4px solid #8b5cf6;">
+                <div class="icon">🎬</div>
+                <h3>الفيديوهات المشاهدة</h3>
+                <div class="number" id="watchedVideosCount">0</div>
+            </div>
+        </div>
+
+        <div class="details-section">
+            <h3>📊 سجل الامتحانات الأخيرة</h3>
+            <div id="examsHistoryList">
+                <div class="empty-notice">لم تقم بأي امتحانات حتى الآن. ابدأ الآن من قسم الامتحانات!</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
+    </footer>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        // --- نظام الثيم الداكن والفاتح ---
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlTag = document.documentElement;
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        htmlTag.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', function() {
+            const currentTheme = htmlTag.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent = '🌙';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            }
+        });
+
+        // --- التحقق من sessionStorage فقط ---
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
+        const userData = rawUserData ? JSON.parse(rawUserData) : null;
+
+        if (isLoggedIn !== 'true' && (!userData || Object.keys(userData).length === 0)) {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'login.html';
+        }
+
+        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+
+        if (userData) {
+            const studentName = userData.fullName || userData.name || 'طالبنا العزيز';
+            const firstName = studentName.trim().split(' ')[0];
+            document.getElementById('statsTitle').innerText = `إحصائيات وتقارير الطالب: ${firstName}`;
+            document.getElementById('navStudentName').innerText = firstName;
+            document.getElementById('navProfileImg').src = userData.profileImage || userData.avatar || defaultMaleSvg;
+            
+            // جلب الإحصائيات المحدثة مباشرة من السحابة بناءً على بريد الطالب
+            fetchCloudStats(userData.email || userData.studentId);
+        }
+
+        async function fetchCloudStats(identifier) {
+            if (!identifier) return;
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    cache: 'no-cache'
+                });
+                let data = await response.json();
+                let record = data.record || data;
+                let users = record.users || record.students || [];
+
+                // نلاقي الطالب نفسه من السحابة عشان نجيب أحدث بياناته
+                let cloudStudent = users.find(u => u && (
+                    (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || 
+                    (u.studentId && u.studentId.toLowerCase() === identifier.toLowerCase())
+                ));
+
+                if (cloudStudent) {
+                    // فرضا لو عنده سجل امتحانات (examsHistory) أو ملازم (downloadedFiles)
+                    const exams = cloudStudent.examsHistory || [];
+                    const files = cloudStudent.downloadedFiles || [];
+                    const videos = cloudStudent.watchedVideos || [];
+
+                    document.getElementById('completedExamsCount').innerText = exams.length;
+                    document.getElementById('downloadedFilesCount').innerText = files.length;
+                    document.getElementById('watchedVideosCount').innerText = videos.length;
+
+                    if (exams.length > 0) {
+                        let totalScore = exams.reduce((acc, curr) => acc + (curr.score || 0), 0);
+                        let avg = Math.round(totalScore / exams.length);
+                        document.getElementById('avgScore').innerText = avg + '%';
+
+                        let html = '<ul style="list-style: none; padding: 0;">';
+                        exams.forEach(ex => {
+                            html += `<li style="background: var(--btn-bg); margin-bottom: 8px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📝 امتحان: ${ex.examTitle || 'اختبار عام'}</span>
+                                <strong style="color: var(--primary);">الدرجة: ${ex.score}%</strong>
+                            </li>`;
+                        });
+                        html += '</ul>';
+                        document.getElementById('examsHistoryList').innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                console.error("خطأ في جلب الإحصائيات من السحابة:", e);
+            }
+        }
+    </script>
+</body>
+</html>
