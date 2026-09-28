@@ -35,7 +35,6 @@
             overflow-x: hidden;
         }
         
-        /* حاوية الإيموجي المتفرقة في الخلفية بالمساحات الفارغة فقط */
         .ambient-emoji {
             position: absolute;
             font-size: 1.3rem;
@@ -465,7 +464,7 @@
         const JSONBIN_API_KEY = "$2a$10$Uv04Q.0jJgX4O9zLg3Gg4uO2WJ6kQ6YhV5bK1wWw8JqF0y0sQ3m2a"; 
 
         let currentStudentData = null;
-        let allStudentsData = [];
+        let allUsersData = [];
         let fullBinDataObject = null;
         let newAvatarBase64 = null;
         let selectedEmojisList = [];
@@ -491,7 +490,6 @@
             fetchStudentProfileData();
         });
 
-        // دالة الاتصال وجلب البيانات المحسنة لحل مشكلة السحابة نهائياً
         async function fetchStudentProfileData() {
             const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-0001";
             try {
@@ -502,29 +500,25 @@
                 
                 const jsonResp = await response.json();
                 
-                // التوافق التام مع هيكل الـ Bin (سواء كان داخل record.users أو record مباشرة أو users مباشرة)
+                // متوافق تماماً مع هيكل الـ JSONBin الخاص بك الذي يعتمد على users
                 fullBinDataObject = jsonResp.record || jsonResp;
-                allStudentsData = fullBinDataObject.users || fullBinDataObject.students || [];
+                allUsersData = fullBinDataObject.users || [];
 
-                if (allStudentsData.length === 0 && Array.isArray(fullBinDataObject)) {
-                    allStudentsData = fullBinDataObject;
-                }
+                currentStudentData = allUsersData.find(u => u.studentId === loggedInId);
                 
-                currentStudentData = allStudentsData.find(s => s.studentId === loggedInId || s.id === loggedInId);
-                
-                if (!currentStudentData && allStudentsData.length > 0) {
-                    currentStudentData = allStudentsData[0]; // افتراضي أول طالب مسجل
+                if (!currentStudentData && allUsersData.length > 0) {
+                    currentStudentData = allUsersData[0]; // افتراضي أول مستخدم إذا لم يتطابق المعرف
                 }
 
                 if (currentStudentData) {
                     renderStudentProfile(currentStudentData);
                     renderAmbientEmojis();
                 } else {
-                    document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">لم يتم العثور على بيانات الطالب النشط في السحابة!</div>`;
+                    document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">لم يتم العثور على بيانات الطالب في السحابة!</div>`;
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
-                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">خطأ في الاتصال بالسحابة وجلب البيانات. تأكد من اتصال الإنترنت أو مفتاح الـ API.</div>`;
+                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">خطأ في الاتصال بالسحابة وجلب البيانات.</div>`;
             }
         }
 
@@ -573,9 +567,9 @@
             const rankKey = student.rank || 'bronze';
             const frameClass = getRankFrameClass(rankKey);
             const badgeClass = getLevelBadgeClass(rankKey);
-            const avatarSrc = student.profileImage || student.avatar || 'https://via.placeholder.com/150';
-            const studentId = student.studentId || student.id || 'STU-XXXX';
-            const studentName = student.fullName || student.name || 'طالب متميز';
+            const avatarSrc = student.profileImage || 'https://via.placeholder.com/150';
+            const studentId = student.studentId || 'STU-XXXX';
+            const studentName = student.fullName || 'طالب متميز';
 
             let html = `
                 <div class="profile-header">
@@ -630,8 +624,8 @@
 
         function openSettingsModal() {
             if (!currentStudentData) return;
-            document.getElementById('editName').value = currentStudentData.fullName || currentStudentData.name || '';
-            document.getElementById('editPhone').value = currentStudentData.studentPhone || currentStudentData.phone || '';
+            document.getElementById('editName').value = currentStudentData.fullName || '';
+            document.getElementById('editPhone').value = currentStudentData.studentPhone || '';
             document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
             document.getElementById('editAllowComparison').checked = !!currentStudentData.allowComparison;
             document.getElementById('editSymbolsToggle').checked = !!currentStudentData.bgPatternEnabled;
@@ -645,7 +639,7 @@
 
         function openAvatarModal() {
             if (!currentStudentData) return;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || currentStudentData.avatar || 'https://via.placeholder.com/150';
+            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || 'https://via.placeholder.com/150';
             document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${getRankFrameClass(currentStudentData.rank)}`;
             newAvatarBase64 = null;
             document.getElementById('avatarModal').classList.add('active');
@@ -714,7 +708,6 @@
                 return;
             }
             currentStudentData.profileImage = newAvatarBase64;
-            currentStudentData.avatar = newAvatarBase64;
             await saveStudentChangesToCloud();
             closeAvatarModal();
             renderStudentProfile(currentStudentData);
@@ -724,7 +717,6 @@
         async function deleteProfilePictureFromCloud() {
             if (confirm('هل أنت متأكد من حذف صورة البروفايل؟')) {
                 currentStudentData.profileImage = '';
-                currentStudentData.avatar = '';
                 await saveStudentChangesToCloud();
                 closeSettingsModal();
                 renderStudentProfile(currentStudentData);
@@ -734,9 +726,7 @@
 
         async function saveStudentChanges() {
             currentStudentData.fullName = document.getElementById('editName').value;
-            currentStudentData.name = document.getElementById('editName').value;
             currentStudentData.studentPhone = document.getElementById('editPhone').value;
-            currentStudentData.phone = document.getElementById('editPhone').value;
             currentStudentData.parentPhone = document.getElementById('editParentPhone').value;
             currentStudentData.allowComparison = document.getElementById('editAllowComparison').checked;
             currentStudentData.bgPatternEnabled = document.getElementById('editSymbolsToggle').checked;
@@ -749,21 +739,14 @@
         }
 
         async function saveStudentChangesToCloud() {
-            const studentIndex = allStudentsData.findIndex(s => (s.studentId === currentStudentData.studentId || s.id === currentStudentData.id));
+            const studentIndex = allUsersData.findIndex(u => u.studentId === currentStudentData.studentId);
             if (studentIndex > -1) {
-                allStudentsData[studentIndex] = currentStudentData;
+                allUsersData[studentIndex] = currentStudentData;
             }
 
             try {
                 if (!fullBinDataObject) fullBinDataObject = {};
-                
-                if (fullBinDataObject.users) {
-                    fullBinDataObject.users = allStudentsData;
-                } else if (fullBinDataObject.students) {
-                    fullBinDataObject.students = allStudentsData;
-                } else {
-                    fullBinDataObject.users = allStudentsData;
-                }
+                fullBinDataObject.users = allUsersData;
 
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'PUT',
@@ -793,10 +776,10 @@
 
             let html = '';
             friends.forEach(friendId => {
-                const friendObj = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
+                const friendObj = allUsersData.find(u => u.studentId === friendId);
                 if (friendObj) {
-                    let fName = friendObj.fullName || friendObj.name || 'صديق';
-                    let fAvatar = friendObj.profileImage || friendObj.avatar || 'https://via.placeholder.com/150';
+                    let fName = friendObj.fullName || 'صديق';
+                    let fAvatar = friendObj.profileImage || 'https://via.placeholder.com/150';
                     let fRank = friendObj.rank || 'bronze';
                     html += `
                         <div class="friend-item-card">
@@ -834,10 +817,10 @@
 
             let html = '';
             requests.forEach(senderId => {
-                const senderObj = allStudentsData.find(s => s.studentId === senderId || s.id === senderId);
+                const senderObj = allUsersData.find(u => u.studentId === senderId);
                 if (senderObj) {
-                    let sName = senderObj.fullName || senderObj.name || 'مستخدم';
-                    let sAvatar = senderObj.profileImage || senderObj.avatar || 'https://via.placeholder.com/150';
+                    let sName = senderObj.fullName || 'مستخدم';
+                    let sAvatar = senderObj.profileImage || 'https://via.placeholder.com/150';
                     html += `
                         <div class="friend-item-card">
                             <div class="friend-info-trigger">
@@ -880,18 +863,18 @@
                 alert('الرجاء إدخال معرف الطالب للبحث!');
                 return;
             }
-            const peer = allStudentsData.find(s => (s.studentId === queryId || s.id === queryId));
+            const peer = allUsersData.find(u => u.studentId === queryId);
             if (!peer) {
                 alert('لم يتم العثور على طالب بهذا المعرف!');
                 return;
             }
-            if (peer.studentId === currentStudentData.studentId || peer.id === currentStudentData.id) {
+            if (peer.studentId === currentStudentData.studentId) {
                 alert('هذا هو معرفك الشخصي!');
                 return;
             }
 
-            let pName = peer.fullName || peer.name || 'طالب';
-            let pAvatar = peer.profileImage || peer.avatar || 'https://via.placeholder.com/150';
+            let pName = peer.fullName || 'طالب';
+            let pAvatar = peer.profileImage || 'https://via.placeholder.com/150';
             let peerModalHtml = `
                 <div class="modal-overlay active" id="peerProfileModal" onclick="if(event.target===this) this.remove()">
                     <div class="modal-card">
@@ -905,7 +888,7 @@
                             </div>
                             <h3 style="margin-bottom: 5px;">${pName}</h3>
                             <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 15px;">الرتبة: ${peer.rank || 'مبتدئ'}</p>
-                            <button class="btn btn-add" onclick="sendFriendRequest('${peer.studentId || peer.id}')">➕ إرسال طلب صداقة</button>
+                            <button class="btn btn-add" onclick="sendFriendRequest('${peer.studentId}')">➕ إرسال طلب صداقة</button>
                         </div>
                     </div>
                 </div>
@@ -914,11 +897,11 @@
         }
 
         async function sendFriendRequest(targetId) {
-            const targetPeer = allStudentsData.find(s => s.studentId === targetId || s.id === targetId);
+            const targetPeer = allUsersData.find(u => u.studentId === targetId);
             if (!targetPeer) return;
 
             if (!targetPeer.friendRequests) targetPeer.friendRequests = [];
-            const myId = currentStudentData.studentId || currentStudentData.id;
+            const myId = currentStudentData.studentId;
 
             if (targetPeer.friendRequests.includes(myId)) {
                 alert('تم إرسال طلب صداقة مسبقاً لهذا الطالب.');
@@ -943,10 +926,10 @@
             }
             currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== senderId);
 
-            const senderPeer = allStudentsData.find(s => s.studentId === senderId || s.id === senderId);
+            const senderPeer = allUsersData.find(u => u.studentId === senderId);
             if (senderPeer) {
                 if (!senderPeer.friends) senderPeer.friends = [];
-                const myId = currentStudentData.studentId || currentStudentData.id;
+                const myId = currentStudentData.studentId;
                 if (!senderPeer.friends.includes(myId)) {
                     senderPeer.friends.push(myId);
                 }
@@ -968,8 +951,8 @@
             if (confirm('هل أنت متأكد من إزالة هذا الصديق؟')) {
                 currentStudentData.friends = currentStudentData.friends.filter(id => id !== friendId);
                 
-                const friendPeer = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
-                const myId = currentStudentData.studentId || currentStudentData.id;
+                const friendPeer = allUsersData.find(u => u.studentId === friendId);
+                const myId = currentStudentData.studentId;
                 if (friendPeer && friendPeer.friends) {
                     friendPeer.friends = friendPeer.friends.filter(id => id !== myId);
                 }
@@ -981,18 +964,18 @@
         }
 
         function compareWithFriend(friendId) {
-            const friend = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
+            const friend = allUsersData.find(u => u.studentId === friendId);
             if (!friend) return;
 
             closeFriendsModal();
             document.getElementById('comparisonModal').classList.add('active');
             
-            let myName = currentStudentData.fullName || currentStudentData.name;
-            let friendName = friend.fullName || friend.name;
+            let myName = currentStudentData.fullName;
+            let friendName = friend.fullName;
             let myRank = currentStudentData.rank || 'مبتدئ';
             let friendRank = friend.rank || 'مبتدئ';
-            let myAvatar = currentStudentData.profileImage || currentStudentData.avatar || 'https://via.placeholder.com/150';
-            let friendAvatar = friend.profileImage || friend.avatar || 'https://via.placeholder.com/150';
+            let myAvatar = currentStudentData.profileImage || 'https://via.placeholder.com/150';
+            let friendAvatar = friend.profileImage || 'https://via.placeholder.com/150';
 
             let bodyHtml = `
                 <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; text-align: center;">
