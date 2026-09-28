@@ -44,8 +44,25 @@
             margin-bottom: 20px; 
         }
         
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; width: 100%; }
-        .back-btn { background: none; border: none; color: var(--text-secondary); font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: 600; }
+        .header-actions { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+            width: 100%; 
+        }
+        .back-btn { 
+            background: none; 
+            border: none; 
+            color: var(--text-secondary); 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 5px; 
+            text-decoration: none; 
+            font-weight: 600; 
+        }
         .back-btn:hover { color: var(--primary-color); }
         
         .profile-header { 
@@ -67,9 +84,17 @@
             justify-content: center;
             z-index: 5;
         }
-        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 5; }
+        .avatar-wrapper img { 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            background: #334155; 
+            position: relative; 
+            z-index: 5; 
+        }
 
-        /* منطقة الهالة الدائرية المنضبطة حول الصورة حصراً وبدقة هندسية */
+        /* الهالة الدائرية المنضبطة حول الصورة بدقة هندسية */
         .around-avatar-emojis {
             position: absolute;
             top: 50px;
@@ -289,7 +314,6 @@
             </div>
         </div>
     </div>
-
     <!-- modal emojis -->
     <div class="modal-overlay" id="emojiSelectionModal" onclick="if(event.target===this) closeEmojiSelectionModal()">
         <div class="modal-card" style="max-width: 400px;">
@@ -382,6 +406,7 @@
             </div>
         </div>
     </div>
+
     <script>
         const JSONBIN_BIN_ID = "6ab78eaeffd5d1605330ce1e";
         const JSONBIN_API_KEY = "$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe"; 
@@ -403,12 +428,10 @@
         });
 
         async function fetchStudentProfileData() {
-            // استخراج البريد أو المعرف من الرابط أو جلسة التصفح المؤقتة (منعاً لتداخل الحسابات)
             const urlParams = new URLSearchParams(window.location.search);
             const queryEmail = urlParams.get('email');
             const queryId = urlParams.get('id') || urlParams.get('studentId');
             
-            // الاعتماد فقط على بيانات الجلسة المؤقتة أو الرابط الممرر دون افتراض حساب عشوائي
             const sessionEmail = queryEmail || sessionStorage.getItem('currentStudentEmail') || "";
             const sessionId = queryId || sessionStorage.getItem('currentStudentId') || "";
 
@@ -422,7 +445,6 @@
                 fullRecordGlobal = data.record;
                 allStudentsData = data.record.users || data.record.students || [];
                 
-                // مطابقة دقيقة جداً بالبريد الإلكتروني أو المعرف المسجل
                 if (sessionEmail) {
                     currentStudentData = allStudentsData.find(s => s.email && s.email.trim().toLowerCase() === sessionEmail.trim().toLowerCase());
                 }
@@ -430,9 +452,8 @@
                     currentStudentData = allStudentsData.find(s => s.studentId === sessionId || s.id === sessionId);
                 }
 
-                // لو لم يتم العثور على مطابقة دقيقة بسبب عدم تمرير معاملات، نبحث عن أول طالب غير مطابق أو نطلب تسجيل الدخول بوضوح
                 if (!currentStudentData && allStudentsData.length > 0) {
-                    currentStudentData = allStudentsData.find(s => s.email === "mohamad66xm@gmail.com") || allStudentsData[0];
+                    currentStudentData = allStudentsData[0];
                 }
 
                 if (currentStudentData) {
@@ -454,7 +475,6 @@
             return 0;
         }
 
-        /* توزيع هندسي دقيق للإيموجيات حول الصورة في مدار دائري متساوي ومتباعد تماماً */
         function renderAmbientEmojisAroundAvatar(studentObj = currentStudentData, containerId = 'aroundAvatarContainer') {
             const container = document.getElementById(containerId);
             if (!container) return;
@@ -466,7 +486,7 @@
             let userEmojis = studentObj.selectedEmojis || ['⭐', '🚀', '💎', '🔥', '👑', '🎯', '💡', '🏆'];
             if (userEmojis.length === 0) userEmojis = ['⭐', '🚀', '👑'];
 
-            const radius = 95; // نصف قطر الدائرة حول الصورة لتكون بعيدة تماماً عن الأزرار ومنضبطة
+            const radius = 95;
             const totalEmojis = Math.min(maxAllowed, userEmojis.length * 2);
 
             for (let i = 0; i < totalEmojis; i++) {
