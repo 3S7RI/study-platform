@@ -33,7 +33,6 @@
             --btn-border: rgba(255, 255, 255, 0.15);
         }
 
-        /* تم إزالة أمر منع تحديد النص (user-select) حتى تظهر الشاشة بشكل طبيعي دائمًا */
         body { background-color: var(--bg-color); color: var(--text-color); min-height: 100vh; }
         
         .navbar { 
@@ -189,14 +188,21 @@
     </footer>
 
     <script>
+        // تنظيف شامل لأي أثر مخزن سابقًا في الـ LocalStorage
+        try {
+            localStorage.clear();
+        } catch(e) {
+            console.warn(e);
+        }
+
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        // --- نظام الوضع الداكن والفاتح الثابت والمحفوظ بدقة ---
+        // --- نظام الوضع الداكن والفاتح بالاعتماد على sessionStorage ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const pageBody = document.getElementById('pageBody');
 
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedTheme = sessionStorage.getItem('theme') || 'light';
         if (savedTheme === 'dark') {
             pageBody.classList.add('dark-mode');
             themeToggleBtn.textContent = '☀️';
@@ -208,15 +214,16 @@
         themeToggleBtn.addEventListener('click', function() {
             pageBody.classList.toggle('dark-mode');
             if (pageBody.classList.contains('dark-mode')) {
-                localStorage.setItem('theme', 'dark');
+                sessionStorage.setItem('theme', 'dark');
                 themeToggleBtn.textContent = '☀️';
             } else {
-                localStorage.setItem('theme', 'light');
+                sessionStorage.setItem('theme', 'light');
                 themeToggleBtn.textContent = '🌙';
             }
         });
 
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
+        // --- التحقق من تسجيل الدخول باستخدام sessionStorage حصرياً ---
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
         const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
 
         if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
@@ -224,18 +231,24 @@
             window.location.href = 'index.html';
         }
 
-        const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
+        // قراءة بيانات الطالب أو الأدمن من الـ Session
+        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
+        const userData = rawUserData ? JSON.parse(rawUserData) : {};
+        
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        if (userData && userData.fullName) {
-            let firstName = userData.fullName.trim().split(' ')[0];
+        const studentName = userData.fullName || userData.name;
+
+        if (userData && studentName) {
+            let firstName = studentName.trim().split(' ')[0];
             document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
             document.getElementById('navStudentName').innerText = firstName;
             
             navProfileImg.src = userData.profileImage || defaultMaleSvg;
             checkMainNotifications(userData.email);
         } else if (isAdminLoggedIn === 'true') {
+            document.getElementById('studentWelcome').innerText = `أهلاً بك يا أدمن المنصة! 🚀`;
             document.getElementById('navStudentName').innerText = 'الأدمن';
             navProfileImg.src = defaultMaleSvg;
         }
@@ -243,12 +256,14 @@
         async function checkMainNotifications(email) {
             if (!email) return;
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    cache: 'no-cache'
                 });
                 let data = await res.json();
-                let users = data.record.users || [];
-                let currentUser = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+                let record = data.record || data;
+                let users = record.users || record.students || [];
+                let currentUser = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
 
                 if (currentUser && currentUser.friendRequests && currentUser.friendRequests.length > 0) {
                     const dot = document.getElementById('mainNotifDot');
