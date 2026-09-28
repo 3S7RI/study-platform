@@ -76,30 +76,40 @@
 
         .student-name { font-size: 1.35rem; font-weight: 700; margin-bottom: 5px; color: var(--text-main); }
         
+        /* تصميم كريستيفي وكيوت لشريط كود الطالب وزر النسخ */
         .student-id-container {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(51, 65, 85, 0.4);
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
+            gap: 10px;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             margin-bottom: 20px;
         }
         .copy-id-btn {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
             color: #fff;
             border: none;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
             cursor: pointer;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s ease;
         }
-        .copy-id-btn:hover { background: var(--primary-hover); }
+        .copy-id-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.6);
+        }
+        .copy-id-btn:active {
+            transform: scale(0.96);
+        }
 
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -185,6 +195,19 @@
 
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-top: 5px; }
         .btn:hover { background-color: var(--primary-hover); }
+        
+        /* زر حذف صورة البروفايل بلون مميز في الإعدادات */
+        .btn-delete-avatar {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            margin-top: 10px;
+        }
+        .btn-delete-avatar:hover {
+            background-color: #ef4444;
+            color: #fff;
+        }
+
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
 
         .badge-dot { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; display: none; }
@@ -227,7 +250,7 @@
             display: flex; 
             gap: 6px; 
             align-items: center;
-            margin-right: 12px; /* مسافة معقولة ومنسقة تمنع التصاق الأزرار بالاسم أو الحافة */
+            margin-right: 12px;
         }
         .friend-action-icon-btn {
             border: none;
@@ -304,11 +327,14 @@
                         </label>
                     </div>
                 </div>
-                <button type="button" class="btn" onclick="saveStudentChanges()">حفظ التعديلات والخيارات 💾</button>
+
+                <!-- زر حذف صورة البروفايل من السحابة -->
+                <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePictureFromCloud()">🗑️ حذف صورة البروفايل من السحابة</button>
+                
+                <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 10px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
     </div>
-
     <!-- نافذة إضافة صديق -->
     <div class="modal-overlay" id="addFriendModal" onclick="closeAddModalOnOuterClick(event)">
         <div class="modal-card">
@@ -347,7 +373,7 @@
         </div>
     </div>
 
-    <!-- نافذة الشاشة العائمة لبروفايل الصديق (بدون تحكم ومع إخفاء البيانات) -->
+    <!-- نافذة الشاشة العائمة لبروفايل الصديق -->
     <div class="modal-overlay" id="peerProfileModal" onclick="if(event.target===this) closePeerProfileModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -355,7 +381,6 @@
                 <button class="close-modal" onclick="closePeerProfileModal()">✕</button>
             </div>
             <div class="modal-body" id="peerProfileContent" style="text-align: center;">
-                <!-- يتم تعبئتها ديناميكياً -->
             </div>
         </div>
     </div>
@@ -368,7 +393,6 @@
                 <button class="close-modal" onclick="closeComparisonModal()">✕</button>
             </div>
             <div class="modal-body" id="comparisonModalContent" style="text-align: right;">
-                <!-- يتم تعبئة الإحصائيات هنا -->
             </div>
         </div>
     </div>
@@ -419,7 +443,6 @@
             window.location.href = 'login.html';
         }
 
-        // دالة لاختصار الاسم إلى أول اسمين فقط
         function getFirstTwoNames(fullName) {
             if (!fullName) return 'طالب رحلة';
             let parts = fullName.trim().split(/\s+/);
@@ -429,7 +452,6 @@
             return parts[0];
         }
 
-        // دالة لإخفاء جزء من رقم الهاتف أو البريد الإلكتروني للخصوصية
         function maskPhoneNumber(phone) {
             if (!phone || phone.length < 7) return '01122*****40';
             return phone.substring(0, 5) + '*****' + phone.substring(phone.length - 2);
@@ -524,7 +546,7 @@
             let rankInfo = getRankDetails(rankKey);
             let patternChoice = student.bgPattern || 'mixed';
             let isPatternEnabled = student.bgPatternEnabled !== false;
-            let allowComparison = student.allowComparison !== false; // مفتاح إعدادات المقارنة
+            let allowComparison = student.allowComparison !== false;
             let pendingCount = (student.friendRequests || []).length;
             let studentIdVal = student.studentId || 'STU-0000';
 
@@ -550,9 +572,9 @@
                     <h1 class="student-name">${student.fullName}</h1>
                     
                     <div class="student-id-container">
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;" id="studentIdText">كود الطالب: ${studentIdVal}</span>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;" id="studentIdText">ID: ${studentIdVal}</span>
                         <button class="copy-id-btn" onclick="copyStudentId('${studentIdVal}')">
-                            📋 نسخ الـ ID
+                            📋 نسخ الكود
                         </button>
                     </div>
                     
@@ -679,12 +701,10 @@
                     let fImg = getStudentImage(friendObj);
                     return `
                         <div class="friend-item-card">
-                            <!-- الضغط على الصورة أو الاسم يفتح الشاشة العائمة لبروفايل الصديق بدون أزرار تحكم -->
                             <div class="friend-info-trigger" onclick="openPeerProfile('${fId}')" title="عرض الملف الشخصي">
                                 <img src="${fImg}">
                                 <span class="friend-name-text">${fShortName}</span>
                             </div>
-                            <!-- التلت أزرار (الدردشة، الحظر، الحذف) بشكل شيك ولذيذ في أقصى الشمال بمسافة معقولة ومنسقة -->
                             <div class="friend-actions-group">
                                 <button class="friend-action-icon-btn btn-chat-action" onclick="openChat('${fId}', '${fFullName}', '${fImg}')" title="دردشة">
                                     💬 دردشة
@@ -701,7 +721,6 @@
                 }).join('');
         }
 
-        // فتح الشاشة العائمة لبروفايل الصديق (بدون أي أزرار تحكم للطالب، مع إخفاء الأجزاء الحساسة من الهاتف والإيميل)
         function openPeerProfile(friendId) {
             let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
             let friend = users.find(u => u.studentId === friendId);
@@ -731,7 +750,6 @@
                     <p style="color: var(--text-main);">📧 البريد الإلكتروني: <strong>${maskedEmail}</strong></p>
                 </div>
 
-                <!-- زر المقارنة الشاملة بين الطالب وصديقه -->
                 <button class="btn" onclick="openComparisonModal('${friend.studentId}')">
                     📊 مقارنة بيني وبين صديقي
                 </button>
@@ -744,13 +762,11 @@
             document.getElementById('peerProfileModal').classList.remove('active');
         }
 
-        // نافذة مقارنة المستويات والأداء الشاملة
         function openComparisonModal(friendId) {
             let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
             let friend = users.find(u => u.studentId === friendId);
             if (!friend) return;
 
-            // التحقق مما إذا كان الصديق يسمح بالمقارنة في إعداداته
             if (friend.allowComparison === false) {
                 alert('عذراً، هذا الصديق قام بتعطيل ميزة المقارنة في إعدادات حسابه.');
                 return;
@@ -986,6 +1002,20 @@
                     syncStudentDataToCloud("تم تحديث ورفع صورة البروفايل بنجاح! 📸✅");
                 };
             };
+        }
+
+        // دالة حذف صورة البروفايل من السحابة
+        async function deleteProfilePictureFromCloud() {
+            if (!confirm('هل أنت متأكد من رغبتك في حذف صورة البروفايل من السحابة نهائياً؟')) return;
+            
+            currentStudentData.profileImage = ""; // مسح الصورة
+            
+            const avatarImgElem = document.getElementById('studentAvatarImg');
+            if (avatarImgElem) avatarImgElem.src = getStudentImage(currentStudentData);
+
+            await syncStudentDataToCloud("تم حذف صورة البروفايل من السحابة بنجاح! 🗑️✅");
+            closeSettingsModal();
+            renderStudentProfile(currentStudentData);
         }
 
         async function saveStudentChanges() {
