@@ -424,7 +424,6 @@
             </div>
         </div>
     </div>
-
     <!-- نافذة قائمة الأصدقاء -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card">
@@ -471,21 +470,18 @@
     <script>
         const JSONBIN_BIN_ID = "67c06283ad19ca34f81014be";
         const JSONBIN_API_KEY = "$2a$10$Uv04Q.0jJgX4O9zLg3Gg4uO2WJ6kQ6YhV5bK1wWw8JqF0y0sQ3m2a"; 
-        // ملاحظة: استبدل مفاتيح JSONBin الحقيقية الخاصة بك هنا إذا لزم الأمر
 
         let currentStudentData = null;
         let allStudentsData = [];
         let newAvatarBase64 = null;
         let selectedEmojisList = [];
 
-        // قائمة إيموجي شاملة متاحة للاختيار
         const availableEmojisMaster = [
             '⭐', '🔥', '🚀', '👑', '💎', '🎯', '💡', '🏆', '⚡', '📚', '🧠', '💪', 
             '🎨', '✍️', '💻', '🌟', '🍀', '🔮', '🛡️', '⚔️', '🪐', '💫', '🔥', '✨',
             '🎓', '🏅', '🥇', '📈', '🧭', '🔖', '📌', '🔮', '🧊', '🧬', '🛸', '🎪'
         ];
 
-        // مصفوفة الإيموجي المتفرقة في المساحات الفارغة حول البطاقة (خارج الأماكن الخضراء الممنوعة)
         const backgroundEmojiPositions = [
             { emoji: '✨', top: '5%', left: '8%' },
             { emoji: '⭐', top: '12%', right: '10%' },
@@ -502,25 +498,27 @@
         });
 
         async function fetchStudentProfileData() {
-            const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-1001";
+            const loggedInId = localStorage.getItem('currentStudentId') || localStorage.getItem('studentId') || "STU-0001";
             try {
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': JSONBIN_API_KEY }
                 });
                 const data = await response.json();
-                allStudentsData = data.record.students || [];
                 
-                currentStudentData = allStudentsData.find(s => s.id === loggedInId || s.studentId === loggedInId);
+                // التوافق التام: يدعم مصفوفة users القديمة أو students الحديثة
+                allStudentsData = data.record.users || data.record.students || [];
+                
+                currentStudentData = allStudentsData.find(s => s.studentId === loggedInId || s.id === loggedInId);
                 
                 if (!currentStudentData && allStudentsData.length > 0) {
-                    currentStudentData = allStudentsData[0]; // افتراضي أول طالب إذا لم يوجد مطبق
+                    currentStudentData = allStudentsData[0]; 
                 }
 
                 if (currentStudentData) {
                     renderStudentProfile(currentStudentData);
                     renderAmbientEmojis();
                 } else {
-                    document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">لم يتم العثور على بيانات الطالب النشط!</div>`;
+                    document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">لم يتم العثور على بيانات الطالب النشط في السحابة!</div>`;
                 }
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -528,14 +526,12 @@
             }
         }
 
-        // رسم اليموجي المتفرقة في الخلفية بشرط تفعيل الخاصية من الإعدادات
         function renderAmbientEmojis() {
             const container = document.getElementById('ambientEmojisContainer');
             container.innerHTML = '';
             
-            if (!currentStudentData || !currentStudentData.symbolsEnabled) return;
+            if (!currentStudentData || !currentStudentData.bgPatternEnabled) return;
             
-            // استخدام الإيموجي التي اختارها الطالب أو المتاحة
             let userEmojis = currentStudentData.selectedEmojis || ['⭐', '🚀', '💎', '🔥'];
             
             backgroundEmojiPositions.forEach((pos, index) => {
@@ -551,31 +547,33 @@
             });
         }
 
-        function getRankFrameClass(levelName) {
-            if (!levelName) return 'rank-frame-unranked';
-            if (levelName.includes('ثالث') || levelName.includes('برونزي')) return 'rank-frame-bronze';
-            if (levelName.includes('رابع') || levelName.includes('فضي')) return 'rank-frame-silver';
-            if (levelName.includes('خامس') || levelName.includes('ذهبي')) return 'rank-frame-gold';
-            if (levelName.includes('ماسي')) return 'rank-frame-diamond';
-            if (levelName.includes('أسطوري')) return 'rank-frame-mythic';
+        function getRankFrameClass(rank) {
+            if (!rank) return 'rank-frame-unranked';
+            if (rank === 'bronze') return 'rank-frame-bronze';
+            if (rank === 'silver') return 'rank-frame-silver';
+            if (rank === 'gold') return 'rank-frame-gold';
+            if (rank === 'diamond') return 'rank-frame-diamond';
+            if (rank === 'mythic') return 'rank-frame-mythic';
             return 'rank-frame-unranked';
         }
 
-        function getLevelBadgeClass(levelName) {
-            if (!levelName) return 'badge-unranked';
-            if (levelName.includes('ثالث')) return 'badge-bronze';
-            if (levelName.includes('رابع')) return 'badge-silver';
-            if (levelName.includes('خامس')) return 'badge-gold';
-            if (levelName.includes('ماسي')) return 'badge-diamond';
-            if (levelName.includes('أسطوري')) return 'badge-mythic';
+        function getLevelBadgeClass(rank) {
+            if (!rank) return 'badge-unranked';
+            if (rank === 'bronze') return 'badge-bronze';
+            if (rank === 'silver') return 'badge-silver';
+            if (rank === 'gold') return 'badge-gold';
+            if (rank === 'diamond') return 'badge-diamond';
+            if (rank === 'mythic') return 'badge-mythic';
             return 'badge-unranked';
         }
 
         function renderStudentProfile(student) {
-            const frameClass = getRankFrameClass(student.levelName);
-            const badgeClass = getLevelBadgeClass(student.levelName);
-            const avatarSrc = student.avatar || 'https://via.placeholder.com/150';
-            const studentId = student.id || student.studentId || 'STU-XXXX';
+            const rankKey = student.rank || 'bronze';
+            const frameClass = getRankFrameClass(rankKey);
+            const badgeClass = getLevelBadgeClass(rankKey);
+            const avatarSrc = student.profileImage || student.avatar || 'https://via.placeholder.com/150';
+            const studentId = student.studentId || student.id || 'STU-XXXX';
+            const studentName = student.fullName || student.name || 'طالب متميز';
 
             let html = `
                 <div class="profile-header">
@@ -584,7 +582,7 @@
                         <div class="upload-badge" onclick="openAvatarModal()" title="تعديل الصورة">✏️</div>
                     </div>
                     
-                    <h2 class="student-name">${student.name || 'طالب متميز'}</h2>
+                    <h2 class="student-name">${studentName}</h2>
                     
                     <div class="student-id-container">
                         <span style="font-size: 0.82rem; color: var(--text-secondary);">معرف الطالب:</span>
@@ -594,7 +592,7 @@
 
                     <div>
                         <div class="level-badge-box ${badgeClass}">
-                            <span>🏆</span> المستوى الحالي: ${student.levelName || 'المستوى الأساسي'}
+                            <span>🏆</span> الرتبة الحالية: ${rankKey.toUpperCase()}
                         </div>
                     </div>
                 </div>
@@ -611,7 +609,7 @@
                 <div class="student-search-box">
                     <h3>🔍 ابحث عن زميل بالمعرف (ID)</h3>
                     <div class="search-input-group">
-                        <input type="text" id="searchPeerInput" placeholder="أدخل معرف الطالب (مثال: STU-1002)">
+                        <input type="text" id="searchPeerInput" placeholder="أدخل معرف الطالب (مثال: STU-0004)">
                         <button onclick="searchPeerProfile()">بحث</button>
                     </div>
                 </div>
@@ -628,15 +626,14 @@
             });
         }
 
-        // إدارة النوافذ المنعطفة (Modals)
         function openSettingsModal() {
             if (!currentStudentData) return;
-            document.getElementById('editName').value = currentStudentData.name || '';
-            document.getElementById('editPhone').value = currentStudentData.phone || '';
+            document.getElementById('editName').value = currentStudentData.fullName || currentStudentData.name || '';
+            document.getElementById('editPhone').value = currentStudentData.studentPhone || currentStudentData.phone || '';
             document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
             document.getElementById('editAllowComparison').checked = !!currentStudentData.allowComparison;
-            document.getElementById('editSymbolsToggle').checked = !!currentStudentData.symbolsEnabled;
-            selectedEmojisList = currentStudentData.selectedEmojis || [];
+            document.getElementById('editSymbolsToggle').checked = !!currentStudentData.bgPatternEnabled;
+            selectedEmojisList = currentStudentData.selectedEmojis || ['⭐', '🚀'];
             
             document.getElementById('settingsModal').classList.add('active');
         }
@@ -646,8 +643,8 @@
 
         function openAvatarModal() {
             if (!currentStudentData) return;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.avatar || 'https://via.placeholder.com/150';
-            document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${getRankFrameClass(currentStudentData.levelName)}`;
+            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || currentStudentData.avatar || 'https://via.placeholder.com/150';
+            document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${getRankFrameClass(currentStudentData.rank)}`;
             newAvatarBase64 = null;
             document.getElementById('avatarModal').classList.add('active');
         }
@@ -655,22 +652,9 @@
             document.getElementById('avatarModal').classList.remove('active');
         }
 
-        // حدود مستويات اختيار الإيموجي الدقيقة
-        function getMaxEmojisAllowed() {
-            if (!currentStudentData || !currentStudentData.levelName) return 2;
-            const lvl = currentStudentData.levelName;
-            if (lvl.includes('ثالث')) return 5;     // الثالث (قوي): حتى 5 إيموجيات
-            if (lvl.includes('رابع')) return 10;    // الرابع (قوي جداً): حتى 10 إيموجيات
-            if (lvl.includes('خامس') || lvl.includes('أسطوري')) return 15; // الخامس والأسطوري: حتى 15 إيموجي
-            return 3;
-        }
-
         function openEmojiSelectionModal() {
-            const maxLimit = getMaxEmojisAllowed();
-            let levelTitle = currentStudentData?.levelName || 'المستوى الحالي';
-            
             document.getElementById('emojiModalTitle').innerText = `اختر الرموز الخاصة بك 🎨`;
-            document.getElementById('emojiLimitInfo').innerText = `بناءً على مستواك (${levelTitle})، يمكنك اختيار حتى ${maxLimit} رموز تعبيرية تظهر في مساحات الخلفية. (تم اختيار: ${selectedEmojisList.length}/${maxLimit})`;
+            document.getElementById('emojiLimitInfo').innerText = `يمكنك اختيار رموز تعبيرية لتظهر في الخلفية.`;
 
             const gridContainer = document.getElementById('emojiPickerGrid');
             gridContainer.innerHTML = '';
@@ -682,7 +666,7 @@
                     item.classList.add('selected');
                 }
                 item.innerText = emoji;
-                item.onclick = () => toggleEmojiSelection(emoji, maxLimit, item);
+                item.onclick = () => toggleEmojiSelection(emoji, item);
                 gridContainer.appendChild(item);
             });
 
@@ -693,26 +677,21 @@
             document.getElementById('emojiSelectionModal').classList.remove('active');
         }
 
-        function toggleEmojiSelection(emoji, maxLimit, element) {
+        function toggleEmojiSelection(emoji, element) {
             const index = selectedEmojisList.indexOf(emoji);
             if (index > -1) {
                 selectedEmojisList.splice(index, 1);
                 element.classList.remove('selected');
             } else {
-                if (selectedEmojisList.length >= maxLimit) {
-                    alert(`عذراً، لقد وصلت للحد الأقصى المسموح لمستواك وهو ${maxLimit} رموز فقط! 🎯`);
-                    return;
-                }
                 selectedEmojisList.push(emoji);
                 element.classList.add('selected');
             }
-            document.getElementById('emojiLimitInfo').innerText = `بناءً على مستواك، يمكنك اختيار حتى ${maxLimit} رموز تعبيرية. (تم اختيار: ${selectedEmojisList.length}/${maxLimit})`;
         }
 
         function saveSelectedEmojis() {
             currentStudentData.selectedEmojis = selectedEmojisList;
             closeEmojiSelectionModal();
-            alert('تم تحديث الرموز المؤقتة بنجاح! اضغط على "حفظ التعديلات والخيارات" لحفظها سحابياً. ✨');
+            alert('تم حفظ الرموز بنجاح! اضغط على "حفظ التعديلات والخيارات" للحفظ بالسحابة. ✨');
         }
 
         function previewNewAvatar(event) {
@@ -732,6 +711,7 @@
                 alert('الرجاء اختيار صورة جديدة أولاً!');
                 return;
             }
+            currentStudentData.profileImage = newAvatarBase64;
             currentStudentData.avatar = newAvatarBase64;
             await saveStudentChangesToCloud();
             closeAvatarModal();
@@ -740,21 +720,24 @@
         }
 
         async function deleteProfilePictureFromCloud() {
-            if (confirm('هل أنت متأكد من حذف صورة البروفايل والعودة للصورة الافتراضية؟')) {
-                currentStudentData.avatar = 'https://via.placeholder.com/150';
+            if (confirm('هل أنت متأكد من حذف صورة البروفايل؟')) {
+                currentStudentData.profileImage = '';
+                currentStudentData.avatar = '';
                 await saveStudentChangesToCloud();
                 closeSettingsModal();
                 renderStudentProfile(currentStudentData);
-                alert('تم حذف الصورة الافتراضية بنجاح.');
+                alert('تم حذف الصورة بنجاح.');
             }
         }
 
         async function saveStudentChanges() {
+            currentStudentData.fullName = document.getElementById('editName').value;
             currentStudentData.name = document.getElementById('editName').value;
+            currentStudentData.studentPhone = document.getElementById('editPhone').value;
             currentStudentData.phone = document.getElementById('editPhone').value;
             currentStudentData.parentPhone = document.getElementById('editParentPhone').value;
             currentStudentData.allowComparison = document.getElementById('editAllowComparison').checked;
-            currentStudentData.symbolsEnabled = document.getElementById('editSymbolsToggle').checked;
+            currentStudentData.bgPatternEnabled = document.getElementById('editSymbolsToggle').checked;
 
             await saveStudentChangesToCloud();
             closeSettingsModal();
@@ -764,19 +747,32 @@
         }
 
         async function saveStudentChangesToCloud() {
-            const studentIndex = allStudentsData.findIndex(s => (s.id === currentStudentData.id || s.studentId === currentStudentData.studentId));
+            const studentIndex = allStudentsData.findIndex(s => (s.studentId === currentStudentData.studentId || s.id === currentStudentData.id));
             if (studentIndex > -1) {
                 allStudentsData[studentIndex] = currentStudentData;
             }
 
             try {
+                // جلب كامل محتوى البين الحالي لضمان عدم ضياع الجداول الأخرى (أدمنز، امتحانات، إلخ)
+                const resLatest = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': JSONBIN_API_KEY }
+                });
+                const fullData = await resLatest.json();
+                
+                // تحديث مصفوفة users أو students حسب الموجود
+                if (fullData.record.users) {
+                    fullData.record.users = allStudentsData;
+                } else {
+                    fullData.record.students = allStudentsData;
+                }
+
                 const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Master-Key': JSONBIN_API_KEY
                     },
-                    body: JSON.stringify({ students: allStudentsData })
+                    body: JSON.stringify(fullData.record)
                 });
                 if (!response.ok) throw new Error('فشل الحفظ بالسحابة');
             } catch (error) {
@@ -785,7 +781,6 @@
             }
         }
 
-        // إدارة الأصدقاء والطلبات
         async function openFriendsModal() {
             document.getElementById('friendsModal').classList.add('active');
             const container = document.getElementById('friendsListContainer');
@@ -793,27 +788,30 @@
 
             let friends = currentStudentData.friends || [];
             if (friends.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary);">ليس لديك أصدقاء مضافون حتى الآن. ابحث عن زميل وأضفه!</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-secondary);">ليس لديك أصدقاء مضافون حتى الآن.</div>`;
                 return;
             }
 
             let html = '';
             friends.forEach(friendId => {
-                const friendObj = allStudentsData.find(s => s.id === friendId || s.studentId === friendId);
+                const friendObj = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
                 if (friendObj) {
+                    let fName = friendObj.fullName || friendObj.name || 'صديق';
+                    let fAvatar = friendObj.profileImage || friendObj.avatar || 'https://via.placeholder.com/150';
+                    let fRank = friendObj.rank || 'bronze';
                     html += `
                         <div class="friend-item-card">
-                            <div class="friend-info-trigger" onclick="viewPeerProfile('${friendObj.id || friendObj.studentId}')">
-                                <div class="friend-avatar-wrap ${getRankFrameClass(friendObj.levelName)}">
-                                    <img src="${friendObj.avatar || 'https://via.placeholder.com/150'}" alt="صورة الصديق">
+                            <div class="friend-info-trigger">
+                                <div class="friend-avatar-wrap ${getRankFrameClass(fRank)}">
+                                    <img src="${fAvatar}" alt="صورة الصديق">
                                 </div>
                                 <div style="min-width:0;">
-                                    <div class="friend-name-text">${friendObj.name}</div>
-                                    <div style="font-size:0.75rem; color:var(--primary-color);">المستوى: ${friendObj.levelName || 'مبتدئ'}</div>
+                                    <div class="friend-name-text">${fName}</div>
+                                    <div style="font-size:0.75rem; color:var(--primary-color);">الرتبة: ${fRank}</div>
                                 </div>
                             </div>
                             <div class="friend-actions-group">
-                                ${friendObj.allowComparison ? `<button class="friend-action-icon-btn btn-comparison-style" onclick="compareWithFriend('${friendObj.id || friendObj.studentId}')" style="padding:5px 8px; font-size:0.75rem;">📊 مقارنة</button>` : ''}
+                                ${friendObj.allowComparison ? `<button class="friend-action-icon-btn btn-comparison-style" onclick="compareWithFriend('${friendId}')" style="padding:5px 8px; font-size:0.75rem;">📊 مقارنة</button>` : ''}
                                 <button class="friend-action-icon-btn btn-delete-action" onclick="removeFriend('${friendId}')">🗑️ إزالة</button>
                             </div>
                         </div>
@@ -837,17 +835,19 @@
 
             let html = '';
             requests.forEach(senderId => {
-                const senderObj = allStudentsData.find(s => s.id === senderId || s.studentId === senderId);
+                const senderObj = allStudentsData.find(s => s.studentId === senderId || s.id === senderId);
                 if (senderObj) {
+                    let sName = senderObj.fullName || senderObj.name || 'مستخدم';
+                    let sAvatar = senderObj.profileImage || senderObj.avatar || 'https://via.placeholder.com/150';
                     html += `
                         <div class="friend-item-card">
                             <div class="friend-info-trigger">
-                                <div class="friend-avatar-wrap ${getRankFrameClass(senderObj.levelName)}">
-                                    <img src="${senderObj.avatar || 'https://via.placeholder.com/150'}" alt="صورة المرسل">
+                                <div class="friend-avatar-wrap ${getRankFrameClass(senderObj.rank)}">
+                                    <img src="${sAvatar}" alt="صورة المرسل">
                                 </div>
                                 <div style="min-width:0;">
-                                    <div class="friend-name-text">${senderObj.name}</div>
-                                    <div style="font-size:0.75rem; color:var(--text-secondary);">يرغب في إضافتك لقائمة أصدقائه</div>
+                                    <div class="friend-name-text">${sName}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-secondary);">يرغب في إضافتك</div>
                                 </div>
                             </div>
                             <div class="friend-actions-group">
@@ -881,17 +881,18 @@
                 alert('الرجاء إدخال معرف الطالب للبحث!');
                 return;
             }
-            const peer = allStudentsData.find(s => (s.id === queryId || s.studentId === queryId));
+            const peer = allStudentsData.find(s => (s.studentId === queryId || s.id === queryId));
             if (!peer) {
-                alert('لم يتم العثور على طالب بهذا المعرف! تأكد من صحة الكود.');
+                alert('لم يتم العثور على طالب بهذا المعرف!');
                 return;
             }
-            if (peer.id === currentStudentData.id || peer.studentId === currentStudentData.studentId) {
+            if (peer.studentId === currentStudentData.studentId || peer.id === currentStudentData.id) {
                 alert('هذا هو معرفك الشخصي!');
                 return;
             }
 
-            // نافذة منبثقة لعرض بروفايل الزميل مع خيار إرسال طلب صداقة
+            let pName = peer.fullName || peer.name || 'طالب';
+            let pAvatar = peer.profileImage || peer.avatar || 'https://via.placeholder.com/150';
             let peerModalHtml = `
                 <div class="modal-overlay active" id="peerProfileModal" onclick="if(event.target===this) this.remove()">
                     <div class="modal-card">
@@ -900,12 +901,12 @@
                             <button class="close-modal" onclick="document.getElementById('peerProfileModal').remove()">✕</button>
                         </div>
                         <div class="modal-body" style="text-align: center;">
-                            <div class="avatar-wrapper ${getRankFrameClass(peer.levelName)}" style="width:90px; height:90px; margin: 0 auto 10px;">
-                                <img src="${peer.avatar || 'https://via.placeholder.com/150'}" alt="الصورة">
+                            <div class="avatar-wrapper ${getRankFrameClass(peer.rank)}" style="width:90px; height:90px; margin: 0 auto 10px;">
+                                <img src="${pAvatar}" alt="الصورة">
                             </div>
-                            <h3 style="margin-bottom: 5px;">${peer.name}</h3>
-                            <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 15px;">المستوى: ${peer.levelName || 'مبتدئ'}</p>
-                            <button class="btn btn-add" onclick="sendFriendRequest('${peer.id || peer.studentId}')">➕ إرسال طلب صداقة</button>
+                            <h3 style="margin-bottom: 5px;">${pName}</h3>
+                            <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 15px;">الرتبة: ${peer.rank || 'مبتدئ'}</p>
+                            <button class="btn btn-add" onclick="sendFriendRequest('${peer.studentId || peer.id}')">➕ إرسال طلب صداقة</button>
                         </div>
                     </div>
                 </div>
@@ -914,14 +915,14 @@
         }
 
         async function sendFriendRequest(targetId) {
-            const targetPeer = allStudentsData.find(s => s.id === targetId || s.studentId === targetId);
+            const targetPeer = allStudentsData.find(s => s.studentId === targetId || s.id === targetId);
             if (!targetPeer) return;
 
             if (!targetPeer.friendRequests) targetPeer.friendRequests = [];
-            const myId = currentStudentData.id || currentStudentData.studentId;
+            const myId = currentStudentData.studentId || currentStudentData.id;
 
             if (targetPeer.friendRequests.includes(myId)) {
-                alert('تم إرسال طلب صداقة مسبقاً لهذا الطالب بانتظار الموافقة.');
+                alert('تم إرسال طلب صداقة مسبقاً لهذا الطالب.');
                 return;
             }
             if (targetPeer.friends && targetPeer.friends.includes(myId)) {
@@ -930,7 +931,7 @@
             }
 
             targetPeer.friendRequests.push(myId);
-            await saveStudentChangesToCloud(); // تحديث بيانات الطالب الآخر بالسحابة
+            await saveStudentChangesToCloud();
             alert('تم إرسال طلب الصداقة بنجاح! 🚀');
             const peerModal = document.getElementById('peerProfileModal');
             if (peerModal) peerModal.remove();
@@ -943,11 +944,10 @@
             }
             currentStudentData.friendRequests = currentStudentData.friendRequests.filter(id => id !== senderId);
 
-            // إضافة الطالب الحالي لقائمة أصدقاء المرسل أيضاً
-            const senderPeer = allStudentsData.find(s => s.id === senderId || s.studentId === senderId);
+            const senderPeer = allStudentsData.find(s => s.studentId === senderId || s.id === senderId);
             if (senderPeer) {
                 if (!senderPeer.friends) senderPeer.friends = [];
-                const myId = currentStudentData.id || currentStudentData.studentId;
+                const myId = currentStudentData.studentId || currentStudentData.id;
                 if (!senderPeer.friends.includes(myId)) {
                     senderPeer.friends.push(myId);
                 }
@@ -969,8 +969,8 @@
             if (confirm('هل أنت متأكد من إزالة هذا الصديق؟')) {
                 currentStudentData.friends = currentStudentData.friends.filter(id => id !== friendId);
                 
-                const friendPeer = allStudentsData.find(s => s.id === friendId || s.studentId === friendId);
-                const myId = currentStudentData.id || currentStudentData.studentId;
+                const friendPeer = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
+                const myId = currentStudentData.studentId || currentStudentData.id;
                 if (friendPeer && friendPeer.friends) {
                     friendPeer.friends = friendPeer.friends.filter(id => id !== myId);
                 }
@@ -981,39 +981,40 @@
             }
         }
 
-        // نافذة مقارنة المستوى مع صديق
         function compareWithFriend(friendId) {
-            const friend = allStudentsData.find(s => s.id === friendId || s.studentId === friendId);
+            const friend = allStudentsData.find(s => s.studentId === friendId || s.id === friendId);
             if (!friend) return;
 
             closeFriendsModal();
             document.getElementById('comparisonModal').classList.add('active');
             
-            let myName = currentStudentData.name;
-            let friendName = friend.name;
-            let myLevel = currentStudentData.levelName || 'المستوى الأساسي';
-            let friendLevel = friend.levelName || 'المستوى الأساسي';
+            let myName = currentStudentData.fullName || currentStudentData.name;
+            let friendName = friend.fullName || friend.name;
+            let myRank = currentStudentData.rank || 'مبتدئ';
+            let friendRank = friend.rank || 'مبتدئ';
+            let myAvatar = currentStudentData.profileImage || currentStudentData.avatar || 'https://via.placeholder.com/150';
+            let friendAvatar = friend.profileImage || friend.avatar || 'https://via.placeholder.com/150';
 
             let bodyHtml = `
                 <div style="display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; text-align: center;">
                     <div>
-                        <div class="avatar-wrapper ${getRankFrameClass(currentStudentData.levelName)}" style="width:75px; height:75px; margin: 0 auto 8px;">
-                            <img src="${currentStudentData.avatar || 'https://via.placeholder.com/150'}" alt="أنت">
+                        <div class="avatar-wrapper ${getRankFrameClass(currentStudentData.rank)}" style="width:75px; height:75px; margin: 0 auto 8px;">
+                            <img src="${myAvatar}" alt="أنت">
                         </div>
                         <strong style="font-size:0.9rem;">أنت (${myName})</strong>
-                        <div style="font-size:0.78rem; color:var(--primary-color); margin-top:4px;">${myLevel}</div>
+                        <div style="font-size:0.78rem; color:var(--primary-color); margin-top:4px;">${myRank}</div>
                     </div>
                     <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-secondary);">VS</div>
                     <div>
-                        <div class="avatar-wrapper ${getRankFrameClass(friend.levelName)}" style="width:75px; height:75px; margin: 0 auto 8px;">
-                            <img src="${friend.avatar || 'https://via.placeholder.com/150'}" alt="الصديق">
+                        <div class="avatar-wrapper ${getRankFrameClass(friend.rank)}" style="width:75px; height:75px; margin: 0 auto 8px;">
+                            <img src="${friendAvatar}" alt="الصديق">
                         </div>
                         <strong style="font-size:0.9rem;">${friendName}</strong>
-                        <div style="font-size:0.78rem; color:var(--primary-color); margin-top:4px;">${friendLevel}</div>
+                        <div style="font-size:0.78rem; color:var(--primary-color); margin-top:4px;">${friendRank}</div>
                     </div>
                 </div>
                 <div style="background:var(--input-bg); padding:12px; border-radius:10px; border:1px solid var(--border-color); font-size:0.85rem; text-align:center; color:var(--text-secondary);">
-                    💡 تقييم المقارنة: كلاكما تسعيان نحو التميز والتفوق الدراسي في رحلتكم التعليمية. استمروا في التقدم! 🚀
+                    💡 تقييم المقارنة: استمروا في التقدم والتفوق الدراسي في منصة رحلة دراسية! 🚀
                 </div>
             `;
             document.getElementById('comparisonModalBody').innerHTML = bodyHtml;
@@ -1025,7 +1026,8 @@
 
         function logoutStudent() {
             localStorage.removeItem('currentStudentId');
-            window.location.href = 'index.html'; // أو صفحة تسجيل الدخول حسب نظامك
+            localStorage.removeItem('studentId');
+            window.location.href = 'index.html';
         }
     </script>
 </body>
