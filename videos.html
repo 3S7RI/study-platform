@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الفيديوهات التعليمية - منصة رحلة دراسية</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --navbar-bg: rgba(15, 23, 42, 0.9);
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.15);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --navbar-bg: rgba(255, 255, 255, 0.9);
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-border: rgba(0, 0, 0, 0.1);
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        
+        .navbar { 
+            background: var(--navbar-bg); 
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 12px 20px; 
+            display: grid; 
+            grid-template-columns: auto auto 1fr auto; 
+            align-items: center; 
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .profile-nav-btn { 
+            display: flex; align-items: center; text-decoration: none; background: var(--btn-bg); 
+            padding: 6px 14px; border-radius: 30px; border: 1px solid var(--btn-border); gap: 10px; justify-self: start;
+        }
+
+        .nav-avatar-frame {
+            position: relative; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+
+        .nav-avatar-frame img { 
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover; z-index: 2; position: relative; background: #1e293b;
+            border: 2px solid var(--primary);
+        }
+
+        .profile-nav-btn span { color: var(--text-main); font-weight: bold; font-size: 0.9rem; white-space: nowrap; }
+
+        .back-home-btn {
+            background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); padding: 8px 16px;
+            border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 0.9rem; justify-self: center;
+        }
+        .back-home-btn:hover { background: var(--primary); color: white; }
+
+        .theme-toggle-btn { 
+            background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); border-radius: 50%; 
+            cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; justify-self: end;
+        }
+
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+        .welcome-box {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px;
+            text-align: center; margin-bottom: 30px; box-shadow: var(--shadow); backdrop-filter: blur(12px);
+        }
+        .welcome-box h1 { font-size: 1.8rem; margin-bottom: 8px; font-weight: 800; color: var(--text-main); }
+        .welcome-box p { color: var(--text-sub); font-size: 1rem; }
+
+        .videos-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+        }
+
+        .video-card {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; overflow: hidden;
+            box-shadow: var(--shadow); backdrop-filter: blur(10px); display: flex; flex-direction: column;
+        }
+        .video-player-container {
+            width: 100%; aspect-ratio: 16/9; background: #000; position: relative;
+        }
+        .video-player-container iframe, .video-player-container video {
+            width: 100%; height: 100%; border: none; object-fit: cover;
+        }
+        .video-info { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .video-info h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); }
+        .video-info p { color: var(--text-sub); font-size: 0.88rem; margin-bottom: 15px; }
+
+        .watch-btn {
+            background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 10px;
+            font-weight: bold; cursor: pointer; text-decoration: center; text-align: center; display: block;
+        }
+        .watch-btn:hover { background: var(--primary-hover); }
+
+        .empty-notice { grid-column: 1 / -1; text-align: center; color: var(--text-sub); padding: 50px; font-size: 1.1rem; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--card-border); }
+
+        footer { text-align: center; padding: 30px; color: var(--text-sub); font-size: 0.9rem; border-top: 1px solid var(--card-border); margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <header class="navbar">
+        <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
+            <div class="nav-avatar-frame">
+                <img id="navProfileImg" src="" alt="صورة البروفايل">
+            </div>
+            <span id="navStudentName">حسابي</span>
+        </a>
+
+        <a href="main.html" class="back-home-btn">🏠 الرئيسية</a>
+
+        <div></div>
+
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
+    </header>
+
+    <div class="container">
+        <div class="welcome-box">
+            <h1>🎬 الفيديوهات التعليمية والشروحات</h1>
+            <p>تابع الحصص والشروحات المسجلة الخاصة بصفك الدراسي والمرفوعة من قِبل إدارة المنصة</p>
+        </div>
+
+        <div class="videos-grid" id="videosGrid">
+            <div class="empty-notice">جاري تحميل الفيديوهات من السحابة... ⏳</div>
+        </div>
+    </div>
+
+    <footer>
+        جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
+    </footer>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        // --- التحكم بالثيم الداكن والفاتح ---
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlTag = document.documentElement;
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        htmlTag.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', function() {
+            const currentTheme = htmlTag.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent = '🌙';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            }
+        });
+
+        // --- التحقق من الجلسة عبر sessionStorage فقط ---
+        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
+        const userData = rawUserData ? JSON.parse(rawUserData) : null;
+
+        if (isLoggedIn !== 'true' && (!userData || Object.keys(userData).length === 0)) {
+            alert('يجب تسجيل الدخول أولاً!');
+            window.location.href = 'login.html';
+        }
+
+        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+
+        if (userData) {
+            const studentName = userData.fullName || userData.name || 'طالبنا العزيز';
+            const firstName = studentName.trim().split(' ')[0];
+            document.getElementById('navStudentName').innerText = firstName;
+            document.getElementById('navProfileImg').src = userData.profileImage || userData.avatar || defaultMaleSvg;
+
+            // جلب الفيديوهات المخصصة لصف الطالب من السحابة
+            fetchCloudVideos(userData.grade || '3');
+        }
+
+        async function fetchCloudVideos(studentGrade) {
+            const grid = document.getElementById('videosGrid');
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    cache: 'no-cache'
+                });
+                let data = await response.json();
+                let record = data.record || data;
+                let allVideos = record.videos || [];
+
+                // فلترة الفيديوهات حسب صف الطالب أو عرض العامة
+                let filteredVideos = allVideos.filter(v => !v.grade || v.grade === studentGrade || v.grade === 'all');
+
+                if (filteredVideos.length === 0) {
+                    grid.innerHTML = '<div class="empty-notice">لا توجد فيديوهات تعليمية مضافة لصفك الدراسي حتى الآن. ترقبنا قريباً! 📚</div>';
+                    return;
+                }
+
+                let html = '';
+                filteredVideos.forEach(vid => {
+                    // معالجة رابط يوتيوب أو روابط الفيديو العادية لعرضها كـ Iframe لو متاح
+                    let embedContent = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-sub); font-size:0.9rem;">🎬 فيديو تعليمي مسجل</div>`;
+                    if (vid.videoUrl) {
+                        if (vid.videoUrl.includes('youtube.com') || vid.videoUrl.includes('youtu.be')) {
+                            let videoId = '';
+                            if (vid.videoUrl.includes('youtu.be/')) {
+                                videoId = vid.videoUrl.split('youtu.be/')[1].split('?')[0];
+                            } else if (vid.videoUrl.includes('watch?v=')) {
+                                videoId = vid.videoUrl.split('watch?v=')[1].split('&')[0];
+                            }
+                            if (videoId) {
+                                embedContent = `<iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>`;
+                            }
+                        } else {
+                            embedContent = `<video src="${vid.videoUrl}" controls></video>`;
+                        }
+                    }
+
+                    html += `
+                        <div class="video-card">
+                            <div class="video-player-container">
+                                ${embedContent}
+                            </div>
+                            <div class="video-info">
+                                <div>
+                                    <h3>${vid.title || 'بدون عنوان'}</h3>
+                                    <p>${vid.description || 'لا يوجد وصف مضاف لهذا الفيديو.'}</p>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-sub); margin-top: 10px;">👤 بواسطة: ${vid.createdByAdminName || 'الإدارة'}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                grid.innerHTML = html;
+
+            } catch (e) {
+                console.error("خطأ في جلب الفيديوهات:", e);
+                grid.innerHTML = '<div class="empty-notice" style="color: var(--danger);">حدث خطأ أثناء الاتصال بالسحابة لجلب الفيديوهات. حاول مرة أخرى.</div>';
+            }
+        }
+    </script>
+</body>
+</html>
