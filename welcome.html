@@ -21,8 +21,10 @@
             align-items: center;
             overflow: hidden;
             text-align: center;
+            padding: 20px;
         }
 
+        /* الترحيب العادي (أول سكرين) */
         .welcome-container {
             display: flex;
             flex-direction: column;
@@ -30,19 +32,10 @@
             animation: fadeInScale 1.2s ease-in-out forwards;
         }
 
-        /* أنيميشن ظهور ودخول العنصر */
         @keyframes fadeInScale {
-            0% {
-                opacity: 0;
-                transform: scale(0.5);
-            }
-            70% {
-                transform: scale(1.05);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
+            0% { opacity: 0; transform: scale(0.5); }
+            70% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
         .avatar-box {
@@ -72,7 +65,7 @@
         }
 
         h1 span {
-            color: #4ade80; /* لون مميز لاسم الطالب */
+            color: #4ade80;
         }
 
         p {
@@ -81,7 +74,6 @@
             margin-bottom: 25px;
         }
 
-        /* مؤشر التحميل المتحرك */
         .loader-bar {
             width: 180px;
             height: 6px;
@@ -104,11 +96,113 @@
             0% { width: 0%; }
             100% { width: 100%; }
         }
+
+        /* تصميم جولة الشرح التفاعلية (تظهر للطالب الجديد فقط) */
+        #tourScreen {
+            display: none;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 100%;
+            max-width: 550px;
+            padding: 35px 30px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            text-align: right;
+            animation: fadeInScale 0.6s ease-in-out forwards;
+        }
+
+        .tour-step {
+            display: none;
+        }
+
+        .tour-step.active {
+            display: block;
+        }
+
+        .tour-icon {
+            font-size: 3.5rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .tour-step h2 {
+            font-size: 1.5rem;
+            color: #4ade80;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .tour-step p {
+            font-size: 1rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .tour-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+        }
+
+        .tour-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95krem;
+            transition: background 0.3s;
+        }
+
+        .tour-btn:hover {
+            background: #4f46e5;
+        }
+
+        .skip-btn {
+            background: transparent;
+            color: #94a3b8;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .skip-btn:hover {
+            color: white;
+        }
+
+        .dots-indicator {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .dot.active {
+            background: #4ade80;
+            width: 20px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="welcome-container">
+    <!-- الترحيب العادي السريع (لو مش أول مرة) -->
+    <div class="welcome-container" id="normalWelcome">
         <div class="avatar-box">🎓</div>
         <h1>أهلاً بك يا <span id="studentNameDisplay">بطل</span>!</h1>
         <p>جاري تجهيز منصتك التعليمية...</p>
@@ -118,19 +212,107 @@
         </div>
     </div>
 
+    <!-- شاشات الشرح التفاعلي (لو دي أول زيارة للطالب) -->
+    <div id="tourScreen">
+        <div class="dots-indicator" id="dotsContainer">
+            <span class="dot active"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+        </div>
+
+        <!-- الخطوة 1: الفيديوهات والمحتوى -->
+        <div class="tour-step active" data-step="1">
+            <div class="tour-icon">🎥</div>
+            <h2>الفيديوهات والدروس</h2>
+            <p>يمكنك تصفح ومتابعة كافة الشروحات والفيديوهات التعليمية المرتبة بدقة لمساعدتك في فهم المنهج خطوة بخطوة.</p>
+        </div>
+
+        <!-- الخطوة 2: الامتحانات والتقييمات -->
+        <div class="tour-step" data-step="2">
+            <div class="tour-icon">📝</div>
+            <h2>الامتحانات التفاعلية</h2>
+            <p>قيم مستواك الدراسي واختبر معلوماتك بعد كل درس من خلال الامتحانات المخصصة للحفاظ على تفوقك.</p>
+        </div>
+
+        <!-- الخطوة 3: الإحصائيات والملف الشخصي -->
+        <div class="tour-step" data-step="3">
+            <div class="tour-icon">📊</div>
+            <h2>الإحصائيات والبروفايل</h2>
+            <p>تابع تقدمك المستمر، درجاتك، وإنجازاتك من خلال لوحة الإحصائيات الشاملة والملف الشخصي الخاص بك.</p>
+        </div>
+
+        <!-- الخطوة 4: المنتدى والمناقشات -->
+        <div class="tour-step" data-step="4">
+            <div class="tour-icon">💬</div>
+            <h2>منتدى الأسئلة</h2>
+            <p>واجهتك أي مشكلة؟ اطرح أسئلتك واستفساراتك في المنتدى التفاعلي وتواصل مع زملائك والأدمن للحصول على الإجابات المعتمدة.</p>
+        </div>
+
+        <div class="tour-footer">
+            <button class="skip-btn" onclick="finishTour()">تخطي الجولة</button>
+            <button class="tour-btn" id="nextTourBtn" onclick="nextStep()">التالي ➔</button>
+        </div>
+    </div>
+
     <script>
-        // سحب اسم الطالب المخزن في المتصفح وعرضه
-        const studentData = JSON.parse(localStorage.getItem('studentUser'));
-        if (studentData && studentData.fullName) {
-            // جلب الاسم الأول فقط أو الاسم بالكامل حسب رغبتك (هنا جبنا الاسم الأول للطف/الطالب)
-            const firstName = studentData.fullName.split(' ')[0];
-            document.getElementById('studentNameDisplay').textContent = firstName;
+        // سحب بيانات الطالب من الـ sessionStorage
+        const studentData = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
+        const firstName = studentData.fullName ? studentData.fullName.split(' ')[0] : 'بطل';
+        document.getElementById('studentNameDisplay').textContent = firstName;
+
+        // التحقق هل هذه هي الزيارة الأولى للمنصة عبر الـ localStorage الخاص بالطالب أو الـ flags
+        // هنستخدم خاصية فريدة باسم الطالب أو إيميله عشان لو سجل دخول مرة تانية ميعرضش الجولة تاني
+        const studentUniqueKey = 'hasSeenTour_' + (studentData.email || studentData.studentId || 'guest');
+        const isFirstTime = !localStorage.getItem(studentUniqueKey);
+
+        if (isFirstTime) {
+            // لو أول مرة: نخفي الترحيب السريع ونظهر شاشات الجولة التفاعلية
+            document.getElementById('normalWelcome').style.display = 'none';
+            document.getElementById('tourScreen').style.display = 'block';
+        } else {
+            // لو مش أول مرة: نسيبه على الترحيب العادي (2.8 ثانية) ويحول لـ main.html تلقائياً
+            setTimeout(() => {
+                window.location.href = 'main.html';
+            }, 2800);
         }
 
-        // التوجيه التلقائي للصفحة الرئيسية بعد 2.8 ثانية (وقت انتهاء الأنيميشن)
-        setTimeout(() => {
+        // منطق التنقل بين خطوات الجولة التفاعلية
+        let currentTourStep = 1;
+        const totalSteps = 4;
+
+        function nextStep() {
+            currentTourStep++;
+            if (currentTourStep > totalSteps) {
+                finishTour();
+                return;
+            }
+
+            // تحديث ظهور الخطوات
+            document.querySelectorAll('.tour-step').forEach(step => {
+                step.classList.remove('active');
+                if (parseInt(step.getAttribute('data-step')) === currentTourStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // تحديث النقاط (Dots)
+            document.querySelectorAll('.dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentTourStep - 1);
+            });
+
+            // تغيير نص الزر في الخطوة الأخيرة
+            if (currentTourStep === totalSteps) {
+                document.getElementById('nextTourBtn').textContent = 'ابدأ رحلتك 🚀';
+            }
+        }
+
+        function finishTour() {
+            // تسجل في الـ localStorage إن الطالب ده شاف الجولة خلاص عشان مظهرلوش تاني
+            localStorage.setItem(studentUniqueKey, 'true');
+            // التوجيه للصفحة الرئيسية
             window.location.href = 'main.html';
-        }, 2800);
+        }
     </script>
 
 </body>
