@@ -255,13 +255,71 @@
         .poll-option:hover { background: var(--primary); color: white; }
         .reply-trigger-btn { background: none; border: none; color: var(--primary); font-size: 0.72rem; cursor: pointer; margin-top: 4px; font-weight: bold; text-align: right; }
         
-        /* تعديل تصميم الريكورد الصوتي ليشبه الواتساب تماماً بدون نص وبموجات صوتية دقيقة */
-        .voice-note-player { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.25); padding: 8px 14px; border-radius: 22px; width: 210px; border: 1px solid var(--card-border); }
-        .voice-play-btn { background: var(--primary); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .voice-note-player { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            background: rgba(0,0,0,0.25); 
+            padding: 8px 12px; 
+            border-radius: 22px; 
+            width: 250px; 
+            border: 1px solid var(--card-border); 
+        }
+        .voice-play-btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.8rem; 
+            flex-shrink: 0; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); 
+        }
         .voice-play-btn:hover { background: var(--primary-hover); }
-        .voice-waves { flex: 1; height: 20px; background: repeating-linear-gradient(90deg, var(--text-sub), var(--text-sub) 2px, transparent 2px, transparent 6px); opacity: 0.9; min-width: 90px; border-radius: 4px; }
+        
+        .voice-body-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
 
-        /* شريط حالة التسجيل الصوتي الحي */
+        .voice-progress-track {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .voice-progress-fill {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+
+        .voice-meta-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.68rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
         .recording-status-bar {
             padding: 8px 15px;
             background: rgba(239, 68, 68, 0.2);
@@ -338,19 +396,20 @@
             width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
             display: flex; align-items: center; justify-content: center; flex-shrink: 0;
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
         }
         .send-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
         .send-btn svg { width: 16px; height: 16px; fill: currentColor; transform: scaleX(-1); }
 
-        /* ستايل زر الإيقاف عندما يتحول زر الإرسال إليه أثناء التسجيل */
+        /* ستايل زر الإيقاف الحي أثناء تسجيل الريكورد */
         .send-btn.recording-mode {
             background: #ef4444 !important;
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.6);
             animation: pulseStopBtn 1s infinite;
         }
         @keyframes pulseStopBtn {
             0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            50% { transform: scale(1.12); }
             100% { transform: scale(1); }
         }
 
@@ -410,7 +469,7 @@
 
         <!-- شريط حالة التسجيل الصوتي الحي -->
         <div class="recording-status-bar" id="recordingStatusBar">
-            <span>🔴 جاري تسجيل الريكورد الصوتي... تحدث الآن (اضغط زر الوقف بالأسفل للإنهاء)</span>
+            <span id="recordingTimerText">🔴 جاري تسجيل الريكورد الصوتي... (0 ثانية)</span>
         </div>
 
         <div class="attachment-preview-bar" id="attachmentPreviewBar">
@@ -435,19 +494,17 @@
 
             <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
 
-            <!-- زر الإرسال الذي يتحول إلى زر إيقاف التسجيل (Stop) عند التسجيل -->
+            <!-- الزر الرئيسي المتغير (للإرسال أو لإيقاف التسجيل الصوتي) -->
             <button class="send-btn" id="mainActionButton" onclick="handleMainAction()" title="إرسال">
                 <svg id="sendIconSvg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
             </button>
         </div>
     </div>
 
-    <!-- نافذة تكبير الصورة -->
     <div id="imageModalViewer" onclick="closeImageModal()">
         <img id="expandedImg" src="" alt="صورة مكبرة">
     </div>
 
-    <!-- نافذة الإعدادات -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <h3>إعدادات طاقة النواة والحساب</h3>
@@ -458,7 +515,6 @@
         </div>
     </div>
 
-    <!-- نافذة عائمة للتصويت -->
     <div class="modal-overlay" id="pollModal">
         <div class="modal-card">
             <h3>📊 إنشاء تصويت جديد</h3>
@@ -474,7 +530,6 @@
         </div>
     </div>
 
-    <!-- نافذة عائمة للسؤال (Ask) -->
     <div class="modal-overlay" id="askModal">
         <div class="modal-card">
             <h3>❓ طرح سؤال دراسي (Ask)</h3>
@@ -484,7 +539,6 @@
         </div>
     </div>
 
-    <!-- نافذة الردود الداخلية (Threads) العائمة -->
     <div class="modal-overlay" id="threadModal">
         <div class="modal-card" style="max-height:85vh;">
             <h3>💬 الردود الداخلية على السؤال</h3>
@@ -624,6 +678,8 @@
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
+        let recordInterval = null;
+        let recordSeconds = 0;
 
         async function startVoiceRecording() {
             document.getElementById('attachmentMenu').classList.remove('active');
@@ -631,21 +687,24 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
+                recordSeconds = 0;
 
                 mediaRecorder.ondataavailable = event => {
                     audioChunks.push(event.data);
                 };
 
                 mediaRecorder.onstop = () => {
+                    clearInterval(recordInterval);
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         pendingAttachment = {
                             type: 'voice',
                             name: 'تسجيل صوتي',
-                            dataUrl: e.target.result
+                            dataUrl: e.target.result,
+                            duration: recordSeconds
                         };
-                        document.getElementById('previewTextName').textContent = `تم حفظ الريكورد الصوتي بنجاح (جاهز للإرسال)`;
+                        document.getElementById('previewTextName').textContent = `تم حفظ الريكورد الصوتي بنجاح (${recordSeconds} ثانية)`;
                         document.getElementById('attachmentPreviewBar').classList.add('active');
                     };
                     reader.readAsDataURL(audioBlob);
@@ -653,6 +712,8 @@
                     
                     isRecording = false;
                     document.getElementById('recordingStatusBar').classList.remove('active');
+                    
+                    // إعادة الزر الرئيسي لوضع الإرسال العادي
                     const mainBtn = document.getElementById('mainActionButton');
                     mainBtn.classList.remove('recording-mode');
                     mainBtn.title = "إرسال";
@@ -663,9 +724,16 @@
                 isRecording = true;
                 document.getElementById('recordingStatusBar').classList.add('active');
 
+                document.getElementById('recordingTimerText').textContent = `🔴 جاري تسجيل الريكورد الصوتي... (0 ثانية)`;
+                recordInterval = setInterval(() => {
+                    recordSeconds++;
+                    document.getElementById('recordingTimerText').textContent = `🔴 جاري تسجيل الريكورد الصوتي... (${recordSeconds} ثانية)`;
+                }, 1000);
+
+                // تحويل شكل الزر الرئيسي إلى وضع "إيقاف التسجيل" (زر احمر بمربع التوقف)
                 const mainBtn = document.getElementById('mainActionButton');
                 mainBtn.classList.add('recording-mode');
-                mainBtn.title = "إيقاف التسجيل";
+                mainBtn.title = "إيقاف التسجيل وإنهاء الريكورد";
                 document.getElementById('sendIconSvg').innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"></rect>';
 
             } catch (err) {
@@ -679,6 +747,7 @@
             }
         }
 
+        // الوظيفة الموحدة للزر الرئيسي (تتبدل تلقائياً حسب حالة التسجيل)
         function handleMainAction() {
             if (isRecording) {
                 stopVoiceRecording();
@@ -864,6 +933,48 @@
             document.getElementById('imageModalViewer').classList.remove('active');
         }
 
+        function playVoiceNote(audioUrl, duration, btnElement, fillElement, timeDisplayElement) {
+            const audio = new Audio(audioUrl);
+            
+            if (audio.paused) {
+                audio.play();
+                btnElement.textContent = '⏸';
+                
+                const updateTimer = setInterval(() => {
+                    if (audio.ended || audio.paused) {
+                        clearInterval(updateTimer);
+                        btnElement.textContent = '▶';
+                        fillElement.style.width = '0%';
+                        timeDisplayElement.textContent = formatSeconds(duration || 0);
+                        return;
+                    }
+                    
+                    const currentSec = Math.floor(audio.currentTime);
+                    const totalSec = duration || Math.ceil(audio.duration) || 1;
+                    const progressPercent = (audio.currentTime / (audio.duration || totalSec)) * 100;
+                    
+                    fillElement.style.width = progressPercent + '%';
+                    timeDisplayElement.textContent = `${formatSeconds(currentSec)} / ${formatSeconds(totalSec)}`;
+                }, 100);
+
+                audio.onended = () => {
+                    clearInterval(updateTimer);
+                    btnElement.textContent = '▶';
+                    fillElement.style.width = '0%';
+                    timeDisplayElement.textContent = formatSeconds(duration || 0);
+                };
+            } else {
+                audio.pause();
+                btnElement.textContent = '▶';
+            }
+        }
+
+        function formatSeconds(totalSeconds) {
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = Math.floor(totalSeconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
         let isFirstRender = true;
         async function renderChatMessages() {
             const container = document.getElementById('chatMessages');
@@ -880,7 +991,7 @@
                 return;
             }
 
-            messages.forEach(msg => {
+            messages.forEach((msg, index) => {
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `message-item ${msg.name === shortName ? 'me' : ''}`;
                 const rankClass = getRankClass(msg.rank);
@@ -900,11 +1011,20 @@
                     } else if (msg.attachment.type === 'file') {
                         contentHtml += `<div class="msg-bubble" style="background:rgba(0,0,0,0.2); font-size:0.8rem;">📁 ملف: ${msg.attachment.name}</div>`;
                     } else if (msg.attachment.type === 'voice') {
-                        // مشغل صوتي بنمط الواتساب تماماً بدون أي نص بجانبه وموجات صوتية مرتبة
+                        const voiceId = `voice_${index}_${msg.timestamp}`;
+                        const formattedDur = formatSeconds(msg.attachment.duration || 5);
                         contentHtml += `
                             <div class="voice-note-player">
-                                <button class="voice-play-btn" onclick="const a = new Audio('${msg.attachment.dataUrl}'); a.play();" title="استماع">▶</button>
-                                <div class="voice-waves"></div>
+                                <button class="voice-play-btn" id="btn_${voiceId}" onclick="playVoiceNote('${msg.attachment.dataUrl}', ${msg.attachment.duration || 5}, this, document.getElementById('fill_${voiceId}'), document.getElementById('time_${voiceId}'))" title="استماع">▶</button>
+                                <div class="voice-body-container">
+                                    <div class="voice-progress-track">
+                                        <div class="voice-progress-fill" id="fill_${voiceId}"></div>
+                                    </div>
+                                    <div class="voice-meta-info">
+                                        <span id="time_${voiceId}">${formattedDur}</span>
+                                        <span>🎤 صوتي</span>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     }
