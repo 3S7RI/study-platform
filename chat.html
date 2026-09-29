@@ -136,10 +136,10 @@
             overflow: hidden;
         }
 
-        /* شريط الستريك المتطور (لمدة 365 يوم بدون إيموجي) */
+        /* نظام طاقة النواة ومسار المجرة الدراسي الجديد */
         .chat-sub-bar {
             padding: 8px 20px;
-            background: rgba(15, 23, 42, 0.3);
+            background: rgba(15, 23, 42, 0.4);
             border-bottom: 1px solid var(--card-border);
             display: flex;
             justify-content: space-between;
@@ -147,30 +147,35 @@
             font-size: 0.8rem;
         }
 
-        .streak-evolution-box {
+        .streak-galaxy-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
-            padding: 4px 12px;
-            border-radius: 15px;
+            padding: 5px 14px;
+            border-radius: 16px;
+            cursor: pointer;
         }
+        .streak-galaxy-container:hover { border-color: var(--primary); }
 
-        .streak-track {
-            width: 100px;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
+        .core-energy-track {
+            width: 120px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
             overflow: hidden;
             position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
         }
 
-        .streak-fill {
+        .core-energy-fill {
             height: 100%;
-            background: linear-gradient(90deg, #6366f1, #10b981);
-            border-radius: 3px;
+            background: linear-gradient(90deg, #38bdf8, #6366f1, #a855f7, #ec4899);
+            border-radius: 4px;
             width: 0%;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+            transition: width 0.5s ease;
         }
 
         /* رسائل الشات */
@@ -326,7 +331,7 @@
             color: var(--text-main);
             font-size: 0.9rem;
             outline: none;
-            min-width: 0; /* يمنع خروج الحقل عن الحاوية */
+            min-width: 0;
         }
         .chat-input:focus { border-color: var(--primary); }
 
@@ -351,7 +356,7 @@
             width: 18px;
             height: 18px;
             fill: currentColor;
-            transform: rotate(-45deg); /* توجيه الطيارة الورقية بشكل صحيح */
+            transform: rotate(-45deg);
             margin-right: 2px;
         }
 
@@ -407,7 +412,8 @@
 
     <!-- الهيدر العلوي -->
     <header class="chat-header-nav">
-        <a href="index.html" class="home-btn">🏠 الرئيسية</a>
+        <!-- زر الرئيسية يوجه لصفحة إنشاء الحساب -->
+        <a href="register.html" class="home-btn">🏠 إنشاء حساب</a>
         <div class="chat-main-title">💬 قناة الدردشة</div>
         <div class="header-actions-left">
             <button id="settingsBtn" class="header-icon-btn" title="إعدادات الطالب">⚙️</button>
@@ -417,13 +423,13 @@
 
     <!-- صندوق الدردشة -->
     <div class="chat-container">
-        <!-- شريط الستريك المطوّر على مدار 365 يوم (بدون إيموجي) -->
+        <!-- نظام طاقة النواة ومسار المجرة الدراسي (بديل النص القديم وزر الإعدادات المباشر) -->
         <div class="chat-sub-bar">
-            <span style="color: var(--text-sub); font-size: 0.78rem;" id="streakTitleLabel">مؤشر التقدم والاستمرارية</span>
-            <div class="streak-evolution-box">
-                <span id="streakDaysText" style="font-size: 0.75rem; font-weight: bold;">اليوم 1 / 365</span>
-                <div class="streak-track">
-                    <div class="streak-fill" id="streakProgressBar"></div>
+            <span style="color: var(--text-sub); font-size: 0.78rem; font-weight: bold;" id="corePhaseLabel">نواة البداية</span>
+            <div class="streak-galaxy-container" onclick="openSettingsModal()" title="اضغط لفتح إعدادات طاقة النواة">
+                <span id="coreDaysText" style="font-size: 0.75rem; font-weight: bold; color: var(--text-main);">اليوم 1 / 365</span>
+                <div class="core-energy-track">
+                    <div class="core-energy-fill" id="coreEnergyBar"></div>
                 </div>
             </div>
         </div>
@@ -473,7 +479,7 @@
     <!-- نافذة الإعدادات المنبثقة للطالب -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
-            <h3>إعدادات الحساب الشخصي</h3>
+            <h3>إعدادات طاقة النواة والحساب</h3>
             <div class="setting-item">
                 <span>جعل المستوى مرئياً للآخرين</span>
                 <input type="checkbox" id="settingRankVisible" checked onchange="saveStudentSettings()">
@@ -529,13 +535,17 @@
             }
         });
 
-        // نافذة الإعدادات (الترس)
+        // نافذة الإعدادات (الترس / أو النقر على شريط الطاقة)
         const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
 
         settingsBtn.addEventListener('click', () => {
-            settingsModal.classList.add('active');
+            openSettingsModal();
         });
+
+        function openSettingsModal() {
+            settingsModal.classList.add('active');
+        }
 
         function closeSettingsModal() {
             settingsModal.classList.remove('active');
@@ -563,27 +573,27 @@
                 alert('عذراً، هذا الطالب قام بإيقاف ميزة السماح بالدخول لبروفايله الشخصي.');
                 return;
             }
-            // يمكنك توجيهه لصفحة البروفايل الخاصة بالمنصة مع اسم الطالب
             window.location.href = `profile.html?student=${encodeURIComponent(name)}`;
         }
 
-        // نظام الستريك التصاعدي لمدة 365 يوم (بدون إيموجي)
+        // نظام طاقة النواة ومسار المجرة الدراسي الجديد (365 يوم مقسمة لمستويات طاقة)
         let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
         if (streakDays > 365) streakDays = 365;
         
-        function updateStreakProgressVisual(days) {
+        function updateCoreEnergySystem(days) {
             const percentage = (days / 365) * 100;
-            document.getElementById('streakDaysText').textContent = `اليوم ${days} / 365`;
-            document.getElementById('streakProgressBar').style.width = `${percentage}%`;
+            document.getElementById('coreDaysText').textContent = `اليوم ${days} / 365`;
+            document.getElementById('coreEnergyBar').style.width = `${percentage}%`;
             
-            let phaseTitle = "مرحلة التأسيس الأولى";
-            if (days > 90 && days <= 180) phaseTitle = "مرحلة الثبات والتركيز";
-            else if (days > 180 && days <= 270) phaseTitle = "مرحلة الاحتراف الدراسي";
-            else if (days > 270) phaseTitle = "مرحلة قمة التميز السنوي";
+            let phaseName = "نواة البداية";
+            if (days > 30 && days <= 90) phaseName = "نواة النبض";
+            else if (days > 90 && days <= 180) phaseName = "طاقة البلازما";
+            else if (days > 180 && days <= 270) phaseName = "طاقة النجوم";
+            else if (days > 270) phaseName = "النواة الخارقة";
             
-            document.getElementById('streakTitleLabel').textContent = phaseTitle;
+            document.getElementById('corePhaseLabel').textContent = phaseName;
         }
-        updateStreakProgressVisual(streakDays);
+        updateCoreEnergySystem(streakDays);
 
         // قائمة المرفقات
         function toggleAttachmentMenu(e) {
@@ -618,7 +628,6 @@
             msgDiv.className = `message-item ${isMe ? 'me' : ''}`;
             const rankClass = getRankClass(rank);
 
-            // تطبيق إعدادات الخصوصية (إخفاء المستوى أو الصورة إذا تم تفعيلها)
             const displayRank = savedSettings.rankVisible ? `<span class="rank-tag ${rankClass}">${rank}</span>` : '';
             const displayAvatar = savedSettings.avatarVisible ? avatar : 'https://via.placeholder.com/40';
 
