@@ -47,7 +47,7 @@
             position: relative;
         }
 
-        /* زر تبديل المظهر */
+        /* زر تبديل المظهر في مكانه الصحيح بالأعلى */
         .theme-toggle-btn {
             position: absolute;
             top: 20px;
@@ -162,11 +162,72 @@
         .footer-text a:hover { text-decoration: underline; }
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
+
+        /* نافذة إدخال OTP المنبثقة (Modal) */
+        .otp-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .otp-box {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 30px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.3s ease-out;
+        }
+        .otp-box h3 { color: var(--text-main); margin-bottom: 10px; font-size: 1.4rem; }
+        .otp-box p { color: var(--text-sub); font-size: 0.88rem; margin-bottom: 20px; }
+        .otp-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 8px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            outline: none;
+            margin-bottom: 15px;
+        }
+        .otp-input:focus { border-color: var(--primary); }
+        .btn-verify {
+            width: 100%;
+            padding: 12px;
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .btn-verify:hover { opacity: 0.9; }
+        .btn-cancel {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .btn-cancel:hover { color: var(--text-main); }
     </style>
 </head>
 <body>
 
-    <!-- زر تبديل المظهر -->
+    <!-- زر تبديل المظهر في مكانه الصحيح بالأعلى -->
     <button class="theme-toggle-btn" id="themeToggleBtn">
         <span id="themeIcon">☀️</span>
         <span id="themeText">الوضع الفاتح</span>
@@ -192,7 +253,7 @@
                 <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
             </div>
 
-            <!-- تأكيد البريد الإلكتروني الجديدة -->
+            <!-- تأكيد البريد الإلكتروني -->
             <div class="input-group">
                 <label for="confirmEmail">تأكيد البريد الإلكتروني</label>
                 <input type="email" id="confirmEmail" placeholder="أعد كتابة البريد الإلكتروني" required>
@@ -249,10 +310,24 @@
         </div>
     </div>
 
+    <!-- نافذة إدخال وتأكيد الـ OTP -->
+    <div class="otp-modal" id="otpModal">
+        <div class="otp-box">
+            <h3>تأكيد البريد الإلكتروني</h3>
+            <p>تم إرسال رمز تحقق (OTP) إلى بريدك الإلكتروني. أدخله أدناه للمتابعة:</p>
+            <input type="text" id="otpCodeInput" class="otp-input" maxlength="6" placeholder="------">
+            <button type="button" id="verifyOtpBtn" class="btn-verify">تأكيد الرمز وإنشاء الحساب</button>
+            <button type="button" id="cancelOtpBtn" class="btn-cancel">إلغاء وتعديل البيانات</button>
+        </div>
+    </div>
+
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbxQlQEKRKgTZ93Nnpnyhp6jJnJH_LZs4fhkeS0L46bzPK5hMYDhTPILVwJtFA3Elvv7/exec';
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+
+        let pendingUserData = null;
+        let generatedServerOtp = null;
 
         // --- التحكم في الثيم (الداكن هو الافتراضي) ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -294,7 +369,7 @@
                 toggleConfirmPassBtn.textContent = '🙈';
             } else {
                 confirmPasswordInput.type = 'password';
-                toggleConfirmPassBtn.textContent = '👁️️';
+                toggleConfirmPassBtn.textContent = '👁️';
             }
         });
 
@@ -348,10 +423,9 @@
             });
         }
 
-        // --- دالة التحقق الذكي من الحقول (شاملة تأكيد البريد الإلكتروني وتأكيد كلمة المرور) ---
+        // --- دالة التحقق الذكي من الحقول ---
         function validateInputs(name, email, confirmEmail, sPhone, pPhone, pass, confirmPass) {
             let isValid = true;
-            
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
 
             if (name.trim().split(' ').filter(word => word.length > 0).length < 2) {
@@ -365,7 +439,6 @@
                 isValid = false;
             }
 
-            // التحقق من تطابق الإيميل
             if (email !== confirmEmail) {
                 document.getElementById('confirmEmailError').style.display = 'block';
                 isValid = false;
@@ -395,7 +468,7 @@
             return isValid;
         }
 
-        // --- عند الضغط على زر التسجيل ---
+        // --- الخطوة الأولى: عند الضغط على زر التسجيل (طلب إرسال الـ OTP) ---
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -413,7 +486,7 @@
             }
 
             const btn = document.getElementById('submitBtn');
-            btn.textContent = 'جاري التحقق وإنشاء الحساب...';
+            btn.textContent = 'جاري التحقق وإرسال رمز التأكيد...';
             btn.disabled = true;
 
             try {
@@ -422,13 +495,7 @@
                 });
                 let result = await response.json();
                 let currentRecord = result.record || {};
-                
-                let studentsList = [];
-                if (Array.isArray(currentRecord.users)) {
-                    studentsList = currentRecord.users;
-                } else if (Array.isArray(currentRecord.students)) {
-                    studentsList = currentRecord.students;
-                }
+                let studentsList = currentRecord.users || currentRecord.students || [];
 
                 const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === email);
                 if (emailExists) {
@@ -447,7 +514,7 @@
                 const nextNumber = studentsList.length + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
-                const userData = {
+                pendingUserData = {
                     id: studentId,
                     studentId: studentId,
                     fullName: name,
@@ -469,15 +536,57 @@
                     chats: {}
                 };
 
-                // إرسال البيانات للـ Web App الخاص بجوجل في الخلفية
-                fetch(scriptURL, {
+                await fetch(scriptURL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(userData)
-                }).catch(err => console.error(err));
+                    body: JSON.stringify({ action: 'send_otp', email: email })
+                });
+                
+                btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
+                btn.disabled = false;
+                
+                document.getElementById('otpModal').style.display = 'flex';
+                document.getElementById('otpCodeInput').value = '';
+                document.getElementById('otpCodeInput').focus();
 
-                studentsList.push(userData);
+            } catch (error) {
+                console.error(error);
+                alert('حدث خطأ أثناء الاتصال أو إرسال رمز التحقق!');
+                btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('cancelOtpBtn').addEventListener('click', function() {
+            document.getElementById('otpModal').style.display = 'none';
+            pendingUserData = null;
+        });
+
+        // --- الخطوة الثانية: تأكيد رمز الـ OTP وإتمام الحفظ في السحابة ---
+        document.getElementById('verifyOtpBtn').addEventListener('click', async function() {
+            const enteredOtp = document.getElementById('otpCodeInput').value.trim();
+            if (!enteredOtp || enteredOtp.length < 4) {
+                alert('الرجاء إدخال رمز التحقق بشكل صحيح!');
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verifyOtpBtn');
+            verifyBtn.textContent = 'جاري التحقق من الرمز وحفظ الحساب...';
+            verifyBtn.disabled = true;
+
+            try {
+                await fetch(scriptURL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'verify_otp', email: pendingUserData.email, otp: enteredOtp })
+                });
+                
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let currentRecord = result.record || {};
+                let studentsList = currentRecord.users || currentRecord.students || [];
+
+                studentsList.push(pendingUserData);
                 currentRecord.users = studentsList;
 
                 let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
@@ -491,11 +600,10 @@
 
                 if (!updateRes.ok) throw new Error('فشل الحفظ للسحابة');
 
-                // تخزين الجلسة وتوجيه الطالب لصفحة الترحيب والشرح (welcome.html)
-                const studentDataString = JSON.stringify(userData);
+                const studentDataString = JSON.stringify(pendingUserData);
                 sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('currentStudentEmail', email);
-                sessionStorage.setItem('currentStudentId', studentId);
+                sessionStorage.setItem('currentStudentEmail', pendingUserData.email);
+                sessionStorage.setItem('currentStudentId', pendingUserData.studentId);
                 sessionStorage.setItem('studentUser', studentDataString);
                 sessionStorage.setItem('currentUser', studentDataString);
 
@@ -503,9 +611,9 @@
 
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ في الاتصال بالسحابة!');
-                btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
-                btn.disabled = false;
+                alert('رمز التحقق غير صحيح أو حدث خطأ في الحفظ!');
+                verifyBtn.textContent = 'تأكيد الرمز وإنشاء الحساب';
+                verifyBtn.disabled = false;
             }
         });
     </script>
