@@ -143,18 +143,14 @@
             border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
-        .admin-only-notice {
-            background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; text-align: center; margin-top: 10px; font-weight: bold;
-        }
     </style>
 </head>
-<body id="pageBody">
+<body id="pageBody" class="dark-mode">
 
     <header class="navbar">
         <a href="main.html" class="back-home-btn" title="العودة للرئيسية">🏠</a>
         <div class="navbar-title">منتدى الأسئلة والماستر 💬</div>
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">🌙</button>
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">☀️</button>
     </header>
 
     <div class="container">
@@ -198,15 +194,12 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // جلب بيانات الطالب ومعالجة الاسم (أول اسمين فقط) + المستوى الدراسي
         const rawStudentData = JSON.parse(localStorage.getItem('studentUser')) || {};
         const fullStoredName = rawStudentData.fullName || rawStudentData.name || 'طالب المنصة';
         
-        // استخلاص أول اسمين فقط من الاسم الكامل
         const nameParts = fullStoredName.trim().split(/\s+/);
         const twoNames = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : nameParts[0] || 'طالب المنصة';
         
-        // جلب المستوى الدراسي
         const studentLevel = rawStudentData.level || rawStudentData.educationalLevel || 'المستوى العام';
 
         const userData = {
@@ -231,11 +224,16 @@
 
         const pageBody = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const savedTheme = localStorage.getItem('forumTheme') || 'light';
-        if (savedTheme === 'dark') {
+        const savedTheme = localStorage.getItem('forumTheme') || 'dark';
+        
+        if (savedTheme === 'light') {
+            pageBody.classList.remove('dark-mode');
+            themeToggleBtn.textContent = '🌙';
+        } else {
             pageBody.classList.add('dark-mode');
             themeToggleBtn.textContent = '☀️';
         }
+
         themeToggleBtn.addEventListener('click', function() {
             pageBody.classList.toggle('dark-mode');
             const isDark = pageBody.classList.contains('dark-mode');
@@ -405,7 +403,6 @@
                             </div>
                         ` : ''}
                     </div>
-                    ${!isUserAdmin ? `<div class="admin-only-notice">⚠️ عذراً، الرد على الأسئلة مخصص للأدمن فقط لضمان الإجابة النموذجية والدقيقة.</div>` : ''}
                 `;
 
                 let card = document.createElement('div');
