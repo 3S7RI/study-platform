@@ -6,27 +6,27 @@
     <title>لوحة التحكم المركزية - رحلة دراسية</title>
     <style>
         :root {
-            --bg-color: #f4f7f6;
-            --header-bg: #1e3c72;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #eee;
-            --stat-num-color: #1e3c72;
-            --primary-color: #6366f1;
-            --input-bg: #ffffff;
-            --heading-color: #1e3c72;
-            --th-bg: rgba(0,0,0,0.02);
-        }
-        [data-theme="dark"] {
             --bg-color: #121212;
             --header-bg: #1f1f1f;
             --card-bg: #1e1e1e;
             --text-color: #e0e0e0;
             --border-color: #333333;
             --stat-num-color: #ffffff;
+            --primary-color: #6366f1;
             --input-bg: #0f172a;
             --heading-color: #ffffff;
             --th-bg: rgba(255,255,255,0.05);
+        }
+        [data-theme="light"] {
+            --bg-color: #f4f7f6;
+            --header-bg: #1e3c72;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #eee;
+            --stat-num-color: #1e3c72;
+            --input-bg: #ffffff;
+            --heading-color: #1e3c72;
+            --th-bg: rgba(0,0,0,0.02);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
@@ -80,7 +80,6 @@
 
         .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; color: var(--text-color); }
         
-        /* تصميم إطار وصورة البروفايل والرتبة تحته مطابق للصورة المرسلة */
         .modal-avatar-wrapper { position: relative; width: 90px; height: 90px; margin: 0 auto 8px; }
         .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
         
@@ -101,7 +100,7 @@
         .btn-full { grid-column: span 2; }
     </style>
 </head>
-<body>
+<body data-theme="dark">
 
     <div class="container">
         <header>
@@ -131,6 +130,27 @@
             </div>
             <div id="adminFilesList" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
                 <p style="text-align: center; opacity: 0.7;">جاري تحميل الملفات...</p>
+            </div>
+        </div>
+
+        <!-- قسم إدارة الفيديوهات التعليمية -->
+        <div class="section-box" style="border-top: 4px solid #e74c3c; margin-top: 20px;">
+            <div class="section-header">
+                <h2>إدارة الفيديوهات التعليمية 🎬</h2>
+                <button class="btn-add" onclick="openAddVideoModal()">إضافة فيديو جديد ➕</button>
+            </div>
+            <div id="adminVideosList" style="margin-top: 15px;">
+                <p style="text-align: center; opacity: 0.7;">جاري تحميل الفيديوهات...</p>
+            </div>
+        </div>
+
+        <!-- قسم إدارة المنتدى والمناقشات -->
+        <div class="section-box" style="border-top: 4px solid #f39c12; margin-top: 20px;">
+            <div class="section-header">
+                <h2>إدارة المنتدى والمناقشات 💬</h2>
+            </div>
+            <div id="adminForumList" style="margin-top: 15px;">
+                <p style="text-align: center; opacity: 0.7;">جاري تحميل منشورات المنتدى...</p>
             </div>
         </div>
 
@@ -179,6 +199,23 @@
         
         <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; opacity: 0.7;">
             جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
+        </div>
+    </div>
+    <!-- نافذة إضافة فيديو جديد -->
+    <div class="modal-overlay" id="addVideoModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إضافة فيديو تعليمي جديد 🎬</h3>
+                <button class="close-modal" onclick="closeAddVideoModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: right;">
+                <form id="addVideoForm" onsubmit="event.preventDefault(); submitNewVideo();">
+                    <div class="modal-field"><label>عنوان الفيديو:</label><input type="text" id="videoTitle" placeholder="مثلاً: شرح الباب الثاني كيمياء" required></div>
+                    <div class="modal-field"><label>رابط الفيديو (YouTube / رابط مباشر):</label><input type="url" id="videoLink" placeholder="https://youtube.com/..." required></div>
+                    <div class="modal-field"><label>الوصف أو المادة:</label><input type="text" id="videoSubject" placeholder="كيمياء - الصف الثالث الثانوي" required></div>
+                    <div class="modal-actions-grid"><button type="submit" class="btn-approve btn-full">نشر الفيديو للطلاب 🚀</button></div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -292,7 +329,7 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         
-        let globalRecordData = { users: [], admins: [], studyFiles: [], exams: [], examResults: [], adminRequests: [] };
+        let globalRecordData = { users: [], admins: [], studyFiles: [], exams: [], examResults: [], adminRequests: [], videos: [], forumPosts: [] };
 
         sessionStorage.setItem('isAdminLoggedIn', 'true');
         sessionStorage.setItem('adminRole', 'master');
@@ -305,16 +342,16 @@
         `;
 
         const themeBtn = document.getElementById('themeToggleBtn');
-        document.documentElement.setAttribute('data-theme', 'dark');
-        themeBtn.textContent = '☀️ فاتح';
+        let currentTheme = document.body.getAttribute('data-theme');
+        themeBtn.textContent = currentTheme === 'dark' ? '☀️ فاتح' : '🌙 داكن';
 
         themeBtn.addEventListener('click', () => {
-            let theme = document.documentElement.getAttribute('data-theme');
+            let theme = document.body.getAttribute('data-theme');
             if (theme === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
+                document.body.setAttribute('data-theme', 'light');
                 themeBtn.textContent = '🌙 داكن';
             } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.setAttribute('data-theme', 'dark');
                 themeBtn.textContent = '☀️ فاتح';
             }
         });
@@ -376,7 +413,65 @@
 
             renderStudents(globalRecordData.users || []);
             renderAdminFiles(globalRecordData.studyFiles || []);
+            renderAdminVideos(globalRecordData.videos || []);
+            renderAdminForum(globalRecordData.forumPosts || []);
             loadAdminExamsList(globalRecordData.exams || []);
+        }
+
+        // إدارة الفيديوهات
+        function openAddVideoModal() { document.getElementById('addVideoModal').classList.add('active'); }
+        function closeAddVideoModal() { document.getElementById('addVideoModal').classList.remove('active'); }
+
+        async function submitNewVideo() {
+            let title = document.getElementById('videoTitle').value.trim();
+            let link = document.getElementById('videoLink').value.trim();
+            let subject = document.getElementById('videoSubject').value.trim();
+            if(!title || !link || !subject) { alert('يرجى تعبئة جميع الحقول'); return; }
+
+            if(!globalRecordData.videos) globalRecordData.videos = [];
+            globalRecordData.videos.push({ title, link, subject, date: new Date().toLocaleDateString('ar-EG') });
+            await updateCloudData();
+            alert('تم إضافة الفيديو بنجاح! 🚀');
+            closeAddVideoModal();
+            document.getElementById('addVideoForm').reset();
+            renderAdminVideos(globalRecordData.videos);
+        }
+
+        function renderAdminVideos(videos) {
+            const container = document.getElementById('adminVideosList');
+            if(!videos || videos.length === 0) { container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 10px;">لا توجد فيديوهات مضافة حالياً.</p>'; return; }
+            let html = `<table><thead><tr><th>عنوان الفيديو</th><th>المادة</th><th>التحكم</th></tr></thead><tbody>`;
+            videos.forEach((vid, index) => {
+                html += `<tr><td><b>🎬 ${vid.title}</b></td><td>${vid.subject}</td><td><a href="${vid.link}" target="_blank" class="btn-verify" style="padding: 4px 10px; text-decoration: none;">مشاهدة 🔗</a> <button class="btn-danger" onclick="deleteVideo(${index})">حذف 🗑️</button></td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function deleteVideo(index) {
+            if(!confirm('هل تريد حذف هذا الفيديو؟')) return;
+            globalRecordData.videos.splice(index, 1);
+            await updateCloudData();
+            renderAdminVideos(globalRecordData.videos);
+        }
+
+        // إدارة المنتدى
+        function renderAdminForum(posts) {
+            const container = document.getElementById('adminForumList');
+            if(!posts || posts.length === 0) { container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 10px;">لا توجد منشورات في المنتدى حالياً.</p>'; return; }
+            let html = `<table><thead><tr><th>صاحب المنشور</th><th>المحتوى</th><th>التحكم</th></tr></thead><tbody>`;
+            posts.forEach((post, index) => {
+                html += `<tr><td><b>👤 ${post.author || 'طالب'}</b></td><td>${post.content || ''}</td><td><button class="btn-danger" onclick="deleteForumPost(${index})">حذف المنشور 🗑️</button></td></tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function deleteForumPost(index) {
+            if(!confirm('هل تريد حذف هذا المنشور من المنتدى؟')) return;
+            globalRecordData.forumPosts.splice(index, 1);
+            await updateCloudData();
+            renderAdminForum(globalRecordData.forumPosts);
         }
 
         function openAddAdminModal() { document.getElementById('addAdminModal').classList.add('active'); }
@@ -696,7 +791,6 @@
                 modalTitle.textContent = "بروفايل وإدارة الطالب 🎓";
                 let isBlocked = student.status === 'blocked';
                 
-                // تحديد نصوص وأيقونات الرتب للطالب لتطابق الشكل المطلوب
                 let rankKey = student.rank || 'bronze';
                 let rankName = 'برونزي';
                 let rankIcon = '🥉';
@@ -763,7 +857,89 @@
             `;
         }
 
+        async function saveStudentEdits(oldEmail) {
+            let student = globalRecordData.users.find(u => u.email === oldEmail);
+            if (student) {
+                student.studentId = document.getElementById('editStudentId').value.trim();
+                student.fullName = document.getElementById('editStudentName').value.trim();
+                student.email = document.getElementById('editStudentEmailVal').value.trim().toLowerCase();
+                student.studentPhone = document.getElementById('editStudentPhoneVal').value.trim();
+                student.parentPhone = document.getElementById('editStudentParentPhoneVal').value.trim();
+                student.rank = document.getElementById('editStudentRank').value.trim();
+                await updateCloudData();
+                alert('تم تحديث بيانات الطالب بنجاح! 🚀');
+                closeControlModal();
+                renderUIComponents();
+            }
+        }
+
         async function saveAdminEdits(oldEmail) {
             let admin = globalRecordData.admins.find(a => a.email === oldEmail);
             if (admin) {
-                admin.name = document.getElementById('editAdmi
+                admin.name = document.getElementById('editAdminName').value.trim();
+                admin.fullName = admin.name;
+                admin.email = document.getElementById('editAdminEmailVal').value.trim().toLowerCase();
+                admin.phone = document.getElementById('editAdminPhone').value.trim();
+                admin.profileImage = document.getElementById('editAdminImg').value.trim();
+                await updateCloudData();
+                alert('تم تحديث بيانات المشرف بنجاح! 🚀');
+                closeControlModal();
+                renderUIComponents();
+            }
+        }
+
+        async function toggleBlockStatus(email, type) {
+            if (type === 'admin') {
+                let adm = globalRecordData.admins.find(a => a.email === email);
+                if (adm) {
+                    adm.status = adm.status === 'blocked' ? 'active' : 'blocked';
+                    await updateCloudData();
+                    openUserModal(email, 'admin');
+                    renderAdmins(globalRecordData.admins);
+                }
+            } else {
+                let st = globalRecordData.users.find(u => u.email === email);
+                if (st) {
+                    st.status = st.status === 'blocked' ? 'active' : 'blocked';
+                    await updateCloudData();
+                    openUserModal(email, 'user');
+                    renderStudents(globalRecordData.users);
+                }
+            }
+        }
+
+        async function toggleVerifyAdmin(email) {
+            let adm = globalRecordData.admins.find(a => a.email === email);
+            if (adm) {
+                adm.verified = !adm.verified;
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderAdmins(globalRecordData.admins);
+            }
+        }
+
+        async function toggleAdminRole(email) {
+            let adm = globalRecordData.admins.find(a => a.email === email);
+            if (adm) {
+                adm.role = adm.role === 'master' ? 'sub' : 'master';
+                await updateCloudData();
+                openUserModal(email, 'admin');
+                renderAdmins(globalRecordData.admins);
+            }
+        }
+
+        async function deleteRecord(email, type) {
+            if (!confirm(`هل أنت متأكد من حذف هذا الحساب نهائياً؟`)) return;
+            if (type === 'admin') {
+                globalRecordData.admins = globalRecordData.admins.filter(a => a.email !== email);
+            } else {
+                globalRecordData.users = globalRecordData.users.filter(u => u.email !== email);
+            }
+            await updateCloudData();
+            closeControlModal();
+            renderUIComponents();
+            alert('تم الحذف بنجاح.');
+        }
+    </script>
+</body>
+</html>
