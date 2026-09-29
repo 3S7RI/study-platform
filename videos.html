@@ -110,13 +110,18 @@
         .video-info h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); }
         .video-info p { color: var(--text-sub); font-size: 0.88rem; margin-bottom: 15px; }
 
-        .watch-btn {
-            background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 10px;
-            font-weight: bold; cursor: pointer; text-decoration: center; text-align: center; display: block;
+        .empty-notice { 
+            grid-column: 1 / -1; 
+            text-align: center; 
+            color: var(--text-sub); 
+            padding: 50px; 
+            font-size: 1.1rem; 
+            background: var(--card-bg); 
+            border-radius: 16px; 
+            border: 1px solid var(--card-border); 
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
         }
-        .watch-btn:hover { background: var(--primary-hover); }
-
-        .empty-notice { grid-column: 1 / -1; text-align: center; color: var(--text-sub); padding: 50px; font-size: 1.1rem; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--card-border); }
 
         footer { text-align: center; padding: 30px; color: var(--text-sub); font-size: 0.9rem; border-top: 1px solid var(--card-border); margin-top: 50px; }
     </style>
@@ -145,7 +150,7 @@
         </div>
 
         <div class="videos-grid" id="videosGrid">
-            <div class="empty-notice">جاري تحميل الفيديوهات من السحابة... ⏳</div>
+            <div class="empty-notice">جاري التحقق من الفيديوهات المتاحة... ⏳</div>
         </div>
     </div>
 
@@ -214,13 +219,12 @@
                 let filteredVideos = allVideos.filter(v => !v.grade || v.grade === studentGrade || v.grade === 'all');
 
                 if (filteredVideos.length === 0) {
-                    grid.innerHTML = '<div class="empty-notice">لا توجد فيديوهات تعليمية مضافة لصفك الدراسي حتى الآن. ترقبنا قريباً! 📚</div>';
+                    grid.innerHTML = '<div class="empty-notice">📭 لم يتم نشر فيديوهات شرح بعد. ترقبونا قريباً للحصص والمراجعات الجديدة!</div>';
                     return;
                 }
 
                 let html = '';
                 filteredVideos.forEach(vid => {
-                    // معالجة رابط يوتيوب أو روابط الفيديو العادية لعرضها كـ Iframe لو متاح
                     let embedContent = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-sub); font-size:0.9rem;">🎬 فيديو تعليمي مسجل</div>`;
                     if (vid.videoUrl) {
                         if (vid.videoUrl.includes('youtube.com') || vid.videoUrl.includes('youtu.be')) {
@@ -258,7 +262,7 @@
 
             } catch (e) {
                 console.error("خطأ في جلب الفيديوهات:", e);
-                grid.innerHTML = '<div class="empty-notice" style="color: var(--danger);">حدث خطأ أثناء الاتصال بالسحابة لجلب الفيديوهات. حاول مرة أخرى.</div>';
+                grid.innerHTML = '<div class="empty-notice">📭 لم يتم نشر فيديوهات شرح بعد. ترقبونا قريباً!</div>';
             }
         }
     </script>
