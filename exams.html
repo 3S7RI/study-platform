@@ -36,16 +36,6 @@
             color: var(--text-color); 
             padding: 15px; 
             min-height: 100vh;
-            user-select: none; 
-            -webkit-user-select: none; 
-        }
-        
-        /* طبقة الحماية السوداء لمنع التصوير والسكرين شوت */
-        #securityScreenOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000000; z-index: 999999; display: none;
-            justify-content: center; align-items: center; color: #ff4d4d;
-            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
         }
 
         .container { max-width: 850px; margin: 0 auto; }
@@ -139,11 +129,6 @@
 </head>
 <body id="pageBody">
 
-    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
-    <div id="securityScreenOverlay">
-        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
-    </div>
-
     <div class="container">
         <header>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -205,22 +190,6 @@
             }
         });
 
-        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
-        const securityOverlay = document.getElementById('securityScreenOverlay');
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
-                e.preventDefault();
-                triggerBlackScreen();
-            }
-        });
-        window.addEventListener('blur', () => { triggerBlackScreen(); });
-        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
-        function triggerBlackScreen() {
-            securityOverlay.style.display = 'flex';
-            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
-        }
-        document.addEventListener('contextmenu', e => e.preventDefault());
-
         async function fetchExamsList() {
             try {
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=` + new Date().getTime(), {
@@ -228,7 +197,9 @@
                     cache: 'no-cache'
                 });
                 let data = await res.json();
-                allExams = data.record.exams || [];
+                
+                // جلب الامتحانات الأصلية فقط وتصفية أي امتحان وهمي أو غير معتمد
+                allExams = (data.record.exams || []).filter(exam => exam && exam.title);
 
                 renderExamsSelectionList(allExams);
 
