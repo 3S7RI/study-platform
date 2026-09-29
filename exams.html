@@ -164,7 +164,10 @@
         </div>
 
         <div id="examContainer">
-            <p style="text-align: center; color: var(--text-sub); padding: 40px;">جاري جلب الامتحانات...</p>
+            <div style="text-align: center; padding: 50px; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
+                <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
+                <h3 style="color: var(--text-color); margin-bottom: 5px;">جاري التحقق من الامتحانات المتاحة...</h3>
+            </div>
         </div>
         
         <div style="text-align: center; margin-top: 30px; font-size: 0.85rem; color: var(--text-sub);">
@@ -231,28 +234,36 @@
 
             } catch (e) {
                 console.error(e);
-                document.getElementById('examContainer').innerHTML = '<p style="text-align:center; color:red;">خطأ في تحميل الامتحانات.</p>';
+                const container = document.getElementById('examContainer');
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
+                        <h3 style="color: var(--text-color); margin-bottom: 5px;">لا توجد امتحانات متاحة حالياً</h3>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">لم يتم نشر أي اختبارات أو امتحانات تفاعلية بعد. ترقبونا قريباً!</p>
+                    </div>
+                `;
             }
         }
 
         function renderExamsSelectionList(exams) {
             const container = document.getElementById('examContainer');
             
-            if (!exams || exams.length === 0) {
+            // فلترة الامتحانات غير المغلقة وغير الفارغة
+            const activeExams = (exams || []).filter(exam => !exam.isClosed);
+
+            if (activeExams.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
-                        <h3 style="color: var(--text-color); margin-bottom: 5px;">لم يتم نشر امتحانات بعد</h3>
-                        <p style="color: var(--text-sub); font-size: 0.9rem;">ترقبوا.. سيتم نشر الامتحانات والاختبارات التفاعلية قريباً.</p>
+                    <div style="text-align: center; padding: 50px; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
+                        <div style="font-size: 3.5rem; margin-bottom: 15px;">📭</div>
+                        <h3 style="color: var(--text-color); font-size: 1.25rem; margin-bottom: 8px;">لم يتم نشر امتحانات بعد</h3>
+                        <p style="color: var(--text-sub); font-size: 0.95rem;">ترقبوا.. سيتم نشر الامتحانات والاختبارات التفاعلية قريباً من قِبل الإدارة.</p>
                     </div>
                 `;
                 return;
             }
 
             container.innerHTML = '';
-            exams.forEach((exam, index) => {
-                if (exam.isClosed) return;
-
+            activeExams.forEach((exam, index) => {
                 let card = document.createElement('div');
                 card.className = 'exam-select-card';
                 card.innerHTML = `
