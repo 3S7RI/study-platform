@@ -117,7 +117,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
-        /* تنسيق حقل البريد مع زر الإرسال */
         .email-flex {
             display: flex;
             gap: 10px;
@@ -212,11 +211,10 @@
                     <input type="email" id="email" placeholder="example@gmail.com" required>
                     <button type="button" id="sendOtpBtn" class="btn-otp" onclick="sendOTPCode()">إرسال الكود</button>
                 </div>
-                <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
+                <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة أو مستخدم مسبقاً</div>
                 <div class="success-msg" id="emailSuccess">تم إرسال كود التحقق بنجاح إلى بريدك!</div>
             </div>
 
-            <!-- خانة إدخال الكود (تظهر بعد طلب الإرسال) -->
             <div class="input-group" id="otpGroup" style="display: none;">
                 <label for="otpCode">كود التحقق (OTP)</label>
                 <input type="text" id="otpCode" maxlength="6" placeholder="أدخل الكود المكون من 6 أرقام" style="text-align: center; letter-spacing: 4px; font-weight: bold;">
@@ -269,9 +267,8 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        let generatedOtp = ""; // لحفظ كود التحقق المؤقت
+        let generatedOtp = ""; 
 
-        // --- التحكم في الثيم ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
@@ -289,7 +286,6 @@
             }
         });
 
-        // --- إظهار وإخفاء كلمة المرور ---
         const passwordInput = document.getElementById('password');
         const togglePassBtn = document.getElementById('togglePassBtn');
         togglePassBtn.addEventListener('click', function() {
@@ -302,7 +298,6 @@
             }
         });
 
-        // --- المعاينة المباشرة للصورة ---
         const profileImageInput = document.getElementById('profileImageInput');
         const fileNameSpan = document.getElementById('fileName');
         const uploadIcon = document.getElementById('uploadIcon');
@@ -352,7 +347,7 @@
             });
         }
 
-        // --- إرسال كود الـ OTP عبر سيرفر الـ Apps Script ---
+        // --- إرسال كود الـ OTP الحقيقي مع فحص الإيميل في السحابة ---
         async function sendOTPCode() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -370,18 +365,34 @@
                 return;
             }
 
-            sendBtn.textContent = 'جاري الإرسال...';
+            sendBtn.textContent = 'جاري التحقق...';
             sendBtn.disabled = true;
 
-            // توليد رقم عشوائي من 6 أرقام
-            generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
             try {
-                // إرسال طلب للـ Apps Script الذي يعتمد على مفتاح Brevo
-                await fetch(scriptURL, {
+                // 1. فحص ما إذا كان البريد مسجلاً مسبقاً في قاعدة بيانات JSONBin لمنع التكرار
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let currentRecord = result.record || {};
+                let studentsList = currentRecord.users || currentRecord.students || [];
+
+                const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === emailInput);
+                if (emailExists) {
+                    emailError.textContent = 'هذا البريد الإلكتروني مسجل بالفعل مسبقاً!';
+                    emailError.style.display = 'block';
+                    sendBtn.textContent = 'إرسال الكود';
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                sendBtn.textContent = 'جاري إرسال الكود...';
+                generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+                // 2. إرسال الطلب عبر CORS عادي (بدون no-cors) لاستقبال الرد الحقيقي من Apps Script
+                let res = await fetch(scriptURL, {
                     method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // لتفادي مشاكل الـ Preflight في Google Apps Script
                     body: JSON.stringify({
                         email: emailInput,
                         name: nameInput || 'طالب جديد',
@@ -389,20 +400,26 @@
                     })
                 });
 
-                emailSuccess.style.display = 'block';
-                document.getElementById('otpGroup').style.display = 'block'; // إظهار خانة الكود
-                sendBtn.textContent = 'إعادة الإرسال';
+                let resData = await res.json();
+
+                if (resData.status === 'success' || resData.success) {
+                    emailSuccess.style.display = 'block';
+                    document.getElementById('otpGroup').style.display = 'block';
+                    sendBtn.textContent = 'إعادة الإرسال';
+                } else {
+                    throw new Error(resData.message || 'فشل إرسال البريد عبر السيرفر');
+                }
+
                 sendBtn.disabled = false;
             } catch (error) {
                 console.error(error);
-                emailError.textContent = 'فشل إرسال الكود، تحقق من الاتصال';
+                emailError.textContent = 'خطأ: لم يتم إرسال الكود. تأكد من صحة الإيميل أو إعدادات السيرفر.';
                 emailError.style.display = 'block';
                 sendBtn.textContent = 'إرسال الكود';
                 sendBtn.disabled = false;
             }
         }
 
-        // --- دالة التحقق الذكي من الحقول ---
         function validateInputs(name, email, sPhone, pPhone, pass) {
             let isValid = true;
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
@@ -437,7 +454,6 @@
             return isValid;
         }
 
-        // --- عند الضغط على زر التسجيل النهائي ---
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -453,7 +469,6 @@
                 return;
             }
 
-            // التحقق من كود الـ OTP
             if (document.getElementById('otpGroup').style.display === 'none' || !enteredOtp) {
                 alert('الرجاء إرسال كود التحقق إلى بريدك الإلكتروني وكتابته أولاً!');
                 return;
