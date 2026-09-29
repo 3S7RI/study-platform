@@ -237,15 +237,28 @@
 
         .msg-time { font-size: 0.6rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
 
-        .msg-image { max-width: 100%; width: 200px; border-radius: 10px; margin-bottom: 5px; cursor: pointer; display: block; object-fit: cover; }
+        /* تعديل حجم الصور والملفات لتكون مصغرة داخل الشات ولا تحجب الشاشة */
+        .msg-image { 
+            width: 120px; 
+            height: 90px; 
+            border-radius: 8px; 
+            margin-bottom: 4px; 
+            cursor: pointer; 
+            display: block; 
+            object-fit: cover; 
+            border: 1px solid var(--card-border);
+            transition: transform 0.2s;
+        }
+        .msg-image:hover { opacity: 0.9; }
+
         .poll-box, .ask-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px; margin-top: 5px; border: 1px solid var(--card-border); width: 100%; }
         .poll-option { background: var(--btn-bg); padding: 6px 10px; border-radius: 6px; margin-top: 5px; cursor: pointer; font-size: 0.82rem; }
         .poll-option:hover { background: var(--primary); color: white; }
         .reply-trigger-btn { background: none; border: none; color: var(--primary); font-size: 0.72rem; cursor: pointer; margin-top: 4px; font-weight: bold; text-align: right; }
         
-        .voice-note-player { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.15); padding: 8px 10px; border-radius: 20px; max-width: 100%; }
-        .voice-play-btn { background: var(--primary); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
-        .voice-waves { flex: 1; height: 14px; background: repeating-linear-gradient(90deg, var(--text-sub), var(--text-sub) 2px, transparent 2px, transparent 6px); opacity: 0.6; min-width: 80px; }
+        .voice-note-player { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.15); padding: 6px 10px; border-radius: 20px; max-width: 180px; }
+        .voice-play-btn { background: var(--primary); color: white; border: none; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+        .voice-waves { flex: 1; height: 12px; background: repeating-linear-gradient(90deg, var(--text-sub), var(--text-sub) 2px, transparent 2px, transparent 6px); opacity: 0.6; min-width: 50px; }
 
         .attachment-preview-bar {
             padding: 8px 15px;
@@ -326,13 +339,21 @@
         .modal-btn { background: var(--primary); color: white; border: none; padding: 9px; border-radius: 10px; cursor: pointer; font-weight: bold; text-align: center; }
         .modal-btn:hover { background: var(--primary-hover); }
         .options-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
+
+        /* نافذة تكبير الصورة (Lightbox) */
+        #imageModalViewer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; display: none;
+            justify-content: center; align-items: center; cursor: pointer; padding: 20px;
+        }
+        #imageModalViewer.active { display: flex; }
+        #imageModalViewer img { max-width: 90%; max-height: 90%; border-radius: 12px; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
     <header class="chat-header-nav">
         <div class="header-right-group">
-            <!-- تم تعديل الرابط هنا ليتوافق مع اسم صفحة الطالب الأساسية الخاصة بك -->
             <a href="main.html" class="home-btn">🏠 الرئيسية</a>
         </div>
         <div class="chat-main-title">💬 قناة الدردشة</div>
@@ -366,7 +387,7 @@
                 <div class="attachment-menu" id="attachmentMenu">
                     <button class="att-option" onclick="document.getElementById('mediaInput').click()">📷 صورة أو فيديو</button>
                     <button class="att-option" onclick="document.getElementById('fileInput').click()">📁 مستند / ملف PDF</button>
-                    <button class="att-option" onclick="recordVoiceNote()">🎤 تسجيل صوتي</button>
+                    <button class="att-option" onclick="startVoiceRecording()">🎤 تسجيل صوتي حقيقي</button>
                     <button class="att-option" onclick="openPollModal()">📊 إنشاء تصويت</button>
                     <button class="att-option" onclick="openAskModal()">❓ طرح سؤال (Ask)</button>
                 </div>
@@ -381,6 +402,11 @@
                 <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
             </button>
         </div>
+    </div>
+
+    <!-- نافذة تكبير الصورة -->
+    <div id="imageModalViewer" onclick="closeImageModal()">
+        <img id="expandedImg" src="" alt="صورة مكبرة">
     </div>
 
     <!-- نافذة الإعدادات -->
@@ -440,7 +466,14 @@
         const nameParts = studentName.split(' ');
         const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : studentName;
         const studentAvatar = currentUserData.profileImage || currentUserData.avatar || 'https://via.placeholder.com/40';
-        const studentRank = currentUserData.rank || 'ضعيف';
+        
+        // تصنيف المستويات باللغة العربية حصرياً (ضعيف، متوسط، قوي، قوي جداً، اسطوري)
+        let rawRank = currentUserData.rank || 'ضعيف';
+        let studentRank = 'ضعيف';
+        if (rawRank.includes('متوسط')) studentRank = 'متوسط';
+        else if (rawRank.includes('جداً') || rawRank.includes('very')) studentRank = 'قوي جداً';
+        else if (rawRank.includes('قوي')) studentRank = 'قوي';
+        else if (rawRank.includes('اسطوري') || rawRank.includes('legendary')) studentRank = 'اسطوري';
 
         function getRankClass(rank) {
             switch(rank) {
@@ -486,7 +519,7 @@
         if (streakDays > 365) streakDays = 365;
         document.getElementById('coreDayNumber').textContent = streakDays;
 
-        const CLOUD_STORAGE_KEY = 'cloud_student_chat_messages_v2';
+        const CLOUD_STORAGE_KEY = 'cloud_student_chat_messages_v3';
         
         function getCloudMessages() {
             let messages = JSON.parse(localStorage.getItem(CLOUD_STORAGE_KEY) || '[]');
@@ -530,16 +563,49 @@
             document.getElementById('fileInput').value = '';
         }
 
-        function recordVoiceNote() {
+        // تفعيل تسجيل صوتي حقيقي عبر متصفح الويب (MediaRecorder) بدلاً من التسجيل الوهمي
+        let mediaRecorder;
+        let audioChunks = [];
+
+        async function startVoiceRecording() {
             document.getElementById('attachmentMenu').classList.remove('active');
-            const voiceObj = {
-                type: 'voice',
-                name: 'تسجيل صوتي قصير (0:14)',
-                dataUrl: '#'
-            };
-            pendingAttachment = voiceObj;
-            document.getElementById('previewTextName').textContent = `تم تسجيل ريكورد صوتي`;
-            document.getElementById('attachmentPreviewBar').classList.add('active');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        pendingAttachment = {
+                            type: 'voice',
+                            name: 'تسجيل صوتي',
+                            dataUrl: e.target.result
+                        };
+                        document.getElementById('previewTextName').textContent = `تم تسجيل الريكورد الصوتي بنجاح`;
+                        document.getElementById('attachmentPreviewBar').classList.add('active');
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    // إيقاف الميكروفون
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                alert('🎙️ جاري التسجيل الآن... اضغط OK ثم تحدث، وسيتم إيقاف التسجيل تلقائياً بعد 5 ثوانٍ أو يمكنك إرساله.');
+                setTimeout(() => {
+                    if(mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, 5000);
+
+            } catch (err) {
+                alert('تعذر الوصول إلى الميكروفون. تأكد من منح الأذن للمتصفح.');
+            }
         }
 
         function toggleAttachmentMenu(e) {
@@ -705,6 +771,15 @@
             }
         }
 
+        // نافذة تكبير الصورة عند النقر عليها
+        function expandImage(src) {
+            document.getElementById('expandedImg').src = src;
+            document.getElementById('imageModalViewer').classList.add('active');
+        }
+        function closeImageModal() {
+            document.getElementById('imageModalViewer').classList.remove('active');
+        }
+
         function renderChatMessages() {
             const container = document.getElementById('chatMessages');
             container.innerHTML = '';
@@ -731,15 +806,17 @@
 
                 if (msg.attachment) {
                     if (msg.attachment.type === 'media') {
-                        contentHtml += `<img src="${msg.attachment.dataUrl}" class="msg-image" alt="صورة مرفقة">`;
+                        // صورة مصغرة قابلة للتكبير
+                        contentHtml += `<img src="${msg.attachment.dataUrl}" class="msg-image" alt="صورة مرفقة" onclick="expandImage('${msg.attachment.dataUrl}')" title="انقر لتكبير الصورة">`;
                     } else if (msg.attachment.type === 'file') {
-                        contentHtml += `<div class="msg-bubble" style="background:rgba(0,0,0,0.2);">📁 مستند مرفق: ${msg.attachment.name}</div>`;
+                        contentHtml += `<div class="msg-bubble" style="background:rgba(0,0,0,0.2); font-size:0.8rem;">📁 ملف: ${msg.attachment.name}</div>`;
                     } else if (msg.attachment.type === 'voice') {
+                        // مشغل صوت حقيقي مسجل
                         contentHtml += `
                             <div class="voice-note-player">
-                                <button class="voice-play-btn" onclick="alert('تشغيل اليكورد الصوتي...')">▶</button>
+                                <button class="voice-play-btn" onclick="const a = new Audio('${msg.attachment.dataUrl}'); a.play();">▶</button>
                                 <div class="voice-waves"></div>
-                                <span style="font-size:0.72rem; color:var(--text-sub);">0:14</span>
+                                <span style="font-size:0.7rem; color:var(--text-sub);">تسجيل</span>
                             </div>
                         `;
                     }
