@@ -254,6 +254,16 @@
                 <div class="error-msg" id="passError">كلمة المرور يجب أن لا تقل عن 6 عناصر</div>
             </div>
 
+            <!-- خانة تأكيد كلمة المرور الجديدة -->
+            <div class="input-group">
+                <label for="confirmPassword">تأكيد كلمة المرور</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirmPassword" placeholder="******" required>
+                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️️</span>
+                </div>
+                <div class="error-msg" id="confirmPassError">كلمتا المرور غير متطابقتين</div>
+            </div>
+
             <button type="submit" id="submitBtn" class="btn-submit">تسجيل الحساب وانطلاق 🚀</button>
         </form>
 
@@ -263,13 +273,13 @@
     </div>
 
     <script>
-        // --- إعدادات بريفو (Brevo) وقاعدة البيانات ---
         const BREVO_API_KEY = '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';
         const SENDER_EMAIL = 'mohamad91xm@gmail.com';
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
         let generatedOtp = ""; 
+        let countdownTimer = null;
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
@@ -297,6 +307,19 @@
             } else {
                 passwordInput.type = 'password';
                 togglePassBtn.textContent = '👁️';
+            }
+        });
+
+        // زر إظهار وإخفاء تأكيد كلمة المرور
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const toggleConfirmPassBtn = document.getElementById('toggleConfirmPassBtn');
+        toggleConfirmPassBtn.addEventListener('click', function() {
+            if (confirmPasswordInput.type === 'password') {
+                confirmPasswordInput.type = 'text';
+                toggleConfirmPassBtn.textContent = '🙈';
+            } else {
+                confirmPasswordInput.type = 'password';
+                toggleConfirmPassBtn.textContent = '👁️';
             }
         });
 
@@ -349,7 +372,23 @@
             });
         }
 
-        // --- دالة إرسال الـ OTP عبر Brevo API مباشرة ---
+        function startCooldown(duration) {
+            const sendBtn = document.getElementById('sendOtpBtn');
+            let timer = duration;
+            sendBtn.disabled = true;
+            
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                sendBtn.textContent = `إعادة الإرسال (${timer} ث)`;
+                timer--;
+                if (timer < 0) {
+                    clearInterval(countdownTimer);
+                    sendBtn.textContent = 'إعادة الإرسال';
+                    sendBtn.disabled = false;
+                }
+            }, 1000);
+        }
+
         async function sendOTPCode() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -371,7 +410,6 @@
             sendBtn.disabled = true;
 
             try {
-                // 1. فحص البريد في JSONBin لمنع التكرار
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
@@ -391,7 +429,6 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // 2. إرسال الإيميل عبر Brevo API
                 const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: {
@@ -400,16 +437,8 @@
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sender: {
-                            name: "منصة رحلة دراسية",
-                            email: SENDER_EMAIL
-                        },
-                        to: [
-                            {
-                                email: emailInput,
-                                name: nameInput || "طالب جديد"
-                            }
-                        ],
+                        sender: { name: "منصة رحلة دراسية", email: SENDER_EMAIL },
+                        to: [{ email: emailInput, name: nameInput || "طالب جديد" }],
                         subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
                         htmlContent: `
                             <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
@@ -424,14 +453,11 @@
                     })
                 });
 
-                if (!brevoResponse.ok) {
-                    throw new Error('فشل إرسال الإيميل من سيرفر Brevo');
-                }
+                if (!brevoResponse.ok) throw new Error('فشل إرسال الإيميل من سيرفر Brevo');
 
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
-                sendBtn.textContent = 'إعادة الإرسال';
-                sendBtn.disabled = false;
+                startCooldown(60);
 
             } catch (error) {
                 console.error(error);
@@ -442,7 +468,7 @@
             }
         }
 
-        function validateInputs(name, email, sPhone, pPhone, pass) {
+        function validateInputs(name, email, sPhone, pPhone, pass, confirmPass) {
             let isValid = true;
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
 
@@ -473,6 +499,12 @@
                 isValid = false;
             }
 
+            // التحقق من تطابق كلمة المرور
+            if (pass !== confirmPass) {
+                document.getElementById('confirmPassError').style.display = 'block';
+                isValid = false;
+            }
+
             return isValid;
         }
 
@@ -484,12 +516,11 @@
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
             const enteredOtp = document.getElementById('otpCode').value.trim();
             const imageFile = profileImageInput.files[0];
 
-            if (!validateInputs(name, email, sPhone, pPhone, pass)) {
-                return;
-            }
+            if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) return;
 
             if (document.getElementById('otpGroup').style.display === 'none' || !enteredOtp) {
                 alert('الرجاء إرسال كود التحقق إلى بريدك الإلكتروني وكتابته أولاً!');
@@ -512,12 +543,7 @@
                 let result = await response.json();
                 let currentRecord = result.record || {};
                 
-                let studentsList = [];
-                if (Array.isArray(currentRecord.users)) {
-                    studentsList = currentRecord.users;
-                } else if (Array.isArray(currentRecord.students)) {
-                    studentsList = currentRecord.students;
-                }
+                let studentsList = currentRecord.users || currentRecord.students || [];
 
                 const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === email);
                 if (emailExists) {
@@ -536,6 +562,8 @@
                 const nextNumber = studentsList.length + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
+                const hashedPassword = btoa(pass);
+
                 const userData = {
                     id: studentId,
                     studentId: studentId,
@@ -545,7 +573,7 @@
                     studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
-                    password: pass,
+                    password: hashedPassword,
                     status: 'active',
                     rank: 'ضعيف',
                     profileImage: profileImageBase64,
@@ -572,7 +600,9 @@
 
                 if (!updateRes.ok) throw new Error('فشل الحفظ للسحابة');
 
-                const studentDataString = JSON.stringify(userData);
+                const sessionUserData = { ...userData, password: pass };
+                const studentDataString = JSON.stringify(sessionUserData);
+                
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('currentStudentEmail', email);
                 sessionStorage.setItem('currentStudentId', studentId);
