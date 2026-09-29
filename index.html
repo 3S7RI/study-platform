@@ -185,10 +185,18 @@
                 <div class="error-msg" id="nameError">الرجاء كتابة الاسم الكامل بصورة صحيحة</div>
             </div>
 
+            <!-- البريد الإلكتروني -->
             <div class="input-group">
                 <label for="email">البريد الإلكتروني</label>
                 <input type="email" id="email" placeholder="example@gmail.com" required>
                 <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
+            </div>
+
+            <!-- تأكيد البريد الإلكتروني الجديدة -->
+            <div class="input-group">
+                <label for="confirmEmail">تأكيد البريد الإلكتروني</label>
+                <input type="email" id="confirmEmail" placeholder="أعد كتابة البريد الإلكتروني" required>
+                <div class="error-msg" id="confirmEmailError">البريد الإلكتروني غير متطابق</div>
             </div>
 
             <div class="input-group">
@@ -224,7 +232,6 @@
                 <div class="error-msg" id="passError">كلمة المرور يجب أن لا تقل عن 6 عناصر</div>
             </div>
 
-            <!-- خانة تأكيد كلمة المرور الجديدة -->
             <div class="input-group">
                 <label for="confirmPassword">تأكيد كلمة المرور</label>
                 <div class="password-wrapper">
@@ -287,7 +294,7 @@
                 toggleConfirmPassBtn.textContent = '🙈';
             } else {
                 confirmPasswordInput.type = 'password';
-                toggleConfirmPassBtn.textContent = '👁️';
+                toggleConfirmPassBtn.textContent = '👁️️';
             }
         });
 
@@ -341,8 +348,8 @@
             });
         }
 
-        // --- دالة التحقق الذكي من الحقول (شاملة تأكيد كلمة المرور) ---
-        function validateInputs(name, email, sPhone, pPhone, pass, confirmPass) {
+        // --- دالة التحقق الذكي من الحقول (شاملة تأكيد البريد الإلكتروني وتأكيد كلمة المرور) ---
+        function validateInputs(name, email, confirmEmail, sPhone, pPhone, pass, confirmPass) {
             let isValid = true;
             
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
@@ -355,6 +362,12 @@
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             if (!emailRegex.test(email)) {
                 document.getElementById('emailError').style.display = 'block';
+                isValid = false;
+            }
+
+            // التحقق من تطابق الإيميل
+            if (email !== confirmEmail) {
+                document.getElementById('confirmEmailError').style.display = 'block';
                 isValid = false;
             }
 
@@ -388,13 +401,14 @@
 
             const name = document.getElementById('fullName').value.trim();
             const email = document.getElementById('email').value.trim().toLowerCase();
+            const confirmEmail = document.getElementById('confirmEmail').value.trim().toLowerCase();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
             const confirmPass = document.getElementById('confirmPassword').value;
             const imageFile = profileImageInput.files[0];
 
-            if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) {
+            if (!validateInputs(name, email, confirmEmail, sPhone, pPhone, pass, confirmPass)) {
                 return;
             }
 
