@@ -263,7 +263,9 @@
     </div>
 
     <script>
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbxQlQEKRKgTZ93Nnpnyhp6jJnJH_LZs4fhkeS0L46bzPK5hMYDhTPILVwJtFA3Elvv7/exec';
+        // --- إعدادات بريفو (Brevo) وقاعدة البيانات ---
+        const BREVO_API_KEY = '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';
+        const SENDER_EMAIL = 'mohamad91xm@gmail.com';
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
@@ -347,7 +349,7 @@
             });
         }
 
-        // --- دالة إرسال الـ OTP الحقيقي عبر Form-Data لتجاوز عقبة الـ CORS وقراءة الرد بدقة ---
+        // --- دالة إرسال الـ OTP عبر Brevo API مباشرة ---
         async function sendOTPCode() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -369,7 +371,7 @@
             sendBtn.disabled = true;
 
             try {
-                // 1. فحص ما إذا كان البريد مسجلاً مسبقاً في قاعدة بيانات JSONBin لمنع التكرار
+                // 1. فحص البريد في JSONBin لمنع التكرار
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
@@ -389,34 +391,53 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // 2. إرسال الكود الحقيقي عبر POST باستخدام URLSearchParams المتوافقة تماماً مع Google Apps Script
-                const formData = new URLSearchParams();
-                formData.append('email', emailInput);
-                formData.append('name', nameInput || 'طالب جديد');
-                formData.append('otp', generatedOtp);
-
-                let res = await fetch(scriptURL, {
+                // 2. إرسال الإيميل عبر Brevo API
+                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'accept': 'application/json',
+                        'api-key': BREVO_API_KEY,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender: {
+                            name: "منصة رحلة دراسية",
+                            email: SENDER_EMAIL
+                        },
+                        to: [
+                            {
+                                email: emailInput,
+                                name: nameInput || "طالب جديد"
+                            }
+                        ],
+                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
+                        htmlContent: `
+                            <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
+                                <h2 style="color: #4f46e5;">مرحباً ${nameInput || 'بك'}،</h2>
+                                <p>شكراً لتسجيلك في <b>منصة رحلة دراسية</b>. لإتمام عملية التحقق، يرجى استخدام كود الـ OTP التالي:</p>
+                                <div style="background: #ffffff; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4f46e5; text-align: center; margin: 20px 0; border: 1px solid #e2e8f0;">
+                                    ${generatedOtp}
+                                </div>
+                                <p style="color: #64748b; font-size: 14px;">هذا الكود صالح لفترة قصيرة، يرجى عدم مشاركته مع أي شخص.</p>
+                            </div>
+                        `
+                    })
                 });
 
-                let resData = await res.json();
-
-                if (resData.status === 'success' || resData.success || res.ok) {
-                    emailSuccess.style.display = 'block';
-                    document.getElementById('otpGroup').style.display = 'block';
-                    sendBtn.textContent = 'إعادة الإرسال';
-                } else {
-                    throw new Error('فشل إرسال البريد عبر السيرفر');
+                if (!brevoResponse.ok) {
+                    throw new Error('فشل إرسال الإيميل من سيرفر Brevo');
                 }
 
-                sendBtn.disabled = false;
-            } catch (error) {
-                console.error(error);
-                // نظراً لأن جوجل أحياناً تعيد تحويلات (Redirects) تسبب خطأ بسيط في الـ JSON رغم نجاح الإرسال الفعلي، سنعتبره نجح طالما تم توليد الكود وتجاوز الفحص
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 sendBtn.textContent = 'إعادة الإرسال';
+                sendBtn.disabled = false;
+
+            } catch (error) {
+                console.error(error);
+                emailError.textContent = 'حدث خطأ أثناء إرسال الإيميل، تأكد من الاتصال وحاول مجدداً.';
+                emailError.style.display = 'block';
+                sendBtn.textContent = 'إرسال الكود';
                 sendBtn.disabled = false;
             }
         }
