@@ -22,6 +22,30 @@
             overflow: hidden;
             text-align: center;
             padding: 20px;
+            position: relative;
+        }
+
+        /* زر التخطي العام للترحيب العادي */
+        .global-skip-btn {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            transition: background 0.3s, transform 0.2s;
+            z-index: 1000;
+        }
+
+        .global-skip-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
         }
 
         /* الترحيب العادي (أول سكرين) */
@@ -89,7 +113,7 @@
             width: 0%;
             background: #4ade80;
             border-radius: 3px;
-            animation: fillProgress 2.5s linear forwards;
+            animation: fillProgress 2.8s linear forwards;
         }
 
         @keyframes fillProgress {
@@ -157,7 +181,7 @@
             border-radius: 10px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 0.95krem;
+            font-size: 0.95rem;
             transition: background 0.3s;
         }
 
@@ -200,6 +224,9 @@
     </style>
 </head>
 <body>
+
+    <!-- زر تخطي خاص بالترحيب العادي (السريع) -->
+    <button class="global-skip-btn" id="globalSkipNormal" onclick="goToMain()" style="display: none;">تخطي ➔</button>
 
     <!-- الترحيب العادي السريع (لو مش أول مرة) -->
     <div class="welcome-container" id="normalWelcome">
@@ -261,20 +288,30 @@
         const firstName = studentData.fullName ? studentData.fullName.split(' ')[0] : 'بطل';
         document.getElementById('studentNameDisplay').textContent = firstName;
 
-        // التحقق هل هذه هي الزيارة الأولى للمنصة عبر الـ localStorage الخاص بالطالب أو الـ flags
-        // هنستخدم خاصية فريدة باسم الطالب أو إيميله عشان لو سجل دخول مرة تانية ميعرضش الجولة تاني
+        // التحقق هل هذه هي الزيارة الأولى للمنصة
         const studentUniqueKey = 'hasSeenTour_' + (studentData.email || studentData.studentId || 'guest');
         const isFirstTime = !localStorage.getItem(studentUniqueKey);
 
+        let normalRedirectTimeout;
+
         if (isFirstTime) {
-            // لو أول مرة: نخفي الترحيب السريع ونظهر شاشات الجولة التفاعلية
+            // لو أول مرة: نخفي الترحيب السريع وزر التخطي الخاص به، ونظهر شاشات الجولة التفاعلية
             document.getElementById('normalWelcome').style.display = 'none';
+            document.getElementById('globalSkipNormal').style.display = 'none';
             document.getElementById('tourScreen').style.display = 'block';
         } else {
-            // لو مش أول مرة: نسيبه على الترحيب العادي (2.8 ثانية) ويحول لـ main.html تلقائياً
-            setTimeout(() => {
-                window.location.href = 'main.html';
+            // لو مش أول مرة: نظهر الترحيب العادي وزر التخطي الخاص به، ونقوم بالتحويل بعد 2.8 ثانية تلقائياً
+            document.getElementById('globalSkipNormal').style.display = 'block';
+            
+            normalRedirectTimeout = setTimeout(() => {
+                goToMain();
             }, 2800);
+        }
+
+        // دالة الانتقال المباشر للصفحة الرئيسية
+        function goToMain() {
+            if (normalRedirectTimeout) clearTimeout(normalRedirectTimeout);
+            window.location.href = 'main.html';
         }
 
         // منطق التنقل بين خطوات الجولة التفاعلية
@@ -308,10 +345,9 @@
         }
 
         function finishTour() {
-            // تسجل في الـ localStorage إن الطالب ده شاف الجولة خلاص عشان مظهرلوش تاني
+            // تسجيل في الـ localStorage إن الطالب شاف الجولة خلاص
             localStorage.setItem(studentUniqueKey, 'true');
-            // التوجيه للصفحة الرئيسية
-            window.location.href = 'main.html';
+            goToMain();
         }
     </script>
 
