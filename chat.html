@@ -53,9 +53,10 @@
             flex-direction: column;
             align-items: center;
             padding: 15px;
+            overflow-x: hidden;
         }
 
-        /* الهيدر الجديد المتناسق مع المنصة */
+        /* الهيدر العلوي */
         .chat-header-nav {
             background: var(--navbar-bg);
             backdrop-filter: blur(16px);
@@ -100,17 +101,17 @@
         .header-actions-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             justify-self: end;
         }
 
-        .theme-toggle-btn {
+        .header-icon-btn {
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
             color: var(--text-main);
             border-radius: 50%;
             cursor: pointer;
-            font-size: 1.1rem;
+            font-size: 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -118,6 +119,7 @@
             height: 40px;
             flex-shrink: 0;
         }
+        .header-icon-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* حاوية الشات الرئيسية */
         .chat-container {
@@ -134,27 +136,41 @@
             overflow: hidden;
         }
 
-        /* شريط معلومات الستريك العلوي داخل الشات */
+        /* شريط الستريك المتطور (لمدة 365 يوم بدون إيموجي) */
         .chat-sub-bar {
-            padding: 10px 20px;
+            padding: 8px 20px;
             background: rgba(15, 23, 42, 0.3);
             border-bottom: 1px solid var(--card-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
-        .streak-progress-badge {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.2));
-            color: var(--success);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            border: 1px solid rgba(16, 185, 129, 0.4);
+        .streak-evolution-box {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            padding: 4px 12px;
+            border-radius: 15px;
+        }
+
+        .streak-track {
+            width: 100px;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .streak-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #10b981);
+            border-radius: 3px;
+            width: 0%;
         }
 
         /* رسائل الشات */
@@ -186,7 +202,9 @@
             object-fit: cover;
             border: 2px solid var(--primary);
             flex-shrink: 0;
+            cursor: pointer;
         }
+        .msg-avatar:hover { opacity: 0.85; }
 
         .msg-content-box {
             display: flex;
@@ -202,7 +220,12 @@
             color: var(--text-sub);
         }
 
-        .msg-name { font-weight: 700; color: var(--text-main); }
+        .msg-name { 
+            font-weight: 700; 
+            color: var(--text-main); 
+            cursor: pointer; 
+        }
+        .msg-name:hover { text-decoration: underline; color: var(--primary); }
         
         .rank-tag {
             font-size: 0.65rem;
@@ -230,7 +253,7 @@
 
         .msg-time { font-size: 0.62rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
 
-        /* منطقة الإدخال وأدوات الواتساب (المشبك والطيارة الورقية) */
+        /* منطقة الإدخال وزر الإرسال المقيد داخل الشاشة */
         .chat-input-area {
             padding: 12px 18px;
             background: rgba(15, 23, 42, 0.4);
@@ -238,9 +261,11 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
-        /* قائمة المشبك المنسدلة المدمجة */
         .attachment-wrapper {
             position: relative;
             display: inline-block;
@@ -301,18 +326,18 @@
             color: var(--text-main);
             font-size: 0.9rem;
             outline: none;
+            min-width: 0; /* يمنع خروج الحقل عن الحاوية */
         }
         .chat-input:focus { border-color: var(--primary); }
 
-        /* زر الإرسال على شكل طيارة ورقية ✈️ */
+        /* زر الإرسال برسمة طيارة ورقية حقيقية (Vector SVG) داخل الحدود تماماً */
         .send-btn {
             background: var(--primary);
             color: white;
             border: none;
-            width: 44px;
-            height: 44px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            font-size: 1.1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -322,48 +347,104 @@
             transition: transform 0.2s, background 0.2s;
         }
         .send-btn:hover { background: var(--primary-hover); transform: scale(1.05); }
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            transform: rotate(-45deg); /* توجيه الطيارة الورقية بشكل صحيح */
+            margin-right: 2px;
+        }
+
+        /* نافذة إعدادات الطالب المنبثقة */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal-card h3 { font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+            color: var(--text-main);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .modal-close-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .modal-close-btn:hover { background: var(--primary-hover); }
     </style>
 </head>
 <body>
 
-    <!-- هيدر المنصة العلوي -->
+    <!-- الهيدر العلوي -->
     <header class="chat-header-nav">
         <a href="index.html" class="home-btn">🏠 الرئيسية</a>
         <div class="chat-main-title">💬 قناة الدردشة</div>
         <div class="header-actions-left">
-            <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الثيم">🌙</button>
+            <button id="settingsBtn" class="header-icon-btn" title="إعدادات الطالب">⚙️</button>
+            <button id="themeToggleBtn" class="header-icon-btn" title="تغيير الثيم">🌙</button>
         </div>
     </header>
 
     <!-- صندوق الدردشة -->
     <div class="chat-container">
-        <!-- شريط معلومات الستريك (يتطور لمدة 365 يوم) -->
+        <!-- شريط الستريك المطوّر على مدار 365 يوم (بدون إيموجي) -->
         <div class="chat-sub-bar">
-            <span style="color: var(--text-sub); font-size: 0.8rem;">مرحباً بك في ساحة تفاعل الطلاب 🚀</span>
-            <div class="streak-progress-badge" id="streakBadgeDisplay">
-                <span id="streakIcon">🌱</span>
-                <span id="streakText">اليوم الأول (بداية الرحلة)</span>
+            <span style="color: var(--text-sub); font-size: 0.78rem;" id="streakTitleLabel">مؤشر التقدم والاستمرارية</span>
+            <div class="streak-evolution-box">
+                <span id="streakDaysText" style="font-size: 0.75rem; font-weight: bold;">اليوم 1 / 365</span>
+                <div class="streak-track">
+                    <div class="streak-fill" id="streakProgressBar"></div>
+                </div>
             </div>
         </div>
 
         <!-- رسائل الشات -->
         <div class="chat-messages" id="chatMessages">
             <div class="message-item">
-                <img src="https://via.placeholder.com/40" class="msg-avatar" alt="صورة">
+                <img src="https://via.placeholder.com/40" class="msg-avatar" alt="صورة" onclick="openProfile('محمد عماد')">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name">محمد عماد</span>
+                        <span class="msg-name" onclick="openProfile('محمد عماد')">محمد عماد</span>
                         <span class="rank-tag rank-strong">قوي</span>
                     </div>
-                    <div class="msg-bubble">أهلاً بكل الزملاء في قناة الدردشة الخاصة بالمنصة! شاركوا استفساراتكم وملفاتكم هنا بكل حرية 📚</div>
+                    <div class="msg-bubble">أهلاً بكل الزملاء في قناة الدردشة الخاصة بالمنصة! شاركوا استفساراتكم هنا بكل حرية 📚</div>
                     <span class="msg-time">09:30 م</span>
                 </div>
             </div>
         </div>
 
-        <!-- منطقة الإدخال وأدوات الواتساب -->
+        <!-- منطقة الإدخال -->
         <div class="chat-input-area">
-            <!-- زر المشبك والمرفقات -->
             <div class="attachment-wrapper">
                 <button class="clip-btn" onclick="toggleAttachmentMenu(event)" title="إرفاق ملفات">📎</button>
                 <div class="attachment-menu" id="attachmentMenu">
@@ -378,18 +459,39 @@
             <input type="file" id="mediaInput" accept="image/*,video/*" style="display: none;" onchange="handleMediaUpload(this)">
             <input type="file" id="fileInput" style="display: none;" onchange="handleFileUpload(this)">
 
-            <!-- حقل الكتابة -->
             <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
 
-            <!-- زر الإرسال طيارة ورقية ✈️ -->
+            <!-- زر الإرسال برسمة طيارة ورقية حقيقية Vector SVG -->
             <button class="send-btn" onclick="sendMessage()" title="إرسال">
-                <span>✈️</span>
+                <svg viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
             </button>
         </div>
     </div>
 
+    <!-- نافذة الإعدادات المنبثقة للطالب -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <h3>إعدادات الحساب الشخصي</h3>
+            <div class="setting-item">
+                <span>جعل المستوى مرئياً للآخرين</span>
+                <input type="checkbox" id="settingRankVisible" checked onchange="saveStudentSettings()">
+            </div>
+            <div class="setting-item">
+                <span>جعل صورتي مرئية للآخرين</span>
+                <input type="checkbox" id="settingAvatarVisible" checked onchange="saveStudentSettings()">
+            </div>
+            <div class="setting-item">
+                <span>السماح للآخرين بدخول البروفايل الخاص بي</span>
+                <input type="checkbox" id="settingProfileAccess" checked onchange="saveStudentSettings()">
+            </div>
+            <button class="modal-close-btn" onclick="closeSettingsModal()">تم الحفظ والغلق</button>
+        </div>
+    </div>
+
     <script>
-        // استرجاع بيانات الطالب الحالي
+        // بيانات الطالب الحالي
         const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser') || '{}');
         const studentName = currentUserData.fullName || currentUserData.name || 'طالب جديد';
         const nameParts = studentName.split(' ');
@@ -408,7 +510,7 @@
             }
         }
 
-        // نظام الثيم (الوضع الداكن والفاتح)
+        // إعدادات الثيم
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -427,48 +529,71 @@
             }
         });
 
-        // نظام الستريك المتطور لمدّة 365 يوم (سنة كاملة يتطور فيها الشكل تدريجياً)
-        let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
-        if (streakDays > 365) streakDays = 365; // الحد الأقصى سنة كاملة
+        // نافذة الإعدادات (الترس)
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
 
-        function updateStreakProgress(days) {
-            let icon = '🌱';
-            let title = `اليوم ${days}: بداية البذور`;
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('active');
+        });
 
-            if (days > 30 && days <= 90) {
-                icon = '🌿';
-                title = `اليوم ${days}: نبتة متطورة`;
-            } else if (days > 90 && days <= 180) {
-                icon = '🌲';
-                title = `اليوم ${days}: شجرة قوية`;
-            } else if (days > 180 && days <= 270) {
-                icon = '⭐';
-                title = `اليوم ${days}: نجم متألق`;
-            } else if (days > 270 && days < 365) {
-                icon = '🔥';
-                title = `اليوم ${days}: شعلة التفوق`;
-            } else if (days >= 365) {
-                icon = '👑';
-                title = `اليوم 365: أسطورة العام الكامل!`;
-            }
-
-            document.getElementById('streakIcon').textContent = icon;
-            document.getElementById('streakText').textContent = title;
+        function closeSettingsModal() {
+            settingsModal.classList.remove('active');
         }
-        updateStreakProgress(streakDays);
 
-        // قائمة المشبك المنسدلة
+        // حفظ إعدادات الخصوصية محلياً
+        function saveStudentSettings() {
+            const settings = {
+                rankVisible: document.getElementById('settingRankVisible').checked,
+                avatarVisible: document.getElementById('settingAvatarVisible').checked,
+                profileAccess: document.getElementById('settingProfileAccess').checked
+            };
+            localStorage.setItem('student_privacy_settings', JSON.stringify(settings));
+        }
+
+        // تحميل الإعدادات عند البدء
+        const savedSettings = JSON.parse(localStorage.getItem('student_privacy_settings') || '{"rankVisible":true,"avatarVisible":true,"profileAccess":true}');
+        document.getElementById('settingRankVisible').checked = savedSettings.rankVisible;
+        document.getElementById('settingAvatarVisible').checked = savedSettings.avatarVisible;
+        document.getElementById('settingProfileAccess').checked = savedSettings.profileAccess;
+
+        // دالة الذهاب لبروفايل الطالب عند النقر على اسمه أو صورته
+        function openProfile(name) {
+            if (!savedSettings.profileAccess) {
+                alert('عذراً، هذا الطالب قام بإيقاف ميزة السماح بالدخول لبروفايله الشخصي.');
+                return;
+            }
+            // يمكنك توجيهه لصفحة البروفايل الخاصة بالمنصة مع اسم الطالب
+            window.location.href = `profile.html?student=${encodeURIComponent(name)}`;
+        }
+
+        // نظام الستريك التصاعدي لمدة 365 يوم (بدون إيموجي)
+        let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
+        if (streakDays > 365) streakDays = 365;
+        
+        function updateStreakProgressVisual(days) {
+            const percentage = (days / 365) * 100;
+            document.getElementById('streakDaysText').textContent = `اليوم ${days} / 365`;
+            document.getElementById('streakProgressBar').style.width = `${percentage}%`;
+            
+            let phaseTitle = "مرحلة التأسيس الأولى";
+            if (days > 90 && days <= 180) phaseTitle = "مرحلة الثبات والتركيز";
+            else if (days > 180 && days <= 270) phaseTitle = "مرحلة الاحتراف الدراسي";
+            else if (days > 270) phaseTitle = "مرحلة قمة التميز السنوي";
+            
+            document.getElementById('streakTitleLabel').textContent = phaseTitle;
+        }
+        updateStreakProgressVisual(streakDays);
+
+        // قائمة المرفقات
         function toggleAttachmentMenu(e) {
             e.stopPropagation();
-            const menu = document.getElementById('attachmentMenu');
-            menu.classList.toggle('active');
+            document.getElementById('attachmentMenu').classList.toggle('active');
         }
 
         window.addEventListener('click', () => {
             const menu = document.getElementById('attachmentMenu');
-            if (menu.classList.contains('active')) {
-                menu.classList.remove('active');
-            }
+            if (menu.classList.contains('active')) menu.classList.remove('active');
         });
 
         // إرسال الرسائل
@@ -493,12 +618,16 @@
             msgDiv.className = `message-item ${isMe ? 'me' : ''}`;
             const rankClass = getRankClass(rank);
 
+            // تطبيق إعدادات الخصوصية (إخفاء المستوى أو الصورة إذا تم تفعيلها)
+            const displayRank = savedSettings.rankVisible ? `<span class="rank-tag ${rankClass}">${rank}</span>` : '';
+            const displayAvatar = savedSettings.avatarVisible ? avatar : 'https://via.placeholder.com/40';
+
             msgDiv.innerHTML = `
-                <img src="${avatar}" class="msg-avatar" alt="صورة">
+                <img src="${displayAvatar}" class="msg-avatar" alt="صورة" onclick="openProfile('${name}')">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name">${name}</span>
-                        <span class="rank-tag ${rankClass}">${rank}</span>
+                        <span class="msg-name" onclick="openProfile('${name}')">${name}</span>
+                        ${displayRank}
                     </div>
                     <div class="msg-bubble">${escapeHtml(text)}</div>
                     <span class="msg-time">${timeNow}</span>
@@ -513,7 +642,7 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        // دوال المرفقات والتفاعل
+        // دوال التفاعل والأدوات
         function handleMediaUpload(input) {
             if (input.files && input.files[0]) {
                 appendMessageToChat(shortName, studentAvatar, studentRank, `[ملف مرئي مرفق: ${input.files[0].name}]`, true);
@@ -527,20 +656,20 @@
         }
 
         function startVoiceRecord() {
-            appendMessageToChat(shortName, studentAvatar, studentRank, `🎤 [رسالة صوتية - 0:04 ثوانٍ]`, true);
+            appendMessageToChat(shortName, studentAvatar, studentRank, `[تسجيل صوتي قصير]`, true);
         }
 
         function triggerPollModal() {
             const pollQ = prompt('اكتب سؤال التصويت:');
             if (pollQ) {
-                appendMessageToChat(shortName, studentAvatar, studentRank, `📊 تصويت جماعي: "${pollQ}"`, true);
+                appendMessageToChat(shortName, studentAvatar, studentRank, `تصويت جماعي: "${pollQ}"`, true);
             }
         }
 
         function triggerAskModal() {
             const askQ = prompt('اكتب سؤالك (Ask):');
             if (askQ) {
-                appendMessageToChat(shortName, studentAvatar, studentRank, `❓ سؤال دراسي: "${askQ}"`, true);
+                appendMessageToChat(shortName, studentAvatar, studentRank, `سؤال دراسي: "${askQ}"`, true);
             }
         }
     </script>
