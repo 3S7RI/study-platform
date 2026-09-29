@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المستخدمين (الطلاب والمشرفين) - لوحة التحكم</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --header-bg: #1f1f1f;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333333;
+            --heading-color: #ffffff;
+            --input-bg: #0f172a;
+            --th-bg: rgba(255,255,255,0.05);
+        }
+        [data-theme="light"] {
+            --bg-color: #f4f7f6;
+            --header-bg: #1e3c72;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #eee;
+            --heading-color: #1e3c72;
+            --input-bg: #ffffff;
+            --th-bg: rgba(0,0,0,0.02);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 10px;}
+        header h1 { font-size: 1.1rem; color: #ffffff !important; }
+        .header-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-action, .btn-theme, .btn-back { background: #34495e; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; text-decoration: none; }
+        .btn-action.active { background: #e67e22; }
+        
+        .section-box { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; border-top: 4px solid #e67e22; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: var(--heading-color); font-size: 1.2rem; }
+
+        .form-group { margin-top: 15px; }
+        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; opacity: 0.8; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.9rem; outline: none; }
+        
+        .btn-save { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; margin-top: 15px; }
+
+        /* الجداول */
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-color); }
+        th { background: var(--th-bg); color: var(--heading-color); font-weight: bold; }
+        .btn-danger { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-status { background: #2980b9; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header>
+            <div class="header-btns">
+                <button class="btn-theme" id="themeToggleBtn">☀️ فاتح</button>
+                <button class="btn-action active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
+                <button class="btn-action" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡️</button>
+            </div>
+            <a href="admin-dashboard.html" class="btn-back">اللوحة الرئيسية ↩️</a>
+        </header>
+
+        <!-- شاشة 1: إدارة الطلاب -->
+        <div id="tabStudentsContent" class="section-box">
+            <div class="section-header">
+                <h2>قائمة ومتابعة الطلاب المسجلين 👨‍🎓</h2>
+            </div>
+            <div id="studentsTableContainer">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل بيانات الطلاب من السحابة...</p>
+            </div>
+        </div>
+
+        <!-- شاشة 2: إدارة المشرفين -->
+        <div id="tabAdminsContent" class="section-box hidden">
+            <div class="section-header">
+                <h2>إدارة المشرفين وصلاحيات لوحة التحكم 🛡️</h2>
+            </div>
+
+            <div style="background: var(--th-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                <h3 style="font-size: 1rem; color: var(--heading-color); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0;">
+                    <div>
+                        <label>اسم المشرف:</label>
+                        <input type="text" id="newAdminName" placeholder="اسم المشرف الثلاثي">
+                    </div>
+                    <div>
+                        <label>البريد أو اسم المستخدم:</label>
+                        <input type="text" id="newAdminUsername" placeholder="username أو email">
+                    </div>
+                </div>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label>كلمة المرور:</label>
+                        <input type="password" id="newAdminPassword" placeholder="كلمة السر للمنصة">
+                    </div>
+                    <div>
+                        <label>الصلاحية:</label>
+                        <select id="newAdminRole">
+                            <option value="full">مشرف عام (كامل الصلاحيات)</option>
+                            <option value="moderator">مساعد / مراقب محتوى</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف وحفظه بالسحابة 🚀</button>
+            </div>
+
+            <h3 style="font-size: 1rem; color: var(--heading-color); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
+            <div id="adminsTableContainer">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل قائمة المشرفين...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        let globalRecordData = { students: [], admins: [] };
+
+        const cloudHeaders = { 'X-Master-Key': API_KEY, 'Content-Type': 'application/json' };
+
+        // الثيم
+        const themeBtn = document.getElementById('themeToggleBtn');
+        let currentTheme = document.body.getAttribute('data-theme');
+        themeBtn.textContent = currentTheme === 'dark' ? '☀️ فاتح' : '🌙 داكن';
+
+        themeBtn.addEventListener('click', () => {
+            let theme = document.body.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.body.setAttribute('data-theme', 'light');
+                themeBtn.textContent = '🌙 داكن';
+            } else {
+                document.body.setAttribute('data-theme', 'dark');
+                themeBtn.textContent = '☀️ فاتح';
+            }
+        });
+
+        // التبديل بين التبويبات
+        function switchTab(tab) {
+            const btnStudents = document.getElementById('btnTabStudents');
+            const btnAdmins = document.getElementById('btnTabAdmins');
+            const contentStudents = document.getElementById('tabStudentsContent');
+            const contentAdmins = document.getElementById('tabAdminsContent');
+
+            btnStudents.classList.remove('active');
+            btnAdmins.classList.remove('active');
+            contentStudents.classList.add('hidden');
+            contentAdmins.classList.add('hidden');
+
+            if (tab === 'students') {
+                btnStudents.classList.add('active');
+                contentStudents.classList.remove('hidden');
+            } else {
+                btnAdmins.classList.add('active');
+                contentAdmins.classList.remove('hidden');
+            }
+        }
+
+        // جلب البيانات من السحابة
+        initUsersPage();
+
+        async function initUsersPage() {
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { method: 'GET', headers: cloudHeaders });
+                if (response.ok) {
+                    let result = await response.json();
+                    if (result && result.record) {
+                        globalRecordData = result.record;
+                        renderStudentsTable();
+                        renderAdminsTable();
+                    }
+                }
+            } catch (err) {
+                console.warn("خطأ سحابي:", err);
+            }
+        }
+
+        async function updateCloudData() {
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(globalRecordData)
+                });
+                if (!response.ok) alert("فشل التحديث في السحابة!");
+            } catch(e) {
+                console.error("خطأ سحابي:", e);
+                alert("حدث خطأ في الاتصال بالسحابة.");
+            }
+        }
+
+        // عرض جدول الطلاب
+        function renderStudentsTable() {
+            const container = document.getElementById('studentsTableContainer');
+            let students = globalRecordData.students || [];
+
+            if (students.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً.</p>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>اسم الطالب</th><th>البريد / الهاتف</th><th>حالة الحساب</th><th>الإجراءات</th></tr></thead><tbody>`;
+            students.forEach((stu, idx) => {
+                let isActive = stu.active !== false;
+                html += `
+                    <tr>
+                        <td><b>👤 ${stu.name || 'طالب'}</b></td>
+                        <td>${stu.email || stu.phone || 'غير متوفر'}</td>
+                        <td>${isActive ? '<span style="color:#27ae60; font-weight:bold;">نشط ✅</span>' : '<span style="color:#e74c3c; font-weight:bold;">محظور ❌</span>'}</td>
+                        <td>
+                            <button class="btn-status" onclick="toggleStudentStatus(${idx})">${isActive ? 'حظر' : 'تفعيل'}</button>
+                            <button class="btn-danger" onclick="deleteStudent(${idx})">حذف</button>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function toggleStudentStatus(idx) {
+            if (!globalRecordData.students[idx]) return;
+            let current = globalRecordData.students[idx].active !== false;
+            globalRecordData.students[idx].active = !current;
+            await updateCloudData();
+            renderStudentsTable();
+        }
+
+        async function deleteStudent(idx) {
+            if (!confirm('هل تريد حذف هذا الطالب نهائياً من النظام؟')) return;
+            globalRecordData.students.splice(idx, 1);
+            await updateCloudData();
+            renderStudentsTable();
+        }
+
+        // عرض جدول وإدارة المشرفين
+        function renderAdminsTable() {
+            const container = document.getElementById('adminsTableContainer');
+            let admins = globalRecordData.admins || [];
+
+            if (admins.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين إضافيين مضافين حالياً.</p>';
+                return;
+            }
+
+            let html = `<table><thead><tr><th>اسم المشرف</th><th>اسم المستخدم / البريد</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
+            admins.forEach((adm, idx) => {
+                let roleName = adm.role === 'full' ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
+                html += `
+                    <tr>
+                        <td><b>🛡️ ${adm.name || 'مشرف'}</b></td>
+                        <td>${adm.username || ''}</td>
+                        <td>${roleName}</td>
+                        <td>
+                            <button class="btn-danger" onclick="deleteAdmin(${idx})">حذف الصلاحية</button>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function addNewAdmin() {
+            let name = document.getElementById('newAdminName').value.trim();
+            let username = document.getElementById('newAdminUsername').value.trim();
+            let password = document.getElementById('newAdminPassword').value.trim();
+            let role = document.getElementById('newAdminRole').value;
+
+            if (!name || !username || !password) {
+                alert('يرجى ملء كافة بيانات المشرف (الاسم، اسم المستخدم، كلمة المرور)!');
+                return;
+            }
+
+            if (!globalRecordData.admins) globalRecordData.admins = [];
+
+            globalRecordData.admins.push({
+                name: name,
+                username: username,
+                password: password,
+                role: role
+            });
+
+            await updateCloudData();
+            
+            // تفريغ الحقول
+            document.getElementById('newAdminName').value = '';
+            document.getElementById('newAdminUsername').value = '';
+            document.getElementById('newAdminPassword').value = '';
+
+            renderAdminsTable();
+            alert('تم إضافة المشرف الجديد بنجاح وحفظه في السحابة! 🚀');
+        }
+
+        async function deleteAdmin(idx) {
+            if (!confirm('هل تريد حقاً سحب صلاحيات هذا المشرف وحذفه؟')) return;
+            globalRecordData.admins.splice(idx, 1);
+            await updateCloudData();
+            renderAdminsTable();
+        }
+    </script>
+</body>
+</html>
