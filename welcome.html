@@ -1,20 +1,47 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مرحباً بك - رحلة دراسية</title>
+    <!-- مكتبة قصاصات الورق الملون (Confetti) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --accent: #4ade80;
+            --shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --accent: #059669;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
         }
 
         body {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
+            background: var(--bg-gradient);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -25,23 +52,42 @@
             position: relative;
         }
 
-        /* تصميم شاشة الجولة والترحيب الموحدة */
+        /* زر تبديل الثيم */
+        .theme-toggle-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
         #tourScreen {
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
             width: 100%;
-            max-width: 550px;
+            max-width: 520px;
             padding: 35px 30px;
             border-radius: 24px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            box-shadow: var(--shadow);
             text-align: right;
-            animation: fadeInScale 0.6s ease-in-out forwards;
+            animation: fadeInScale 0.5s ease-out forwards;
         }
 
         @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.5); }
-            70% { transform: scale(1.05); }
+            0% { opacity: 0; transform: scale(0.9); }
             100% { opacity: 1; transform: scale(1); }
         }
 
@@ -51,6 +97,12 @@
 
         .tour-step.active {
             display: block;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .tour-icon {
@@ -61,86 +113,122 @@
 
         .tour-step h2 {
             font-size: 1.5rem;
-            color: #4ade80;
-            margin-bottom: 10px;
+            color: var(--accent);
+            margin-bottom: 12px;
             text-align: center;
         }
 
         .tour-step p {
-            font-size: 1rem;
-            color: #cbd5e1;
-            line-height: 1.6;
-            margin-bottom: 25px;
+            font-size: 0.98rem;
+            color: var(--text-sub);
+            line-height: 1.7;
+            margin-bottom: 15px;
             text-align: center;
+        }
+
+        /* تنسيق الاقتباس التحفيزي اليومي */
+        .daily-quote {
+            background: rgba(99, 102, 241, 0.1);
+            border-right: 4px solid var(--primary);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            text-align: right;
+            margin-bottom: 20px;
+            font-style: italic;
         }
 
         .tour-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid var(--card-border);
             padding-top: 20px;
         }
 
+        .tour-btns-group {
+            display: flex;
+            gap: 10px;
+        }
+
         .tour-btn {
-            background: #6366f1;
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 22px;
-            border-radius: 10px;
+            padding: 10px 20px;
+            border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.3s;
+            font-size: 0.92rem;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .tour-btn:hover {
-            background: #4f46e5;
+            background: var(--primary-hover);
+        }
+
+        .tour-btn-secondary {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .tour-btn-secondary:hover {
+            background: rgba(255,255,255,0.05);
         }
 
         .skip-btn {
             background: transparent;
-            color: #94a3b8;
+            color: var(--text-sub);
             border: none;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 600;
         }
 
         .skip-btn:hover {
-            color: white;
+            color: var(--text-main);
         }
 
         .dots-indicator {
             display: flex;
             gap: 6px;
             justify-content: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.2);
+            background: var(--card-border);
             transition: all 0.3s ease;
         }
 
         .dot.active {
-            background: #4ade80;
-            width: 20px;
+            background: var(--accent);
+            width: 22px;
             border-radius: 4px;
         }
 
-        /* تنسيق خاص لاسم الطالب داخل الترحيب النهائي */
         .highlight-name {
-            color: #4ade80;
+            color: var(--accent);
         }
     </style>
 </head>
 <body>
 
-    <!-- شاشات الشرح التفاعلية والترحيب النهائي الموحد -->
+    <button class="theme-toggle-btn" id="themeToggleBtn">
+        <span id="themeIcon">☀️</span>
+        <span id="themeText">الوضع الفاتح</span>
+    </button>
+
     <div id="tourScreen">
         <div class="dots-indicator" id="dotsContainer">
             <span class="dot active"></span>
@@ -150,79 +238,143 @@
             <span class="dot"></span>
         </div>
 
-        <!-- الخطوة 1: الفيديوهات والمحتوى -->
+        <!-- الخطوة 1: الفيديوهات -->
         <div class="tour-step active" data-step="1">
             <div class="tour-icon">🎥</div>
             <h2>الفيديوهات والدروس</h2>
             <p>يمكنك تصفح ومتابعة كافة الشروحات والفيديوهات التعليمية المرتبة بدقة لمساعدتك في فهم المنهج خطوة بخطوة.</p>
         </div>
 
-        <!-- الخطوة 2: الامتحانات والتقييمات -->
+        <!-- الخطوة 2: الامتحانات -->
         <div class="tour-step" data-step="2">
             <div class="tour-icon">📝</div>
             <h2>الامتحانات التفاعلية</h2>
-            <p>قيم مستواك الدراسي واختبر معلوماتك بعد كل درس من خلال الامتحانات المخصصة للحفاظ على تفوقك.</p>
+            <p>قيم مستواك الدراسي واختبر معلوماتك بعد كل درس من خلال الامتحانات المخصصة للحفاظ على تفوقك المستمر.</p>
         </div>
 
-        <!-- الخطوة 3: الإحصائيات والملف الشخصي -->
+        <!-- الخطوة 3: الإحصائيات -->
         <div class="tour-step" data-step="3">
             <div class="tour-icon">📊</div>
             <h2>الإحصائيات والبروفايل</h2>
             <p>تابع تقدمك المستمر، درجاتك، وإنجازاتك من خلال لوحة الإحصائيات الشاملة والملف الشخصي الخاص بك.</p>
         </div>
 
-        <!-- الخطوة 4: المنتدى والمناقشات -->
+        <!-- الخطوة 4: المنتدى -->
         <div class="tour-step" data-step="4">
             <div class="tour-icon">💬</div>
             <h2>منتدى الأسئلة</h2>
             <p>واجهتك أي مشكلة؟ اطرح أسئلتك واستفساراتك في المنتدى التفاعلي وتواصل مع زملائك والأدمن للحصول على الإجابات المعتمدة.</p>
         </div>
 
-        <!-- الخطوة 5: الترحيب النهائي (في آخر الشرح خالص) -->
+        <!-- الخطوة 5: الترحيب النهائي -->
         <div class="tour-step" data-step="5">
             <div class="tour-icon">🚀</div>
             <h2>أهلاً بك يا <span class="highlight-name" id="studentNameDisplay">بطل</span> في عالمك الجديد!</h2>
-            <p>كل ما تحتاجه لتتفوق وتحقق أحلامك أصبح بين يديك الآن. استعد لرحلة ممتعة، مليئة بالإنجازات، والنجاح الساحق نحو القمة! منصتك جاهزة لتحقيق طموحاتك.</p>
+            <p>كل ما تحتاجه لتتفوق وتحقق أحلامك أصبح بين يديك الآن. استعد لرحلة ممتعة، مليئة بالإنجازات والنجاح الساحق نحو القمة!</p>
+            <div class="daily-quote" id="dailyQuoteText">
+                "النجاح ليس صدفة، بل هو عمل جاد، صبر، وتعلّم مستمر."
+            </div>
         </div>
 
         <div class="tour-footer">
-            <button class="skip-btn" onclick="finishTour()">تخطي الكل</button>
-            <button class="tour-btn" id="nextTourBtn" onclick="nextStep()">التالي ➔</button>
+            <button class="skip-btn" id="skipTourBtn" onclick="skipToFinal()">تخطي الجولة</button>
+            <div class="tour-btns-group">
+                <button class="tour-btn-secondary" id="prevTourBtn" style="display: none;" onclick="prevStep()">⬅ السابق</button>
+                <button class="tour-btn" id="nextTourBtn" onclick="nextStep()">التالي ➔</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // سحب بيانات الطالب من الـ sessionStorage
+        // نظام الثيم (الوضع الليلي والفاتح)
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const htmlTag = document.documentElement;
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlTag.getAttribute('data-theme') === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'الوضع الداكن';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'الوضع الفاتح';
+            }
+        });
+
+        // سحب بيانات الطالب
         const studentData = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
         const firstName = studentData.fullName ? studentData.fullName.split(' ')[0] : 'بطل';
         document.getElementById('studentNameDisplay').textContent = firstName;
 
-        // التحقق هل هذه هي الزيارة الأولى للمنصة
+        // مصفوفة اقتباسات تحفيزية تتغير بشكل يومي أو عشوائي
+        const quotes = [
+            "\"النجاح ليس صدفة، بل هو عمل جاد، صبر، وتعلّم مستمر.\"",
+            "\"اليوم خطوة جديدة نحو حلمك، استمر ولا تتوقف أبداً!\"",
+            "\"كل ما تتعلمه اليوم هو سلاحك الأقوى لمستقبلك.\"",
+            "\"العظمة تبدأ بخطوة صغيرة، وهذه هي خطوتك الأولى نحو القمة.\""
+        ];
+        // اختيار اقتباس عشوائي يتناسب مع فتحة الصفحة
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById('dailyQuoteText').textContent = randomQuote;
+
+        // التحقق من الزيارة الأولى
         const studentUniqueKey = 'hasSeenTour_' + (studentData.email || studentData.studentId || 'guest');
         const isFirstTime = !localStorage.getItem(studentUniqueKey);
 
-        // إذا لم تكن الزيارة الأولى، يتم تخطي الجولة مباشرة والانتقال للصفحة الرئيسية بلا إزعاج
         if (!isFirstTime) {
             goToMain();
         }
 
-        // دالة الانتقال المباشر للصفحة الرئيسية
         function goToMain() {
             window.location.href = 'main.html';
         }
 
-        // منطق التنقل بين خطوات الجولة التفاعلية
-        let currentTourStep = 1;
-        const totalSteps = 5; // تم تحديث إجمالي الخطوات لتشمل الترحيب النهائي
-
-        function nextStep() {
-            currentTourStep++;
-            if (currentTourStep > totalSteps) {
-                finishTour();
-                return;
+        // دالة تشغيل نغمة نجاح برمجية خفيفة (Web Audio API) بدون ملفات خارجية
+        function playSuccessSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // نغمتين متتاليتين (لحن ترحيبي بسيط)
+                const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+                notes.forEach((freq, index) => {
+                    const osc = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + index * 0.12);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + index * 0.12 + 0.3);
+                    
+                    osc.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    osc.start(audioCtx.currentTime + index * 0.12);
+                    osc.stop(audioCtx.currentTime + index * 0.12 + 0.3);
+                });
+            } catch (e) {
+                console.log('Audio context not allowed yet');
             }
+        }
 
-            // تحديث ظهور الخطوات
+        // دالة إطلاق قصاصات الورق الملون الفرحة (Confetti)
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        let currentTourStep = 1;
+        const totalSteps = 5;
+
+        function updateTourView() {
             document.querySelectorAll('.tour-step').forEach(step => {
                 step.classList.remove('active');
                 if (parseInt(step.getAttribute('data-step')) === currentTourStep) {
@@ -230,19 +382,55 @@
                 }
             });
 
-            // تحديث النقاط (Dots)
             document.querySelectorAll('.dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === currentTourStep - 1);
             });
 
-            // تغيير نص الزر في الخطوة الأخيرة (التوضيحية النهائية)
+            const prevBtn = document.getElementById('prevTourBtn');
+            const nextBtn = document.getElementById('nextTourBtn');
+            const skipBtn = document.getElementById('skipTourBtn');
+
+            if (currentTourStep > 1) {
+                prevBtn.style.display = 'inline-block';
+            } else {
+                prevBtn.style.display = 'none';
+            }
+
             if (currentTourStep === totalSteps) {
-                document.getElementById('nextTourBtn').textContent = 'ابدأ الآن 🚀';
+                nextBtn.textContent = 'ابدأ الآن 🚀';
+                skipBtn.style.display = 'none';
+                
+                // تشغيل المؤثرات الصوتية والورق الملون فور دخول الخطوة الأخيرة!
+                playSuccessSound();
+                triggerConfetti();
+            } else {
+                nextBtn.textContent = 'التالي ➔';
+                skipBtn.style.display = 'inline-block';
             }
         }
 
+        function nextStep() {
+            currentTourStep++;
+            if (currentTourStep > totalSteps) {
+                finishTour();
+                return;
+            }
+            updateTourView();
+        }
+
+        function prevStep() {
+            if (currentTourStep > 1) {
+                currentTourStep--;
+                updateTourView();
+            }
+        }
+
+        function skipToFinal() {
+            currentTourStep = totalSteps;
+            updateTourView();
+        }
+
         function finishTour() {
-            // تسجيل في الـ localStorage إن الطالب شاف الجولة والترحيب خلاص
             localStorage.setItem(studentUniqueKey, 'true');
             goToMain();
         }
