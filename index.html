@@ -40,9 +40,10 @@
             background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 30px 15px;
+            padding: 70px 15px 30px 15px;
             position: relative;
         }
 
@@ -50,17 +51,17 @@
         .theme-toggle-btn {
             position: absolute;
             top: 20px;
-            left: 20px;
+            right: 20px;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             color: var(--text-main);
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: 30px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
+            gap: 6px;
+            font-size: 0.85rem;
             font-weight: bold;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             backdrop-filter: blur(10px);
@@ -223,6 +224,16 @@
                 <div class="error-msg" id="passError">كلمة المرور يجب أن لا تقل عن 6 عناصر</div>
             </div>
 
+            <!-- خانة تأكيد كلمة المرور الجديدة -->
+            <div class="input-group">
+                <label for="confirmPassword">تأكيد كلمة المرور</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirmPassword" placeholder="******" required>
+                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️</span>
+                </div>
+                <div class="error-msg" id="confirmPassError">كلمتا المرور غير متطابقتين</div>
+            </div>
+
             <button type="submit" id="submitBtn" class="btn-submit">تسجيل الحساب وانطلاق 🚀</button>
         </form>
 
@@ -254,7 +265,7 @@
             }
         });
 
-        // --- إظهار وإخفاء كلمة المرور ---
+        // --- إظهار وإخفاء كلمة المرور الأولى ---
         const passwordInput = document.getElementById('password');
         const togglePassBtn = document.getElementById('togglePassBtn');
         togglePassBtn.addEventListener('click', function() {
@@ -264,6 +275,19 @@
             } else {
                 passwordInput.type = 'password';
                 togglePassBtn.textContent = '👁️';
+            }
+        });
+
+        // --- إظهار وإخفاء كلمة المرور الثانية (التأكيد) ---
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const toggleConfirmPassBtn = document.getElementById('toggleConfirmPassBtn');
+        toggleConfirmPassBtn.addEventListener('click', function() {
+            if (confirmPasswordInput.type === 'password') {
+                confirmPasswordInput.type = 'text';
+                toggleConfirmPassBtn.textContent = '🙈';
+            } else {
+                confirmPasswordInput.type = 'password';
+                toggleConfirmPassBtn.textContent = '👁️';
             }
         });
 
@@ -317,8 +341,8 @@
             });
         }
 
-        // --- دالة التحقق الذكي من الحقول ---
-        function validateInputs(name, email, sPhone, pPhone, pass) {
+        // --- دالة التحقق الذكي من الحقول (شاملة تأكيد كلمة المرور) ---
+        function validateInputs(name, email, sPhone, pPhone, pass, confirmPass) {
             let isValid = true;
             
             document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
@@ -350,6 +374,11 @@
                 isValid = false;
             }
 
+            if (pass !== confirmPass) {
+                document.getElementById('confirmPassError').style.display = 'block';
+                isValid = false;
+            }
+
             return isValid;
         }
 
@@ -362,9 +391,10 @@
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
             const imageFile = profileImageInput.files[0];
 
-            if (!validateInputs(name, email, sPhone, pPhone, pass)) {
+            if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) {
                 return;
             }
 
