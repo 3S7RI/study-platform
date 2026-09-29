@@ -255,11 +255,11 @@
         .poll-option:hover { background: var(--primary); color: white; }
         .reply-trigger-btn { background: none; border: none; color: var(--primary); font-size: 0.72rem; cursor: pointer; margin-top: 4px; font-weight: bold; text-align: right; }
         
-        .voice-note-player { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 20px; max-width: 220px; border: 1px solid var(--card-border); }
-        .voice-play-btn { background: var(--primary); color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        /* تعديل تصميم الريكورد الصوتي ليشبه الواتساب تماماً بدون نص وبموجات صوتية دقيقة */
+        .voice-note-player { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.25); padding: 8px 14px; border-radius: 22px; width: 210px; border: 1px solid var(--card-border); }
+        .voice-play-btn { background: var(--primary); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .voice-play-btn:hover { background: var(--primary-hover); }
-        .voice-waves { flex: 1; height: 16px; background: repeating-linear-gradient(90deg, var(--text-main), var(--text-main) 2px, transparent 2px, transparent 6px); opacity: 0.8; min-width: 60px; animation: wavePulse 1s infinite alternate; }
-        @keyframes wavePulse { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        .voice-waves { flex: 1; height: 20px; background: repeating-linear-gradient(90deg, var(--text-sub), var(--text-sub) 2px, transparent 2px, transparent 6px); opacity: 0.9; min-width: 90px; border-radius: 4px; }
 
         /* شريط حالة التسجيل الصوتي الحي */
         .recording-status-bar {
@@ -499,7 +499,6 @@
     </div>
 
     <script>
-        // إعدادات الربط السحابي بـ JSONbin
         const JSONBIN_BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const JSONBIN_API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
@@ -561,7 +560,6 @@
         if (streakDays > 365) streakDays = 365;
         document.getElementById('coreDayNumber').textContent = streakDays;
 
-        // دوال الاتصال السحابي بـ JSONbin
         async function fetchMessagesFromCloud() {
             try {
                 const response = await fetch(JSONBIN_URL + '/latest', {
@@ -623,7 +621,6 @@
             document.getElementById('fileInput').value = '';
         }
 
-        // إدارة التسجيل الصوتي وتحويل زر الإرسال لزر إيقاف (Stop)
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
@@ -654,7 +651,6 @@
                     reader.readAsDataURL(audioBlob);
                     stream.getTracks().forEach(track => track.stop());
                     
-                    // إعادة الزر لوضعه الطبيعي (الإرسال)
                     isRecording = false;
                     document.getElementById('recordingStatusBar').classList.remove('active');
                     const mainBtn = document.getElementById('mainActionButton');
@@ -667,11 +663,9 @@
                 isRecording = true;
                 document.getElementById('recordingStatusBar').classList.add('active');
 
-                // تحويل زر الإرسال الدائري إلى زر إيقاف (Stop) أحمر اللون
                 const mainBtn = document.getElementById('mainActionButton');
                 mainBtn.classList.add('recording-mode');
                 mainBtn.title = "إيقاف التسجيل";
-                // شكل أيقونة المربع (Stop) داخل الزر
                 document.getElementById('sendIconSvg').innerHTML = '<rect x="6" y="6" width="12" height="12" rx="2"></rect>';
 
             } catch (err) {
@@ -906,12 +900,11 @@
                     } else if (msg.attachment.type === 'file') {
                         contentHtml += `<div class="msg-bubble" style="background:rgba(0,0,0,0.2); font-size:0.8rem;">📁 ملف: ${msg.attachment.name}</div>`;
                     } else if (msg.attachment.type === 'voice') {
-                        // مشغل صوتي واضح مع شكل ومضات ووضوح تام بأن الريكورد جاهز للعمل عند الضغط
+                        // مشغل صوتي بنمط الواتساب تماماً بدون أي نص بجانبه وموجات صوتية مرتبة
                         contentHtml += `
                             <div class="voice-note-player">
                                 <button class="voice-play-btn" onclick="const a = new Audio('${msg.attachment.dataUrl}'); a.play();" title="استماع">▶</button>
                                 <div class="voice-waves"></div>
-                                <span style="font-size:0.75rem; font-weight:bold; color:var(--text-main);">تسجيل صوتي</span>
                             </div>
                         `;
                     }
@@ -963,7 +956,6 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        // تشغيل التحديث التلقائي للرسائل كل 5 ثوانٍ لجلب رسائل بقية الطلاب سحابياً بدون تحديث الصفحة
         setInterval(renderChatMessages, 5000);
         renderChatMessages();
     </script>
