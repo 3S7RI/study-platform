@@ -39,7 +39,6 @@
             min-height: 100vh; 
             user-select: none; 
             -webkit-user-select: none; 
-            /* منع النسخ والتحديد بالكامل */
             -webkit-touch-callout: none;
         }
         
@@ -153,7 +152,6 @@
         }
         .dark-mode .file-meta { border-top-color: rgba(255,255,255,0.05); }
 
-        /* زر التصفح الآمن (بدون تحميل أو سكرين شوت) */
         .view-btn {
             background-color: #0284c7;
             color: white;
@@ -171,7 +169,6 @@
         }
         .view-btn:hover { opacity: 0.9; }
 
-        /* نافذة معاينة الملزمة الآمنة */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(8px);
@@ -195,7 +192,6 @@
             font-size: 0.95rem; line-height: 1.8; color: var(--text-color);
             position: relative;
         }
-        /* علامة مائية أمنية داخل المعاينة */
         .watermark-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
             font-size: 2rem; font-weight: bold; color: rgba(150, 150, 150, 0.12);
@@ -205,12 +201,10 @@
 </head>
 <body id="pageBody">
 
-    <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
     <div id="securityScreenOverlay">
         ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
     </div>
 
-    <!-- نافذة معاينة الملزمة الآمنة -->
     <div class="modal-overlay" id="fileModal" onclick="if(event.target===this) closeFileModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -219,7 +213,6 @@
             </div>
             <div class="modal-body" id="modalFileBody">
                 <div class="watermark-overlay">رحلة دراسية - محمي من السرقة</div>
-                <!-- محتوى المعاينة الآمن -->
             </div>
         </div>
     </div>
@@ -250,12 +243,14 @@
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+        // --- التحقق الاعتماد على sessionStorage فقط حسب رغبتك ---
+        const isLoggedInSession = sessionStorage.getItem('isLoggedIn');
+        const isAdminSession = sessionStorage.getItem('isAdminLoggedIn');
+        const studentUserSession = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
 
-        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
+        if (isLoggedInSession !== 'true' && isAdminSession !== 'true' && !studentUserSession) {
             alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
 
         // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot والتسجيل ---
@@ -278,8 +273,9 @@
 
         async function loadFilesData() {
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=` + new Date().getTime(), {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    cache: 'no-cache'
                 });
                 let data = await res.json();
                 let filesList = data.record.studyFiles || [];
@@ -294,7 +290,6 @@
         function renderFiles(files) {
             const grid = document.getElementById('filesGrid');
             
-            // في حال عدم وجود ملازم منشورة بعد
             if (!files || files.length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
