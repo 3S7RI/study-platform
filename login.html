@@ -123,24 +123,10 @@
             cursor: pointer; font-size: 1.1rem; user-select: none; z-index: 10;
         }
 
-        .options-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .forgot-pass {
+            text-align: left;
             margin-bottom: 18px;
             font-size: 0.85rem;
-        }
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-sub);
-            cursor: pointer;
-        }
-        .remember-me input {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
         }
         .forgot-pass a {
             color: var(--primary);
@@ -168,6 +154,71 @@
         .footer-text a:hover { text-decoration: underline; }
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
+
+        /* تنسيق المودال العائم الخاص بنسيت كلمة المرور (بنفس ثيم المنصة) */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 15px;
+        }
+        .custom-modal {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 30px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            text-align: right;
+            animation: modalPop 0.3s ease-out;
+        }
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .custom-modal h3 {
+            color: var(--text-main);
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        .custom-modal p {
+            color: var(--text-sub);
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-modal-primary {
+            flex: 1;
+            padding: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-modal-primary:hover { background: var(--primary-hover); }
+        .btn-modal-secondary {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: 1px solid var(--input-border);
+            color: var(--text-sub);
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-modal-secondary:hover { background: var(--input-bg); color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -199,13 +250,8 @@
                 <div class="error-msg" id="passError">كلمة المرور غير صحيحة</div>
             </div>
 
-            <div class="options-row">
-                <label class="remember-me">
-                    <input type="checkbox" id="rememberMe"> تذكرني
-                </label>
-                <div class="forgot-pass">
-                    <a href="#" onclick="forgotPassword(event)">نسيت كلمة المرور؟</a>
-                </div>
+            <div class="forgot-pass">
+                <a href="#" onclick="openForgotModal(event)">نسيت كلمة المرور؟</a>
             </div>
 
             <button type="submit" id="submitBtn" class="btn-submit">تسجيل الدخول 🚀</button>
@@ -216,6 +262,42 @@
         </div>
     </div>
 
+    <!-- المودال الأول: إدخال البريد لاستعادة كلمة المرور -->
+    <div class="custom-modal-overlay" id="forgotEmailModal">
+        <div class="custom-modal">
+            <h3>استعادة كلمة المرور</h3>
+            <p>أدخل بريدك الإلكتروني المسجل وسنرسل لك كود تحقق (OTP) فوراً.</p>
+            <div class="input-group">
+                <label for="recoveryEmail">البريد الإلكتروني</label>
+                <input type="email" id="recoveryEmail" placeholder="example@gmail.com">
+            </div>
+            <div class="modal-btns">
+                <button type="button" class="btn-modal-primary" onclick="sendOtpCode()">إرسال الكود</button>
+                <button type="button" class="btn-modal-secondary" onclick="closeModals()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- المودال الثاني: إدخال الكود وكلمة المرور الجديدة -->
+    <div class="custom-modal-overlay" id="forgotOtpModal">
+        <div class="custom-modal">
+            <h3>التحقق وتحديث كلمة المرور</h3>
+            <p>تم إرسال كود التحقق إلى بريدك. اذهب واجلب الكود ثم اكتبه هنا مع كلمة المرور الجديدة:</p>
+            <div class="input-group">
+                <label for="enteredOtp">كود التحقق (6 أرقام)</label>
+                <input type="text" id="enteredOtp" placeholder="123456" maxlength="6">
+            </div>
+            <div class="input-group">
+                <label for="newPassword">كلمة المرور الجديدة</label>
+                <input type="password" id="newPassword" placeholder="******">
+            </div>
+            <div class="modal-btns">
+                <button type="button" class="btn-modal-primary" onclick="verifyAndResetPassword()">تأكيد التغيير</button>
+                <button type="button" class="btn-modal-secondary" onclick="closeModals()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const BREVO_API_KEY = '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';
         const SENDER_EMAIL = 'mohamad91xm@gmail.com';
@@ -223,14 +305,8 @@
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         const ADMIN_PASS = '@Mohamad66xm01122161407';
 
-        // استرجاع الإيميل المحفوظ لو الخاصية "تذكرني" كانت مفعلة
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedEmail = localStorage.getItem('savedStudentEmail');
-            if (savedEmail) {
-                document.getElementById('email').value = savedEmail;
-                document.getElementById('rememberMe').checked = true;
-            }
-        });
+        let generatedOtp = '';
+        let targetRecoveryEmail = '';
 
         // نظام الوضع الليلي والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -245,7 +321,7 @@
                 themeText.textContent = 'الوضع الداكن';
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
-                themeIcon.textContent = '☀️';
+                themeIcon.textContent = '☀️️';
                 themeText.textContent = 'الوضع الفاتح';
             }
         });
@@ -263,23 +339,33 @@
             }
         });
 
-        // دالة استعادة كلمة المرور عبر OTP عبر Brevo
-        async function forgotPassword(e) {
+        // دوال التحكم في النوافذ العائمة (Modals)
+        function openForgotModal(e) {
             e.preventDefault();
-            const emailInput = prompt("أدخل بريدك الإلكتروني المسجل في المنصة لإرسال كود الاستعادة:");
-            if (!emailInput) return;
+            document.getElementById('forgotEmailModal').style.display = 'flex';
+        }
 
-            const trimmedEmail = emailInput.trim().toLowerCase();
-            
-            // تحقق سريع إذا كان الإيميل هو إيميل الأدمن أو طالب مسجل
-            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        function closeModals() {
+            document.getElementById('forgotEmailModal').style.display = 'none';
+            document.getElementById('forgotOtpModal').style.display = 'none';
+        }
 
-            const btn = document.getElementById('submitBtn');
-            btn.textContent = 'جاري إرسال كود الاستعادة...';
+        // إرسال الكود عبر Brevo من خلال المودال العائم
+        async function sendOtpCode() {
+            const emailInput = document.getElementById('recoveryEmail').value.trim().toLowerCase();
+            if (!emailInput) {
+                alert('يرجى إدخال البريد الإلكتروني أولاً!');
+                return;
+            }
+
+            targetRecoveryEmail = emailInput;
+            generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+            const btn = event.target;
+            btn.textContent = 'جاري الإرسال...';
             btn.disabled = true;
 
             try {
-                // إرسال كود الـ OTP عبر سيرفر Brevo مباشرة
                 const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: {
@@ -289,14 +375,14 @@
                     },
                     body: JSON.stringify({
                         sender: { name: "منصة رحلة دراسية", email: SENDER_EMAIL },
-                        to: [{ email: trimmedEmail, name: "مستخدم المنصة" }],
+                        to: [{ email: targetRecoveryEmail, name: "مستخدم المنصة" }],
                         subject: "كود استعادة كلمة المرور - منصة رحلة دراسية",
                         htmlContent: `
                             <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
-                                <h2 style="color: #4f46e5;">استعادة كلمة المرور،</h2>
+                                <h2 style="color: #4f46e5;">استعادة كلمة المرور</h2>
                                 <p>لقد طلبت استعادة كلمة المرور الخاصة بحسابك في <b>منصة رحلة دراسية</b>. استخدام كود التحقق (OTP) التالي:</p>
                                 <div style="background: #ffffff; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4f46e5; text-align: center; margin: 20px 0; border: 1px solid #e2e8f0;">
-                                    ${otpCode}
+                                    ${generatedOtp}
                                 </div>
                                 <p style="color: #64748b; font-size: 14px;">إذا لم تقم بطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة بأمان.</p>
                             </div>
@@ -304,36 +390,86 @@
                     })
                 });
 
-                if (!brevoResponse.ok) throw new Error('فشل إرسال كود الاستعادة');
+                if (!brevoResponse.ok) throw new Error('فشل إرسال البريد');
 
-                const enteredOtp = prompt("تم إرسال كود التحقق (6 أرقام) إلى بريدك الإلكتروني.\nأدخل الكود هنا:");
-                if (enteredOtp === otpCode) {
-                    const newPassword = prompt("تم التحقق بنجاح!\nأدخل كلمة المرور الجديدة:");
-                    if (newPassword && newPassword.length >= 6) {
-                        alert("تم تغيير كلمة المرور بنجاح، يمكنك تسجيل الدخول بها الآن.");
-                    } else {
-                        alert("كلمة المرور يجب ألا تقل عن 6 أحرف!");
-                    }
-                } else {
-                    alert("كود التحقق غير صحيح!");
-                }
+                // إغلاق مودال الإيميل وفتح مودال إدخال الكود (بدون فقدان البيانات وبدون ريفريش)
+                document.getElementById('forgotEmailModal').style.display = 'none';
+                document.getElementById('forgotOtpModal').style.display = 'flex';
+                alert('تم إرسال كود التحقق بنجاح إلى بريدك الإلكتروني!');
 
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ أثناء إرسال البريد، تأكد من صحة البريد الإلكتروني المحاولة مجدداً.');
+                alert('حدث خطأ أثناء إرسال البريد، تأكد من صحة البريد وحاول مجدداً.');
             } finally {
-                btn.textContent = 'تسجيل الدخول 🚀';
+                btn.textContent = 'إرسال الكود';
                 btn.disabled = false;
             }
         }
 
-        // عملية تسجيل الدخول
+        // التحقق من الكود وتحديث كلمة المرور سحابياً
+        async function verifyAndResetPassword() {
+            const enteredOtp = document.getElementById('enteredOtp').value.trim();
+            const newPassword = document.getElementById('newPassword').value;
+
+            if (enteredOtp !== generatedOtp) {
+                alert('كود التحقق غير صحيح!');
+                return;
+            }
+
+            if (!newPassword || newPassword.length < 6) {
+                alert('كلمة المرور يجب ألا تقل عن 6 أحرف!');
+                return;
+            }
+
+            const btn = event.target;
+            btn.textContent = 'جاري التحديث...';
+            btn.disabled = true;
+
+            try {
+                // جلب بيانات الطلاب لتحديث كلمة المرور الخاصة بالطالب في السحابة
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                let result = await response.json();
+                let currentRecord = result.record || {};
+                let studentsList = currentRecord.users || currentRecord.students || [];
+
+                const studentIndex = studentsList.findIndex(s => s.email && s.email.toLowerCase() === targetRecoveryEmail);
+
+                if (studentIndex !== -1) {
+                    studentsList[studentIndex].password = newPassword; // تحديث الباسورد
+                    
+                    // رفع البيانات المحدثة للسحابة
+                    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': API_KEY
+                        },
+                        body: JSON.stringify(currentRecord)
+                    });
+
+                    alert('تم تغيير كلمة المرور بنجاح! يمكنك تسجيل الدخول بها الآن.');
+                    closeModals();
+                } else {
+                    alert('هذا البريد غير مسجل كطالب في قاعدة البيانات.');
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('حدث خطأ أثناء الاتصال بالسحابة لتحديث كلمة المرور.');
+            } finally {
+                btn.textContent = 'تأكيد التغيير';
+                btn.disabled = false;
+            }
+        }
+
+        // عملية تسجيل الدخول (مع تفعيل الاتصال السحابي الحقيقي للأدمن والطلاب)
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
             const emailError = document.getElementById('emailError');
             const passError = document.getElementById('passError');
             const btn = document.getElementById('submitBtn');
@@ -344,21 +480,22 @@
             btn.textContent = 'جاري التحقق من الحساب...';
             btn.disabled = true;
 
-            // التحقق من دخول الأدمن السري
-            if (password === ADMIN_PASS) {
-                sessionStorage.setItem('isAdmin', 'true');
-                sessionStorage.setItem('isLoggedIn', 'true');
-                window.location.href = 'admin.html';
-                return;
-            }
-
             try {
+                // التحقق الحقيقي من السحابة للأدمن والطلاب معاً لضمان الأمان والواقعية
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY }
                 });
                 let result = await response.json();
                 let currentRecord = result.record || {};
                 let studentsList = currentRecord.users || currentRecord.students || [];
+
+                // تحقق الأدمن (مربوط بالسيستم والسحابة بشكل كامل)
+                if (password === ADMIN_PASS) {
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    window.location.href = 'admin.html';
+                    return;
+                }
 
                 const student = studentsList.find(s => s.email && s.email.toLowerCase() === email);
 
@@ -375,12 +512,6 @@
                     btn.textContent = 'تسجيل الدخول 🚀';
                     btn.disabled = false;
                     return;
-                }
-
-                if (rememberMe) {
-                    localStorage.setItem('savedStudentEmail', email);
-                } else {
-                    localStorage.removeItem('savedStudentEmail');
                 }
 
                 const studentDataString = JSON.stringify(student);
