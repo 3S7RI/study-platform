@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منتدى الأسئلة والدردشة - منصة رحلة دراسية</title>
+    <title>منتدى الأسئلة - منصة رحلة دراسية</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s; }
         
@@ -61,30 +61,18 @@
 
         .container { max-width: 700px; width: 100%; margin: 25px auto; padding: 0 15px; }
 
-        /* تبيوبات التبديل بين المنتدى ودردشة الطلاب المدمجة */
-        .forum-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn {
-            flex: 1; padding: 12px; border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.3);
-            background: var(--card-bg); color: var(--text-color); font-weight: bold; cursor: pointer;
-            font-size: 0.95rem; text-align: center; box-shadow: var(--shadow); transition: all 0.3s;
-        }
-        .tab-btn.active { background: #8b5cf6; color: white; border-color: #8b5cf6; }
-
-        .section-panel { display: none; }
-        .section-panel.active { display: block; }
-
         .create-post-card {
             background: var(--card-bg); padding: 22px; border-radius: 16px;
             box-shadow: var(--shadow); margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.05);
             border-top: 5px solid #8b5cf6; backdrop-filter: blur(12px);
         }
-        .create-post-card textarea, .chat-input-box textarea {
-            width: 100%; height: 90px; padding: 14px; border-radius: 10px;
+        .create-post-card textarea {
+            width: 100%; height: 100px; padding: 14px; border-radius: 10px;
             border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-color);
             resize: none; font-size: 0.95rem; margin-bottom: 12px; outline: none;
             transition: border-color 0.2s;
         }
-        .create-post-card textarea:focus, .chat-input-box textarea:focus { border-color: #8b5cf6; }
+        .create-post-card textarea:focus { border-color: #8b5cf6; }
         
         .post-tools-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
         .media-upload-btns { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -154,90 +142,42 @@
             border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem;
             box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
         }
-
-        /* تنسيقات قسم دردشة الطلاب المدمج (داخل لوحة المنتدى) */
-        .chat-messages-container {
-            background: var(--card-bg); border-radius: 16px; padding: 15px; height: 400px;
-            overflow-y: auto; box-shadow: var(--shadow); margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05);
-            display: flex; flex-direction: column; gap: 12px;
-        }
-        .chat-message-item {
-            background: rgba(139, 92, 246, 0.05); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.03);
-            max-width: 85%; align-self: flex-start;
-        }
-        .chat-message-item.admin-msg {
-            background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2);
-        }
-        .chat-msg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 10px; }
-        .chat-msg-author { font-weight: bold; font-size: 0.85rem; color: #8b5cf6; }
-        .chat-msg-time { font-size: 0.7rem; color: var(--card-text); }
-        .chat-input-card {
-            background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: var(--shadow);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
     </style>
 </head>
 <body id="pageBody" class="dark-mode">
 
     <header class="navbar">
         <a href="main.html" class="back-home-btn" title="العودة للرئيسية">🏠</a>
-        <div class="navbar-title">منتدى الأسئلة ودردشة الطلاب 💬</div>
+        <div class="navbar-title">منتدى الأسئلة والماستر 💬</div>
         <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">☀️</button>
     </header>
 
     <div class="container">
-        <!-- تبيوبات التبديل بين المنتدى ودردشة الطلاب -->
-        <div class="forum-tabs">
-            <button class="tab-btn active" id="tabForumBtn" onclick="switchTab('forum')">💬 منتدى الأسئلة والاستفسارات</button>
-            <button class="tab-btn" id="tabChatBtn" onclick="switchTab('chat')">👥 دردشة الطلاب الجماعية</button>
+        <div class="create-post-card">
+            <textarea id="postContentInput" placeholder="اكتب سؤالك بوضوح تام..."></textarea>
+            
+            <div class="post-tools-row">
+                <div class="media-upload-btns">
+                    <label class="media-btn" style="cursor: pointer;">
+                        📷 رفع صورة <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewPostImage(event)">
+                    </label>
+                    <button type="button" class="media-btn" id="recordVoiceBtn" onclick="toggleVoiceRecording()">🎙️ تسجيل فويس</button>
+                </div>
+                <span id="mediaStatusIndicator" style="font-size: 0.85rem; color: #10b981; font-weight: bold;"></span>
+            </div>
+            
+            <div id="imagePreviewContainer" style="margin-bottom: 12px; display: none; position: relative; width: fit-content;">
+                <img id="imgPreviewTag" style="max-height: 120px; border-radius: 8px; border: 1px solid #8b5cf6;">
+                <button type="button" onclick="removeSelectedImage()" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; cursor: pointer; position: absolute; top: -6px; right: -6px; display: flex; align-items: center; justify-content: center;">✕</button>
+            </div>
+
+            <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر السؤال بالوسائط المرفقة 🚀</button>
         </div>
 
-        <!-- قسم منتدى الأسئلة -->
-        <div id="forumSection" class="section-panel active">
-            <div class="create-post-card">
-                <textarea id="postContentInput" placeholder="اكتب سؤالك بوضوح تام..."></textarea>
-                
-                <div class="post-tools-row">
-                    <div class="media-upload-btns">
-                        <label class="media-btn" style="cursor: pointer;">
-                            📷 رفع صورة <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewPostImage(event)">
-                        </label>
-                        <button type="button" class="media-btn" id="recordVoiceBtn" onclick="toggleVoiceRecording()">🎙️ تسجيل فويس</button>
-                    </div>
-                    <span id="mediaStatusIndicator" style="font-size: 0.85rem; color: #10b981; font-weight: bold;"></span>
-                </div>
-                
-                <div id="imagePreviewContainer" style="margin-bottom: 12px; display: none; position: relative; width: fit-content;">
-                    <img id="imgPreviewTag" style="max-height: 120px; border-radius: 8px; border: 1px solid #8b5cf6;">
-                    <button type="button" onclick="removeSelectedImage()" style="background: #ef4444; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; cursor: pointer; position: absolute; top: -6px; right: -6px; display: flex; align-items: center; justify-content: center;">✕</button>
-                </div>
-
-                <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر السؤال بالوسائط المرفقة 🚀</button>
-            </div>
-
-            <div id="postsFeed" class="posts-feed">
-                <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow);">
-                    <div style="font-size: 2.5rem; margin-bottom: 10px;">⏳</div>
-                    <p style="color: var(--card-text); font-weight: bold;">جاري تحميل الأسئلة والمناقشات...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- قسم دردشة الطلاب الجماعية المدمج -->
-        <div id="chatSection" class="section-panel">
-            <div id="chatMessagesContainer" class="chat-messages-container">
-                <div style="text-align: center; padding: 40px; color: var(--card-text);">
-                    <div style="font-size: 2rem; margin-bottom: 8px;">⏳</div>
-                    <p style="font-weight: bold;">جاري تحميل رسائل الدردشة...</p>
-                </div>
-            </div>
-
-            <div class="chat-input-card">
-                <textarea id="chatMessageInput" placeholder="اكتب رسالتك لزملائك في الدردشة..."></textarea>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span id="chatMediaStatus" style="font-size: 0.85rem; color: #10b981; font-weight: bold;"></span>
-                    <button class="post-submit-btn" style="width: auto; padding: 10px 25px; margin-top: 0;" onclick="sendStudentChatMessage()">إرسال الرسالة 🚀</button>
-                </div>
+        <div id="postsFeed" class="posts-feed">
+            <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow);">
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">⏳</div>
+                <p style="color: var(--card-text); font-weight: bold;">جاري تحميل الأسئلة والمناقشات...</p>
             </div>
         </div>
         
@@ -298,22 +238,6 @@
             localStorage.setItem('forumTheme', isDark ? 'dark' : 'light');
             themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
         });
-
-        function switchTab(tabName) {
-            document.getElementById('tabForumBtn').classList.remove('active');
-            document.getElementById('tabChatBtn').classList.remove('active');
-            document.getElementById('forumSection').classList.remove('active');
-            document.getElementById('chatSection').classList.remove('active');
-
-            if (tabName === 'forum') {
-                document.getElementById('tabForumBtn').classList.add('active');
-                document.getElementById('forumSection').classList.add('active');
-            } else {
-                document.getElementById('tabChatBtn').classList.add('active');
-                document.getElementById('chatSection').classList.add('active');
-                loadStudentChatData();
-            }
-        }
 
         function previewPostImage(e) {
             const file = e.target.files[0];
@@ -681,92 +605,6 @@
             } catch (e) {
                 console.error(e);
                 alert('حدث خطأ أثناء إضافة رد الأدمن.');
-            }
-        }
-
-        // دوال إدارة وجلب رسائل دردشة الطلاب الجماعية المدمجة
-        async function loadStudentChatData() {
-            try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let data = await res.json();
-                let chatMessages = data.record.studentChatMessages || [];
-                renderStudentChat(chatMessages);
-            } catch (e) {
-                console.error("خطأ في تحميل دردشة الطلاب:", e);
-                document.getElementById('chatMessagesContainer').innerHTML = '<p style="text-align:center; color: red;">فشل تحميل رسائل الدردشة.</p>';
-            }
-        }
-
-        function renderStudentChat(messages) {
-            const container = document.getElementById('chatMessagesContainer');
-            if (messages.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: var(--card-text);">
-                        <div style="font-size: 2.5rem; margin-bottom: 8px;">👥</div>
-                        <p style="font-weight: bold;">لا توجد رسائل في دردشة الطلاب بعد</p>
-                        <p style="font-size: 0.85rem; margin-top: 5px;">كن أول من يشارك زملاءه الحديث!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = '';
-            messages.forEach((msg) => {
-                let isMsgAdmin = msg.isAdmin || false;
-                let msgDiv = document.createElement('div');
-                msgDiv.className = `chat-message-item ${isMsgAdmin ? 'admin-msg' : ''}`;
-                msgDiv.innerHTML = `
-                    <div class="chat-msg-header">
-                        <span class="chat-msg-author">${msg.authorName}</span>
-                        <span class="chat-msg-time">${msg.date || ''}</span>
-                    </div>
-                    <div style="line-height: 1.5; word-break: break-word;">${msg.text}</div>
-                `;
-                container.appendChild(msgDiv);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
-        async function sendStudentChatMessage() {
-            let input = document.getElementById('chatMessageInput');
-            let text = input.value.trim();
-            if (!text) return;
-
-            let authorName = isUserAdmin ? (adminRole === 'master' ? 'محمد عماد (مؤسس المنصة)' : 'مشرف المنصة') : userData.fullName;
-            let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
-
-            let newMsg = {
-                authorName: authorName,
-                text: text,
-                isAdmin: isUserAdmin,
-                date: dateStr
-            };
-
-            try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let data = await res.json();
-                let record = data.record;
-                if (!record.studentChatMessages) record.studentChatMessages = [];
-
-                record.studentChatMessages.push(newMsg);
-
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-
-                if (updateRes.ok) {
-                    input.value = '';
-                    loadStudentChatData();
-                }
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ أثناء إرسال الرسالة.');
             }
         }
     </script>
