@@ -136,47 +136,73 @@
             overflow: hidden;
         }
 
-        /* نظام طاقة النواة ومسار المجرة الدراسي الجديد */
+        /* شريط نواة الطاقة الدائرية الجديد بدون أي نصوص جانبية */
         .chat-sub-bar {
             padding: 8px 20px;
             background: rgba(15, 23, 42, 0.4);
             border-bottom: 1px solid var(--card-border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8rem;
-        }
-
-        .streak-galaxy-container {
-            display: flex;
+            justify-content: flex-end;
             align-items: center;
             gap: 12px;
+        }
+
+        /* تصميم نواة الطاقة الدائرية المشعة */
+        .core-reactor-wrapper {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .core-reactor-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, #38bdf8, #6366f1, #a855f7, #ec4899, #38bdf8);
+            animation: coreSpin 4s linear infinite;
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #fff calc(100% - 4px));
+        }
+
+        @keyframes coreSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .core-reactor-core {
+            width: 32px;
+            height: 32px;
+            background: radial-gradient(circle, #6366f1 0%, #1e1b4b 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
+            font-size: 0.65rem;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        /* زر الإعدادات المدمج بجانب النواة */
+        .inline-settings-btn {
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
-            padding: 5px 14px;
-            border-radius: 16px;
+            color: var(--text-main);
+            border-radius: 50%;
             cursor: pointer;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
         }
-        .streak-galaxy-container:hover { border-color: var(--primary); }
-
-        .core-energy-track {
-            width: 120px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
-        }
-
-        .core-energy-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #38bdf8, #6366f1, #a855f7, #ec4899);
-            border-radius: 4px;
-            width: 0%;
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
-            transition: width 0.5s ease;
-        }
+        .inline-settings-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* رسائل الشات */
         .chat-messages {
@@ -258,7 +284,7 @@
 
         .msg-time { font-size: 0.62rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
 
-        /* منطقة الإدخال وزر الإرسال المقيد داخل الشاشة */
+        /* منطقة الإدخال */
         .chat-input-area {
             padding: 12px 18px;
             background: rgba(15, 23, 42, 0.4);
@@ -335,7 +361,6 @@
         }
         .chat-input:focus { border-color: var(--primary); }
 
-        /* زر الإرسال برسمة طيارة ورقية حقيقية (Vector SVG) داخل الحدود تماماً */
         .send-btn {
             background: var(--primary);
             color: white;
@@ -360,7 +385,7 @@
             margin-right: 2px;
         }
 
-        /* نافذة إعدادات الطالب المنبثقة */
+        /* نافذة الإعدادات المنبثقة */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -412,25 +437,21 @@
 
     <!-- الهيدر العلوي -->
     <header class="chat-header-nav">
-        <!-- زر الرئيسية يوجه لصفحة إنشاء الحساب -->
         <a href="register.html" class="home-btn">🏠 إنشاء حساب</a>
         <div class="chat-main-title">💬 قناة الدردشة</div>
         <div class="header-actions-left">
-            <button id="settingsBtn" class="header-icon-btn" title="إعدادات الطالب">⚙️</button>
             <button id="themeToggleBtn" class="header-icon-btn" title="تغيير الثيم">🌙</button>
         </div>
     </header>
 
     <!-- صندوق الدردشة -->
     <div class="chat-container">
-        <!-- نظام طاقة النواة ومسار المجرة الدراسي (بديل النص القديم وزر الإعدادات المباشر) -->
+        <!-- شريط التحكم العلوي للنواة وزر الإعدادات بدقة بدون نصوص -->
         <div class="chat-sub-bar">
-            <span style="color: var(--text-sub); font-size: 0.78rem; font-weight: bold;" id="corePhaseLabel">نواة البداية</span>
-            <div class="streak-galaxy-container" onclick="openSettingsModal()" title="اضغط لفتح إعدادات طاقة النواة">
-                <span id="coreDaysText" style="font-size: 0.75rem; font-weight: bold; color: var(--text-main);">اليوم 1 / 365</span>
-                <div class="core-energy-track">
-                    <div class="core-energy-fill" id="coreEnergyBar"></div>
-                </div>
+            <button class="inline-settings-btn" onclick="openSettingsModal()" title="إعدادات الطالب والنواة">⚙️</button>
+            <div class="core-reactor-wrapper" onclick="openSettingsModal()" title="نواة الطاقة السنوية (اضغط للإعدادات)">
+                <div class="core-reactor-ring"></div>
+                <div class="core-reactor-core" id="coreDayNumber">1</div>
             </div>
         </div>
 
@@ -467,7 +488,6 @@
 
             <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
 
-            <!-- زر الإرسال برسمة طيارة ورقية حقيقية Vector SVG -->
             <button class="send-btn" onclick="sendMessage()" title="إرسال">
                 <svg viewBox="0 0 24 24">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
@@ -476,7 +496,7 @@
         </div>
     </div>
 
-    <!-- نافذة الإعدادات المنبثقة للطالب -->
+    <!-- نافذة الإعدادات المنبثقة -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <h3>إعدادات طاقة النواة والحساب</h3>
@@ -497,7 +517,6 @@
     </div>
 
     <script>
-        // بيانات الطالب الحالي
         const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser') || '{}');
         const studentName = currentUserData.fullName || currentUserData.name || 'طالب جديد';
         const nameParts = studentName.split(' ');
@@ -516,7 +535,6 @@
             }
         }
 
-        // إعدادات الثيم
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -535,13 +553,7 @@
             }
         });
 
-        // نافذة الإعدادات (الترس / أو النقر على شريط الطاقة)
-        const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
-
-        settingsBtn.addEventListener('click', () => {
-            openSettingsModal();
-        });
 
         function openSettingsModal() {
             settingsModal.classList.add('active');
@@ -551,7 +563,6 @@
             settingsModal.classList.remove('active');
         }
 
-        // حفظ إعدادات الخصوصية محلياً
         function saveStudentSettings() {
             const settings = {
                 rankVisible: document.getElementById('settingRankVisible').checked,
@@ -561,13 +572,11 @@
             localStorage.setItem('student_privacy_settings', JSON.stringify(settings));
         }
 
-        // تحميل الإعدادات عند البدء
         const savedSettings = JSON.parse(localStorage.getItem('student_privacy_settings') || '{"rankVisible":true,"avatarVisible":true,"profileAccess":true}');
         document.getElementById('settingRankVisible').checked = savedSettings.rankVisible;
         document.getElementById('settingAvatarVisible').checked = savedSettings.avatarVisible;
         document.getElementById('settingProfileAccess').checked = savedSettings.profileAccess;
 
-        // دالة الذهاب لبروفايل الطالب عند النقر على اسمه أو صورته
         function openProfile(name) {
             if (!savedSettings.profileAccess) {
                 alert('عذراً، هذا الطالب قام بإيقاف ميزة السماح بالدخول لبروفايله الشخصي.');
@@ -576,26 +585,11 @@
             window.location.href = `profile.html?student=${encodeURIComponent(name)}`;
         }
 
-        // نظام طاقة النواة ومسار المجرة الدراسي الجديد (365 يوم مقسمة لمستويات طاقة)
+        // تحديث رقم اليوم داخل نواة الطاقة
         let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
         if (streakDays > 365) streakDays = 365;
-        
-        function updateCoreEnergySystem(days) {
-            const percentage = (days / 365) * 100;
-            document.getElementById('coreDaysText').textContent = `اليوم ${days} / 365`;
-            document.getElementById('coreEnergyBar').style.width = `${percentage}%`;
-            
-            let phaseName = "نواة البداية";
-            if (days > 30 && days <= 90) phaseName = "نواة النبض";
-            else if (days > 90 && days <= 180) phaseName = "طاقة البلازما";
-            else if (days > 180 && days <= 270) phaseName = "طاقة النجوم";
-            else if (days > 270) phaseName = "النواة الخارقة";
-            
-            document.getElementById('corePhaseLabel').textContent = phaseName;
-        }
-        updateCoreEnergySystem(streakDays);
+        document.getElementById('coreDayNumber').textContent = streakDays;
 
-        // قائمة المرفقات
         function toggleAttachmentMenu(e) {
             e.stopPropagation();
             document.getElementById('attachmentMenu').classList.toggle('active');
@@ -606,7 +600,6 @@
             if (menu.classList.contains('active')) menu.classList.remove('active');
         });
 
-        // إرسال الرسائل
         function sendMessage() {
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
@@ -651,7 +644,6 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        // دوال التفاعل والأدوات
         function handleMediaUpload(input) {
             if (input.files && input.files[0]) {
                 appendMessageToChat(shortName, studentAvatar, studentRank, `[ملف مرئي مرفق: ${input.files[0].name}]`, true);
