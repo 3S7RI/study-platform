@@ -166,7 +166,6 @@
                 <button type="button" onclick="removeSelectedImage()" style="background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 0.7rem; cursor: pointer; position: absolute; top: -5px; right: -5px;">✕</button>
             </div>
 
-            <!-- زر النشر الشامل الموحد -->
             <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">نشر السؤال بالوسائط المرفقة 🚀</button>
         </div>
 
@@ -185,19 +184,11 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // التحقق الصحيح من تسجيل الدخول (مع إمكانية تصفح المنتدى أو منع الدخول حسب الحاجة)
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
+        // تم إلغاء كود الطرد (redirect) تماماً لراحة الطالب وأصبحت الصفحة تفتح بسلاسة تامة دون شروط مزعجة
+        const userData = JSON.parse(localStorage.getItem('studentUser')) || { fullName: 'طالب المنصة' };
+        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
         const adminRole = sessionStorage.getItem('adminRole') || 'sub';
-
-        // تعديل الشرط هنا ليكون أدق، إذا لم يكن مسجلاً كطالب ولا كأدمن يتم توجيهه لتسجيل الدخول
-        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
-            alert('يجب تسجيل الدخول أولاً لتتمكن من استخدام المنتدى!');
-            window.location.href = 'login.html';
-        }
-
-        const userData = JSON.parse(localStorage.getItem('studentUser')) || {};
-        const isUserAdmin = (isAdminLoggedIn === 'true');
+        const isUserAdmin = isAdminLoggedIn;
 
         let selectedBase64Image = "";
         let recordedAudioBase64 = "";
@@ -205,7 +196,6 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // متغيرات خاصة بتسجيل الردود الصوتية للأدمن
         let activeCommentRecorder = null;
         let activeCommentChunks = [];
         let activeCommentAudioBase64 = "";
@@ -292,7 +282,6 @@
             status.textContent = parts.length > 0 ? `المرفقات الحالية: ${parts.join(' + ')} جاهزة ✅` : "";
         }
 
-        // دالة موحدة لضمان حفظ كل العناصر معاً في نفس النشرة
         function handlePostSubmitAction() {
             if (isRecording && mediaRecorder) {
                 mediaRecorder.onstop = async () => {
@@ -468,7 +457,7 @@
                 return;
             }
 
-            let authorName = userData.fullName || (isUserAdmin ? 'الأدمن الرئيسي' : 'طالب');
+            let authorName = userData.fullName || (isUserAdmin ? 'الأدمن الرئيسي' : 'طالب المنصة');
             let profileImage = userData.profileImage || '';
             let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -505,7 +494,7 @@
                     document.getElementById('mediaStatusIndicator').textContent = "";
                     loadForumData();
                 }
-            }	 catch (e) {
+            } catch (e) {
                 console.error(e);
                 alert('حدث خطأ أثناء الاتصال بالسحابة وحفظ السؤال.');
             }
@@ -566,13 +555,15 @@
                         role: adminRole
                     });
 
-                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    let updateRes = await prefixFetchJsonBin(record); // استبدال مباشر لضمان نجاح الحفظ
+                    // حفظ سحابي عادي:
+                    let updateResDirect = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
                         body: JSON.stringify(record)
                     });
 
-                    if (updateRes.ok) {
+                    if (updateResDirect.ok) {
                         input.value = '';
                         activeCommentAudioBase64 = "";
                         loadForumData();
