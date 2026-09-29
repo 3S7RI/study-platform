@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الفيديوهات التعليمية - لوحة التحكم</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --header-bg: #1f1f1f;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333333;
+            --heading-color: #ffffff;
+            --input-bg: #0f172a;
+            --th-bg: rgba(255,255,255,0.05);
+        }
+        [data-theme="light"] {
+            --bg-color: #f4f7f6;
+            --header-bg: #1e3c72;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #eee;
+            --heading-color: #1e3c72;
+            --input-bg: #ffffff;
+            --th-bg: rgba(0,0,0,0.02);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        header h1 { font-size: 1.1rem; color: #ffffff !important; }
+        .header-btns { display: flex; gap: 10px; }
+        .btn-back, .btn-theme { background: #34495e; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; text-decoration: none; }
+        
+        .section-box { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; border-top: 4px solid #e74c3c; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: var(--heading-color); font-size: 1.2rem; }
+        
+        .btn-add { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-verify { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-color); }
+        th { background: var(--th-bg); color: var(--heading-color); font-weight: bold; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 450px; border-radius: 15px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; transform: scale(0.9); transition: transform 0.3s ease; }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        
+        .modal-header { padding: 15px 20px; background: var(--th-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 1rem; color: var(--heading-color); }
+        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-color); cursor: pointer; }
+        
+        .modal-body { padding: 20px; text-align: right; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px; color: var(--text-color); }
+        .modal-field input, .modal-field textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.9rem; outline: none; }
+        
+        .modal-actions { margin-top: 15px; }
+        .btn-full { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #27ae60; color: white; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header>
+            <div class="header-btns">
+                <button class="btn-theme" id="themeToggleBtn">☀️ فاتح</button>
+                <a href="admin-dashboard.html" class="btn-back">العودة للوحة التحكم ↩️</a>
+            </div>
+            <h1>إدارة الفيديوهات التعليمية 🎬</h1>
+        </header>
+
+        <div class="section-box">
+            <div class="section-header">
+                <h2>قائمة الفيديوهات المضافة</h2>
+                <button class="btn-add" onclick="openAddVideoModal()">إضافة فيديو جديد ➕</button>
+            </div>
+            <div id="adminVideosList">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل الفيديوهات من السحابة...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة فيديو جديد -->
+    <div class="modal-overlay" id="addVideoModal" onclick="closeModalOnOuter(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إضافة فيديو تعليمي جديد 🎬</h3>
+                <button class="close-modal" onclick="closeAddVideoModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="addVideoForm" onsubmit="event.preventDefault(); submitNewVideo();">
+                    <div class="modal-field">
+                        <label>عنوان الفيديو:</label>
+                        <input type="text" id="videoTitle" placeholder="مثلاً: شرح الباب الثاني كيمياء" required>
+                    </div>
+                    <div class="modal-field">
+                        <label>رابط الفيديو (YouTube / رابط مباشر):</label>
+                        <input type="url" id="videoLink" placeholder="https://youtube.com/..." required>
+                    </div>
+                    <div class="modal-field">
+                        <label>المادة أو التصنيف:</label>
+                        <input type="text" id="videoSubject" placeholder="كيمياء - الصف الثالث الثانوي" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-full">نشر الفيديو للطلاب 🚀</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        let globalRecordData = { videos: [] };
+
+        const cloudHeaders = { 'X-Master-Key': API_KEY, 'Content-Type': 'application/json' };
+
+        // نظام تبديل الثيم
+        const themeBtn = document.getElementById('themeToggleBtn');
+        let currentTheme = document.body.getAttribute('data-theme');
+        themeBtn.textContent = currentTheme === 'dark' ? '☀️ فاتح' : '🌙 داكن';
+
+        themeBtn.addEventListener('click', () => {
+            let theme = document.body.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.body.setAttribute('data-theme', 'light');
+                themeBtn.textContent = '🌙 داكن';
+            } else {
+                document.body.setAttribute('data-theme', 'dark');
+                themeBtn.textContent = '☀️ فاتح';
+            }
+        });
+
+        // جلب البيانات من السحابة
+        initVideosPage();
+
+        async function initVideosPage() {
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { method: 'GET', headers: cloudHeaders });
+                if (response.ok) {
+                    let result = await response.json();
+                    if (result && result.record) {
+                        globalRecordData = result.record;
+                    }
+                }
+            } catch (err) {
+                console.warn("خطأ في جلب البيانات:", err);
+            } finally {
+                renderAdminVideos(globalRecordData.videos || []);
+            }
+        }
+
+        async function updateCloudData() {
+            try {
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: cloudHeaders,
+                    body: JSON.stringify(globalRecordData)
+                });
+                if (!response.ok) alert("فشل التحديث في السحابة!");
+            } catch(e) {
+                console.error("خطأ سحابي:", e);
+                alert("حدث خطأ أثناء الاتصال بالسحابة.");
+            }
+        }
+
+        function renderAdminVideos(videos) {
+            const container = document.getElementById('adminVideosList');
+            if (!videos || videos.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد فيديوهات مضافة حالياً.</p>';
+                return;
+            }
+            let html = `<table><thead><tr><th>عنوان الفيديو</th><th>المادة</th><th>التحكم</th></tr></thead><tbody>`;
+            videos.forEach((vid, index) => {
+                html += `
+                    <tr>
+                        <td><b>🎬 ${vid.title}</b></td>
+                        <td>${vid.subject}</td>
+                        <td>
+                            <a href="${vid.link}" target="_blank" class="btn-verify">مشاهدة 🔗</a> 
+                            <button class="btn-danger" onclick="deleteVideo(${index})">حذف 🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function openAddVideoModal() { document.getElementById('addVideoModal').classList.add('active'); }
+        function closeAddVideoModal() { document.getElementById('addVideoModal').classList.remove('active'); }
+        function closeModalOnOuter(e) { if (e.target.classList.contains('modal-overlay')) closeAddVideoModal(); }
+
+        async function submitNewVideo() {
+            let title = document.getElementById('videoTitle').value.trim();
+            let link = document.getElementById('videoLink').value.trim();
+            let subject = document.getElementById('videoSubject').value.trim();
+            
+            if (!title || !link || !subject) {
+                alert('يرجى تعبئة جميع الحقول المطلوبة!');
+                return;
+            }
+
+            if (!globalRecordData.videos) globalRecordData.videos = [];
+
+            globalRecordData.videos.push({
+                title,
+                link,
+                subject,
+                date: new Date().toLocaleDateString('ar-EG')
+            });
+
+            await updateCloudData();
+            alert('تم إضافة ونشر الفيديو بنجاح لجميع الطلاب! 🚀');
+            closeAddVideoModal();
+            document.getElementById('addVideoForm').reset();
+            renderAdminVideos(globalRecordData.videos);
+        }
+
+        async function deleteVideo(index) {
+            if (!confirm('هل تريد حذف هذا الفيديو نهائياً من السحابة؟')) return;
+            
+            globalRecordData.videos.splice(index, 1);
+            await updateCloudData();
+            renderAdminVideos(globalRecordData.videos);
+            alert('تم الحذف بنجاح.');
+        }
+    </script>
+</body>
+</html>
