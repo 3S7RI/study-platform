@@ -35,17 +35,6 @@
             background-color: var(--bg-color); 
             color: var(--text-color); 
             min-height: 100vh; 
-            user-select: none; 
-            -webkit-user-select: none; 
-            -webkit-touch-callout: none;
-        }
-        
-        /* طبقة الحماية السوداء لمنع تصوير الشاشة والسكرين شوت والتسجيل */
-        #securityScreenOverlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000000; z-index: 999999; display: none;
-            justify-content: center; align-items: center; color: #ff4d4d;
-            font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
         }
         
         .navbar { 
@@ -196,18 +185,9 @@
             font-size: 0.95rem; line-height: 1.8; color: var(--text-color);
             position: relative;
         }
-        .watermark-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 2rem; font-weight: bold; color: rgba(150, 150, 150, 0.12);
-            pointer-events: none; z-index: 10; white-space: nowrap;
-        }
     </style>
 </head>
 <body id="pageBody">
-
-    <div id="securityScreenOverlay">
-        ⚠️ تنبيه أمني!<br>منع تصوير الشاشة أو أخذ لقطة مفعل لحماية حقوق المنصة.
-    </div>
 
     <div class="modal-overlay" id="fileModal" onclick="if(event.target===this) closeFileModal()">
         <div class="modal-card">
@@ -215,9 +195,7 @@
                 <h3 id="modalFileTitle">معاينة الملزمة</h3>
                 <button class="close-modal" onclick="closeFileModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalFileBody">
-                <div class="watermark-overlay">رحلة دراسية - محمي من السرقة</div>
-            </div>
+            <div class="modal-body" id="modalFileBody"></div>
         </div>
     </div>
 
@@ -231,7 +209,7 @@
     <div class="container">
         <div class="page-header">
             <h1>مرحباً بك في مكتبة الملازم الدراسية 📖</h1>
-            <p>تصفح مذكرات الشرح ومراجعات الـ PDF بأمان كامل (التحميل والتقاط الصور محظور لحماية الملكية).</p>
+            <p>تصفح مذكرات الشرح ومراجعات الـ PDF بكل سهولة ويسر.</p>
         </div>
 
         <div id="filesGrid" class="files-grid">
@@ -267,22 +245,6 @@
                 themeToggleBtn.textContent = '☀️';
             }
         });
-
-        // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot والتسجيل ---
-        const securityOverlay = document.getElementById('securityScreenOverlay');
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
-                e.preventDefault();
-                triggerBlackScreen();
-            }
-        });
-        window.addEventListener('blur', () => { triggerBlackScreen(); });
-        window.addEventListener('focus', () => { securityOverlay.style.display = 'none'; });
-        function triggerBlackScreen() {
-            securityOverlay.style.display = 'flex';
-            setTimeout(() => { securityOverlay.style.display = 'none'; }, 3000);
-        }
-        document.addEventListener('contextmenu', e => e.preventDefault());
 
         loadFilesData();
 
@@ -329,7 +291,7 @@
                     <div>
                         <div class="file-meta">
                             <span>📂 ${file.subject || 'ملزمة عامة'}</span>
-                            <span>🔒 محمي وآمن</span>
+                            <span>📖 متاح</span>
                         </div>
                         <button class="view-btn" onclick="openFilePreview(${index})">تصفح وقراءة الملزمة 👁️</button>
                     </div>
@@ -346,9 +308,8 @@
 
             document.getElementById('modalFileTitle').textContent = file.title;
             document.getElementById('modalFileBody').innerHTML = `
-                <div class="watermark-overlay">رحلة دراسية - حقوق الملكية محفوظة للمهندس محمد عشري</div>
                 <div style="font-weight: bold; color: var(--text-color); margin-bottom: 12px; font-size: 1.1rem;">محتوى الملزمة الشرحي:</div>
-                <div style="white-space: pre-line; word-break: break-word;">${file.content || file.description || 'هذه الملزمة محمية بالكامل ضد التحميل والنسخ. يمكنك القراءة والمراجعة من داخل المنصة فقط.'}</div>
+                <div style="white-space: pre-line; word-break: break-word;">${file.content || file.description || 'محتوى الملزمة غير متوفر حالياً.'}</div>
             `;
             document.getElementById('fileModal').classList.add('active');
         }
