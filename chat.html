@@ -72,11 +72,18 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
 
-        .home-btn {
+        .header-right-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-self: start;
+        }
+
+        .home-btn, .header-settings-btn {
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
             color: var(--text-main);
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 12px;
             text-decoration: none;
             font-weight: bold;
@@ -84,10 +91,10 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            justify-self: start;
+            cursor: pointer;
             white-space: nowrap;
         }
-        .home-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .home-btn:hover, .header-settings-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         .chat-main-title {
             font-size: 1.15rem;
@@ -136,7 +143,7 @@
             overflow: hidden;
         }
 
-        /* شريط نواة الطاقة الدائرية الجديد بدون أي نصوص جانبية */
+        /* شريط نواة الطاقة (الاستريك) */
         .chat-sub-bar {
             padding: 8px 20px;
             background: rgba(15, 23, 42, 0.4);
@@ -147,7 +154,12 @@
             gap: 12px;
         }
 
-        /* تصميم نواة الطاقة الدائرية المشعة */
+        .streak-info-text {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
         .core-reactor-wrapper {
             position: relative;
             width: 44px;
@@ -187,22 +199,6 @@
             font-weight: 900;
             color: #fff;
         }
-
-        /* زر الإعدادات المدمج بجانب النواة */
-        .inline-settings-btn {
-            background: var(--btn-bg);
-            border: 1px solid var(--btn-border);
-            color: var(--text-main);
-            border-radius: 50%;
-            cursor: pointer;
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-        .inline-settings-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         /* رسائل الشات */
         .chat-messages {
@@ -361,6 +357,7 @@
         }
         .chat-input:focus { border-color: var(--primary); }
 
+        /* زر الإرسال المحدث والاحترافي بدلاً من الطائرة الورقية */
         .send-btn {
             background: var(--primary);
             color: white;
@@ -381,8 +378,7 @@
             width: 18px;
             height: 18px;
             fill: currentColor;
-            transform: rotate(-45deg);
-            margin-right: 2px;
+            transform: scaleX(-1); /* ضبط اتجاه السهم للغة العربية */
         }
 
         /* نافذة الإعدادات المنبثقة */
@@ -435,9 +431,12 @@
 </head>
 <body>
 
-    <!-- الهيدر العلوي -->
+    <!-- الهيدر العلوي (تم نقل زر الإعدادات إلى أقصى اليمين بجوار إنشاء حساب) -->
     <header class="chat-header-nav">
-        <a href="register.html" class="home-btn">🏠 إنشاء حساب</a>
+        <div class="header-right-group">
+            <a href="register.html" class="home-btn">🏠 إنشاء حساب</a>
+            <button class="header-settings-btn" onclick="openSettingsModal()" title="الإعدادات">⚙️ الإعدادات</button>
+        </div>
         <div class="chat-main-title">💬 قناة الدردشة</div>
         <div class="header-actions-left">
             <button id="themeToggleBtn" class="header-icon-btn" title="تغيير الثيم">🌙</button>
@@ -446,10 +445,10 @@
 
     <!-- صندوق الدردشة -->
     <div class="chat-container">
-        <!-- شريط التحكم العلوي للنواة وزر الإعدادات بدقة بدون نصوص -->
+        <!-- شريط نواة الطاقة (الاستريك) -->
         <div class="chat-sub-bar">
-            <button class="inline-settings-btn" onclick="openSettingsModal()" title="إعدادات الطالب والنواة">⚙️</button>
-            <div class="core-reactor-wrapper" onclick="openSettingsModal()" title="نواة الطاقة السنوية (اضغط للإعدادات)">
+            <span class="streak-info-text">🔥 أيام الاستريك المتتالية:</span>
+            <div class="core-reactor-wrapper" onclick="openSettingsModal()" title="طاقة الاستريك الخاصة بك">
                 <div class="core-reactor-ring"></div>
                 <div class="core-reactor-core" id="coreDayNumber">1</div>
             </div>
@@ -488,6 +487,7 @@
 
             <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
 
+            <!-- زر الإرسال المحدث بسهم احترافي -->
             <button class="send-btn" onclick="sendMessage()" title="إرسال">
                 <svg viewBox="0 0 24 24">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
@@ -585,7 +585,7 @@
             window.location.href = `profile.html?student=${encodeURIComponent(name)}`;
         }
 
-        // تحديث رقم اليوم داخل نواة الطاقة
+        // تحديث رقم الاستريك (عدد أيام التفاعل أو الدخول المتتالية)
         let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
         if (streakDays > 365) streakDays = 365;
         document.getElementById('coreDayNumber').textContent = streakDays;
