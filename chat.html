@@ -105,7 +105,6 @@
             white-space: nowrap;
         }
 
-        /* مجموعة الأزرار اليسرى في الهيدر (زر الوضع الفاتح والداكن فقط) */
         .header-actions-left {
             display: flex;
             align-items: center;
@@ -130,7 +129,6 @@
         }
         .header-icon-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* زر الإعدادات الجديد */
         .header-settings-btn {
             background: var(--btn-bg);
             border: 1px solid var(--btn-border);
@@ -161,7 +159,7 @@
             overflow: hidden;
         }
 
-        /* شريط نواة الطاقة (الاستريك) ويحتوي الآن على زر الإعدادات بالجهة المعاكسة */
+        /* شريط نواة الطاقة (الاستريك) ويحتوي على زر الإعدادات بالجهة المعاكسة */
         .chat-sub-bar {
             padding: 8px 15px;
             background: rgba(15, 23, 42, 0.4);
@@ -303,7 +301,7 @@
 
         .msg-time { font-size: 0.62rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
 
-        /* منطقة الإدخال */
+        /* منطقة الإدخال (المشبك ومكان الكتابة والارسال) */
         .chat-input-area {
             padding: 12px 18px;
             background: rgba(15, 23, 42, 0.4);
@@ -456,12 +454,10 @@
     <!-- الهيدر العلوي -->
     <header class="chat-header-nav">
         <div class="header-right-group">
-            <!-- تم ربط زر الصفحة الرئيسية بصفحة الطالب الرئيسية بدلاً من إنشاء حساب -->
             <a href="student-main.html" class="home-btn">🏠 الرئيسية</a>
         </div>
         <div class="chat-main-title">💬 قناة الدردشة</div>
         <div class="header-actions-left">
-            <!-- تم نقل زر تبديل الثيم (الوضع الفاتح والداكن) ليكون في الهيدر العلوي -->
             <button id="themeToggleBtn" class="header-icon-btn" title="تغيير الثيم">🌙</button>
         </div>
     </header>
@@ -494,8 +490,209 @@
                 </div>
             </div>
         </div>
-        
-        <!-- بقية هيكل الإدخال والسكริبت الخاص بالصفحة -->
+
+        <!-- منطقة الإدخال (المشبك، مكان الكتابة، وزر الإرسال) -->
+        <div class="chat-input-area">
+            <div class="attachment-wrapper">
+                <button class="clip-btn" onclick="toggleAttachmentMenu(event)" title="إرفاق ملفات">📎</button>
+                <div class="attachment-menu" id="attachmentMenu">
+                    <button class="att-option" onclick="document.getElementById('mediaInput').click()">📷 صورة أو فيديو</button>
+                    <button class="att-option" onclick="document.getElementById('fileInput').click()">📁 مستند / ملف PDF</button>
+                    <button class="att-option" onclick="startVoiceRecord()">🎤 تسجيل صوتي</button>
+                    <button class="att-option" onclick="triggerPollModal()">📊 إنشاء تصويت</button>
+                    <button class="att-option" onclick="triggerAskModal()">❓ طرح سؤال (Ask)</button>
+                </div>
+            </div>
+
+            <input type="file" id="mediaInput" accept="image/*,video/*" style="display: none;" onchange="handleMediaUpload(this)">
+            <input type="file" id="fileInput" style="display: none;" onchange="handleFileUpload(this)">
+
+            <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleKeyPress(event)">
+
+            <button class="send-btn" onclick="sendMessage()" title="إرسال">
+                <svg viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+        </div>
     </div>
+
+    <!-- نافذة الإعدادات المنبثقة -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card">
+            <h3>إعدادات طاقة النواة والحساب</h3>
+            <div class="setting-item">
+                <span>جعل المستوى مرئياً للآخرين</span>
+                <input type="checkbox" id="settingRankVisible" checked onchange="saveStudentSettings()">
+            </div>
+            <div class="setting-item">
+                <span>جعل صورتي مرئية للآخرين</span>
+                <input type="checkbox" id="settingAvatarVisible" checked onchange="saveStudentSettings()">
+            </div>
+            <div class="setting-item">
+                <span>السماح للآخرين بدخول البروفايل الخاص بي</span>
+                <input type="checkbox" id="settingProfileAccess" checked onchange="saveStudentSettings()">
+            </div>
+            <button class="modal-close-btn" onclick="closeSettingsModal()">تم الحفظ والغلق</button>
+        </div>
+    </div>
+
+    <script>
+        const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser') || '{}');
+        const studentName = currentUserData.fullName || currentUserData.name || 'طالب جديد';
+        const nameParts = studentName.split(' ');
+        const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : studentName;
+        const studentAvatar = currentUserData.profileImage || currentUserData.avatar || 'https://via.placeholder.com/40';
+        const studentRank = currentUserData.rank || 'ضعيف';
+
+        function getRankClass(rank) {
+            switch(rank) {
+                case 'ضعيف': return 'rank-weak';
+                case 'متوسط': return 'rank-medium';
+                case 'قوي': return 'rank-strong';
+                case 'قوي جداً': return 'rank-very-strong';
+                case 'اسطوري': return 'rank-legendary';
+                default: return 'rank-weak';
+            }
+        }
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlTag = document.documentElement;
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        htmlTag.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlTag.getAttribute('data-theme') === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeToggleBtn.textContent = '🌙';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            }
+        });
+
+        const settingsModal = document.getElementById('settingsModal');
+
+        function openSettingsModal() {
+            settingsModal.classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            settingsModal.classList.remove('active');
+        }
+
+        function saveStudentSettings() {
+            const settings = {
+                rankVisible: document.getElementById('settingRankVisible').checked,
+                avatarVisible: document.getElementById('settingAvatarVisible').checked,
+                profileAccess: document.getElementById('settingProfileAccess').checked
+            };
+            localStorage.setItem('student_privacy_settings', JSON.stringify(settings));
+        }
+
+        const savedSettings = JSON.parse(localStorage.getItem('student_privacy_settings') || '{"rankVisible":true,"avatarVisible":true,"profileAccess":true}');
+        document.getElementById('settingRankVisible').checked = savedSettings.rankVisible;
+        document.getElementById('settingAvatarVisible').checked = savedSettings.avatarVisible;
+        document.getElementById('settingProfileAccess').checked = savedSettings.profileAccess;
+
+        function openProfile(name) {
+            if (!savedSettings.profileAccess) {
+                alert('عذراً، هذا الطالب قام بإيقاف ميزة السماح بالدخول لبروفايله الشخصي.');
+                return;
+            }
+            window.location.href = `profile.html?student=${encodeURIComponent(name)}`;
+        }
+
+        let streakDays = parseInt(localStorage.getItem('student_streak') || '1');
+        if (streakDays > 365) streakDays = 365;
+        document.getElementById('coreDayNumber').textContent = streakDays;
+
+        function toggleAttachmentMenu(e) {
+            e.stopPropagation();
+            document.getElementById('attachmentMenu').classList.toggle('active');
+        }
+
+        window.addEventListener('click', () => {
+            const menu = document.getElementById('attachmentMenu');
+            if (menu.classList.contains('active')) menu.classList.remove('active');
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessageToChat(shortName, studentAvatar, studentRank, text, true);
+            input.value = '';
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function appendMessageToChat(name, avatar, rank, text, isMe) {
+            const container = document.getElementById('chatMessages');
+            const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message-item ${isMe ? 'me' : ''}`;
+            const rankClass = getRankClass(rank);
+
+            const displayRank = savedSettings.rankVisible ? `<span class="rank-tag ${rankClass}">${rank}</span>` : '';
+            const displayAvatar = savedSettings.avatarVisible ? avatar : 'https://via.placeholder.com/40';
+
+            msgDiv.innerHTML = `
+                <img src="${displayAvatar}" class="msg-avatar" alt="صورة" onclick="openProfile('${name}')">
+                <div class="msg-content-box">
+                    <div class="msg-info">
+                        <span class="msg-name" onclick="openProfile('${name}')">${name}</span>
+                        ${displayRank}
+                    </div>
+                    <div class="msg-bubble">${escapeHtml(text)}</div>
+                    <span class="msg-time">${timeNow}</span>
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function handleMediaUpload(input) {
+            if (input.files && input.files[0]) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `[ملف مرئي مرفق: ${input.files[0].name}]`, true);
+            }
+        }
+
+        function handleFileUpload(input) {
+            if (input.files && input.files[0]) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `[مستند مرفق: ${input.files[0].name}]`, true);
+            }
+        }
+
+        function startVoiceRecord() {
+            appendMessageToChat(shortName, studentAvatar, studentRank, `[تسجيل صوتي قصير]`, true);
+        }
+
+        function triggerPollModal() {
+            const pollQ = prompt('اكتب سؤال التصويت:');
+            if (pollQ) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `تصويت جماعي: "${pollQ}"`, true);
+            }
+        }
+
+        function triggerAskModal() {
+            const askQ = prompt('اكتب سؤالك (Ask):');
+            if (askQ) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `سؤال دراسي: "${askQ}"`, true);
+            }
+        }
+    </script>
 </body>
 </html>
