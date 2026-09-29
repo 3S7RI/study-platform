@@ -237,7 +237,6 @@
 
         .msg-time { font-size: 0.6rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
 
-        /* تعديل حجم الصور والملفات لتكون مصغرة داخل الشات ولا تحجب الشاشة */
         .msg-image { 
             width: 120px; 
             height: 90px; 
@@ -259,6 +258,27 @@
         .voice-note-player { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.15); padding: 6px 10px; border-radius: 20px; max-width: 180px; }
         .voice-play-btn { background: var(--primary); color: white; border: none; width: 26px; height: 26px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
         .voice-waves { flex: 1; height: 12px; background: repeating-linear-gradient(90deg, var(--text-sub), var(--text-sub) 2px, transparent 2px, transparent 6px); opacity: 0.6; min-width: 50px; }
+
+        /* شريط حالة التسجيل الصوتي الحي */
+        .recording-status-bar {
+            padding: 8px 15px;
+            background: rgba(239, 68, 68, 0.2);
+            border-top: 1px solid #ef4444;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #ef4444;
+            font-weight: bold;
+            animation: pulseRecord 1.5s infinite;
+        }
+        .recording-status-bar.active { display: flex; }
+        @keyframes pulseRecord {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .stop-record-btn { background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; }
 
         .attachment-preview-bar {
             padding: 8px 15px;
@@ -340,7 +360,6 @@
         .modal-btn:hover { background: var(--primary-hover); }
         .options-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
 
-        /* نافذة تكبير الصورة (Lightbox) */
         #imageModalViewer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 2000; display: none;
@@ -376,6 +395,12 @@
 
         <div class="chat-messages" id="chatMessages"></div>
 
+        <!-- شريط حالة التسجيل الصوتي اليدوي -->
+        <div class="recording-status-bar" id="recordingStatusBar">
+            <span>🔴 جاري تسجيل الريكورد الصوتي... تحدث الآن</span>
+            <button class="stop-record-btn" onclick="stopVoiceRecording()">إيقاف وحفظ</button>
+        </div>
+
         <div class="attachment-preview-bar" id="attachmentPreviewBar">
             <span id="previewTextName" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">تم إرفاق ملف: </span>
             <button class="cancel-attachment" onclick="clearPendingAttachment()">إلغاء ✕</button>
@@ -387,7 +412,7 @@
                 <div class="attachment-menu" id="attachmentMenu">
                     <button class="att-option" onclick="document.getElementById('mediaInput').click()">📷 صورة أو فيديو</button>
                     <button class="att-option" onclick="document.getElementById('fileInput').click()">📁 مستند / ملف PDF</button>
-                    <button class="att-option" onclick="startVoiceRecording()">🎤 تسجيل صوتي حقيقي</button>
+                    <button class="att-option" onclick="startVoiceRecording()">🎤 تسجيل صوتي (بدء وإيقاف)</button>
                     <button class="att-option" onclick="openPollModal()">📊 إنشاء تصويت</button>
                     <button class="att-option" onclick="openAskModal()">❓ طرح سؤال (Ask)</button>
                 </div>
@@ -448,7 +473,7 @@
 
     <!-- نافذة الردود الداخلية (Threads) العائمة -->
     <div class="modal-overlay" id="threadModal">
-        <div class="modal-card" style="max-height:80vh;">
+        <div class="modal-card" style="max-height:85vh;">
             <h3>💬 الردود الداخلية على السؤال</h3>
             <div id="threadOriginalMsg" style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; font-size:0.82rem;"></div>
             <div class="chat-messages" id="threadMessagesList" style="max-height:220px; overflow-y:auto; padding:5px 0;"></div>
@@ -461,13 +486,17 @@
     </div>
 
     <script>
+        // إعدادات الربط السحابي بـ JSONbin
+        const JSONBIN_BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const JSONBIN_API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
         const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser') || '{}');
         const studentName = currentUserData.fullName || currentUserData.name || 'طالب جديد';
         const nameParts = studentName.split(' ');
         const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : studentName;
         const studentAvatar = currentUserData.profileImage || currentUserData.avatar || 'https://via.placeholder.com/40';
         
-        // تصنيف المستويات باللغة العربية حصرياً (ضعيف، متوسط، قوي، قوي جداً، اسطوري)
         let rawRank = currentUserData.rank || 'ضعيف';
         let studentRank = 'ضعيف';
         if (rawRank.includes('متوسط')) studentRank = 'متوسط';
@@ -519,21 +548,40 @@
         if (streakDays > 365) streakDays = 365;
         document.getElementById('coreDayNumber').textContent = streakDays;
 
-        const CLOUD_STORAGE_KEY = 'cloud_student_chat_messages_v3';
-        
-        function getCloudMessages() {
-            let messages = JSON.parse(localStorage.getItem(CLOUD_STORAGE_KEY) || '[]');
-            const now = Date.now();
-            const twentyFourHours = 24 * 60 * 60 * 1000;
-            messages = messages.filter(msg => (now - msg.timestamp) < twentyFourHours);
-            localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(messages));
-            return messages;
+        // دوال الاتصال السحابي بـ JSONbin
+        async function fetchMessagesFromCloud() {
+            try {
+                const response = await fetch(JSONBIN_URL + '/latest', {
+                    headers: { 'X-Master-Key': JSONBIN_API_KEY }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    let messages = data.record?.messages || [];
+                    // فلترة الرسائل لأخر 24 ساعة فقط
+                    const now = Date.now();
+                    const twentyFourHours = 24 * 60 * 60 * 1000;
+                    messages = messages.filter(msg => (now - msg.timestamp) < twentyFourHours);
+                    return messages;
+                }
+            } catch (error) {
+                console.error("خطأ في جلب الرسائل:", error);
+            }
+            return [];
         }
 
-        function saveMessageToCloud(msgObj) {
-            let messages = getCloudMessages();
-            messages.push(msgObj);
-            localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(messages));
+        async function saveMessagesToCloud(messages) {
+            try {
+                await fetch(JSONBIN_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify({ messages: messages })
+                });
+            } catch (error) {
+                console.error("خطأ في حفظ الرسائل:", error);
+            }
         }
 
         let pendingAttachment = null;
@@ -563,7 +611,7 @@
             document.getElementById('fileInput').value = '';
         }
 
-        // تفعيل تسجيل صوتي حقيقي عبر متصفح الويب (MediaRecorder) بدلاً من التسجيل الوهمي
+        // تسجيل صوتي حقيقي مع زر تحكم يدوي بالكامل (بدء وإيقاف بواسطة المستخدم)
         let mediaRecorder;
         let audioChunks = [];
 
@@ -587,24 +635,24 @@
                             name: 'تسجيل صوتي',
                             dataUrl: e.target.result
                         };
-                        document.getElementById('previewTextName').textContent = `تم تسجيل الريكورد الصوتي بنجاح`;
+                        document.getElementById('previewTextName').textContent = `تم حفظ الريكورد الصوتي بنجاح (جاهز للإرسال)`;
                         document.getElementById('attachmentPreviewBar').classList.add('active');
                     };
                     reader.readAsDataURL(audioBlob);
-                    // إيقاف الميكروفون
                     stream.getTracks().forEach(track => track.stop());
+                    document.getElementById('recordingStatusBar').classList.remove('active');
                 };
 
                 mediaRecorder.start();
-                alert('🎙️ جاري التسجيل الآن... اضغط OK ثم تحدث، وسيتم إيقاف التسجيل تلقائياً بعد 5 ثوانٍ أو يمكنك إرساله.');
-                setTimeout(() => {
-                    if(mediaRecorder && mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
-                }, 5000);
-
+                document.getElementById('recordingStatusBar').classList.add('active');
             } catch (err) {
                 alert('تعذر الوصول إلى الميكروفون. تأكد من منح الأذن للمتصفح.');
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
             }
         }
 
@@ -617,7 +665,7 @@
             if (menu.classList.contains('active')) menu.classList.remove('active');
         });
 
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
 
@@ -635,8 +683,10 @@
                 replies: []
             };
 
-            saveMessageToCloud(msgData);
-            renderChatMessages();
+            let messages = await fetchMessagesFromCloud();
+            messages.push(msgData);
+            await saveMessagesToCloud(messages);
+            await renderChatMessages();
 
             input.value = '';
             clearPendingAttachment();
@@ -657,7 +707,7 @@
             input.placeholder = 'خيار إضافي';
             container.appendChild(input);
         }
-        function submitPoll() {
+        async function submitPoll() {
             const q = document.getElementById('pollQuestionInput').value.trim();
             const optionInputs = document.querySelectorAll('.poll-option-input');
             let options = [];
@@ -685,8 +735,10 @@
                 replies: []
             };
 
-            saveMessageToCloud(msgData);
-            renderChatMessages();
+            let messages = await fetchMessagesFromCloud();
+            messages.push(msgData);
+            await saveMessagesToCloud(messages);
+            await renderChatMessages();
             closePollModal();
             document.getElementById('pollQuestionInput').value = '';
         }
@@ -694,7 +746,7 @@
         const askModal = document.getElementById('askModal');
         function openAskModal() { askModal.classList.add('active'); document.getElementById('attachmentMenu').classList.remove('active'); }
         function closeAskModal() { askModal.classList.remove('active'); }
-        function submitAsk() {
+        async function submitAsk() {
             const askText = document.getElementById('askQuestionInput').value.trim();
             if(!askText) return;
 
@@ -710,8 +762,10 @@
                 replies: []
             };
 
-            saveMessageToCloud(msgData);
-            renderChatMessages();
+            let messages = await fetchMessagesFromCloud();
+            messages.push(msgData);
+            await saveMessagesToCloud(messages);
+            await renderChatMessages();
             closeAskModal();
             document.getElementById('askQuestionInput').value = '';
         }
@@ -719,9 +773,9 @@
         let activeThreadMsgId = null;
         const threadModal = document.getElementById('threadModal');
 
-        function openThreadModal(msgId) {
+        async function openThreadModal(msgId) {
             activeThreadMsgId = msgId;
-            const messages = getCloudMessages();
+            const messages = await fetchMessagesFromCloud();
             const msg = messages.find(m => m.id === msgId);
             if(!msg) return;
 
@@ -750,12 +804,12 @@
             });
         }
 
-        function sendThreadReply() {
+        async function sendThreadReply() {
             const replyInput = document.getElementById('threadReplyInput');
             const text = replyInput.value.trim();
             if(!text || !activeThreadMsgId) return;
 
-            let messages = getCloudMessages();
+            let messages = await fetchMessagesFromCloud();
             const msgIndex = messages.findIndex(m => m.id === activeThreadMsgId);
             if(msgIndex !== -1) {
                 if(!messages[msgIndex].replies) messages[msgIndex].replies = [];
@@ -764,14 +818,13 @@
                     text: text,
                     timestamp: Date.now()
                 });
-                localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(messages));
+                await saveMessagesToCloud(messages);
                 renderThreadReplies(messages[msgIndex].replies);
-                renderChatMessages();
+                await renderChatMessages();
                 replyInput.value = '';
             }
         }
 
-        // نافذة تكبير الصورة عند النقر عليها
         function expandImage(src) {
             document.getElementById('expandedImg').src = src;
             document.getElementById('imageModalViewer').classList.add('active');
@@ -780,10 +833,12 @@
             document.getElementById('imageModalViewer').classList.remove('active');
         }
 
-        function renderChatMessages() {
+        async function renderChatMessages() {
             const container = document.getElementById('chatMessages');
+            container.innerHTML = '<div style="text-align:center; color:var(--text-sub); margin:auto; padding:20px; font-size:0.9rem;">جاري مزامنة الرسائل...</div>';
+            
+            const messages = await fetchMessagesFromCloud();
             container.innerHTML = '';
-            const messages = getCloudMessages();
 
             if(messages.length === 0) {
                 container.innerHTML = '<div style="text-align:center; color:var(--text-sub); margin:auto; padding:20px; font-size:0.9rem;">لا توجد رسائل نشطة حالياً.</div>';
@@ -792,7 +847,7 @@
 
             messages.forEach(msg => {
                 const msgDiv = document.createElement('div');
-                msgDiv.className = `message-item ${msg.isMe ? 'me' : ''}`;
+                msgDiv.className = `message-item ${msg.name === shortName ? 'me' : ''}`;
                 const rankClass = getRankClass(msg.rank);
                 const displayRank = savedSettings.rankVisible ? `<span class="rank-tag ${rankClass}">${msg.rank}</span>` : '';
                 const displayAvatar = savedSettings.avatarVisible ? msg.avatar : 'https://via.placeholder.com/40';
@@ -806,12 +861,10 @@
 
                 if (msg.attachment) {
                     if (msg.attachment.type === 'media') {
-                        // صورة مصغرة قابلة للتكبير
                         contentHtml += `<img src="${msg.attachment.dataUrl}" class="msg-image" alt="صورة مرفقة" onclick="expandImage('${msg.attachment.dataUrl}')" title="انقر لتكبير الصورة">`;
                     } else if (msg.attachment.type === 'file') {
                         contentHtml += `<div class="msg-bubble" style="background:rgba(0,0,0,0.2); font-size:0.8rem;">📁 ملف: ${msg.attachment.name}</div>`;
                     } else if (msg.attachment.type === 'voice') {
-                        // مشغل صوت حقيقي مسجل
                         contentHtml += `
                             <div class="voice-note-player">
                                 <button class="voice-play-btn" onclick="const a = new Audio('${msg.attachment.dataUrl}'); a.play();">▶</button>
@@ -868,6 +921,8 @@
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
+        // تشغيل التحديث التلقائي للرسائل كل 5 ثوانٍ لجلب رسائل بقية الطلاب سحابياً
+        setInterval(renderChatMessages, 5000);
         renderChatMessages();
     </script>
 </body>
