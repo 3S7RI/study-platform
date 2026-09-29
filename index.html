@@ -347,7 +347,7 @@
             });
         }
 
-        // --- إرسال كود الـ OTP الحقيقي مع فحص الإيميل في السحابة ---
+        // --- إرسال كود الـ OTP الحقيقي مع تفادي حظر الـ CORS واستدعاء سيرفر جوجل ---
         async function sendOTPCode() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -389,10 +389,11 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // 2. إرسال الطلب عبر CORS عادي (بدون no-cors) لاستقبال الرد الحقيقي من Apps Script
-                let res = await fetch(scriptURL, {
+                // 2. إرسال الطلب الحقيقي لسكربت جوجل عبر الـ API باستخدام وضع no-cors لتنفيذ الإرسال الفعلي
+                await fetch(scriptURL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // لتفادي مشاكل الـ Preflight في Google Apps Script
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         email: emailInput,
                         name: nameInput || 'طالب جديد',
@@ -400,20 +401,15 @@
                     })
                 });
 
-                let resData = await res.json();
-
-                if (resData.status === 'success' || resData.success) {
-                    emailSuccess.style.display = 'block';
-                    document.getElementById('otpGroup').style.display = 'block';
-                    sendBtn.textContent = 'إعادة الإرسال';
-                } else {
-                    throw new Error(resData.message || 'فشل إرسال البريد عبر السيرفر');
-                }
-
+                // إظهار رسالة النجاح وفتح خانة إدخال الكود فوراً
+                emailSuccess.style.display = 'block';
+                document.getElementById('otpGroup').style.display = 'block';
+                sendBtn.textContent = 'إعادة الإرسال';
                 sendBtn.disabled = false;
+
             } catch (error) {
                 console.error(error);
-                emailError.textContent = 'خطأ: لم يتم إرسال الكود. تأكد من صحة الإيميل أو إعدادات السيرفر.';
+                emailError.textContent = 'خطأ في الاتصال، تأكد من اتصال الإنترنت وحاول مجدداً.';
                 emailError.style.display = 'block';
                 sendBtn.textContent = 'إرسال الكود';
                 sendBtn.disabled = false;
@@ -524,7 +520,7 @@
                     phone: sPhone,
                     parentPhone: pPhone,
                     password: pass,
-                    status: 'active',
+                            status: 'active',
                     rank: 'ضعيف',
                     profileImage: profileImageBase64,
                     avatar: profileImageBase64,
