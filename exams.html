@@ -1,30 +1,41 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الامتحانات التفاعلية - رحلة دراسية</title>
     <style>
         :root {
+            --bg-color: #0f172a;
+            --header-bg: #1e293b;
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --text-color: #f8fafc;
+            --text-sub: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
             --bg-color: #f4f7f6;
             --header-bg: #1e3c72;
             --card-bg: #ffffff;
             --text-color: #333333;
+            --text-sub: #666666;
             --border-color: #eee;
             --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        [data-theme="dark"] {
-            --bg-color: #121212;
-            --header-bg: #1f1f1f;
-            --card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --border-color: #333333;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        
         body { 
             background: var(--bg-color); 
             color: var(--text-color); 
             padding: 15px; 
+            min-height: 100vh;
             user-select: none; 
             -webkit-user-select: none; 
         }
@@ -37,38 +48,96 @@
             font-size: 1.5rem; font-weight: bold; text-align: center; padding: 20px;
         }
 
-        .container { max-width: 800px; margin: 0 auto; }
+        .container { max-width: 850px; margin: 0 auto; }
         
-        header { background: var(--header-bg); color: white; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        header { 
+            background: var(--header-bg); 
+            color: white; 
+            padding: 18px 22px; 
+            border-radius: 16px; 
+            text-align: center; 
+            margin-bottom: 25px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
         
-        .timer-box { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; }
+        .timer-box { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 8px; font-weight: bold; font-size: 0.95rem; }
         
-        .exam-card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .question-box { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-        .question-box h3 { font-size: 1rem; margin-bottom: 12px; color: var(--text-color); }
-        .question-img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 10px; display: block; object-fit: contain; }
+        .exam-card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 16px; 
+            margin-bottom: 20px; 
+            box-shadow: var(--shadow); 
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+        }
+        .question-box { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        .question-box h3 { font-size: 1.05rem; margin-bottom: 14px; color: var(--text-color); line-height: 1.6; }
+        .question-img { max-width: 100%; max-height: 220px; border-radius: 10px; margin-bottom: 12px; display: block; object-fit: contain; }
         
-        .options-list { display: flex; flex-direction: column; gap: 8px; }
-        .option-label { display: flex; align-items: center; gap: 10px; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; background: rgba(0,0,0,0.01); }
-        .option-label:hover { background: rgba(99, 102, 241, 0.05); }
+        .options-list { display: flex; flex-direction: column; gap: 10px; }
+        .option-label { 
+            display: flex; align-items: center; gap: 12px; padding: 12px 18px; 
+            border-radius: 10px; border: 1px solid var(--border-color); cursor: pointer; 
+            transition: all 0.2s; background: rgba(255,255,255,0.02); font-size: 0.95rem;
+        }
+        .option-label:hover { background: rgba(99, 102, 241, 0.08); border-color: var(--primary-color); }
         
-        .essay-textarea { width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); resize: none; font-size: 0.9rem; }
+        .essay-textarea { 
+            width: 100%; height: 110px; padding: 12px; border-radius: 10px; 
+            border: 1px solid var(--border-color); background: var(--bg-color); 
+            color: var(--text-color); resize: none; font-size: 0.95rem; outline: none; 
+        }
+        .essay-textarea:focus { border-color: var(--primary-color); }
 
-        .btn-submit-exam { background: #27ae60; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-submit-exam { 
+            background: #10b981; color: white; border: none; padding: 14px 25px; 
+            border-radius: 12px; font-weight: bold; font-size: 1.05rem; cursor: pointer; 
+            width: 100%; margin-top: 15px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-submit-exam:hover { background: #059669; transform: translateY(-2px); }
         
-        .correct-answer { background: rgba(39, 174, 96, 0.15) !important; border-color: #27ae60 !important; font-weight: bold; color: #27ae60; }
-        .wrong-answer { background: rgba(231, 76, 60, 0.15) !important; border-color: #e74c3c !important; font-weight: bold; color: #e74c3c; }
-        .explanation-box { background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px; margin-top: 8px; font-size: 0.85rem; color: #0284c7; border-right: 3px solid #0284c7; }
+        .correct-answer { background: rgba(16, 185, 129, 0.2) !important; border-color: #10b981 !important; font-weight: bold; color: #34d399; }
+        .wrong-answer { background: rgba(239, 68, 68, 0.2) !important; border-color: #ef4444 !important; font-weight: bold; color: #f87171; }
+        .explanation-box { background: rgba(2, 132, 199, 0.1); padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 0.9rem; color: #38bdf8; border-right: 4px solid #0ea5e9; line-height: 1.5; }
 
-        .result-box { background: var(--card-bg); padding: 25px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; }
+        .result-box { 
+            background: var(--card-bg); padding: 30px; border-radius: 16px; text-align: center; 
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display: none; 
+        }
         
-        .exam-select-card { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-right: 4px solid #6366f1; }
-        .exam-select-card h3 { font-size: 1.1rem; margin-bottom: 5px; }
-        .exam-select-card p { font-size: 0.85rem; color: #666; }
-        .start-exam-btn { background: #6366f1; color: white; border: none; padding: 8px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .exam-select-card { 
+            background: var(--card-bg); padding: 22px; border-radius: 16px; margin-bottom: 18px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: var(--shadow); border: 1px solid var(--border-color); border-right: 5px solid var(--primary-color);
+            flex-wrap: wrap; gap: 15px;
+        }
+        .exam-select-card h3 { font-size: 1.15rem; margin-bottom: 6px; color: var(--text-color); }
+        .exam-select-card p { font-size: 0.9rem; color: var(--text-sub); }
+        
+        .start-exam-btn { 
+            background: var(--primary-color); color: white; border: none; padding: 10px 22px; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.95rem; 
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transition: background 0.2s, transform 0.1s;
+        }
+        .start-exam-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        .theme-toggle-btn {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+            color: white; border-radius: 50%; cursor: pointer; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+        }
     </style>
 </head>
-<body>
+<body id="pageBody">
 
     <!-- شاشة الحماية السوداء لمنع التصوير والسكرين شوت -->
     <div id="securityScreenOverlay">
@@ -77,23 +146,28 @@
 
     <div class="container">
         <header>
-            <h1 id="examHeaderTitle" style="font-size: 1.1rem;">📝 قائمة الامتحانات الإلكترونية</h1>
-            <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
-            <a href="main.html" style="color: white; text-decoration: none; font-size: 0.9rem; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 6px;">الرئيسية 🏠</a>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="themeToggleBtn" class="theme-toggle-btn" title="تغيير الوضع">☀️</button>
+                <h1 id="examHeaderTitle" style="font-size: 1.15rem;">📝 قائمة الامتحانات الإلكترونية</h1>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
+                <a href="main.html" style="color: white; text-decoration: none; font-size: 0.9rem; background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 8px; font-weight: bold;">الرئيسية 🏠</a>
+            </div>
         </header>
 
         <div class="result-box" id="examResultBox">
-            <h2 id="resultGradeText" style="margin-bottom: 10px; color: #1e3c72;">لقد حصلت على الدرجة</h2>
-            <p id="resultPercentageText" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 15px;">النسبة: 0%</p>
-            <p id="essayNote" style="color: #e67e22; font-size: 0.85rem; margin-bottom: 15px; display: none;">⚠️ تم تسجيل إجاباتك المقالية وفي انتظار مراجعة وتصحيح الأدمن.</p>
-            <button onclick="location.reload()" style="background: #0284c7; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">العودة لقائمة الامتحانات 📋</button>
+            <h2 id="resultGradeText" style="margin-bottom: 10px; color: var(--primary-color);">لقد حصلت على الدرجة</h2>
+            <p id="resultPercentageText" style="font-size: 1.3rem; font-weight: bold; margin-bottom: 15px;">النسبة: 0%</p>
+            <p id="essayNote" style="color: #f59e0b; font-size: 0.9rem; margin-bottom: 20px; display: none;">⚠️ تم تسجيل إجاباتك المقالية وفي انتظار مراجعة وتصحيح الأدمن.</p>
+            <button onclick="location.reload()" style="background: #0284c7; color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem;">العودة لقائمة الامتحانات 📋</button>
         </div>
 
         <div id="examContainer">
-            <p style="text-align: center; color: #888; padding: 40px;">جاري جلب الامتحانات...</p>
+            <p style="text-align: center; color: var(--text-sub); padding: 40px;">جاري جلب الامتحانات...</p>
         </div>
         
-        <div style="text-align: center; margin-top: 30px; font-size: 0.8rem; color: #777;">
+        <div style="text-align: center; margin-top: 30px; font-size: 0.85rem; color: var(--text-sub);">
             جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
         </div>
     </div>
@@ -107,12 +181,26 @@
         let timerInterval = null;
         let timeLeft = 0;
 
-        const isLoggedIn = localStorage.getItem('isLoggedIn');
-        const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn');
-        if (isLoggedIn !== 'true' && isAdminLoggedIn !== 'true') {
-            alert('يجب تسجيل الدخول أولاً!');
-            window.location.href = 'login.html';
-        }
+        // --- نظام المظهر الافتراضي (الداكن) وتغيير الوضع ---
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlTag = document.documentElement;
+
+        const savedTheme = localStorage.getItem('examTheme') || 'dark';
+        htmlTag.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', function() {
+            const currentTheme = htmlTag.getAttribute('data-theme');
+            if (currentTheme === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                localStorage.setItem('examTheme', 'light');
+                themeToggleBtn.textContent = '🌙';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                localStorage.setItem('examTheme', 'dark');
+                themeToggleBtn.textContent = '☀️';
+            }
+        });
 
         // --- نظام الحماية السوداء ومنع التصوير والـ ScreenShot ---
         const securityOverlay = document.getElementById('securityScreenOverlay');
@@ -132,8 +220,9 @@
 
         async function fetchExamsList() {
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=` + new Date().getTime(), {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    cache: 'no-cache'
                 });
                 let data = await res.json();
                 allExams = data.record.exams || [];
@@ -149,13 +238,12 @@
         function renderExamsSelectionList(exams) {
             const container = document.getElementById('examContainer');
             
-            // تحقق إذا لم يتم نشر امتحانات بعد
             if (!exams || exams.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    <div style="text-align: center; padding: 40px; background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
                         <div style="font-size: 3rem; margin-bottom: 10px;">📭</div>
-                        <h3 style="color: var(--header-bg); margin-bottom: 5px;">لم يتم نشر امتحانات بعد</h3>
-                        <p style="color: #666; font-size: 0.9rem;">ترقبوا.. سيتم نشر الامتحانات والاختبارات التفاعلية قريباً.</p>
+                        <h3 style="color: var(--text-color); margin-bottom: 5px;">لم يتم نشر امتحانات بعد</h3>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">ترقبوا.. سيتم نشر الامتحانات والاختبارات التفاعلية قريباً.</p>
                     </div>
                 `;
                 return;
@@ -163,7 +251,7 @@
 
             container.innerHTML = '';
             exams.forEach((exam, index) => {
-                if (exam.isClosed) return; // تخطي الامتحانات المغلقة
+                if (exam.isClosed) return;
 
                 let card = document.createElement('div');
                 card.className = 'exam-select-card';
@@ -171,7 +259,7 @@
                     <div>
                         <h3>🎯 ${exam.title}</h3>
                         <p>المدة: ${exam.durationMinutes || 15} دقائق | عدد الأسئلة: ${(exam.questions || []).length}</p>
-                        ${exam.prerequisite ? `<p style="font-size:0.75rem; color:#d97706; margin-top:4px;">🔒 يعتمد على: ${exam.prerequisite}</p>` : ''}
+                        ${exam.prerequisite ? `<p style="font-size:0.8rem; color:#f59e0b; margin-top:4px;">🔒 يعتمد على: ${exam.prerequisite}</p>` : ''}
                     </div>
                     <button class="start-exam-btn" onclick="startSpecificExam(${index})">دخول الامتحان 🚀</button>
                 `;
@@ -302,9 +390,9 @@
 
         async function saveStudentResultToCloud(score, percentage) {
             try {
-                let studentUser = JSON.parse(localStorage.getItem('studentUser')) || {};
+                let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
                 let studentEmail = studentUser.email || 'طالب مجهول';
-                let studentName = studentUser.fullName || studentEmail.split('@')[0];
+                let studentName = studentUser.fullName || studentUser.name || studentEmail.split('@')[0];
 
                 let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
                     headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
