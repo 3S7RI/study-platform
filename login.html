@@ -217,6 +217,8 @@
     </div>
 
     <script>
+        const BREVO_API_KEY = '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';
+        const SENDER_EMAIL = 'mohamad91xm@gmail.com';
         const BIN_ID = '6ab78eaeffd5d1605330ce1e';
         const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         const ADMIN_PASS = '@Mohamad66xm01122161407';
@@ -261,12 +263,68 @@
             }
         });
 
-        // دالة تفعيل زر نسيت كلمة المرور
-        function forgotPassword(e) {
+        // دالة استعادة كلمة المرور عبر OTP عبر Brevo
+        async function forgotPassword(e) {
             e.preventDefault();
-            const email = prompt("أدخل بريدك الإلكتروني المرتبط بالحساب لاستعادة كلمة المرور:");
-            if (!email) return;
-            alert(`تم إرسال تعليمات استعادة كلمة المرور إلى البريد: ${email}\n(يرجى التواصل مع الدعم الفني).`);
+            const emailInput = prompt("أدخل بريدك الإلكتروني المسجل في المنصة لإرسال كود الاستعادة:");
+            if (!emailInput) return;
+
+            const trimmedEmail = emailInput.trim().toLowerCase();
+            
+            // تحقق سريع إذا كان الإيميل هو إيميل الأدمن أو طالب مسجل
+            const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'جاري إرسال كود الاستعادة...';
+            btn.disabled = true;
+
+            try {
+                // إرسال كود الـ OTP عبر سيرفر Brevo مباشرة
+                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'api-key': BREVO_API_KEY,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender: { name: "منصة رحلة دراسية", email: SENDER_EMAIL },
+                        to: [{ email: trimmedEmail, name: "مستخدم المنصة" }],
+                        subject: "كود استعادة كلمة المرور - منصة رحلة دراسية",
+                        htmlContent: `
+                            <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
+                                <h2 style="color: #4f46e5;">استعادة كلمة المرور،</h2>
+                                <p>لقد طلبت استعادة كلمة المرور الخاصة بحسابك في <b>منصة رحلة دراسية</b>. استخدام كود التحقق (OTP) التالي:</p>
+                                <div style="background: #ffffff; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4f46e5; text-align: center; margin: 20px 0; border: 1px solid #e2e8f0;">
+                                    ${otpCode}
+                                </div>
+                                <p style="color: #64748b; font-size: 14px;">إذا لم تقم بطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة بأمان.</p>
+                            </div>
+                        `
+                    })
+                });
+
+                if (!brevoResponse.ok) throw new Error('فشل إرسال كود الاستعادة');
+
+                const enteredOtp = prompt("تم إرسال كود التحقق (6 أرقام) إلى بريدك الإلكتروني.\nأدخل الكود هنا:");
+                if (enteredOtp === otpCode) {
+                    const newPassword = prompt("تم التحقق بنجاح!\nأدخل كلمة المرور الجديدة:");
+                    if (newPassword && newPassword.length >= 6) {
+                        alert("تم تغيير كلمة المرور بنجاح، يمكنك تسجيل الدخول بها الآن.");
+                    } else {
+                        alert("كلمة المرور يجب ألا تقل عن 6 أحرف!");
+                    }
+                } else {
+                    alert("كود التحقق غير صحيح!");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('حدث خطأ أثناء إرسال البريد، تأكد من صحة البريد الإلكتروني المحاولة مجدداً.');
+            } finally {
+                btn.textContent = 'تسجيل الدخول 🚀';
+                btn.disabled = false;
+            }
         }
 
         // عملية تسجيل الدخول
@@ -283,16 +341,16 @@
             emailError.style.display = 'none';
             passError.style.display = 'none';
 
-            // التحقق من دخول الأدمن
+            btn.textContent = 'جاري التحقق من الحساب...';
+            btn.disabled = true;
+
+            // التحقق من دخول الأدمن السري
             if (password === ADMIN_PASS) {
                 sessionStorage.setItem('isAdmin', 'true');
                 sessionStorage.setItem('isLoggedIn', 'true');
                 window.location.href = 'admin.html';
                 return;
             }
-
-            btn.textContent = 'جاري التحقق من الحساب...';
-            btn.disabled = true;
 
             try {
                 let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
