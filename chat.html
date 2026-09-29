@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - دردشة الطلاب</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --input-border: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --bubble-me: #4f46e5;
+            --bubble-other: rgba(51, 65, 85, 0.7);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --input-bg: #f8fafc;
+            --input-border: #cbd5e1;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --bubble-me: #6366f1;
+            --bubble-other: #e2e8f0;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(16px);
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* الهيدر */
+        .chat-header {
+            padding: 15px 20px;
+            background: rgba(15, 23, 42, 0.4);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title h3 { color: var(--text-main); font-size: 1.1rem; font-weight: 700; }
+        .chat-title span { color: var(--text-sub); font-size: 0.75rem; }
+
+        .chat-actions { display: flex; gap: 10px; align-items: center; }
+        .streak-badge {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* رسائل الشات */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-item {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            max-width: 75%;
+        }
+
+        .message-item.me {
+            margin-right: auto;
+            flex-direction: row-reverse;
+        }
+
+        .msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1.5px solid var(--primary);
+            flex-shrink: 0;
+        }
+
+        .msg-content-box {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .msg-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            color: var(--text-sub);
+        }
+
+        .msg-name { font-weight: 700; color: var(--text-main); }
+        
+        .rank-tag {
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .rank-weak { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+        .rank-medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+        .rank-strong { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .rank-very-strong { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
+        .rank-legendary { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+
+        .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            word-break: break-word;
+            line-height: 1.4;
+        }
+
+        .message-item.me .msg-bubble { background: var(--bubble-me); color: white; border-top-left-radius: 2px; }
+        .message-item:not(.me) .msg-bubble { background: var(--bubble-other); border-top-right-radius: 2px; }
+
+        .msg-time { font-size: 0.6rem; color: var(--text-sub); margin-top: 2px; align-self: flex-end; }
+
+        /* منطقة الإدخال والتحكم */
+        .chat-input-area {
+            padding: 15px 20px;
+            background: rgba(15, 23, 42, 0.4);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tools-bar {
+            display: flex;
+            gap: 12px;
+            font-size: 0.85rem;
+        }
+        .tool-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .tool-btn:hover { color: var(--primary); }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .chat-input:focus { border-color: var(--primary); }
+
+        .send-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .send-btn:hover { background: var(--primary-hover); }
+
+        /* إعدادات الأدمن للـ Mention */
+        .admin-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            padding: 0 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <!-- هيدر الشات -->
+        <div class="chat-header">
+            <div class="chat-title">
+                <h3>💬 ساحة تفاعل الطلاب</h3>
+                <span>محادثة جماعية حية - منصة رحلة دراسية</span>
+            </div>
+            <div class="chat-actions">
+                <div class="streak-badge" id="streakDisplay">🔥 الستريك: 0 أيام</div>
+                <button class="tool-btn" id="themeToggleBtn" style="font-size: 1rem;" title="تغيير الثيم">🌙</button>
+            </div>
+        </div>
+
+        <!-- رسائل الشات -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- رسالة تجريبية -->
+            <div class="message-item">
+                <img src="https://via.placeholder.com/40" class="msg-avatar" alt="صورة">
+                <div class="msg-content-box">
+                    <div class="msg-info">
+                        <span class="msg-name">أحمد محمد</span>
+                        <span class="rank-tag rank-strong">قوي</span>
+                    </div>
+                    <div class="msg-bubble">أهلاً بكم يا شباب في منصة رحلة دراسية! بالتوفيق للجميع في المذاكرة 🚀</div>
+                    <span class="msg-time">09:30 م</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- لوحة تحكم الأدمن (للـ المنشن الجماعي) -->
+        <div class="admin-controls" id="adminControlsArea" style="display: none;">
+            <span>أدوات المشرف:</span>
+            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                <input type="checkbox" id="allowAllMentionCheck"> السماح للجميع بعمل منشن جماعي (@all)
+            </label>
+        </div>
+
+        <!-- منطقة الإدخال -->
+        <div class="chat-input-area">
+            <div class="tools-bar">
+                <button class="tool-btn" onclick="document.getElementById('mediaInput').click()">📷 صوره/فيديو</button>
+                <button class="tool-btn" onclick="document.getElementById('fileInput').click()">📁 ملف</button>
+                <button class="tool-btn" onclick="startVoiceRecord()">🎤 ريكورد</button>
+                <button class="tool-btn" onclick="triggerPollModal()">📊 تصويت</button>
+                <button class="tool-btn" onclick="triggerAskModal()">❓ اسك</button>
+                <input type="file" id="mediaInput" accept="image/*,video/*" style="display: none;" onchange="handleMediaUpload(this)">
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileUpload(this)">
+            </div>
+            <div class="input-row">
+                <input type="text" id="chatInput" class="chat-input" placeholder="اكتب رسالتك هنا... (اكتب @all للجميع إذا مسموح)" onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">إرسال 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // التحقق من بيانات الطالب الحالي المخزنة من التسجيل
+        const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser') || '{}');
+        const studentName = currentUserData.fullName || currentUserData.name || 'طالب جديد';
+        const nameParts = studentName.split(' ');
+        const shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : studentName;
+        const studentAvatar = currentUserData.profileImage || currentUserData.avatar || 'https://via.placeholder.com/40';
+        const studentRank = currentUserData.rank || 'ضعيف';
+
+        // تحديد تصميم رتبة الطالب
+        function getRankClass(rank) {
+            switch(rank) {
+                case 'ضعيف': return 'rank-weak';
+                case 'متوسط': return 'rank-medium';
+                case 'قوي': return 'rank-strong';
+                case 'قوي جداً': return 'rank-very-strong';
+                case 'اسطوري': return 'rank-legendary';
+                default: return 'rank-weak';
+            }
+        }
+
+        // إداريين النظام (يمكن تعديل البريد أو الصلاحية)
+        const isAdmin = currentUserData.email === 'mohamad91xm@gmail.com' || currentUserData.role === 'admin';
+        if (isAdmin) {
+            document.getElementById('adminControlsArea').style.display = 'flex';
+        }
+
+        // الثيمات
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const htmlTag = document.documentElement;
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlTag.getAttribute('data-theme') === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                themeToggleBtn.textContent = '☀️';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                themeToggleBtn.textContent = '🌙';
+            }
+        });
+
+        // نظام الـ Streak النشاط اليومي
+        let streakCount = parseInt(localStorage.getItem('student_streak') || '1');
+        document.getElementById('streakDisplay').textContent = `🔥 الستريك: ${streakCount} أيام`;
+
+        // دالة إرسال الرسالة
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // التحقق من صلاحية المنشن الجماعي
+            if (text.includes('@all')) {
+                const allowAll = document.getElementById('allowAllMentionCheck').checked;
+                if (!isAdmin && !allowAll) {
+                    alert('عذراً، المنشن الجماعي (@all) مخصص للأدمن فقط بناءً على إعدادات الغرفة!');
+                    return;
+                }
+            }
+
+            appendMessageToChat(shortName, studentAvatar, studentRank, text, true);
+            input.value = '';
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function appendMessageToChat(name, avatar, rank, text, isMe) {
+            const container = document.getElementById('chatMessages');
+            const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message-item ${isMe ? 'me' : ''}`;
+
+            const rankClass = getRankClass(rank);
+
+            msgDiv.innerHTML = `
+                <img src="${avatar}" class="msg-avatar" alt="صورة">
+                <div class="msg-content-box">
+                    <div class="msg-info">
+                        <span class="msg-name">${name}</span>
+                        <span class="rank-tag ${rankClass}">${rank}</span>
+                    </div>
+                    <div class="msg-bubble">${escapeHtml(text)}</div>
+                    <span class="msg-time">${timeNow}</span>
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // دوال الأدوات الإضافية (صور، ملفات، ريكورد، تصويت)
+        function handleMediaUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                appendMessageToChat(shortName, studentAvatar, studentRank, `[ملف مرئي مرفق: ${file.name}]`, true);
+            }
+        }
+
+        function handleFileUpload(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                appendMessageToChat(shortName, studentAvatar, studentRank, `[مستند مرفق: ${file.name}]`, true);
+            }
+        }
+
+        function startVoiceRecord() {
+            alert('تم بدء تسجيل الصوت (محاكاة الريكورد)، سيتم إرساله في الشات.');
+            appendMessageToChat(shortName, studentAvatar, studentRank, `🎤 [رسالة صوتية - 0:05 ثوانٍ]`, true);
+        }
+
+        function triggerPollModal() {
+            const pollQ = prompt('اكتب سؤال التصويت:');
+            if (pollQ) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `📊 تصويت جديد: "${pollQ}" (اضغط للتفاعل)`, true);
+            }
+        }
+
+        function triggerAskModal() {
+            const askQ = prompt('اكتب سؤالك (Ask):');
+            if (askQ) {
+                appendMessageToChat(shortName, studentAvatar, studentRank, `❓ سؤال مفتوح: "${askQ}"`, true);
+            }
+        }
+    </script>
+</body>
+</html>
