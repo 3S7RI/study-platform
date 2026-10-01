@@ -140,11 +140,16 @@
 
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px;
+            padding: 7px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px;
             border: 1px solid rgba(255,255,255,0.2);
             position: relative;
             z-index: 5;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
         }
+        .level-badge-box:hover { transform: scale(1.03); filter: brightness(1.1); }
+        .level-badge-box::after { content: " ℹ️"; font-size: 0.75rem; opacity: 0.8; }
+
         .badge-weak { background: linear-gradient(135deg, #7f1d1d, #450a0a); color: #fca5a5; }
         .badge-medium { background: linear-gradient(135deg, #78350f, #451a03); color: #fde68a; }
         .badge-strong { background: linear-gradient(135deg, #854d0e, #3f2305); color: #fef08a; }
@@ -214,6 +219,21 @@
         .chat-msg { max-width: 80%; padding: 7px 12px; border-radius: 12px; font-size: 0.82rem; word-break: break-word; }
         .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; }
         .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); }
+
+        /* تنسيق دليل المستويات */
+        .rank-guide-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--input-bg);
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            text-align: right;
+        }
+        .rank-guide-title { font-weight: 700; font-size: 0.85rem; }
+        .rank-guide-points { font-size: 0.78rem; font-weight: bold; color: var(--primary-color); }
     </style>
 </head>
 <body>
@@ -291,6 +311,42 @@
         </div>
     </div>
 
+    <!-- Modal Rank Guide (دليل المستويات والنقاط) -->
+    <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>دليل المستويات والنقاط 🏆</h3>
+                <button class="close-modal" onclick="closeRankGuideModal()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align: right;">
+                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 14px; text-align: center;">
+                    اجمع النقاط من خلال إكمال الدروس، حل الامتحانات، والواجبات لتتطور وترتقي بمستواك! 🚀
+                </p>
+                
+                <div class="rank-guide-item">
+                    <span class="rank-guide-title" style="color: #fca5a5;">🔴 مبتدئ (ضعيف)</span>
+                    <span class="rank-guide-points">0 - 499 نقطة</span>
+                </div>
+                <div class="rank-guide-item">
+                    <span class="rank-guide-title" style="color: #fde68a;">🟡 متوسط</span>
+                    <span class="rank-guide-points">500 - 1499 نقطة</span>
+                </div>
+                <div class="rank-guide-item">
+                    <span class="rank-guide-title" style="color: #fef08a;">🟢 قوي</span>
+                    <span class="rank-guide-points">1500 - 2999 نقطة</span>
+                </div>
+                <div class="rank-guide-item">
+                    <span class="rank-guide-title" style="color: #bfdbfe;">🔵 قوي جداً</span>
+                    <span class="rank-guide-points">3000 - 4999 نقطة</span>
+                </div>
+                <div class="rank-guide-item">
+                    <span class="rank-guide-title" style="color: #e9d5ff;">🌟 أسطوري</span>
+                    <span class="rank-guide-points">5000+ نقطة</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Friends -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:480px;">
@@ -357,7 +413,6 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // إعدادات مشروعك الحقيقية لـ Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
             authDomain: "study-trip-1.firebaseapp.com",
@@ -378,7 +433,6 @@
         let unsubscribeChat = null;
         let selectedNewAvatarBase64 = null;
 
-        // دالة تحديد إطار التصنيف بناءً على النقاط أو المستوى
         function getRankClass(score = 0) {
             if (score < 500) return { frame: 'rank-frame-weak', badge: 'badge-weak', label: 'مبتدئ (ضعيف)' };
             if (score < 1500) return { frame: 'rank-frame-medium', badge: 'badge-medium', label: 'متوسط' };
@@ -387,7 +441,6 @@
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
 
-        // مراقبة حالة تسجيل الدخول عبر Firebase Auth
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -439,7 +492,7 @@
                     </div>
 
                     <div>
-                        <span class="level-badge-box ${rankInfo.badge}">
+                        <span class="level-badge-box ${rankInfo.badge}" onclick="openRankGuideModal()" title="اضغط لعرض دليل المستويات">
                             ${rankInfo.label} • ${score} نقطة
                         </span>
                     </div>
@@ -471,7 +524,7 @@
             });
         };
 
-        // --- إدارة النوافذ المنبثقة (Modals) ---
+        // --- النوافذ المنبثقة ---
         window.openSettingsModal = function() {
             if (!currentStudentData) return;
             document.getElementById('editName').value = currentStudentData.name || '';
@@ -490,6 +543,10 @@
             document.getElementById('avatarModal').classList.add('active');
         };
         window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
+
+        // دالة فتح دليل المستويات
+        window.openRankGuideModal = function() { document.getElementById('rankGuideModal').classList.add('active'); };
+        window.closeRankGuideModal = function() { document.getElementById('rankGuideModal').classList.remove('active'); };
 
         window.openFriendsModal = async function() {
             document.getElementById('friendsModal').classList.add('active');
@@ -511,7 +568,6 @@
 
         window.closeComparisonModal = function() { document.getElementById('comparisonModal').classList.remove('active'); };
 
-        // --- حفظ تعديلات الملف الشخصي ---
         window.saveStudentChanges = async function() {
             const newName = document.getElementById('editName').value.trim();
             const newPhone = document.getElementById('editPhone').value.trim();
@@ -546,16 +602,13 @@
             }
         };
 
-        // --- معالجة وحفظ صورة البروفايل مباشرة في قاعدة البيانات كـ Base64 ---
         window.previewNewAvatar = function(event) {
             const file = event.target.files[0];
             if (file) {
-                // التحقق من حجم الملف ليكون مناسباً (أقل من 700 كيلوبايت)
                 if (file.size > 700 * 1024) {
-                    alert('حجم الصورة كبير جداً، يرجى اختيار صورة أصغر من 700 كيلوبايت لتجنب أخطاء قاعدة البيانات.');
+                    alert('حجم الصورة كبير جداً، يرجى اختيار صورة أصغر من 700 كيلوبايت.');
                     return;
                 }
-
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     selectedNewAvatarBase64 = e.target.result;
@@ -585,7 +638,7 @@
                 alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
             } catch (error) {
                 console.error("خطأ حفظ الصورة:", error);
-                alert('فشل حفظ الصورة، ربما حجمها كبير جداً. حاول اختيار صورة أصغر.');
+                alert('فشل حفظ الصورة، ربما حجمها كبير جداً.');
             } finally {
                 btn.innerText = 'حفظ وتحديث الصورة 💾';
                 btn.disabled = false;
@@ -609,7 +662,6 @@
             }
         };
 
-        // --- نظام الأصدقاء والطلبات والدردشة ---
         window.sendFriendRequest = async function() {
             const friendIdVal = document.getElementById('friendIdInput').value.trim();
             if (!friendIdVal) {
@@ -635,7 +687,7 @@
                 }
 
                 if (!targetUid) {
-                    alert('لم يتم العثور على طالب بهذا المعرف (ID)! تأكد وصححه جيداً.');
+                    alert('لم يتم العثور على طالب بهذا المعرف (ID)!');
                     return;
                 }
 
@@ -717,23 +769,13 @@
                 const friendshipId1 = `${currentUser.uid}_${senderId}`;
                 const friendshipId2 = `${senderId}_${currentUser.uid}`;
 
-                await setDoc(doc(db, "friends", friendshipId1), {
-                    user1: currentUser.uid,
-                    user2: senderId,
-                    createdAt: serverTimestamp()
-                });
-
-                await setDoc(doc(db, "friends", friendshipId2), {
-                    user1: senderId,
-                    user2: currentUser.uid,
-                    createdAt: serverTimestamp()
-                });
+                await setDoc(doc(db, "friends", friendshipId1), { user1: currentUser.uid, user2: senderId, createdAt: serverTimestamp() });
+                await setDoc(doc(db, "friends", friendshipId2), { user1: senderId, user2: currentUser.uid, createdAt: serverTimestamp() });
 
                 alert('تم قبول طلب الصداقة بنجاح وأصبحتم أصدقاء! 🎉');
                 loadFriendRequestsList();
             } catch (error) {
                 console.error("خطأ في قبول الطلب:", error);
-                alert('حدث خطأ أثناء قبول الطلب.');
             }
         };
 
@@ -755,13 +797,14 @@
                 const snap = await getDocs(q);
 
                 if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px;">ليس لديك أصدقاء مضافين حتى الآن. أضف أصدقاءك بالـ ID الخاص بهم!</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
                     return;
                 }
 
                 let html = '';
                 for (const docSnap of snap.docs) {
                     const friendData = docSnap.data();
+                    if(friendData.deleted) continue;
                     const friendUid = friendData.user2;
 
                     const friendDocSnap = await getDoc(doc(db, "students", friendUid));
@@ -787,7 +830,7 @@
                 container.innerHTML = html;
             } catch (error) {
                 console.error("خطأ في تحميل الأصدقاء:", error);
-                container.innerHTML = `<p style="color:#ef4444; text-align:center;">حدث خطأ أثناء جلب قائمة الأصدقاء.</p>`;
+                container.innerHTML = `<p style="color:#ef4444; text-align:center;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
             }
         }
 
@@ -803,7 +846,6 @@
             }
         };
 
-        // --- نظام الدردشة الفورية (Realtime Chat) ---
         window.openChatWithFriend = function(friendUid, friendName) {
             activeChatFriendId = friendUid;
             document.getElementById('chatPartnerTitle').innerText = `محادثة مع: ${friendName} 💬`;
@@ -865,11 +907,9 @@
                 });
             } catch (error) {
                 console.error("خطأ في إرسال الرسالة:", error);
-                alert('فشل إرسال الرسالة.');
             }
         };
 
-        // --- نظام مقارنة المستويات بين الصديق والطالب ---
         window.openComparisonModalWithFriend = async function(friendUid, friendName) {
             closeFriendsModal();
             document.getElementById('comparisonModal').classList.add('active');
@@ -885,7 +925,7 @@
 
                 const fData = friendDoc.data();
                 if (fData.allowComparison === false) {
-                    body.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" في إعدادات حسابه 🔒.</p>`;
+                    body.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
                     return;
                 }
 
@@ -918,7 +958,6 @@
                 `;
             } catch (error) {
                 console.error("خطأ في المقارنة:", error);
-                body.innerHTML = `<p style="color:#ef4444; text-align:center;">حدث خطأ أثناء إجراء المقارنة.</p>`;
             }
         };
 
