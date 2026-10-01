@@ -532,8 +532,8 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // تم تحديث الرابط هنا ليتطابق بدقة مع دومين Vercel الخاص بك
-                const brevoResponse = await fetch('https://study-trip-sage.vercel.app/api/send-email', {
+                // تم تعديل مسار الطلب هنا ليكون مساراً نسبياً آمنًا ومتوافقًا تمامًا مع خوادم Vercel وأجهزة المستخدمين المختلفة
+                const brevoResponse = await fetch('/api/send-email', {
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json'
@@ -545,7 +545,14 @@
                     })
                 });
 
-                const result = await brevoResponse.json();
+                let result;
+                const contentType = brevoResponse.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    result = await brevoResponse.json();
+                } else {
+                    result = { error: await brevoResponse.text() };
+                }
+
                 if (!brevoResponse.ok) throw new Error(result.error || 'فشل إرسال الإيميل من السيرفر');
 
                 emailSuccess.style.display = 'block';
