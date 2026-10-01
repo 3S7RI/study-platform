@@ -6,20 +6,21 @@
     <title>منصة رحلة دراسية - تسجيل طالب جديد</title>
     <meta name="google-site-verification" content="MC3Rq1pTIdJP0dN2fwFucfpowlsfzQnmTTtvVxj9O28" />
     
-    <!-- استيراد مكتبات Firebase SDK (نسخة 9 المعيارية) -->
+    <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // ⚠️ استبدل هذه البيانات ببيانات مشروعك الفعلي على Firebase Console
+        // 🚀 إعدادات Firebase الحقيقية لمشروعك
         const firebaseConfig = {
-            apiKey: "YOUR_FIREBASE_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
         };
 
         // تهيئة فايربيس
@@ -440,7 +441,6 @@
             sendBtn.disabled = true;
 
             try {
-                // التحقق من وجود الإيميل مسبقاً في Firestore
                 const q = query(collection(window.firebaseDb, "students"), where("email", "==", emailInput));
                 const querySnapshot = await window.getDocs(q);
 
@@ -562,7 +562,6 @@
             btn.disabled = true;
 
             try {
-                // 1. إنشاء الحساب في Firebase Auth
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -573,12 +572,10 @@
                     } catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // 2. جلب عدد الطلاب لتوليد ID تسلسلي مثل STU-0001
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
-                // 3. تخزين بيانات الطالب في Firestore
                 const userData = {
                     uid: user.uid,
                     id: studentId,
@@ -603,7 +600,6 @@
 
                 await window.setDoc(window.doc(window.firebaseDb, "students", user.uid), userData);
 
-                // تخزين الجلسة محلياً
                 const sessionUserData = { ...userData };
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('currentStudentEmail', email);
