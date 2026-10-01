@@ -267,7 +267,7 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePictureFromCloud()">🗑 حذف صورة البروفايل من السحابة</button>
+                <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف صورة البروفايل</button>
                 <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 10px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
@@ -286,7 +286,7 @@
                 </div>
                 <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="previewNewAvatar(event)">
                 <button type="button" class="btn" onclick="document.getElementById('avatarFileInput').click()">اختر صورة جديدة من جهازك 📁</button>
-                <button type="button" class="btn" id="saveAvatarBtn" onclick="uploadAvatarToCloud()" style="margin-top: 10px; background: #10b981;">رفع وحفظ الصورة بالسحابة ☁️</button>
+                <button type="button" class="btn" id="saveAvatarBtn" onclick="saveAvatarDirectly()" style="margin-top: 10px; background: #10b981;">حفظ وتحديث الصورة 💾</button>
             </div>
         </div>
     </div>
@@ -350,12 +350,12 @@
             </div>
         </div>
     </div>
+
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         // إعدادات مشروعك الحقيقية لـ Firebase
         const firebaseConfig = {
@@ -371,13 +371,12 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
         let currentUser = null;
         let currentStudentData = null;
         let activeChatFriendId = null;
         let unsubscribeChat = null;
-        let selectedNewAvatarFile = null;
+        let selectedNewAvatarBase64 = null;
 
         // دالة تحديد إطار التصنيف بناءً على النقاط أو المستوى
         function getRankClass(score = 0) {
@@ -484,7 +483,7 @@
         window.closeSettingsModal = function() { document.getElementById('settingsModal').classList.remove('active'); };
 
         window.openAvatarModal = function() {
-            selectedNewAvatarFile = null;
+            selectedNewAvatarBase64 = null;
             document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || 'https://via.placeholder.com/150';
             const rankInfo = getRankClass(currentStudentData.totalScore || 0);
             document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${rankInfo.frame}`;
@@ -547,51 +546,53 @@
             }
         };
 
-        // --- رفع وتحديث صورة البروفايل للسحابة ---
+        // --- معالجة وحفظ صورة البروفايل مباشرة في قاعدة البيانات كـ Base64 ---
         window.previewNewAvatar = function(event) {
             const file = event.target.files[0];
             if (file) {
-                selectedNewAvatarFile = file;
+                // التحقق من حجم الملف ليكون مناسباً (أقل من 700 كيلوبايت)
+                if (file.size > 700 * 1024) {
+                    alert('حجم الصورة كبير جداً، يرجى اختيار صورة أصغر من 700 كيلوبايت لتجنب أخطاء قاعدة البيانات.');
+                    return;
+                }
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('modalAvatarPreview').src = e.target.result;
+                    selectedNewAvatarBase64 = e.target.result;
+                    document.getElementById('modalAvatarPreview').src = selectedNewAvatarBase64;
                 };
                 reader.readAsDataURL(file);
             }
         };
 
-        window.uploadAvatarToCloud = async function() {
-            if (!selectedNewAvatarFile) {
+        window.saveAvatarDirectly = async function() {
+            if (!selectedNewAvatarBase64) {
                 alert('الرجاء اختيار صورة جديدة أولاً!');
                 return;
             }
 
             const btn = document.getElementById('saveAvatarBtn');
-            btn.innerText = 'جاري الرفع للسحابة... ⏳';
+            btn.innerText = 'جاري الحفظ في القاعدة... ⏳';
             btn.disabled = true;
 
             try {
-                const storageRef = ref(storage, `avatars/${currentUser.uid}_${Date.now()}`);
-                await uploadBytes(storageRef, selectedNewAvatarFile);
-                const downloadUrl = await getDownloadURL(storageRef);
-
                 const docRef = doc(db, "students", currentUser.uid);
-                await updateDoc(docRef, { profileImage: downloadUrl });
+                await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
-                currentStudentData.profileImage = downloadUrl;
+                currentStudentData.profileImage = selectedNewAvatarBase64;
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
-                alert('تم تحديث صورة البروفايل ورفعها بنجاح! 🖼️️');
+                alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
             } catch (error) {
-                console.error("خطأ رفع الصورة:", error);
-                alert('فشل رفع الصورة، يرجى المحاولة مرة أخرى.');
+                console.error("خطأ حفظ الصورة:", error);
+                alert('فشل حفظ الصورة، ربما حجمها كبير جداً. حاول اختيار صورة أصغر.');
             } finally {
-                btn.innerText = 'رفع وحفظ الصورة بالسحابة ☁️';
+                btn.innerText = 'حفظ وتحديث الصورة 💾';
                 btn.disabled = false;
             }
         };
 
-        window.deleteProfilePictureFromCloud = async function() {
+        window.deleteProfilePicture = async function() {
             if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
 
             try {
