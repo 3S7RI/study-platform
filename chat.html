@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - قناة الدردشة الذكية</title>
+    <!-- تضمين مكتبات Firebase SDK المطلوبة للمزامنة السحابية -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #090d16, #17153b, #280a3a);
@@ -132,13 +135,44 @@
         .header-settings-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .header-settings-btn svg { width: 15px; height: 15px; fill: currentColor; }
 
+        /* شريط التبديل بين الغرف (بنات/أولاد/عامة) */
+        .rooms-selector-bar {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+        .room-tab-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-sub);
+            padding: 8px 16px;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .room-tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
         .chat-container {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             backdrop-filter: blur(16px);
             width: 100%;
             max-width: 900px;
-            height: calc(84vh - 10px);
+            height: calc(78vh - 10px);
             border-radius: 20px;
             box-shadow: var(--shadow);
             display: flex;
@@ -455,9 +489,9 @@
             الرئيسية
             </a>
         </div>
-        <div class="chat-main-title">
+        <div class="chat-main-title" id="roomTitleDisplay">
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
-            قناة الدردشة
+            قناة الدردشة الذكية
         </div>
         <div class="header-actions-left">
             <button id="themeToggleBtn" class="header-icon-btn" title="تغيير الثيم">
@@ -465,6 +499,12 @@
             </button>
         </div>
     </header>
+
+    <!-- شريط اختيار الغرف (دردشة حسب الجنس + الدردشة العامة إن وُجدت) -->
+    <div class="rooms-selector-bar" id="roomsSelectorBar">
+        <button class="room-tab-btn active" id="btnRoomGender" onclick="switchRoom('genderRoom')">💬 شات الطلاب المخصص</button>
+        <button class="room-tab-btn" id="btnRoomPublic" onclick="switchRoom('publicRoom')" style="display:none;" id="publicTabBtn">🌐 المحادثة العامة</button>
+    </div>
 
     <div class="chat-container">
         <div class="chat-sub-bar">
@@ -501,7 +541,7 @@
             <button class="cancel-attachment" onclick="clearPendingAttachment()">إلغاء ✕</button>
         </div>
 
-        <div class="chat-input-area">
+        <div class="chat-input-area" id="chatInputAreaBox">
             <div class="attachment-wrapper">
                 <button class="clip-btn" onclick="toggleAttachmentMenu(event)" title="إرفاق ملفات">
                     <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.76-2.24-5-5-5S5 2.24 5 5v12.5c0 3.03 2.47 5.5 5.5 5.5s5.5-2.47 5.5-5.5V6h-1.5z"/></svg>
@@ -547,58 +587,48 @@
     <!-- نافذة الإعدادات -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
-            <h3>
-                <svg style="width:20px;height:20px;fill:var(--primary)" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6 3.6z"/></svg>
-                إعدادات المحادثة
-            </h3>
+            <h3>⚙️ إعدادات الحساب وقنوات الدردشة</h3>
+            <div class="setting-item">
+                <span>اسم المستخدم:</span>
+                <input type="text" id="settingUsernameInput" class="modal-input" placeholder="اسمك الظاهر">
+            </div>
+            <div class="setting-item">
+                <span>الرتبة الأكاديمية:</span>
+                <select id="settingRankSelect" class="modal-input">
+                    <option value="weak">طالب مكافح (ضعيف)</option>
+                    <option value="medium">طالب مجتهد (متوسط)</option>
+                    <option value="strong">طالب متفوق (قوي)</option>
+                    <option value="very-strong">طالب متميز (قوي جداً)</option>
+                    <option value="legendary">طالب أسطوري (نخبة)</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>الجنس (لتحديد شات الأولاد/البنات):</span>
+                <select id="settingGenderSelect" class="modal-input">
+                    <option value="male">ذكر (شات الأولاد)</option>
+                    <option value="female">أنثى (شات البنات)</option>
+                </select>
+            </div>
+            <div class="setting-item">
+                <span>أيام الاستريك المتتالية:</span>
+                <input type="number" id="settingStreakInput" class="modal-input" min="1" max="365">
+            </div>
             
-            <div class="setting-item">
-                <span>الوضع المظلم (Dark Theme)</span>
-                <label class="switch">
-                    <input type="checkbox" id="darkThemeSwitch" onchange="toggleThemeFromSwitch(this.checked)">
-                    <span class="slider"></span>
-                </label>
+            <!-- قسم تحكم الأدمن بالمحادثة العامة -->
+            <div id="adminControlSection" style="display:none; border-top:1px dashed var(--card-border); padding-top:10px; margin-top:5px;">
+                <div style="font-size:0.85rem; font-weight:bold; color:var(--primary); margin-bottom:8px;">🔒 لوحة تحكم الأدمن (المحادثة العامة)</div>
+                <div class="setting-item">
+                    <span>إظهار المحادثة العامة للجميع:</span>
+                    <label class="switch">
+                        <input type="checkbox" id="adminTogglePublicChat" onchange="togglePublicChatState(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
 
-            <div class="setting-item">
-                <span>تحديث أيام الاستريك يدويًا:</span>
-                <input type="number" id="streakInputModal" class="modal-input" style="width: 80px; text-align: center;" min="1" value="1">
-            </div>
-
-            <button class="modal-btn" onclick="saveSettingsModal()">حفظ الإعدادات</button>
-            <button class="modal-btn" style="background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border);" onclick="closeSettingsModal()">إلغاء</button>
-        </div>
-    </div>
-
-    <!-- نافذة الملف الشخصي للمستخدم -->
-    <div class="modal-overlay" id="profileModal">
-        <div class="modal-card">
-            <div class="profile-modal-content">
-                <div class="profile-avatar-container">
-                    <img id="profileModalAvatar" src="" class="profile-modal-avatar" alt="Avatar">
-                    <div class="profile-svg-badge">
-                        <svg viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z"/></svg>
-                    </div>
-                </div>
-                <div id="profileModalName" class="profile-modal-name">اسم المستخدم</div>
-                <div id="profileModalRank" class="profile-modal-rank">الرتبة</div>
-                
-                <div class="profile-data-box">
-                    <div class="profile-data-row">
-                        <span>معرّف المستخدم (ID):</span>
-                        <span id="profileModalID">#0000</span>
-                    </div>
-                    <div class="profile-data-row">
-                        <span>إجمالي المشاركات:</span>
-                        <span id="profileModalMsgCount">0 رسالة</span>
-                    </div>
-                    <div class="profile-data-row">
-                        <span>تاريخ الانضمام:</span>
-                        <span id="profileModalJoinDate">أكتوبر 2026</span>
-                    </div>
-                </div>
-
-                <button class="modal-btn" style="width: 100%;" onclick="closeProfileModal()">إغلاق</button>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="modal-btn" style="flex:1;" onclick="saveSettings()">حفظ التغييرات</button>
+                <button class="modal-btn" style="flex:1; background:#334155;" onclick="closeSettingsModal()">إلغاء</button>
             </div>
         </div>
     </div>
@@ -606,482 +636,634 @@
     <!-- نافذة التصويت -->
     <div class="modal-overlay" id="pollModal">
         <div class="modal-card">
-            <h3>إنشاء تصويت جديد</h3>
-            <input type="text" id="pollQuestion" class="modal-input" placeholder="السؤال أو موضوع التصويت...">
-            <div id="pollOptionsContainer" class="options-list">
-                <input type="text" class="modal-input poll-option-input" placeholder="الخيار الأول">
-                <input type="text" class="modal-input poll-option-input" placeholder="الخيار الثاني">
+            <h3>📊 إنشاء تصويت جديد</h3>
+            <div class="setting-item" style="flex-direction:column; align-items:flex-start;">
+                <span>سؤال التصويت:</span>
+                <input type="text" id="pollQuestionInput" class="modal-input" placeholder="مثال: ما هي المادة الأسهل؟">
             </div>
-            <button class="modal-btn" style="background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border);" onclick="addPollOptionField()">+ إضافة خيار آخر</button>
-            <button class="modal-btn" onclick="submitPoll()">نشر التصويت</button>
-            <button class="modal-btn" style="background: transparent; color: var(--text-sub);" onclick="closePollModal()">إلغاء</button>
+            <div class="setting-item" style="flex-direction:column; align-items:flex-start;">
+                <span>خيارات التصويت (كل خيار في سطر أو مفصولة بفواصل):</span>
+                <textarea id="pollOptionsInput" class="modal-input" rows="3" placeholder="الرياضيات&#10;الفيزياء&#10;الكيمياء"></textarea>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="modal-btn" style="flex:1;" onclick="submitPoll()">نشر التصويت</button>
+                <button class="modal-btn" style="flex:1; background:#334155;" onclick="closePollModal()">إلغاء</button>
+            </div>
         </div>
     </div>
 
-    <!-- نافذة طرح السؤال -->
+    <!-- نافذة طرح سؤال -->
     <div class="modal-overlay" id="askModal">
         <div class="modal-card">
-            <h3>طرح سؤال على المجموعة</h3>
-            <input type="text" id="askQuestion" class="modal-input" placeholder="اكتب سؤالك بشكل واضح...">
-            <button class="modal-btn" onclick="submitAsk()">نشر السؤال</button>
-            <button class="modal-btn" style="background: transparent; color: var(--text-sub);" onclick="closeAskModal()">إلغاء</button>
+            <h3>❓ طرح سؤال دراسي مفتوح</h3>
+            <div class="setting-item" style="flex-direction:column; align-items:flex-start;">
+                <span>نص السؤال:</span>
+                <textarea id="askQuestionInput" class="modal-input" rows="4" placeholder="اكتب سؤالك بوضوح ليقوم زملائك بالإجابة عليه..."></textarea>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <button class="modal-btn" style="flex:1;" onclick="submitAsk()">نشر السؤال</button>
+                <button class="modal-btn" style="flex:1; background:#334155;" onclick="closeAskModal()">إلغاء</button>
+            </div>
         </div>
     </div>
 
-    <!-- عرض الصور بشكل مكبّر -->
-    <div id="imageModalViewer" onclick="closeImageModal()">
-        <img id="enlargedImage" src="" alt="صورة مكبرة">
+    <!-- معاينة الصور الكبيرة -->
+    <div id="imageModalViewer" onclick="closeImageViewer()">
+        <img id="fullSizeImageViewer" src="" alt="صورة مكبرة">
     </div>
 
     <script>
-        // المتغيرات العامة
-        let currentTheme = localStorage.getItem('chatTheme') || 'dark';
-        let streakDays = parseInt(localStorage.getItem('streakDays')) || 1;
-        let activeReplyId = null;
-        let pendingAttachment = null;
-        let mediaRecorder = null;
-        let audioChunks = [];
-        let isRecording = false;
-        let recordingTimer = null;
-        let recordingSeconds = 0;
-
-        // قاعدة بيانات للمستخدمين الافتراضيين
-        const usersDatabase = {
-            "أنت": {
-                name: "أنت",
-                avatar: "https://i.pravatar.cc/100?img=33",
-                rankText: "عضو ماسي",
-                rankClass: "rank-legendary",
-                id: "USR-9982",
-                joinDate: "سبتمبر 2026",
-                msgCount: 142
-            },
-            "سارة أحمد": {
-                name: "سارة أحمد",
-                avatar: "https://i.pravatar.cc/100?img=47",
-                rankText: "عضو متفاعل",
-                rankClass: "rank-strong",
-                id: "USR-4412",
-                joinDate: "أغسطس 2026",
-                msgCount: 89
-            },
-            "علي حسن": {
-                name: "علي حسن",
-                avatar: "https://i.pravatar.cc/100?img=12",
-                rankText: "مبتدئ",
-                rankClass: "rank-weak",
-                id: "USR-1029",
-                joinDate: "أكتوبر 2026",
-                msgCount: 15
-            }
+        // إعدادات Firebase (قم باستبدالها ببيانات مشروعك الخاصة)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
-        // رسائل افتراضية للعرض
-        let messagesList = [
-            {
-                id: 1,
-                sender: "سارة أحمد",
-                text: "أهلاً بالجميع! هل بدأتم في مراجعة فصل الفيزياء الجديد؟",
-                time: "10:30 ص",
-                type: "text",
-                isMe: false
-            },
-            {
-                id: 2,
-                sender: "علي حسن",
-                text: "نعم، ملخص الفصل ممتاو جداً، سأرفقه هنا قريباً.",
-                time: "10:32 ص",
-                type: "text",
-                isMe: false
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // بيانات المستخدم الافتراضية (تُقرأ أو تُحفظ في LocalStorage وتتزامن مع البروفايل)
+        let currentUser = {
+            uid: localStorage.getItem('chat_uid') || 'user_' + Math.random().toString(36.substring(2, 9)),
+            name: localStorage.getItem('chat_name') || 'طالب متميز',
+            rank: localStorage.getItem('chat_rank') || 'strong',
+            gender: localStorage.getItem('chat_gender') || 'male', // 'male' أو 'female'
+            streak: parseInt(localStorage.getItem('chat_streak') || '5'),
+            avatar: localStorage.getItem('chat_avatar') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+            isAdmin: localStorage.getItem('chat_is_admin') === 'true' // للأدمن للتحكم بالمحادثة العامة
+        };
+
+        localStorage.setItem('chat_uid', currentUser.uid);
+
+        let currentRoomId = 'gender_' + currentUser.gender; // الغرفة الافتراضية حسب الجنس
+        let currentUnsub = null; // للاشتراك اللحظي في فايربيس
+        let activeReplyData = null;
+        let stagedFileObject = null;
+        let isRecordingVoice = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingSeconds = 0;
+        let recordingTimerInterval = null;
+
+        // تهيئة النظام عند التحميل
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkAdminPrivileges();
+            initRoomsBar();
+            loadRoom(currentRoomId);
+            updateUserProfileUI();
+        });
+
+        // إدارة الثيم (داكن / فاتح)
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIconSvg = document.getElementById('themeIconSvg');
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('app_theme', newTheme);
+        });
+
+        if(localStorage.getItem('app_theme')) {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('app_theme'));
+        }
+
+        // إعداد شريط الغرف والتحكم بالظهور العام
+        function initRoomsBar() {
+            const btnGender = document.getElementById('btnRoomGender');
+            btnGender.innerText = currentUser.gender === 'female' ? '💬 شات الطالبات' : '💬 شات الطلاب';
+            
+            // جلب حالة المحادثة العامة من قاعدة البيانات العامة للإدارة
+            db.collection('settings').doc('global_chat_state').get().then(doc => {
+                let publicActive = true;
+                if(doc.exists && doc.data().isActive === false) {
+                    publicActive = false;
+                }
+                const btnPublic = document.getElementById('btnRoomPublic');
+                if(publicActive || currentUser.isAdmin) {
+                    btnPublic.style.display = 'flex';
+                } else {
+                    btnPublic.style.display = 'none';
+                }
+            }).catch(() => {
+                document.getElementById('btnRoomPublic').style.display = 'flex';
+            });
+        }
+
+        // التبديل بين الغرف
+        function switchRoom(roomType) {
+            document.querySelectorAll('.room-tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if(roomType === 'genderRoom') {
+                currentRoomId = 'gender_' + currentUser.gender;
+                document.getElementById('btnRoomGender').classList.add('active');
+                document.getElementById('roomTitleDisplay').innerHTML = `<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> ${currentUser.gender === 'female' ? 'شات الطالبات المخصص' : 'شات الطلاب المخصص'}`;
+            } else if(roomType === 'publicRoom') {
+                currentRoomId = 'public_general_room';
+                document.getElementById('btnRoomPublic').classList.add('active');
+                document.getElementById('roomTitleDisplay').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> المحادثة العامة المشتركة`;
             }
-        ];
-
-        // تهيئة الصفحة عند التحميل
-        document.addEventListener("DOMContentLoaded", () => {
-            applyTheme(currentTheme);
-            document.getElementById('coreDayNumber').innerText = streakDays;
-            document.getElementById('streakInputModal').value = streakDays;
-            renderMessages();
-        });
-
-        // تغيير الثيم
-        function applyTheme(theme) {
-            currentTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('chatTheme', theme);
-            document.getElementById('darkThemeSwitch').checked = (theme === 'dark');
+            loadRoom(currentRoomId);
         }
 
-        function toggleThemeFromSwitch(isDark) {
-            applyTheme(isDark ? 'dark' : 'light');
+        // جلب الرسائل والاستماع الفوري عبر Firestore
+        function loadRoom(roomId) {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding:20px;">جاري مزامنة الرسائل...</div>';
+
+            if(currentUnsub) {
+                currentUnsub(); // إلغاء الاستماع للغرفة السابقة
+            }
+
+            currentUnsub = db.collection('rooms').doc(roomId).collection('messages')
+                .orderBy('timestamp', 'asc')
+                .onSnapshot(snapshot => {
+                    chatMessages.innerHTML = '';
+                    if(snapshot.empty) {
+                        chatMessages.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding:30px;">لا توجد رسائل بعد. كن أول المشاركين!</div>';
+                        return;
+                    }
+                    snapshot.forEach(doc => {
+                        const msg = doc.data();
+                        msg.id = doc.id;
+                        renderMessage(msg);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }, error => {
+                    console.error("خطأ في جلب الرسائل: ", error);
+                    chatMessages.innerHTML = '<div style="text-align:center; color:#ef4444; padding:20px;">تعذر الاتصال بقاعدة البيانات اللحظية. تأكد من إعدادات الاتصال.</div>';
+                });
         }
 
-        document.getElementById('themeToggleBtn').addEventListener('click', () => {
-            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-        });
+        // عرض رسالة منفردة
+        function renderMessage(msg) {
+            const chatMessages = document.getElementById('chatMessages');
+            const isMe = msg.uid === currentUser.uid;
 
-        // القائمة المنسدلة للمرفقات
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `message-item ${isMe ? 'me' : ''}`;
+
+            const rankClass = `rank-${msg.rank || 'strong'}`;
+            const rankLabel = getRankArabicName(msg.rank);
+            const timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'الآن';
+
+            let replyHtml = '';
+            if(msg.replyTo) {
+                replyHtml = `<div class="reply-preview-box"><b>${msg.replyTo.name}:</b> ${msg.replyTo.text}</div>`;
+            }
+
+            let contentBody = '';
+            if(msg.type === 'text') {
+                contentBody = `<div class="msg-bubble">${linkify(msg.text)}</div>`;
+            } else if(msg.type === 'image') {
+                contentBody = `
+                    <div class="msg-bubble" style="padding:6px;">
+                        <img src="${msg.fileUrl}" class="msg-image" onclick="openImageViewer(this.src)">
+                        ${msg.text ? '<div style="margin-top:4px;">' + linkify(msg.text) + '</div>' : ''}
+                    </div>`;
+            } else if(msg.type === 'file') {
+                contentBody = `
+                    <div class="msg-bubble">
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <svg style="width:20px;height:20px;fill:currentColor;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <a href="${msg.fileUrl}" target="_blank" style="color:inherit; font-weight:bold; font-size:0.85rem; text-decoration:underline;">${msg.fileName || 'مستند مرفق'}</a>
+                        </div>
+                        ${msg.text ? '<div>' + linkify(msg.text) + '</div>' : ''}
+                    </div>`;
+            } else if(msg.type === 'voice') {
+                contentBody = `
+                    <div class="msg-bubble" style="padding:6px;">
+                        <div class="voice-note-player">
+                            <button class="voice-play-btn" onclick="toggleVoicePlay(this, '${msg.fileUrl}')">▶</button>
+                            <div class="voice-body-container">
+                                <div class="voice-progress-track" onclick="seekVoice(event, this)">
+                                    <div class="voice-progress-fill"></div>
+                                </div>
+                                <div class="voice-meta-info">
+                                    <span class="voice-timer-disp">0:00</span>
+                                    <span>ريكورد صوتي</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            } else if(msg.type === 'poll') {
+                let optionsHtml = '';
+                let totalVotes = msg.votes ? Object.values(msg.votes).reduce((a,b)=>a+b, 0) : 0;
+                if(msg.options) {
+                    msg.options.forEach((opt, idx) => {
+                        let count = msg.votes && msg.votes[idx] ? msg.votes[idx] : 0;
+                        let percent = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                        optionsHtml += `
+                            <div class="poll-option" onclick="votePoll('${msg.id}', ${idx})">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                                    <span>${opt}</span>
+                                    <span style="font-weight:bold;">${count} صوت (${percent}%)</span>
+                                </div>
+                                <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
+                                    <div style="width:${percent}%; height:100%; background:var(--primary);"></div>
+                                </div>
+                            </div>`;
+                    });
+                }
+                contentBody = `
+                    <div class="msg-bubble">
+                        <div class="poll-box">
+                            <div style="font-weight:bold; margin-bottom:8px; font-size:0.9rem;">📊 ${msg.question}</div>
+                            ${optionsHtml}
+                            <div style="font-size:0.65rem; color:var(--text-sub); margin-top:6px; text-align:left;">إجمالي الأصوات: ${totalVotes}</div>
+                        </div>
+                    </div>`;
+            } else if(msg.type === 'ask') {
+                contentBody = `
+                    <div class="msg-bubble">
+                        <div class="ask-box">
+                            <div style="font-weight:bold; color:var(--primary); margin-bottom:4px; font-size:0.82rem;">❓ سؤال دراسي:</div>
+                            <div style="font-size:0.9rem; margin-bottom:8px;">${msg.question}</div>
+                            <button class="modal-btn" style="padding:4px 10px; font-size:0.75rem;" onclick="replyToAsk('${msg.id}', '${msg.name}')">الإجابة على السؤال</button>
+                        </div>
+                    </div>`;
+            }
+
+            itemDiv.innerHTML = `
+                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.name}', '${msg.rank}', '${msg.uid}')">
+                <div class="msg-content-box">
+                    <div class="msg-info">
+                        <span class="msg-name" onclick="showUserProfile('${msg.name}', '${msg.rank}', '${msg.uid}')">${msg.name}</span>
+                        <span class="rank-tag ${rankClass}">${rankLabel}</span>
+                    </div>
+                    ${replyHtml}
+                    ${contentBody}
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <button class="reply-trigger-btn" onclick="prepareReply('${msg.id}', '${msg.name}', '${msg.text || (msg.type === 'voice' ? 'ريكورد صوتي' : 'مرفق')}')">↩ رد</button>
+                        <span class="msg-time">${timeStr}</span>
+                    </div>
+                </div>
+            `;
+
+            chatMessages.appendChild(itemDiv);
+        }
+
+        // إرسال الرسائل الرئيسية
+        function handleMainAction() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+
+            if(!text && !stagedFileObject) return;
+
+            let messageData = {
+                uid: currentUser.uid,
+                name: currentUser.name,
+                rank: currentUser.rank,
+                avatar: currentUser.avatar,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                replyTo: activeReplyData ? { id: activeReplyData.id, name: activeReplyData.name, text: activeReplyData.text } : null
+            };
+
+            if(stagedFileObject) {
+                messageData.type = stagedFileObject.type;
+                messageData.fileUrl = stagedFileObject.url;
+                messageData.fileName = stagedFileObject.name;
+                messageData.text = text;
+            } else {
+                messageData.type = 'text';
+                messageData.text = text;
+            }
+
+            db.collection('rooms').doc(currentRoomId).collection('messages').add(messageData)
+                .then(() => {
+                    input.value = '';
+                    clearPendingAttachment();
+                    cancelReply();
+                })
+                .catch(err => console.error("خطأ في الإرسال:", err));
+        }
+
+        // التعامل مع الإرفاق المسبق (محاكاة رفع الملفات)
         function toggleAttachmentMenu(e) {
             e.stopPropagation();
             const menu = document.getElementById('attachmentMenu');
             menu.classList.toggle('active');
         }
 
-        document.addEventListener('click', () => {
+        window.addEventListener('click', () => {
             document.getElementById('attachmentMenu').classList.remove('active');
         });
 
-        // عرض وتخزين المرفقات المحددة
-        function stageFile(input, type) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
+        function stageFile(inputElem, fileType) {
+            if(inputElem.files && inputElem.files[0]) {
+                const file = inputElem.files[0];
                 const reader = new FileReader();
-                reader.onload = function (e) {
-                    pendingAttachment = {
-                        type: type,
-                        fileData: e.target.result,
-                        fileName: file.name
+                reader.onload = function(e) {
+                    stagedFileObject = {
+                        type: fileType === 'media' ? (file.type.startsWith('video') ? 'video' : 'image') : 'file',
+                        url: e.target.result,
+                        name: file.name
                     };
                     document.getElementById('previewTextName').innerText = `تم إرفاق: ${file.name}`;
-                    document.getElementById('attachmentPreviewBar').classList.add('active');
+                    document.getElementById('attachmentPreviewBar').style.display = 'flex';
                 };
                 reader.readAsDataURL(file);
             }
-            document.getElementById('attachmentMenu').classList.remove('active');
         }
 
         function clearPendingAttachment() {
-            pendingAttachment = null;
+            stagedFileObject = null;
+            document.getElementById('attachmentPreviewBar').style.display = 'none';
             document.getElementById('mediaInput').value = '';
             document.getElementById('fileInput').value = '';
-            document.getElementById('attachmentPreviewBar').classList.remove('active');
         }
 
-        // تسجيل الصوت
-        async function startVoiceRecording() {
-            document.getElementById('attachmentMenu').classList.remove('active');
+        // تسجيل الريكورد الصوتي
+        function startVoiceRecording() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("تسجيل الصوت غير مدعوم في متصفحك الحالي.");
+                alert('متصفحك لا يدعم تسجيل الصوت المباشر.');
                 return;
             }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
-                
-                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+                isRecordingVoice = true;
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
                 mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    sendVoiceMessage(audioUrl, recordingSeconds);
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        db.collection('rooms').doc(currentRoomId).collection('messages').add({
+                            uid: currentUser.uid,
+                            name: currentUser.name,
+                            rank: currentUser.rank,
+                            avatar: currentUser.avatar,
+                            type: 'voice',
+                            fileUrl: e.target.result,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            replyTo: null
+                        });
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
                 };
 
                 mediaRecorder.start();
-                isRecording = true;
-                recordingSeconds = 0;
                 document.getElementById('recordingStatusBar').classList.add('active');
-                recordingTimer = setInterval(() => {
+                
+                recordingSeconds = 0;
+                document.getElementById('recordingTimerText').innerText = `🔴 جاري تسجيل الريكورد... (0 ثانية)`;
+                recordingTimerInterval = setInterval(() => {
                     recordingSeconds++;
                     document.getElementById('recordingTimerText').innerText = `🔴 جاري تسجيل الريكورد... (${recordingSeconds} ثانية)`;
                 }, 1000);
-            } catch (err) {
-                alert("تعذر الوصول إلى الميكروفون.");
-            }
+
+            }).catch(err => {
+                console.error("فشل الوصول للميكروفون:", err);
+                alert('يرجى السماح بالوصول للميكروفون لتسجيل الصوت.');
+            });
         }
 
         function stopVoiceRecordingManual() {
-            if (mediaRecorder && isRecording) {
+            if(isRecordingVoice && mediaRecorder) {
                 mediaRecorder.stop();
-                isRecording = false;
-                clearInterval(recordingTimer);
+                isRecordingVoice = false;
+                clearInterval(recordingTimerInterval);
                 document.getElementById('recordingStatusBar').classList.remove('active');
             }
         }
 
-        function sendVoiceMessage(url, duration) {
-            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-            messagesList.push({
-                id: Date.now(),
-                sender: "أنت",
-                audioUrl: url,
-                duration: duration,
-                time: timeStr,
-                type: "voice",
-                isMe: true
-            });
-            renderMessages();
-        }
+        function toggleVoicePlay(btnElem, audioSrc) {
+            let audio = btnElem.dataset.audioObj;
+            if(!audio) {
+                audio = new Audio(audioSrc);
+                btnElem.dataset.audioObj = audio;
+                audio.ontimeupdate = () => {
+                    let progress = (audio.currentTime / audio.duration) * 100;
+                    let fill = btnElem.parentElement.querySelector('.voice-progress-fill');
+                    if(fill) fill.style.width = progress + '%';
+                    
+                    let mins = Math.floor(audio.currentTime / 60);
+                    let secs = Math.floor(audio.currentTime % 60);
+                    let timerDisp = btnElem.parentElement.querySelector('.voice-timer-disp');
+                    if(timerDisp) timerDisp.innerText = `${mins}:${secs < 10 ? '0':''}${secs}`;
+                };
+                audio.onended = () => {
+                    btnElem.innerText = '▶';
+                };
+            }
 
-        // تشغيل التسجيلات الصوتية
-        function toggleAudioPlay(btn, audioId) {
-            const audio = document.getElementById(audioId);
-            const fill = document.getElementById('fill-' + audioId);
-            
-            if (audio.paused) {
-                document.querySelectorAll('audio').forEach(a => { if(a !== audio) a.pause(); });
+            if(audio.paused) {
                 audio.play();
-                btn.innerText = "⏸";
+                btnElem.innerText = '❚❚';
             } else {
                 audio.pause();
-                btn.innerText = "▶";
+                btnElem.innerText = '▶';
             }
-
-            audio.ontimeupdate = () => {
-                const pct = (audio.currentTime / audio.duration) * 100;
-                if (fill) fill.style.width = `${pct}%`;
-            };
-
-            audio.onended = () => {
-                btn.innerText = "▶";
-                if (fill) fill.style.width = "0%";
-            };
         }
 
-        // معالجة الزر الرئيسي للإرسال
-        function handleMainAction() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-
-            if (!text && !pendingAttachment) return;
-
-            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-            let replyData = null;
-
-            if (activeReplyId) {
-                const parent = messagesList.find(m => m.id === activeReplyId);
-                if (parent) {
-                    replyData = { sender: parent.sender, text: parent.text || "مرفق/ريكورد" };
-                }
+        function seekVoice(event, trackElem) {
+            const rect = trackElem.getBoundingClientRect();
+            const pos = (event.clientX - rect.left) / rect.width;
+            const playerBox = trackElem.closest('.voice-note-player');
+            const playBtn = playerBox.querySelector('.voice-play-btn');
+            const audio = playBtn.dataset.audioObj;
+            if(audio && audio.duration) {
+                audio.currentTime = pos * audio.duration;
             }
-
-            const newMsg = {
-                id: Date.now(),
-                sender: "أنت",
-                text: text,
-                time: timeStr,
-                type: pendingAttachment ? pendingAttachment.type : "text",
-                attachment: pendingAttachment ? pendingAttachment.fileData : null,
-                replyTo: replyData,
-                isMe: true
-            };
-
-            messagesList.push(newMsg);
-            input.value = '';
-            cancelReply();
-            clearPendingAttachment();
-            renderMessages();
         }
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') handleMainAction();
+        // التصويت والاستفسارات
+        function openPollModal() { document.getElementById('pollModal').classList.add('active'); }
+        function closePollModal() { document.getElementById('pollModal').classList.remove('active'); }
+        function submitPoll() {
+            const question = document.getElementById('pollQuestionInput').value.trim();
+            const optionsText = document.getElementById('pollOptionsInput').value.trim();
+            if(!question || !optionsText) return alert('يرجى كتابة السؤال والخيارات.');
+
+            const options = optionsText.split('\n').map(o => o.trim()).filter(o => o.length > 0);
+            db.collection('rooms').doc(currentRoomId).collection('messages').add({
+                uid: currentUser.uid,
+                name: currentUser.name,
+                rank: currentUser.rank,
+                avatar: currentUser.avatar,
+                type: 'poll',
+                question: question,
+                options: options,
+                votes: {},
+                votedUsers: [],
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                closePollModal();
+                document.getElementById('pollQuestionInput').value = '';
+                document.getElementById('pollOptionsInput').value = '';
+            });
         }
 
-        // الرد على رسالة
-        function setReplyTo(id) {
-            const target = messagesList.find(m => m.id === id);
-            if (!target) return;
-            activeReplyId = id;
-            document.getElementById('replyBarText').innerText = `الرد على ${target.sender}: ${target.text || 'محتوى ميديا'}`;
-            document.getElementById('activeReplyBar').classList.add('active');
+        function votePoll(msgId, optionIndex) {
+            const msgRef = db.collection('rooms').doc(currentRoomId).collection('messages').doc(msgId);
+            db.runTransaction(transaction => {
+                return transaction.get(msgRef).then(doc => {
+                    if (!doc.exists) return;
+                    let data = doc.data();
+                    let votedUsers = data.votedUsers || [];
+                    if(votedUsers.includes(currentUser.uid)) {
+                        alert('لقد قمت بالتصويت مسبقاً في هذا الاستطلاع!');
+                        return;
+                    }
+                    votedUsers.push(currentUser.uid);
+                    let votes = data.votes || {};
+                    votes[optionIndex] = (votes[optionIndex] || 0) + 1;
+                    transaction.update(msgRef, { votes: votes, votedUsers: votedUsers });
+                });
+            });
+        }
+
+        function openAskModal() { document.getElementById('askModal').classList.add('active'); }
+        function closeAskModal() { document.getElementById('askModal').classList.remove('active'); }
+        function submitAsk() {
+            const question = document.getElementById('askQuestionInput').value.trim();
+            if(!question) return alert('يرجى كتابة نص السؤال.');
+
+            db.collection('rooms').doc(currentRoomId).collection('messages').add({
+                uid: currentUser.uid,
+                name: currentUser.name,
+                rank: currentUser.rank,
+                avatar: currentUser.avatar,
+                type: 'ask',
+                question: question,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                closeAskModal();
+                document.getElementById('askQuestionInput').value = '';
+            });
+        }
+
+        function replyToAsk(msgId, askerName) {
+            prepareReply(msgId, askerName, 'سؤال دراسي');
+            document.getElementById('chatInput').focus();
+        }
+
+        // نظام الردود والمشنات
+        function prepareReply(id, name, text) {
+            activeReplyData = { id, name, text };
+            document.getElementById('replyBarText').innerText = `الرد على ${name}: ${text}`;
+            document.getElementById('activeReplyBar').style.display = 'flex';
         }
 
         function cancelReply() {
-            activeReplyId = null;
-            document.getElementById('activeReplyBar').classList.remove('active');
+            activeReplyData = null;
+            document.getElementById('activeReplyBar').style.display = 'none';
         }
 
-        // منشن الكل
         function triggerGroupMention() {
             const input = document.getElementById('chatInput');
-            input.value += " @الكل ";
+            input.value += '@الكل ';
             input.focus();
-            document.getElementById('attachmentMenu').classList.remove('active');
         }
 
-        // النوافذ المنبثقة للخاصيات
-        function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
+        // نافذة الإعدادات والبروفايل
+        function openSettingsModal() {
+            document.getElementById('settingUsernameInput').value = currentUser.name;
+            document.getElementById('settingRankSelect').value = currentUser.rank;
+            document.getElementById('settingGenderSelect').value = currentUser.gender;
+            document.getElementById('settingStreakInput').value = currentUser.streak;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
         function closeSettingsModal() { document.getElementById('settingsModal').classList.remove('active'); }
-        
-        function saveSettingsModal() {
-            const val = parseInt(document.getElementById('streakInputModal').value) || 1;
-            streakDays = val;
-            localStorage.setItem('streakDays', streakDays);
-            document.getElementById('coreDayNumber').innerText = streakDays;
+
+        function saveSettings() {
+            currentUser.name = document.getElementById('settingUsernameInput').value.trim() || 'طالب متميز';
+            currentUser.rank = document.getElementById('settingRankSelect').value;
+            currentUser.gender = document.getElementById('settingGenderSelect').value;
+            currentUser.streak = parseInt(document.getElementById('settingStreakInput').value) || 1;
+
+            localStorage.setItem('chat_name', currentUser.name);
+            localStorage.setItem('chat_rank', currentUser.rank);
+            localStorage.setItem('chat_gender', currentUser.gender);
+            localStorage.setItem('chat_streak', currentUser.streak);
+
+            updateUserProfileUI();
+            initRoomsBar();
             closeSettingsModal();
+            
+            // تحديث الغرفة إذا تغير الجنس
+            currentRoomId = 'gender_' + currentUser.gender;
+            loadRoom(currentRoomId);
         }
 
-        function openPollModal() { document.getElementById('pollModal').classList.add('active'); document.getElementById('attachmentMenu').classList.remove('active'); }
-        function closePollModal() { document.getElementById('pollModal').classList.remove('active'); }
-        
-        function addPollOptionField() {
-            const container = document.getElementById('pollOptionsContainer');
-            const input = document.createElement('input');
-            input.type = "text";
-            input.className = "modal-input poll-option-input";
-            input.placeholder = `الخيار ${container.children.length + 1}`;
-            container.appendChild(input);
+        function updateUserProfileUI() {
+            document.getElementById('coreDayNumber').innerText = currentUser.streak;
         }
 
-        function submitPoll() {
-            const q = document.getElementById('pollQuestion').value.trim();
-            const optionInputs = document.querySelectorAll('.poll-option-input');
-            const options = [];
-            optionInputs.forEach(i => { if(i.value.trim()) options.push(i.value.trim()); });
-
-            if (!q || options.length < 2) {
-                alert("يرجى كتابة السؤال وخيارين على الأقل.");
-                return;
+        // تحكم الأدمن بالمحادثة العامة
+        function checkAdminPrivileges() {
+            if(currentUser.isAdmin) {
+                document.getElementById('adminControlSection').style.display = 'block';
+                db.collection('settings').doc('global_chat_state').get().then(doc => {
+                    if(doc.exists) {
+                        document.getElementById('adminTogglePublicChat').checked = doc.data().isActive !== false;
+                    } else {
+                        document.getElementById('adminTogglePublicChat').checked = true;
+                    }
+                });
             }
-
-            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-            messagesList.push({
-                id: Date.now(),
-                sender: "أنت",
-                question: q,
-                options: options,
-                time: timeStr,
-                type: "poll",
-                isMe: true
-            });
-
-            closePollModal();
-            renderMessages();
         }
 
-        function openAskModal() { document.getElementById('askModal').classList.add('active'); document.getElementById('attachmentMenu').classList.remove('active'); }
-        function closeAskModal() { document.getElementById('askModal').classList.remove('active'); }
-
-        function submitAsk() {
-            const q = document.getElementById('askQuestion').value.trim();
-            if (!q) return;
-
-            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-            messagesList.push({
-                id: Date.now(),
-                sender: "أنت",
-                question: q,
-                time: timeStr,
-                type: "ask",
-                isMe: true
+        function togglePublicChatState(checkboxElem) {
+            const isActive = checkboxElem.checked;
+            db.collection('settings').doc('global_chat_state').set({
+                isActive: isActive
+            }, { merge: true }).then(() => {
+                initRoomsBar();
+            }).catch(err => {
+                console.error("خطأ في تحديث حالة المحادثة العامة:", err);
             });
-
-            closeAskModal();
-            renderMessages();
         }
 
-        // عرض الملف الشخصي للمستخدم
-        function openUserProfile(senderName) {
-            const u = usersDatabase[senderName] || {
-                name: senderName,
-                avatar: "https://i.pravatar.cc/100?img=11",
-                rankText: "عضو جديد",
-                rankClass: "rank-weak",
-                id: "USR-0000",
-                joinDate: "أكتوبر 2026",
-                msgCount: 1
+        function showUserProfile(name, rank, uid) {
+            alert(`معلومات الطالب:\nالاسم: ${name}\nالرتبة: ${getRankArabicName(rank)}\nالمعرف: ${uid}`);
+        }
+
+        function getRankArabicName(rankCode) {
+            const ranks = {
+                'weak': 'طالب مكافح',
+                'medium': 'طالب مجتهد',
+                'strong': 'طالب متفوق',
+                'very-strong': 'طالب متميز',
+                'legendary': 'طالب أسطوري'
             };
-
-            document.getElementById('profileModalAvatar').src = u.avatar;
-            document.getElementById('profileModalName').innerText = u.name;
-            document.getElementById('profileModalRank').innerText = u.rankText;
-            document.getElementById('profileModalRank').className = `profile-modal-rank ${u.rankClass}`;
-            document.getElementById('profileModalID').innerText = u.id;
-            document.getElementById('profileModalMsgCount').innerText = `${u.msgCount} رسالة`;
-            document.getElementById('profileModalJoinDate').innerText = u.joinDate;
-
-            document.getElementById('profileModal').classList.add('active');
+            return ranks[rankCode] || 'طالب مجتهد';
         }
 
-        function closeProfileModal() { document.getElementById('profileModal').classList.remove('active'); }
-
-        // تكبير الصور
-        function viewEnlargedImage(src) {
-            document.getElementById('enlargedImage').src = src;
+        function openImageViewer(url) {
+            document.getElementById('fullSizeImageViewer').src = url;
             document.getElementById('imageModalViewer').classList.add('active');
         }
-        function closeImageModal() { document.getElementById('imageModalViewer').classList.remove('active'); }
 
-        // عرض قائمة الرسائل بالكامل
-        function renderMessages() {
-            const container = document.getElementById('chatMessages');
-            container.innerHTML = '';
+        function closeImageViewer() {
+            document.getElementById('imageModalViewer').classList.remove('active');
+        }
 
-            messagesList.forEach(msg => {
-                const u = usersDatabase[msg.sender] || {
-                    name: msg.sender,
-                    avatar: "https://i.pravatar.cc/100?img=11",
-                    rankText: "عضو",
-                    rankClass: "rank-medium"
-                };
+        function handleKeyPress(e) {
+            if(e.key === 'Enter') {
+                handleMainAction();
+            }
+        }
 
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `message-item ${msg.isMe ? 'me' : ''}`;
-
-                let innerHTML = `
-                    <img src="${u.avatar}" class="msg-avatar" onclick="openUserProfile('${msg.sender}')" alt="Avatar">
-                    <div class="msg-content-box">
-                        <div class="msg-info">
-                            <span class="msg-name" onclick="openUserProfile('${msg.sender}')">${msg.sender}</span>
-                            <span class="rank-tag ${u.rankClass}">${u.rankText}</span>
-                        </div>
-                        <div class="msg-bubble">
-                `;
-
-                if (msg.replyTo) {
-                    innerHTML += `
-                        <div class="reply-preview-box">
-                            <b>${msg.replyTo.sender}</b>: ${msg.replyTo.text}
-                        </div>
-                    `;
-                }
-
-                if (msg.type === 'text') {
-                    innerHTML += `<div>${msg.text}</div>`;
-                } else if (msg.type === 'media') {
-                    innerHTML += `<img src="${msg.attachment}" class="msg-image" onclick="viewEnlargedImage('${msg.attachment}')" alt="Media">`;
-                    if (msg.text) innerHTML += `<div>${msg.text}</div>`;
-                } else if (msg.type === 'file') {
-                    innerHTML += `<div>📄 <a href="${msg.attachment}" download style="color:inherit;font-weight:bold;">مستند مرفق</a></div>`;
-                    if (msg.text) innerHTML += `<div>${msg.text}</div>`;
-                } else if (msg.type === 'voice') {
-                    const audioId = `audio-${msg.id}`;
-                    innerHTML += `
-                        <div class="voice-note-player">
-                            <button class="voice-play-btn" onclick="toggleAudioPlay(this, '${audioId}')">▶</button>
-                            <div class="voice-body-container">
-                                <div class="voice-progress-track">
-                                    <div class="voice-progress-fill" id="fill-${audioId}"></div>
-                                </div>
-                                <div class="voice-meta-info">
-                                    <span>🎤 ريكورد صوتی</span>
-                                    <span>${msg.duration || 0}ث</span>
-                                </div>
-                            </div>
-                            <audio id="${audioId}" src="${msg.audioUrl}"></audio>
-                        </div>
-                    `;
-                } else if (msg.type === 'poll') {
-                    innerHTML += `<div class="poll-box"><b>📊 تصويت: ${msg.question}</b>`;
-                    msg.options.forEach(opt => {
-                        innerHTML += `<div class="poll-option" onclick="alert('تم تسجيل صوتك لـ: ${opt}')">🔘 ${opt}</div>`;
-                    });
-                    innerHTML += `</div>`;
-                } else if (msg.type === 'ask') {
-                    innerHTML += `<div class="ask-box"><b>❓ سؤال: ${msg.question}</b></div>`;
-                }
-
-                innerHTML += `
-                            <button class="reply-trigger-btn" onclick="setReplyTo(${msg.id})">رد</button>
-                        </div>
-                        <span class="msg-time">${msg.time}</span>
-                    </div>
-                `;
-
-                itemDiv.innerHTML = innerHTML;
-                container.appendChild(itemDiv);
-            });
-
-            container.scrollTop = container.scrollHeight;
+        function linkify(inputText) {
+            if(!inputText) return '';
+            let replacedText, replacePattern1, replacePattern2, replacePattern3;
+            replacePattern1 = /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gim;
+            replacedText = inputText.replace(replacePattern1, '<a href="$1" target="_blank" style="color:var(--primary); text-decoration:underline;">$1</a>');
+            return replacedText;
         }
     </script>
 </body>
