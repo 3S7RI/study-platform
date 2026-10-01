@@ -149,7 +149,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
-        /* أزرار الجنس بجانب بعض (أزرق وبمبي مع SVG) */
         .gender-options-wrapper {
             display: flex;
             gap: 12px;
@@ -284,7 +283,6 @@
                 <div class="error-msg" id="nameError">الرجاء كتابة الاسم الكامل بصورة صحيحة</div>
             </div>
 
-            <!-- أزرار الجنس SVG (ذكر وأنثى) -->
             <div class="input-group">
                 <label>نوع الطالب (لتحديد شات الطلاب/الطالبات)</label>
                 <div class="gender-options-wrapper">
@@ -374,9 +372,6 @@
     </div>
 
     <script>
-        const BREVO_API_KEY = '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';
-        const SENDER_EMAIL = 'mohamad91xm@gmail.com';
-
         let generatedOtp = ""; 
         let countdownTimer = null;
         let selectedGender = 'male'; 
@@ -420,7 +415,7 @@
                 togglePassBtn.textContent = '🙈';
             } else {
                 passwordInput.type = 'password';
-                togglePassBtn.textContent = '👁';
+                togglePassBtn.textContent = '👁️';
             }
         });
 
@@ -432,7 +427,7 @@
                 toggleConfirmPassBtn.textContent = '🙈';
             } else {
                 confirmPasswordInput.type = 'password';
-                toggleConfirmPassBtn.textContent = '👁';
+                toggleConfirmPassBtn.textContent = '👁️';
             }
         });
 
@@ -537,31 +532,21 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+                // الاتصال بسيرفر Vercel الآمن لمشروعك study-trip
+                const brevoResponse = await fetch('https://study-trip.vercel.app/api/send-email', {
                     method: 'POST',
                     headers: {
-                        'accept': 'application/json',
-                        'api-key': BREVO_API_KEY,
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sender: { name: "منصة رحلة دراسية", email: SENDER_EMAIL },
-                        to: [{ email: emailInput, name: nameInput || "طالب جديد" }],
-                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
-                        htmlContent: `
-                            <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
-                                <h2 style="color: #4f46e5;">مرحباً ${nameInput || 'بك'}،</h2>
-                                <p>شكراً لتسجيلك في <b>منصة رحلة دراسية</b>. لإتمام عملية التحقق، يرجى استخدام كود الـ OTP التالي:</p>
-                                <div style="background: #ffffff; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4f46e5; text-align: center; margin: 20px 0; border: 1px solid #e2e8f0;">
-                                    ${generatedOtp}
-                                </div>
-                                <p style="color: #64748b; font-size: 14px;">هذا الكود صالح لفترة قصيرة، يرجى عدم مشاركته مع أي شخص.</p>
-                            </div>
-                        `
+                        email: emailInput,
+                        name: nameInput || "طالب جديد",
+                        otp: generatedOtp
                     })
                 });
 
-                if (!brevoResponse.ok) throw new Error('فشل إرسال الإيميل من سيرفر Brevo');
+                const result = await brevoResponse.json();
+                if (!brevoResponse.ok) throw new Error(result.error || 'فشل إرسال الإيميل من السيرفر');
 
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
