@@ -135,7 +135,7 @@
     <div class="container">
         <div class="welcome-stats">
             <h1 id="statsTitle">إحصائيات وتقارير الطالب</h1>
-            <p>متابعة دقيقة لكل نشاطاتك، امتحاناتك، ومستواك التعليمي المستمد مباشرة من السحابة</p>
+            <p>متابعة دقيقة لكل نشاطاتك، امتحاناتك، ومستواك التعليمي المستمد مباشرة من فايربيس</p>
         </div>
 
         <div class="stats-grid">
@@ -173,9 +173,24 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
 
-    <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+    <!-- سكربتات فايربيس -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // إعدادات مشروعك في فايربيس
+        const firebaseConfig = {
+          apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+          authDomain: "study-trip-1.firebaseapp.com",
+          projectId: "study-trip-1",
+          storageBucket: "study-trip-1.firebasestorage.app",
+          messagingSenderId: "632096690853",
+          appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+          measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         // --- نظام الثيم الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -216,55 +231,55 @@
             document.getElementById('navStudentName').innerText = firstName;
             document.getElementById('navProfileImg').src = userData.profileImage || userData.avatar || defaultMaleSvg;
             
-            // جلب الإحصائيات المحدثة مباشرة من السحابة بناءً على بريد الطالب
-            fetchCloudStats(userData.email || userData.studentId);
+            // جلب الإحصائيات مباشرة من فايربيس
+            fetchCloudStats(userData.email || userData.studentId || userData.id);
         }
 
         async function fetchCloudStats(identifier) {
             if (!identifier) return;
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    cache: 'no-cache'
-                });
-                let data = await response.json();
-                let record = data.record || data;
-                let users = record.users || record.students || [];
+                // افتراض تخزين مستخدمي المنصة داخل مصفوفة في قاعدة بيانات فايربيس (تحديث حسب هيكلتك)
+                const docRef = doc(db, "config", "platform data");
+                const docSnap = await getDoc(docRef);
 
-                // نلاقي الطالب نفسه من السحابة عشان نجيب أحدث بياناته
-                let cloudStudent = users.find(u => u && (
-                    (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || 
-                    (u.studentId && u.studentId.toLowerCase() === identifier.toLowerCase())
-                ));
+                if (docSnap.exists()) {
+                    const record = docSnap.data();
+                    let users = record.users || record.students || [];
 
-                if (cloudStudent) {
-                    // فرضا لو عنده سجل امتحانات (examsHistory) أو ملازم (downloadedFiles)
-                    const exams = cloudStudent.examsHistory || [];
-                    const files = cloudStudent.downloadedFiles || [];
-                    const videos = cloudStudent.watchedVideos || [];
+                    let cloudStudent = users.find(u => u && (
+                        (u.email && u.email.toLowerCase() === identifier.toLowerCase()) || 
+                        (u.studentId && u.studentId.toLowerCase() === identifier.toLowerCase()) ||
+                        (u.id && u.id.toString() === identifier.toString())
+                    ));
 
-                    document.getElementById('completedExamsCount').innerText = exams.length;
-                    document.getElementById('downloadedFilesCount').innerText = files.length;
-                    document.getElementById('watchedVideosCount').innerText = videos.length;
+                    if (cloudStudent) {
+                        const exams = cloudStudent.examsHistory || [];
+                        const files = cloudStudent.downloadedFiles || [];
+                        const videos = cloudStudent.watchedVideos || [];
 
-                    if (exams.length > 0) {
-                        let totalScore = exams.reduce((acc, curr) => acc + (curr.score || 0), 0);
-                        let avg = Math.round(totalScore / exams.length);
-                        document.getElementById('avgScore').innerText = avg + '%';
+                        document.getElementById('completedExamsCount').innerText = exams.length;
+                        document.getElementById('downloadedFilesCount').innerText = files.length;
+                        document.getElementById('watchedVideosCount').innerText = videos.length;
 
-                        let html = '<ul style="list-style: none; padding: 0;">';
-                        exams.forEach(ex => {
-                            html += `<li style="background: var(--btn-bg); margin-bottom: 8px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-                                <span>📝 امتحان: ${ex.examTitle || 'اختبار عام'}</span>
-                                <strong style="color: var(--primary);">الدرجة: ${ex.score}%</strong>
-                            </li>`;
-                        });
-                        html += '</ul>';
-                        document.getElementById('examsHistoryList').innerHTML = html;
+                        if (exams.length > 0) {
+                            let totalScore = exams.reduce((acc, curr) => acc + (curr.score || 0), 0);
+                            let avg = Math.round(totalScore / exams.length);
+                            document.getElementById('avgScore').innerText = avg + '%';
+
+                            let html = '<ul style="list-style: none; padding: 0;">';
+                            exams.forEach(ex => {
+                                html += `<li style="background: var(--btn-bg); margin-bottom: 8px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>📝 امتحان: ${ex.examTitle || 'اختبار عام'}</span>
+                                    <strong style="color: var(--primary);">الدرجة: ${ex.score}%</strong>
+                                </li>`;
+                            });
+                            html += '</ul>';
+                            document.getElementById('examsHistoryList').innerHTML = html;
+                        }
                     }
                 }
             } catch (e) {
-                console.error("خطأ في جلب الإحصائيات من السحابة:", e);
+                console.error("خطأ في جلب الإحصائيات من فايربيس:", e);
             }
         }
     </script>
