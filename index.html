@@ -69,7 +69,7 @@
             --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.2s; }
 
         body {
             background: var(--bg-gradient);
@@ -137,7 +137,7 @@
         .input-group { margin-bottom: 16px; text-align: right; }
         .input-group label { display: block; margin-bottom: 6px; color: var(--text-sub); font-weight: 600; font-size: 0.85rem; }
         
-        .input-group input, .input-group select {
+        .input-group input {
             width: 100%;
             padding: 12px 14px;
             background: var(--input-bg);
@@ -147,9 +147,56 @@
             font-size: 0.92rem;
             outline: none;
         }
-        .input-group input:focus, .input-group select:focus {
+        .input-group input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        /* تنسيق أزرار اختيار الجنس بجانب بعض */
+        .gender-options-wrapper {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .gender-btn {
+            flex: 1;
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--text-sub);
+            user-select: none;
+        }
+
+        .gender-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .gender-btn.male-option.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .gender-btn.female-option.active {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.15);
+            color: #ec4899;
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25);
+        }
+
+        .gender-btn:hover {
+            transform: translateY(-2px);
         }
 
         .email-flex {
@@ -240,13 +287,27 @@
                 <div class="error-msg" id="nameError">الرجاء كتابة الاسم الكامل بصورة صحيحة</div>
             </div>
 
-            <!-- زر اختيار الجنس (ذكر / أنثى) -->
+            <!-- أزرار اختيار الجنس بجانب بعض بـ SVG المخصص (أزرق وبمبي) -->
             <div class="input-group">
-                <label for="genderSelect">نوع الطالب (لتحديد شات الطلاب/الطالبات)</label>
-                <select id="genderSelect" required>
-                    <option value="male">ذكر (شات الطلاب)</option>
-                    <option value="female">أنثى (شات الطالبات)</option>
-                </select>
+                <label>نوع الطالب (لتحديد شات الطلاب/الطالبات)</label>
+                <div class="gender-options-wrapper">
+                    <div class="gender-btn male-option active" id="btnMale" onclick="selectGender('male')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="10" cy="14" r="5"></circle>
+                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                        </svg>
+                        <span>ذكر</span>
+                    </div>
+                    <div class="gender-btn female-option" id="btnFemale" onclick="selectGender('female')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="10" r="5"></circle>
+                            <line x1="12" y1="15" x2="12" y2="21"></line>
+                            <line x1="9" y1="18" x2="15" y2="18"></line>
+                        </svg>
+                        <span>أنثى</span>
+                    </div>
+                </div>
             </div>
 
             <div class="input-group">
@@ -302,7 +363,7 @@
                 <label for="confirmPassword">تأكيد كلمة المرور</label>
                 <div class="password-wrapper">
                     <input type="password" id="confirmPassword" placeholder="******" required>
-                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️</span>
+                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️️</span>
                 </div>
                 <div class="error-msg" id="confirmPassError">كلمتا المرور غير متطابقتين</div>
             </div>
@@ -321,6 +382,22 @@
 
         let generatedOtp = ""; 
         let countdownTimer = null;
+        let selectedGender = 'male'; // القيمة الافتراضية
+
+        // دالة تبديل واختيار الجنس عبر الأزرار التفاعلية
+        function selectGender(gender) {
+            selectedGender = gender;
+            const btnMale = document.getElementById('btnMale');
+            const btnFemale = document.getElementById('btnFemale');
+
+            if(gender === 'male') {
+                btnMale.classList.add('active');
+                btnFemale.classList.remove('active');
+            } else {
+                btnFemale.classList.add('active');
+                btnMale.classList.remove('active');
+            }
+        }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
@@ -347,7 +424,7 @@
                 togglePassBtn.textContent = '🙈';
             } else {
                 passwordInput.type = 'password';
-                togglePassBtn.textContent = '👁️';
+                togglePassBtn.textContent = '👁️️';
             }
         });
 
@@ -359,7 +436,7 @@
                 toggleConfirmPassBtn.textContent = '🙈';
             } else {
                 confirmPasswordInput.type = 'password';
-                toggleConfirmPassBtn.textContent = '👁️️';
+                toggleConfirmPassBtn.textContent = '👁';
             }
         });
 
@@ -546,7 +623,7 @@
             e.preventDefault();
 
             const name = document.getElementById('fullName').value.trim();
-            const gender = document.getElementById('genderSelect').value; // التقاط قيمة الجنس (ذكر أو أنثى)
+            const gender = selectedGender; // أخذ قيمة الجنس المختارة من الأزرار التفاعلية
             const email = document.getElementById('email').value.trim().toLowerCase();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
@@ -592,7 +669,7 @@
                     studentId: studentId,
                     fullName: name,
                     name: name,
-                    gender: gender, // حفظ الجنس في السيرفر
+                    gender: gender, // تخزين الجنس في داتا بيز فايربيس
                     email: email,
                     studentPhone: sPhone,
                     phone: sPhone,
