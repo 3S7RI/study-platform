@@ -4,6 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
+    
+    <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ⚠️ استبدل هذه البيانات ببيانات مشروعك الفعلي على Firebase Console
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.sendPasswordResetEmail = sendPasswordResetEmail;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+    </script>
+
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
@@ -155,7 +188,6 @@
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
 
-        /* تنسيق المودال العائم الخاص بنسيت كلمة المرور (بنفس ثيم المنصة) */
         .custom-modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -262,53 +294,25 @@
         </div>
     </div>
 
-    <!-- المودال الأول: إدخال البريد لاستعادة كلمة المرور -->
+    <!-- نافذة استعادة كلمة المرور -->
     <div class="custom-modal-overlay" id="forgotEmailModal">
         <div class="custom-modal">
             <h3>استعادة كلمة المرور</h3>
-            <p>أدخل بريدك الإلكتروني المسجل وسنرسل لك كود تحقق (OTP) فوراً.</p>
+            <p>أدخل بريدك الإلكتروني المسجل، وسنرسل لك رابطاً لإعادة تعيين كلمة المرور فوراً.</p>
             <div class="input-group">
                 <label for="recoveryEmail">البريد الإلكتروني</label>
                 <input type="email" id="recoveryEmail" placeholder="example@gmail.com">
             </div>
             <div class="modal-btns">
-                <button type="button" class="btn-modal-primary" onclick="sendOtpCode()">إرسال الكود</button>
-                <button type="button" class="btn-modal-secondary" onclick="closeModals()">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- المودال الثاني: إدخال الكود وكلمة المرور الجديدة -->
-    <div class="custom-modal-overlay" id="forgotOtpModal">
-        <div class="custom-modal">
-            <h3>التحقق وتحديث كلمة المرور</h3>
-            <p>تم إرسال كود التحقق إلى بريدك. اذهب واجلب الكود ثم اكتبه هنا مع كلمة المرور الجديدة:</p>
-            <div class="input-group">
-                <label for="enteredOtp">كود التحقق (6 أرقام)</label>
-                <input type="text" id="enteredOtp" placeholder="123456" maxlength="6">
-            </div>
-            <div class="input-group">
-                <label for="newPassword">كلمة المرور الجديدة</label>
-                <input type="password" id="newPassword" placeholder="******">
-            </div>
-            <div class="modal-btns">
-                <button type="button" class="btn-modal-primary" onclick="verifyAndResetPassword()">تأكيد التغيير</button>
+                <button type="button" class="btn-modal-primary" onclick="sendPasswordReset()">إرسال الرابط</button>
                 <button type="button" class="btn-modal-secondary" onclick="closeModals()">إلغاء</button>
             </div>
         </div>
     </div>
 
     <script>
-        const BREVO_API_KEY = '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';
-        const SENDER_EMAIL = 'mohamad91xm@gmail.com';
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         const ADMIN_PASS = '@Mohamad66xm01122161407';
 
-        let generatedOtp = '';
-        let targetRecoveryEmail = '';
-
-        // نظام الوضع الليلي والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
@@ -321,12 +325,11 @@
                 themeText.textContent = 'الوضع الداكن';
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
-                themeIcon.textContent = '☀️️';
+                themeIcon.textContent = '☀️';
                 themeText.textContent = 'الوضع الفاتح';
             }
         });
 
-        // إظهار وإخفاء كلمة المرور
         const passwordInput = document.getElementById('password');
         const togglePassBtn = document.getElementById('togglePassBtn');
         togglePassBtn.addEventListener('click', function() {
@@ -339,7 +342,6 @@
             }
         });
 
-        // دوال التحكم في النوافذ العائمة (Modals)
         function openForgotModal(e) {
             e.preventDefault();
             document.getElementById('forgotEmailModal').style.display = 'flex';
@@ -347,124 +349,34 @@
 
         function closeModals() {
             document.getElementById('forgotEmailModal').style.display = 'none';
-            document.getElementById('forgotOtpModal').style.display = 'none';
         }
 
-        // إرسال الكود عبر Brevo من خلال المودال العائم
-        async function sendOtpCode() {
+        // إرسال رابط إعادة تعيين كلمة المرور عبر Firebase Auth
+        async function sendPasswordReset() {
             const emailInput = document.getElementById('recoveryEmail').value.trim().toLowerCase();
             if (!emailInput) {
                 alert('يرجى إدخال البريد الإلكتروني أولاً!');
                 return;
             }
 
-            targetRecoveryEmail = emailInput;
-            generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
             const btn = event.target;
             btn.textContent = 'جاري الإرسال...';
             btn.disabled = true;
 
             try {
-                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'api-key': BREVO_API_KEY,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sender: { name: "منصة رحلة دراسية", email: SENDER_EMAIL },
-                        to: [{ email: targetRecoveryEmail, name: "مستخدم المنصة" }],
-                        subject: "كود استعادة كلمة المرور - منصة رحلة دراسية",
-                        htmlContent: `
-                            <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f8; border-radius: 10px;">
-                                <h2 style="color: #4f46e5;">استعادة كلمة المرور</h2>
-                                <p>لقد طلبت استعادة كلمة المرور الخاصة بحسابك في <b>منصة رحلة دراسية</b>. استخدام كود التحقق (OTP) التالي:</p>
-                                <div style="background: #ffffff; padding: 15px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4f46e5; text-align: center; margin: 20px 0; border: 1px solid #e2e8f0;">
-                                    ${generatedOtp}
-                                </div>
-                                <p style="color: #64748b; font-size: 14px;">إذا لم تقم بطلب هذا الإجراء، يمكنك تجاهل هذه الرسالة بأمان.</p>
-                            </div>
-                        `
-                    })
-                });
-
-                if (!brevoResponse.ok) throw new Error('فشل إرسال البريد');
-
-                // إغلاق مودال الإيميل وفتح مودال إدخال الكود (بدون فقدان البيانات وبدون ريفريش)
-                document.getElementById('forgotEmailModal').style.display = 'none';
-                document.getElementById('forgotOtpModal').style.display = 'flex';
-                alert('تم إرسال كود التحقق بنجاح إلى بريدك الإلكتروني!');
-
+                await window.sendPasswordResetEmail(window.firebaseAuth, emailInput);
+                alert('تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني بنجاح!');
+                closeModals();
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ أثناء إرسال البريد، تأكد من صحة البريد وحاول مجدداً.');
+                alert('حدث خطأ: ' + error.message);
             } finally {
-                btn.textContent = 'إرسال الكود';
+                btn.textContent = 'إرسال الرابط';
                 btn.disabled = false;
             }
         }
 
-        // التحقق من الكود وتحديث كلمة المرور سحابياً
-        async function verifyAndResetPassword() {
-            const enteredOtp = document.getElementById('enteredOtp').value.trim();
-            const newPassword = document.getElementById('newPassword').value;
-
-            if (enteredOtp !== generatedOtp) {
-                alert('كود التحقق غير صحيح!');
-                return;
-            }
-
-            if (!newPassword || newPassword.length < 6) {
-                alert('كلمة المرور يجب ألا تقل عن 6 أحرف!');
-                return;
-            }
-
-            const btn = event.target;
-            btn.textContent = 'جاري التحديث...';
-            btn.disabled = true;
-
-            try {
-                // جلب بيانات الطلاب لتحديث كلمة المرور الخاصة بالطالب في السحابة
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let currentRecord = result.record || {};
-                let studentsList = currentRecord.users || currentRecord.students || [];
-
-                const studentIndex = studentsList.findIndex(s => s.email && s.email.toLowerCase() === targetRecoveryEmail);
-
-                if (studentIndex !== -1) {
-                    studentsList[studentIndex].password = newPassword; // تحديث الباسورد
-                    
-                    // رفع البيانات المحدثة للسحابة
-                    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Master-Key': API_KEY
-                        },
-                        body: JSON.stringify(currentRecord)
-                    });
-
-                    alert('تم تغيير كلمة المرور بنجاح! يمكنك تسجيل الدخول بها الآن.');
-                    closeModals();
-                } else {
-                    alert('هذا البريد غير مسجل كطالب في قاعدة البيانات.');
-                }
-
-            } catch (error) {
-                console.error(error);
-                alert('حدث خطأ أثناء الاتصال بالسحابة لتحديث كلمة المرور.');
-            } finally {
-                btn.textContent = 'تأكيد التغيير';
-                btn.disabled = false;
-            }
-        }
-
-        // عملية تسجيل الدخول (مع تفعيل الاتصال السحابي الحقيقي للأدمن والطلاب)
+        // تسجيل الدخول الحقيقي عبر Firebase Auth و Firestore
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -477,47 +389,39 @@
             emailError.style.display = 'none';
             passError.style.display = 'none';
 
-            btn.textContent = 'جاري التحقق من الحساب...';
+            // فحص دخول الأدمن السريع
+            if (password === ADMIN_PASS) {
+                sessionStorage.setItem('isAdmin', 'true');
+                sessionStorage.setItem('isLoggedIn', 'true');
+                window.location.href = 'admin.html';
+                return;
+            }
+
+            btn.textContent = 'جاري تسجيل الدخول...';
             btn.disabled = true;
 
             try {
-                // التحقق الحقيقي من السحابة للأدمن والطلاب معاً لضمان الأمان والواقعية
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
+                // 1. تسجيل الدخول عبر Firebase Auth
+                const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                const user = userCredential.user;
+
+                // 2. جلب بيانات الطالب من Firestore باستخدام الـ UID
+                const q = window.query(window.collection(window.firebaseDb, "students"), window.where("email", "==", email));
+                const querySnapshot = await window.getDocs(q);
+
+                if (querySnapshot.empty) {
+                    throw new Error('لم يتم العثور على بيانات هذا الطالب في قاعدة البيانات.');
+                }
+
+                let studentData = null;
+                querySnapshot.forEach((doc) => {
+                    studentData = doc.data();
                 });
-                let result = await response.json();
-                let currentRecord = result.record || {};
-                let studentsList = currentRecord.users || currentRecord.students || [];
 
-                // تحقق الأدمن (مربوط بالسيستم والسحابة بشكل كامل)
-                if (password === ADMIN_PASS) {
-                    sessionStorage.setItem('isAdmin', 'true');
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    window.location.href = 'admin.html';
-                    return;
-                }
-
-                const student = studentsList.find(s => s.email && s.email.toLowerCase() === email);
-
-                if (!student) {
-                    emailError.style.display = 'block';
-                    btn.textContent = 'تسجيل الدخول 🚀';
-                    btn.disabled = false;
-                    return;
-                }
-
-                const hashedInputPass = btoa(password);
-                if (student.password !== password && student.password !== hashedInputPass) {
-                    passError.style.display = 'block';
-                    btn.textContent = 'تسجيل الدخول 🚀';
-                    btn.disabled = false;
-                    return;
-                }
-
-                const studentDataString = JSON.stringify(student);
+                const studentDataString = JSON.stringify(studentData);
                 sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('currentStudentEmail', student.email);
-                sessionStorage.setItem('currentStudentId', student.studentId || student.id);
+                sessionStorage.setItem('currentStudentEmail', studentData.email);
+                sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id);
                 sessionStorage.setItem('studentUser', studentDataString);
                 sessionStorage.setItem('currentUser', studentDataString);
 
@@ -525,7 +429,13 @@
 
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ في الاتصال بالسيستم، تأكد من الإنترنت وحاول مجدداً.');
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+                    emailError.style.display = 'block';
+                } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    passError.style.display = 'block';
+                } else {
+                    alert('خطأ في تسجيل الدخول: ' + error.message);
+                }
                 btn.textContent = 'تسجيل الدخول 🚀';
                 btn.disabled = false;
             }
