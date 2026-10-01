@@ -532,28 +532,28 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // تم تعديل مسار الطلب هنا ليكون مساراً نسبياً آمنًا ومتوافقًا تمامًا مع خوادم Vercel وأجهزة المستخدمين المختلفة
-                const brevoResponse = await fetch('/api/send-email', {
+                // إرسال الإيميل مباشرة من الكود باستخدام مفتاح Brevo API المباشر
+                const brevoApiKey = "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";
+                
+                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: {
+                        'accept': 'application/json',
+                        'api-key': brevoApiKey,
                         'content-type': 'application/json'
                     },
                     body: JSON.stringify({
-                        email: emailInput,
-                        name: nameInput || "طالب جديد",
-                        otp: generatedOtp
+                        sender: { name: "منصة رحلة دراسية", email: "noreply@studytrip.com" },
+                        to: [{ email: emailInput, name: nameInput || "طالب جديد" }],
+                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
+                        textContent: `أهلاً بك يا ${nameInput || "طالبنا العزيز"},\n\nكود التحقق الخاص بك هو: ${generatedOtp}\n\nيرجى إدخاله في الموقع لإتمام التسجيل.`
                     })
                 });
 
-                let result;
-                const contentType = brevoResponse.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    result = await brevoResponse.json();
-                } else {
-                    result = { error: await brevoResponse.text() };
+                if (!brevoResponse.ok) {
+                    const errData = await brevoResponse.json().catch(() => ({}));
+                    throw new Error(errData.message || 'فشل إرسال الإيميل مباشرة عبر Brevo');
                 }
-
-                if (!brevoResponse.ok) throw new Error(result.error || 'فشل إرسال الإيميل من السيرفر');
 
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
