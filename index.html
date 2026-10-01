@@ -5,6 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل طالب جديد</title>
     <meta name="google-site-verification" content="MC3Rq1pTIdJP0dN2fwFucfpowlsfzQnmTTtvVxj9O28" />
+    
+    <!-- استيراد مكتبات Firebase SDK (نسخة 9 المعيارية) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // ⚠️ استبدل هذه البيانات ببيانات مشروعك الفعلي على Firebase Console
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // تهيئة فايربيس
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // جعل الأدوات متاحة عالمياً داخل السكربتات
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.collection = collection;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+    </script>
+
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
@@ -254,12 +288,11 @@
                 <div class="error-msg" id="passError">كلمة المرور يجب أن لا تقل عن 6 عناصر</div>
             </div>
 
-            <!-- خانة تأكيد كلمة المرور الجديدة -->
             <div class="input-group">
                 <label for="confirmPassword">تأكيد كلمة المرور</label>
                 <div class="password-wrapper">
                     <input type="password" id="confirmPassword" placeholder="******" required>
-                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️️</span>
+                    <span class="toggle-password" id="toggleConfirmPassBtn">👁️</span>
                 </div>
                 <div class="error-msg" id="confirmPassError">كلمتا المرور غير متطابقتين</div>
             </div>
@@ -275,8 +308,6 @@
     <script>
         const BREVO_API_KEY = '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';
         const SENDER_EMAIL = 'mohamad91xm@gmail.com';
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
 
         let generatedOtp = ""; 
         let countdownTimer = null;
@@ -310,7 +341,6 @@
             }
         });
 
-        // زر إظهار وإخفاء تأكيد كلمة المرور
         const confirmPasswordInput = document.getElementById('confirmPassword');
         const toggleConfirmPassBtn = document.getElementById('toggleConfirmPassBtn');
         toggleConfirmPassBtn.addEventListener('click', function() {
@@ -410,15 +440,11 @@
             sendBtn.disabled = true;
 
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let currentRecord = result.record || {};
-                let studentsList = currentRecord.users || currentRecord.students || [];
+                // التحقق من وجود الإيميل مسبقاً في Firestore
+                const q = query(collection(window.firebaseDb, "students"), where("email", "==", emailInput));
+                const querySnapshot = await window.getDocs(q);
 
-                const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === emailInput);
-                if (emailExists) {
+                if (!querySnapshot.empty) {
                     emailError.textContent = 'هذا البريد الإلكتروني مسجل بالفعل مسبقاً!';
                     emailError.style.display = 'block';
                     sendBtn.textContent = 'إرسال الكود';
@@ -499,7 +525,6 @@
                 isValid = false;
             }
 
-            // التحقق من تطابق كلمة المرور
             if (pass !== confirmPass) {
                 document.getElementById('confirmPassError').style.display = 'block';
                 isValid = false;
@@ -533,24 +558,13 @@
             }
 
             const btn = document.getElementById('submitBtn');
-            btn.textContent = 'جاري حفظ الحساب في السحابة...';
+            btn.textContent = 'جاري إنشاء الحساب في السحابة...';
             btn.disabled = true;
 
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY }
-                });
-                let result = await response.json();
-                let currentRecord = result.record || {};
-                
-                let studentsList = currentRecord.users || currentRecord.students || [];
-
-                const emailExists = studentsList.some(student => student.email && student.email.toLowerCase() === email);
-                if (emailExists) {
-                    alert('هذا البريد الإلكتروني مسجل بالفعل! يمكنك تسجيل الدخول.');
-                    window.location.href = 'login.html';
-                    return;
-                }
+                // 1. إنشاء الحساب في Firebase Auth
+                const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
+                const user = userCredential.user;
 
                 let profileImageBase64 = "";
                 if (imageFile) {
@@ -559,12 +573,14 @@
                     } catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                const nextNumber = studentsList.length + 1;
+                // 2. جلب عدد الطلاب لتوليد ID تسلسلي مثل STU-0001
+                const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
+                const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
-                const hashedPassword = btoa(pass);
-
+                // 3. تخزين بيانات الطالب في Firestore
                 const userData = {
+                    uid: user.uid,
                     id: studentId,
                     studentId: studentId,
                     fullName: name,
@@ -573,7 +589,6 @@
                     studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
-                    password: hashedPassword,
                     status: 'active',
                     rank: 'ضعيف',
                     profileImage: profileImageBase64,
@@ -586,34 +601,21 @@
                     chats: {}
                 };
 
-                studentsList.push(userData);
-                currentRecord.users = studentsList;
+                await window.setDoc(window.doc(window.firebaseDb, "students", user.uid), userData);
 
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': API_KEY
-                    },
-                    body: JSON.stringify(currentRecord)
-                });
-
-                if (!updateRes.ok) throw new Error('فشل الحفظ للسحابة');
-
-                const sessionUserData = { ...userData, password: pass };
-                const studentDataString = JSON.stringify(sessionUserData);
-                
+                // تخزين الجلسة محلياً
+                const sessionUserData = { ...userData };
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('currentStudentEmail', email);
                 sessionStorage.setItem('currentStudentId', studentId);
-                sessionStorage.setItem('studentUser', studentDataString);
-                sessionStorage.setItem('currentUser', studentDataString);
+                sessionStorage.setItem('studentUser', JSON.stringify(sessionUserData));
+                sessionStorage.setItem('currentUser', JSON.stringify(sessionUserData));
 
                 window.location.href = 'welcome.html';
 
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ في الاتصال بالسحابة!');
+                alert('حدث خطأ أثناء التسجيل: ' + error.message);
                 btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
                 btn.disabled = false;
             }
