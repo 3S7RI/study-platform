@@ -544,7 +544,6 @@
             </button>
         </div>
     </div>
-
     <!-- نافذة الإعدادات -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
@@ -731,7 +730,7 @@
             }
         }
 
-        // 1. استيراد بيانات حساب الطالب من البين بالسحابة
+        // 1. استيراد بيانات حساب الطالب من البين بالسحابة حقيقياً ومباشرة
         async function fetchProfileData() {
             try {
                 const res = await fetch(`https://api.jsonbin.io/v3/b/${ACCOUNT_BIN_ID}/latest`, {
@@ -740,10 +739,23 @@
                 if (res.ok) {
                     const data = await res.json();
                     const record = data.record || {};
-                    const studentData = record.user || (Array.isArray(record) ? record[0] : record);
+                    // دعم جميع أشكال هيكلة البين المستلمة
+                    const studentData = record.user || (Array.isArray(record) ? record[0] : (record.users ? record.users[0] : record));
                     
-                    if (studentData && studentData.name) {
-                        currentUser = { ...currentUser, ...studentData };
+                    if (studentData) {
+                        currentUser = {
+                            ...currentUser,
+                            name: studentData.name || studentData.fullName || currentUser.name,
+                            avatar: studentData.avatar || studentData.profileImage || currentUser.avatar,
+                            studentId: studentData.studentId || studentData.id || currentUser.studentId,
+                            email: studentData.email || currentUser.email,
+                            streak: studentData.streak || currentUser.streak,
+                            rank: studentData.rank || currentUser.rank,
+                            rankClass: studentData.rankClass || currentUser.rankClass,
+                            allowProfileView: studentData.allowProfileView !== undefined ? studentData.allowProfileView : true,
+                            allowMentionAlert: studentData.allowMentionAlert !== undefined ? studentData.allowMentionAlert : true,
+                            blockFriendReq: studentData.blockFriendReq !== undefined ? studentData.blockFriendReq : false
+                        };
                     }
                 }
             } catch (err) {
@@ -782,7 +794,6 @@
                     if (data && data.record) {
                         const newMsgs = Array.isArray(data.record) ? data.record : (data.record.messages || []);
                         
-                        // فحص تنبيهات المنشن الشغالة حقيقياً
                         if (newMsgs.length > messagesList.length && currentUser.allowMentionAlert) {
                             const last = newMsgs[newMsgs.length - 1];
                             if (last && last.senderName !== currentUser.name && last.text && last.text.includes('@الجميع')) {
@@ -823,7 +834,7 @@
             const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
-            osc.frequency.value = 587.33; // D5 note
+            osc.frequency.value = 587.33;
             gain.gain.setValueAtTime(0.1, ctx.currentTime);
             osc.start();
             osc.stop(ctx.currentTime + 0.3);
@@ -1195,37 +1206,56 @@
             await saveProfileToBin();
         }
 
-        // إغلاق البروفايل ومنع طلبات الصداقة المباشرة والحقيقية
-        function openUserProfileObj(msgId) {
+        // استيراد بيانات الطالب حقيقياً عند فتح نافذة البروفايل
+        async function openUserProfileObj(msgId) {
             const msg = messagesList.find(m => m.id === msgId);
             if (!msg) return;
 
             const isMe = msg.senderName === currentUser.name;
-            const targetAllowView = isMe ? currentUser.allowProfileView : (msg.allowProfileView !== false);
+            let profileData = msg;
+
+            // جلب أحدث بيانات بروفايل من السحابة مباشرة
+            try {
+                const res = await fetch(`https://api.jsonbin.io/v3/b/${ACCOUNT_BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': MASTER_KEY }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const record = data.record || {};
+                    const fetchedUser = record.user || (Array.isArray(record) ? record[0] : record);
+                    if (fetchedUser && (fetchedUser.name === msg.senderName || isMe)) {
+                        profileData = { ...msg, ...fetchedUser };
+                    }
+                }
+            } catch (err) {
+                console.error("تعذر جلب ملف الطالب اللحظي:", err);
+            }
+
+            const targetAllowView = isMe ? currentUser.allowProfileView : (profileData.allowProfileView !== false);
 
             if (!isMe && targetAllowView === false) {
                 showCustomAlert("لقد أغلق الطالب إمكانية رؤية ملفه الشخصي.");
                 return;
             }
 
-            selectedTargetProfileUser = msg;
+            selectedTargetProfileUser = profileData;
 
-            document.getElementById('modalProfileAvatar').src = msg.senderAvatar || currentUser.avatar;
-            document.getElementById('modalProfileName').innerText = msg.senderName;
+            document.getElementById('modalProfileAvatar').src = profileData.senderAvatar || profileData.avatar || currentUser.avatar;
+            document.getElementById('modalProfileName').innerText = profileData.senderName || profileData.name || "طالب المنصة";
             
             const rankEl = document.getElementById('modalProfileRank');
-            rankEl.innerText = msg.senderRank || 'مجتهد';
-            rankEl.className = `profile-modal-rank ${msg.senderRankClass || 'rank-strong'}`;
+            rankEl.innerText = profileData.senderRank || profileData.rank || 'مجتهد';
+            rankEl.className = `profile-modal-rank ${profileData.senderRankClass || profileData.rankClass || 'rank-strong'}`;
 
-            document.getElementById('modalProfileStudentId').innerText = msg.studentId || currentUser.studentId || "STD-2026-9843";
-            document.getElementById('modalProfileEmail').innerText = msg.email || currentUser.email || "student@journey.edu";
+            document.getElementById('modalProfileStudentId').innerText = profileData.studentId || profileData.id || "STD-2026-9843";
+            document.getElementById('modalProfileEmail').innerText = profileData.email || "student@journey.edu";
 
             document.getElementById('userProfileModal').classList.add('active');
         }
 
         function handleSendFriendRequest() {
             if (!selectedTargetProfileUser) return;
-            const isMe = selectedTargetProfileUser.senderName === currentUser.name;
+            const isMe = selectedTargetProfileUser.senderName === currentUser.name || selectedTargetProfileUser.name === currentUser.name;
 
             if (isMe) {
                 showCustomAlert("هذا هو حسابك الشخصي!");
@@ -1236,7 +1266,7 @@
             if (targetBlock) {
                 showCustomAlert("عذراً، هذا الطالب لا يقبل طلبات الصداقة حالياً.");
             } else {
-                showCustomAlert(`تم إرسال طلب الصداقة بنجاح إلى الطالب (${selectedTargetProfileUser.senderName})!`);
+                showCustomAlert(`تم إرسال طلب الصداقة بنجاح إلى الطالب (${selectedTargetProfileUser.senderName || selectedTargetProfileUser.name})!`);
             }
         }
 
