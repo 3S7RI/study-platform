@@ -158,9 +158,24 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
 
-    <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+    <!-- سكربتات فايربيس والتعديل -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // إعدادات مشروعك في فايربيس
+        const firebaseConfig = {
+          apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+          authDomain: "study-trip-1.firebaseapp.com",
+          projectId: "study-trip-1",
+          storageBucket: "study-trip-1.firebasestorage.app",
+          messagingSenderId: "632096690853",
+          appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+          measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         // --- التحكم بالثيم الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -200,20 +215,22 @@
             document.getElementById('navStudentName').innerText = firstName;
             document.getElementById('navProfileImg').src = userData.profileImage || userData.avatar || defaultMaleSvg;
 
-            // جلب الفيديوهات المخصصة لصف الطالب من السحابة
+            // جلب الفيديوهات من فايربيس
             fetchCloudVideos(userData.grade || '3');
         }
 
         async function fetchCloudVideos(studentGrade) {
             const grid = document.getElementById('videosGrid');
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    cache: 'no-cache'
-                });
-                let data = await response.json();
-                let record = data.record || data;
-                let allVideos = record.videos || [];
+                // جلب مستند الإعدادات والبيانات من فايربيس (نفس المكان اللي خزنا فيه platform data)
+                const docRef = doc(db, "config", "platform data");
+                const docSnap = await getDoc(docRef);
+
+                let allVideos = [];
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    allVideos = data.videos || [];
+                }
 
                 // فلترة الفيديوهات حسب صف الطالب أو عرض العامة
                 let filteredVideos = allVideos.filter(v => !v.grade || v.grade === studentGrade || v.grade === 'all');
