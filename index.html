@@ -37,6 +37,14 @@
         window.where = where;
     </script>
 
+    <!-- استيراد مكتبة EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init("fcoo1ZFP3DyLszzqP"); // Public Key
+        })();
+    </script>
+
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
@@ -532,28 +540,19 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                const brevoApiKey = "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";
-                
-                // تم تعديل الإيميل هنا ليكون إيميلك المفعل والموثق في بريفو
-                const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'api-key': brevoApiKey,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sender: { name: "منصة رحلة دراسية", email: "mohamad91xm@gmail.com" },
-                        to: [{ email: emailInput, name: nameInput || "طالب جديد" }],
-                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
-                        textContent: `أهلاً بك يا ${nameInput || "طالبنا العزيز"},\n\nكود التحقق الخاص بك هو: ${generatedOtp}\n\nيرجى إدخاله في الموقع لإتمام التسجيل.`
-                    })
-                });
+                // إرسال الكود باستخدام EmailJS مع تمرير المتغيرات للقالب الخاص بك
+                const templateParams = {
+                    to_email: emailInput,
+                    to_name: nameInput || "طالب جديد",
+                    pass_code: generatedOtp,
+                    otp: generatedOtp,
+                    message: generatedOtp
+                };
 
-                if (!brevoResponse.ok) {
-                    const errData = await brevoResponse.json().catch(() => ({}));
-                    throw new Error(errData.message || 'فشل إرسال الإيميل مباشرة عبر Brevo');
-                }
+                const serviceID = "service_dzninf9";
+                const templateID = "template_3y16bz3";
+
+                await emailjs.send(serviceID, templateID, templateParams);
 
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
