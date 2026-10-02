@@ -200,7 +200,17 @@
         .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
 
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
-        .btn-delete-avatar { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); margin-top: 10px; padding: 9px 10px; font-size: 0.82rem; border-radius: 10px; }
+        
+        /* تنسيق الأزرار بجانب بعضها في الإعدادات */
+        .settings-danger-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-delete-avatar { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 9px 5px; font-size: 0.78rem; border-radius: 10px; margin-top: 0; }
+        .btn-delete-account { background-color: rgba(239, 68, 68, 0.25); color: #ff3333; border: 1px solid rgba(239, 68, 68, 0.7); padding: 9px 5px; font-size: 0.78rem; border-radius: 10px; margin-top: 0; font-weight: bold; }
+        .btn-delete-account:hover { background-color: #ef4444; color: #fff; }
 
         .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.9rem; }
         .badge-dot { position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
@@ -220,7 +230,6 @@
         .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; }
         .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); }
 
-        /* تنسيق دليل المستويات */
         .rank-guide-item {
             display: flex;
             justify-content: space-between;
@@ -287,7 +296,11 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف صورة البروفايل</button>
+                <div class="settings-danger-group">
+                    <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف الصورة</button>
+                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠️ حذف الحساب نهائياً</button>
+                </div>
+                
                 <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 10px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
@@ -311,7 +324,7 @@
         </div>
     </div>
 
-    <!-- Modal Rank Guide (دليل المستويات والنقاط) -->
+    <!-- Modal Rank Guide -->
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -410,8 +423,8 @@
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -444,17 +457,25 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                await fetchStudentProfile(user.uid);
+                // جلب الإيميل المخزن في الـ sessionStorage أو استخدام الإيميل المباشر كمعرف للمستند
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
+                await fetchStudentProfile(studentEmail, user.uid);
                 listenToFriendRequests(user.uid);
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        async function fetchStudentProfile(uid) {
+        async function fetchStudentProfile(emailKey, fallbackUid) {
             try {
-                const docRef = doc(db, "students", uid);
-                const docSnap = await getDoc(docRef);
+                // محاولة الجلب باستخدام الإيميل أولاً، ولو مش موجود نجرب بالـ UID
+                let docRef = doc(db, "students", emailKey);
+                let docSnap = await getDoc(docRef);
+
+                if (!docSnap.exists() && emailKey !== fallbackUid) {
+                    docRef = doc(db, "students", fallbackUid);
+                    docSnap = await getDoc(docRef);
+                }
 
                 if (docSnap.exists()) {
                     currentStudentData = docSnap.data();
@@ -544,7 +565,6 @@
         };
         window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
 
-        // دالة فتح دليل المستويات
         window.openRankGuideModal = function() { document.getElementById('rankGuideModal').classList.add('active'); };
         window.closeRankGuideModal = function() { document.getElementById('rankGuideModal').classList.remove('active'); };
 
@@ -580,7 +600,13 @@
             }
 
             try {
-                const docRef = doc(db, "students", currentUser.uid);
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
+                let docRef = doc(db, "students", studentEmail);
+                let docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    docRef = doc(db, "students", currentUser.uid);
+                }
+
                 await updateDoc(docRef, {
                     name: newName,
                     phone: newPhone,
@@ -629,7 +655,13 @@
             btn.disabled = true;
 
             try {
-                const docRef = doc(db, "students", currentUser.uid);
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
+                let docRef = doc(db, "students", studentEmail);
+                let docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    docRef = doc(db, "students", currentUser.uid);
+                }
+
                 await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
                 currentStudentData.profileImage = selectedNewAvatarBase64;
@@ -649,7 +681,13 @@
             if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
 
             try {
-                const docRef = doc(db, "students", currentUser.uid);
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
+                let docRef = doc(db, "students", studentEmail);
+                let docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    docRef = doc(db, "students", currentUser.uid);
+                }
+
                 await updateDoc(docRef, { profileImage: '' });
 
                 currentStudentData.profileImage = '';
@@ -659,6 +697,34 @@
             } catch (error) {
                 console.error("خطأ في حذف الصورة:", error);
                 alert('حدث خطأ أثناء الحذف.');
+            }
+        };
+
+        // --- وظيفة حذف الحساب نهائياً ---
+        window.deleteAccountPermanently = async function() {
+            if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح بياناتك كلياً.')) return;
+
+            try {
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
+                
+                // 1. حذف المستند من مجموعة students
+                try {
+                    await deleteDoc(doc(db, "students", studentEmail));
+                } catch(e) {}
+                try {
+                    await deleteDoc(doc(db, "students", currentUser.uid));
+                } catch(e) {}
+
+                // 2. حذف الحساب من نظام المصادقة Firebase Auth
+                await deleteUser(currentUser);
+                
+                // 3. تنظيف التخزين المحلي والتوجه لصفحة التسجيل
+                sessionStorage.clear();
+                alert('تم حذف الحساب نهائياً بنجاح.');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error("خطأ في حذف الحساب:", error);
+                alert('حدث خطأ أثناء حذف الحساب. قد تتطلب هذه العملية تسجيل الدخول مرة أخرى لتأكيد الأمان.');
             }
         };
 
@@ -918,55 +984,4 @@
 
             try {
                 const friendDoc = await getDoc(doc(db, "students", friendUid));
-                if (!friendDoc.exists()) {
-                    body.innerHTML = `<p style="color:#ef4444; text-align:center;">تعذر جلب بيانات الصديق.</p>`;
-                    return;
-                }
-
-                const fData = friendDoc.data();
-                if (fData.allowComparison === false) {
-                    body.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
-                    return;
-                }
-
-                const myScore = currentStudentData.totalScore || 0;
-                const friendScore = fData.totalScore || 0;
-                const diff = myScore - friendScore;
-
-                let diffText = '';
-                if (diff > 0) diffText = `أنت متقدم بـ ${diff} نقطة! 🔥`;
-                else if (diff < 0) diffText = `${friendName} متقدم بـ ${Math.abs(diff)} نقطة، شد حيلك! 💪`;
-                else diffText = `تعادل تام في النقاط والمستوى! 🤝`;
-
-                body.innerHTML = `
-                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; text-align:center;">
-                        <div>
-                            <img src="${currentStudentData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
-                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">أنت</div>
-                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.85rem;">${myScore} ن</div>
-                        </div>
-                        <div style="font-weight:bold; font-size:1.1rem; color:var(--text-secondary);">VS</div>
-                        <div>
-                            <img src="${fData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #10b981;">
-                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">${friendName}</div>
-                            <div style="color:#10b981; font-weight:bold; font-size:0.85rem;">${friendScore} ن</div>
-                        </div>
-                    </div>
-                    <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.9rem; color:var(--text-main);">
-                        ${diffText}
-                    </div>
-                `;
-            } catch (error) {
-                console.error("خطأ في المقارنة:", error);
-            }
-        };
-
-        window.logoutStudent = async function() {
-            if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
-                await signOut(auth);
-                window.location.href = 'login.html';
-            }
-        };
-    </script>
-</body>
-</html>
+ 
