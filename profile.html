@@ -298,9 +298,41 @@
         }
         .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
         .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
+
+        /* تصميم رسائل التنبيه العصرية (Custom Toast Notification) */
+        #customToast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            color: var(--text-main);
+            border: 1px solid var(--primary-color);
+            padding: 12px 22px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-size: 0.88rem;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+        }
+        #customToast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
+
+    <!-- عنصر التنبيه العصري المخصص -->
+    <div id="customToast">
+        <span id="toastIcon">✨</span>
+        <span id="toastMessage">تم الحفظ بنجاح</span>
+    </div>
 
     <div class="top-nav-bar">
         <a href="main.html" class="back-btn"><span>←</span> الرئيسية</a>
@@ -545,6 +577,17 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
+        // --- دالة إظهار التنبيه العصري المخصص بدل رسائل كروم المزعجة ---
+        function showToast(message, icon = "✨") {
+            const toast = document.getElementById('customToast');
+            document.getElementById('toastMessage').innerText = message;
+            document.getElementById('toastIcon').innerText = icon;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
         function getRankClass(score = 0) {
             if (score < 500) return { frame: 'rank-frame-weak', badge: 'badge-weak', label: 'مبتدئ (ضعيف)' };
             if (score < 1500) return { frame: 'rank-frame-medium', badge: 'badge-medium', label: 'متوسط' };
@@ -557,7 +600,7 @@
             if (user) {
                 currentUser = user;
                 
-                // تحميل سريع فوري من الذاكرة المحلية لتفادي أي بطء
+                // تحميل فوري لحظي من الذاكرة المحلية لمنع أي تأخير أو شاشة تحميل
                 const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
                 if (cachedData) {
                     try {
@@ -681,7 +724,7 @@
 
         window.copyStudentId = function(idText) {
             navigator.clipboard.writeText(idText).then(() => {
-                alert('تم نسخ معرف الطالب (ID) بنجاح! 📋');
+                showToast('تم نسخ معرف الطالب (ID) بنجاح!', '📋');
             });
         };
 
@@ -736,7 +779,7 @@
             const allowComparison = document.getElementById('editAllowComparison').checked;
 
             if (!newName) {
-                alert('يرجى إدخال الاسم الكامل!');
+                showToast('يرجى إدخال الاسم الكامل!', '⚠️');
                 return;
             }
 
@@ -762,10 +805,10 @@
                 localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
-                alert('تم حفظ التعديلات بنجاح! ✨');
+                showToast('تم حفظ التعديلات بنجاح!', '💾');
             } catch (error) {
                 console.error("خطأ في حفظ التعديلات:", error);
-                alert('حدث خطأ أثناء الحفظ، يرجى المحاولة لاحقاً.');
+                showToast('حدث خطأ أثناء الحفظ.', '❌');
             }
         };
 
@@ -773,7 +816,7 @@
             const file = event.target.files[0];
             if (file) {
                 if (file.size > 700 * 1024) {
-                    alert('حجم الصورة كبير جداً، يرجى اختيار صورة أصغر من 700 كيلوبايت.');
+                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️');
                     return;
                 }
                 const reader = new FileReader();
@@ -787,7 +830,7 @@
 
         window.saveAvatarDirectly = async function() {
             if (!selectedNewAvatarBase64) {
-                alert('الرجاء اختيار صورة جديدة أولاً!');
+                showToast('الرجاء اختيار صورة جديدة أولاً!', '⚠️');
                 return;
             }
 
@@ -808,10 +851,10 @@
                 localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
-                alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
+                showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
             } catch (error) {
                 console.error("خطأ حفظ الصورة:", error);
-                alert('فشل حفظ الصورة، ربما حجمها كبير جداً.');
+                showToast('فشل حفظ الصورة، ربما حجمها كبير جداً.', '❌');
             } finally {
                 btn.innerText = 'حفظ وتحديث الصورة 💾';
                 btn.disabled = false;
@@ -834,15 +877,15 @@
                 localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
-                alert('تم حذف صورة البروفايل بنجاح.');
+                showToast('تم حذف صورة البروفايل بنجاح.', '🗑️');
             } catch (error) {
                 console.error("خطأ في حذف الصورة:", error);
-                alert('حدث خطأ أثناء الحذف.');
+                showToast('حدث خطأ أثناء الحذف.', '❌');
             }
         };
 
         window.deleteAccountPermanently = async function() {
-            if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح بياناتك كلياً.')) return;
+            if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟')) return;
 
             try {
                 try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
@@ -850,24 +893,23 @@
 
                 localStorage.removeItem(`student_profile_${currentUser.uid}`);
                 await deleteUser(currentUser);
-                alert('تم حذف الحساب نهائياً بنجاح.');
-                window.location.href = 'login.html';
+                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️');
+                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             } catch (error) {
                 console.error("خطأ في حذف الحساب:", error);
-                alert('حدث خطأ أثناء حذف الحساب. قد تتطلب هذه العملية تسجيل الدخول مرة أخرى لتأكيد الأمان.');
+                showToast('حدث خطأ أثناء حذف الحساب.', '❌');
             }
         };
 
-        // --- البحث عن الملف الشخصي للطالب وعرضه في نافذة منبثقة مع زر إرسال طلب الصداقة ---
         window.searchStudentProfile = async function() {
             const queryVal = document.getElementById('friendIdInput').value.trim();
             if (!queryVal) {
-                alert('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!');
+                showToast('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!', '⚠️');
                 return;
             }
 
             if (queryVal === currentStudentData.studentId || queryVal === currentStudentData.phone || queryVal === currentUser.uid) {
-                alert('هذا هو حسابك الشخصي!');
+                showToast('هذا هو حسابك الشخصي!', '⚠️');
                 return;
             }
 
@@ -879,7 +921,6 @@
                 let targetUid = null;
                 let targetData = null;
 
-                // البحث بالـ ID
                 let q = query(collection(db, "students"), where("studentId", "==", queryVal));
                 let querySnap = await getDocs(q);
 
@@ -887,7 +928,6 @@
                     targetUid = querySnap.docs[0].id;
                     targetData = querySnap.docs[0].data();
                 } else {
-                    // البحث برقم الهاتف
                     q = query(collection(db, "students"), where("phone", "==", queryVal));
                     querySnap = await getDocs(q);
                     if (!querySnap.empty) {
@@ -944,10 +984,10 @@
 
                 document.getElementById('friendIdInput').value = '';
                 closeSearchedProfileModal();
-                alert(`تم إرسال طلب الصداقة إلى ${targetName} بنجاح! 📨`);
+                showToast(`تم إرسال طلب الصداقة إلى ${targetName} بنجاح!`, '📨');
             } catch (error) {
                 console.error("خطأ في إرسال طلب الصداقة:", error);
-                alert('حدث خطأ أثناء إرسال طلب الصداقة.');
+                showToast('حدث خطأ أثناء إرسال طلب الصداقة.', '❌');
             }
         };
 
@@ -1025,7 +1065,7 @@
                 await setDoc(doc(db, "friends", friendshipId1), { user1: currentUser.uid, user2: senderId, createdAt: serverTimestamp() });
                 await setDoc(doc(db, "friends", friendshipId2), { user1: senderId, user2: currentUser.uid, createdAt: serverTimestamp() });
 
-                alert('تم قبول طلب الصداقة بنجاح وأصبحتم أصدقاء! 🎉');
+                showToast('تم قبول طلب الصداقة وأصبحتم أصدقاء!', '🎉');
                 loadFriendRequestsList();
             } catch (error) {
                 console.error("خطأ في قبول الطلب:", error);
@@ -1035,6 +1075,7 @@
         window.rejectFriendRequest = async function(reqId) {
             try {
                 await updateDoc(doc(db, "friendRequests", reqId), { status: 'rejected' });
+                showToast('تم رفض طلب الصداقة.', '❌');
                 loadFriendRequestsList();
             } catch (error) {
                 console.error("خطأ في رفض الطلب:", error);
@@ -1101,7 +1142,7 @@
             try {
                 await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true });
                 await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true });
-                alert('تم إزالة الصديق بنجاح.');
+                showToast('تم إزالة الصديق بنجاح.', '🗑️');
                 loadFriendsList();
             } catch (error) {
                 console.error("خطأ إزالة الصديق:", error);
