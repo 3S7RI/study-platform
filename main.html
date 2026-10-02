@@ -18,6 +18,9 @@
             --primary: #6366f1;
             --primary-hover: #4f46e5;
             --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            --modal-overlay-bg: rgba(15, 23, 42, 0.75);
+            --success-color: #10b981;
+            --danger-color: #ef4444;
         }
 
         [data-theme="light"] {
@@ -32,6 +35,7 @@
             --primary: #4f46e5;
             --primary-hover: #4338ca;
             --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --modal-overlay-bg: rgba(0, 0, 0, 0.5);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
@@ -208,22 +212,108 @@
         }
         .card-btn:hover { background-color: var(--primary-hover); }
 
+        /* تنسيق نافذة الإشعارات الشيك والخط المرتب */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: var(--modal-overlay-bg); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center; 
+            z-index: 2000; opacity: 0; visibility: hidden; 
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+            padding: 15px; 
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-card { 
+            background: var(--card-bg); 
+            width: 100%; max-width: 440px; 
+            border-radius: 22px; 
+            border: 1px solid var(--card-border); 
+            box-shadow: var(--shadow); 
+            overflow: hidden; 
+            transform: scale(0.9) translateY(10px); 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
+        
+        .modal-header { 
+            padding: 14px 18px; 
+            background: var(--navbar-bg); 
+            border-bottom: 1px solid var(--card-border); 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        .modal-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        
+        .close-modal { 
+            background: var(--btn-bg); 
+            border: 1px solid var(--btn-border); 
+            width: 28px; height: 28px; border-radius: 50%;
+            font-size: 0.9rem; color: var(--text-sub); 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .close-modal:hover { background: var(--danger-color); color: #fff; border-color: var(--danger-color); }
+        
+        .modal-body { padding: 18px; text-align: right; max-height: 75vh; overflow-y: auto; }
+        .modal-body::-webkit-scrollbar { width: 5px; }
+        .modal-body::-webkit-scrollbar-track { background: transparent; }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
+
+        /* تصميم كارت الإشعار الفردي */
+        .admin-notif-card {
+            background: var(--btn-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            text-align: right;
+        }
+        .admin-notif-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .admin-info-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .verified-badge-icon {
+            width: 15px;
+            height: 15px;
+            fill: #3b82f6;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .admin-notif-time {
+            font-size: 0.68rem;
+            color: var(--text-sub);
+        }
+        .admin-notif-text {
+            font-size: 0.82rem;
+            color: var(--text-main);
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
         footer { text-align: center; padding: 25px; color: var(--text-sub); font-size: 0.85rem; border-top: 1px solid var(--card-border); margin-top: 40px; }
     </style>
 </head>
 <body id="pageBody">
-
     <header class="navbar">
         <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
             <div class="nav-avatar-frame" id="navAvatarFrame">
-                <!-- تحميل صورة افتراضية أولية مؤقتة لمنع الفراغ -->
                 <img id="navProfileImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة البروفايل">
             </div>
             <span id="navStudentName">حسابي</span>
         </a>
 
         <div class="nav-notification-wrapper">
-            <a href="profile.html" class="nav-notif-btn" title="الإشعارات وطلبات الصداقة">🔔</a>
+            <button onclick="openNotificationsModal()" class="nav-notif-btn" title="الإشعارات والتنبيهات">🔔</button>
             <span id="mainNotifDot" class="main-badge-dot">0</span>
         </div>
 
@@ -304,6 +394,21 @@
         </div>
     </main>
 
+    <!-- نافذة الإشعارات الشيك للأدمن -->
+    <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) closeNotificationsModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>إشعارات المنصة والأدمن 🔔</h3>
+                <button class="close-modal" onclick="closeNotificationsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="notificationsListContainer">
+                    <div class="loading">جاري جلب الإشعارات... ⏳</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer>
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
@@ -312,7 +417,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -345,14 +450,13 @@
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
-                themeToggleBtn.textContent = '☀️';
+                themeToggleBtn.textContent = '☀️️';
             }
         });
 
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- تحميل فوري من الذاكرة المحلية (Session Storage) لعدم حدوث أي تأخير أو اختفاء للصورة ---
         function loadProfileFromCache() {
             const cachedData = sessionStorage.getItem('cachedStudentProfile');
             if (cachedData) {
@@ -370,11 +474,11 @@
         }
         loadProfileFromCache();
 
-        // --- التحديث في الخلفية من Firebase لضمان الدقة وتحديث الكاش ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
                 await fetchAndUpdateMainProfile(studentEmail, user.uid);
+                checkUnreadNotifications();
             } else {
                 window.location.href = 'index.html';
             }
@@ -405,7 +509,6 @@
 
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
-                    // حفظ البيانات في الذاكرة المحلية لفتحها بسرعة فائقة في المرة القادمة
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
 
                     const studentName = data.name || data.fullName || 'بطل';
@@ -418,6 +521,75 @@
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
             }
+        }
+
+        // --- إدارة نافذة الإشعارات وعرض رسائل الأدمن مع علامة التوثيق الزرقاء ---
+        window.openNotificationsModal = async function() {
+            document.getElementById('notificationsModal').classList.add('active');
+            await loadAdminNotifications();
+        };
+
+        window.closeNotificationsModal = function() {
+            document.getElementById('notificationsModal').classList.remove('active');
+        };
+
+        async function loadAdminNotifications() {
+            const container = document.getElementById('notificationsListContainer');
+            container.innerHTML = `<div class="loading">جاري جلب إشعارات الأدمن... ⏳</div>`;
+
+            try {
+                // جلب إشعارات أو رسائل الأدمن العامة للطلاب
+                const notifRef = collection(db, "adminNotifications");
+                const q = query(notifRef, orderBy("createdAt", "desc"), limit(20));
+                const snap = await getDocs(q);
+
+                let html = '';
+                if (snap.empty) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة من الأدمن حالياً. ✨</p>`;
+                    return;
+                }
+
+                snap.forEach(docSnap => {
+                    const item = docSnap.data();
+                    const adminName = item.adminName || 'المهندس / الإدارة';
+                    const messageText = item.message || item.text || '';
+                    const timeFormatted = item.createdAt ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
+
+                    // أيقونة علامة التوثيق الزرقاء SVG العبقرية بجانب اسم الأدمن
+                    const verifiedSvg = `<svg class="verified-badge-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.99 15l-4.24-4.24 1.41-1.41 2.83 2.83 7.07-7.07 1.41 1.41-8.48 8.48z"/></svg>`;
+
+                    html += `
+                        <div class="admin-notif-card">
+                            <div class="admin-notif-header">
+                                <div class="admin-info-badge">
+                                    <span>${adminName}</span>
+                                    ${verifiedSvg}
+                                </div>
+                                <span class="admin-notif-time">${timeFormatted}</span>
+                            </div>
+                            <div class="admin-notif-text">${messageText}</div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+                document.getElementById('mainNotifDot').style.display = 'none';
+            } catch (error) {
+                console.error("خطأ في جلب إشعارات الأدمن:", error);
+                // محاولة بديلة أو رسالة افتراضية في حال لم تكن المجموعة منشأة بعد في قاعدة البيانات
+                container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة من الأدمن حالياً. ✨</p>`;
+            }
+        }
+
+        async function checkUnreadNotifications() {
+            try {
+                const notifRef = collection(db, "adminNotifications");
+                const snap = await getDocs(notifRef);
+                if (!snap.empty) {
+                    document.getElementById('mainNotifDot').style.display = 'inline-block';
+                    document.getElementById('mainNotifDot').innerText = snap.size;
+                }
+            } catch(e) {}
         }
     </script>
 </body>
