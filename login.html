@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // 🚀 إعدادات Firebase الحقيقية لمشروعك
         const firebaseConfig = {
@@ -30,12 +30,8 @@
         window.firebaseDb = db;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.sendPasswordResetEmail = sendPasswordResetEmail;
-        window.collection = collection;
-        window.getDocs = getDocs;
-        window.query = query;
-        window.where = where;
         window.doc = doc;
-        window.updateDoc = updateDoc;
+        window.getDoc = getDoc;
     </script>
 
     <style>
@@ -189,6 +185,7 @@
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
 
+        /* ثيم النوافذ المنبثقة (Modals & Alerts) المتناسق مع المنصة */
         .custom-modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -222,8 +219,9 @@
         }
         .custom-modal p {
             color: var(--text-sub);
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             margin-bottom: 20px;
+            line-height: 1.5;
         }
         .modal-btns {
             display: flex;
@@ -232,24 +230,26 @@
         }
         .btn-modal-primary {
             flex: 1;
-            padding: 10px;
+            padding: 11px;
             background: var(--primary);
             color: white;
             border: none;
             border-radius: 10px;
             font-weight: bold;
             cursor: pointer;
+            font-size: 0.95rem;
         }
         .btn-modal-primary:hover { background: var(--primary-hover); }
         .btn-modal-secondary {
             flex: 1;
-            padding: 10px;
+            padding: 11px;
             background: transparent;
             border: 1px solid var(--input-border);
             color: var(--text-sub);
             border-radius: 10px;
             font-weight: bold;
             cursor: pointer;
+            font-size: 0.95rem;
         }
         .btn-modal-secondary:hover { background: var(--input-bg); color: var(--text-main); }
     </style>
@@ -311,8 +311,30 @@
         </div>
     </div>
 
+    <!-- نافذة عامة منبثقة (بديل الـ alert المزعجة) بثيم المنصة -->
+    <div class="custom-modal-overlay" id="customAlertModal">
+        <div class="custom-modal">
+            <h3 id="alertTitle">تنبيه المنصة</h3>
+            <p id="alertMessage">رسالة التنبيه هنا...</p>
+            <div class="modal-btns">
+                <button type="button" class="btn-modal-primary" onclick="closeAlertModal()">حسناً</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const ADMIN_PASS = '@Mohamad66xm01122161407';
+
+        // دالة مخصصة لإظهار الرسائل المنبثقة بثيم المنصة بدل الـ alert العادية
+        function showPlatformModal(title, message) {
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+            document.getElementById('customAlertModal').style.display = 'flex';
+        }
+
+        function closeAlertModal() {
+            document.getElementById('customAlertModal').style.display = 'none';
+        }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
@@ -356,7 +378,7 @@
         async function sendPasswordReset() {
             const emailInput = document.getElementById('recoveryEmail').value.trim().toLowerCase();
             if (!emailInput) {
-                alert('يرجى إدخال البريد الإلكتروني أولاً!');
+                showPlatformModal('تنبيه هام', 'يرجى إدخال البريد الإلكتروني أولاً!');
                 return;
             }
 
@@ -366,18 +388,18 @@
 
             try {
                 await window.sendPasswordResetEmail(window.firebaseAuth, emailInput);
-                alert('تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني بنجاح!');
+                showPlatformModal('تم الإرسال بنجاح', 'تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني بنجاح!');
                 closeModals();
             } catch (error) {
                 console.error(error);
-                alert('حدث خطأ: ' + error.message);
+                showPlatformModal('خطأ في الإرسال', 'حدث خطأ: ' + error.message);
             } finally {
                 btn.textContent = 'إرسال الرابط';
                 btn.disabled = false;
             }
         }
 
-        // تسجيل الدخول الحقيقي عبر Firebase Auth و Firestore
+        // تسجيل الدخول الحقيقي عبر Firebase Auth و Firestore (مع جلب المستند باسم الإيميل مباشرة)
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -406,22 +428,19 @@
                 const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 const user = userCredential.user;
 
-                // 2. جلب بيانات الطالب من Firestore باستخدام الـ UID
-                const q = window.query(window.collection(window.firebaseDb, "students"), window.where("email", "==", email));
-                const querySnapshot = await window.getDocs(q);
+                // 2. جلب بيانات الطالب من Firestore مباشرة باستخدام الإيميل كاسم للمستند (Document ID)
+                const docRef = window.doc(window.firebaseDb, "students", email);
+                const docSnap = await window.getDoc(docRef);
 
-                if (querySnapshot.empty) {
+                if (!docSnap.exists()) {
                     throw new Error('لم يتم العثور على بيانات هذا الطالب في قاعدة البيانات.');
                 }
 
-                let studentData = null;
-                querySnapshot.forEach((doc) => {
-                    studentData = doc.data();
-                });
-
+                const studentData = docSnap.data();
                 const studentDataString = JSON.stringify(studentData);
+                
                 sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('currentStudentEmail', studentData.email);
+                sessionStorage.setItem('currentStudentEmail', studentData.email || email);
                 sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id);
                 sessionStorage.setItem('studentUser', studentDataString);
                 sessionStorage.setItem('currentUser', studentDataString);
@@ -435,7 +454,7 @@
                 } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     passError.style.display = 'block';
                 } else {
-                    alert('خطأ في تسجيل الدخول: ' + error.message);
+                    showPlatformModal('خطأ في تسجيل الدخول', 'خطأ: ' + error.message);
                 }
                 btn.textContent = 'تسجيل الدخول 🚀';
                 btn.disabled = false;
