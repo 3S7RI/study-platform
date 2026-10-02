@@ -176,7 +176,8 @@
         .search-input-group { display: flex; gap: 6px; align-items: center; width: 100%; }
         .search-input-group input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.82rem; background: var(--card-bg); color: var(--text-main); outline: none; }
         .search-input-group input:focus { border-color: var(--primary-color); }
-        .search-input-group button { padding: 9px 16px; background: var(--primary-color); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.82rem; }
+        .search-input-group button { padding: 9px 14px; background: var(--primary-color); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .search-input-group button svg { width: 16px; height: 16px; fill: currentColor; }
         .search-input-group button:hover { background: var(--primary-hover); }
 
         .footer-rights {
@@ -331,10 +332,12 @@
                 </button>
             </div>
             <div class="student-search-box">
-                <h3>🔍 إضافة صديق جديد بالـ ID</h3>
+                <h3>🔍 بحث وإضافة صديق بالـ ID أو رقم الهاتف</h3>
                 <div class="search-input-group">
-                    <input type="text" id="friendIdInput" placeholder="أدخل معرف الـ ID الخاص بالصديق...">
-                    <button onclick="sendFriendRequest()">إرسال 🚀</button>
+                    <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
+                    <button onclick="sendFriendRequest()" title="بحث وإرسال طلب الصداقة">
+                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -393,7 +396,7 @@
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>تعديل صورة البروفايل 🖼️️</h3>
+                <h3>تعديل صورة البروفايل 🖼</h3>
                 <button class="close-modal" onclick="closeAvatarModal()">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
@@ -537,30 +540,27 @@
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
 
-        // --- تم الاستغناء تماماً عن الكاش القديم لتجنب تداخل بيانات الحسابات عند تسجيل الخروج والدخول بحساب آخر ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                // جلب البيانات حصرياً من فايربيس للمستخدم الحالي مباشرة
-                await fetchStudentProfile(user.email, user.uid);
+                await fetchStudentProfileOptimized(user.email, user.uid);
                 listenToFriendRequests(user.uid);
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        async function fetchStudentProfile(emailKey, fallbackUid) {
+        // --- جلب بيانات البروفايل بأقصى سرعة ممكنة وبشكل مباشر من فايربيس ---
+        async function fetchStudentProfileOptimized(emailKey, fallbackUid) {
             try {
-                let docRef = null;
                 let docSnap = null;
-
                 if (emailKey) {
-                    docRef = doc(db, "students", emailKey);
+                    const docRef = doc(db, "students", emailKey);
                     docSnap = await getDoc(docRef);
                 }
 
                 if ((!docSnap || !docSnap.exists()) && fallbackUid) {
-                    docRef = doc(db, "students", fallbackUid);
+                    const docRef = doc(db, "students", fallbackUid);
                     docSnap = await getDoc(docRef);
                 }
 
@@ -569,7 +569,6 @@
                     const snapEmail = await getDocs(qEmail);
                     if (!snapEmail.empty) {
                         docSnap = snapEmail.docs[0];
-                        docRef = docSnap.ref;
                     }
                 }
 
@@ -587,7 +586,6 @@
                         phone: '',
                         parentPhone: ''
                     };
-                    
                     const newDocRef = doc(db, "students", currentUser.uid);
                     await setDoc(newDocRef, defaultData);
                     currentStudentData = defaultData;
@@ -642,10 +640,12 @@
                 </div>
 
                 <div class="student-search-box">
-                    <h3>🔍 إضافة صديق جديد بالـ ID</h3>
+                    <h3>🔍 بحث وإضافة صديق بالـ ID أو رقم الهاتف</h3>
                     <div class="search-input-group">
-                        <input type="text" id="friendIdInput" placeholder="أدخل معرف الـ ID الخاص بالصديق...">
-                        <button onclick="sendFriendRequest()">إرسال 🚀</button>
+                        <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
+                        <button onclick="sendFriendRequest()" title="بحث وإرسال طلب الصداقة">
+                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                        </button>
                     </div>
                 </div>
             `;
@@ -826,32 +826,42 @@
             }
         };
 
+        // --- البحث عن الطالب بالـ ID أو رقم الهاتف وإرسال طلب الصداقة بدقة ---
         window.sendFriendRequest = async function() {
-            const friendIdVal = document.getElementById('friendIdInput').value.trim();
-            if (!friendIdVal) {
-                alert('يرجى إدخال الـ ID الخاص بالصديق!');
+            const queryVal = document.getElementById('friendIdInput').value.trim();
+            if (!queryVal) {
+                alert('يرجى إدخال معرف الـ ID أو رقم الهاتف الخاص بالصديق!');
                 return;
             }
 
-            if (friendIdVal === currentStudentData.studentId || friendIdVal === currentUser.uid) {
+            if (queryVal === currentStudentData.studentId || queryVal === currentStudentData.phone || queryVal === currentUser.uid) {
                 alert('لا يمكنك إضافة نفسك كصديق!');
                 return;
             }
 
             try {
-                const q = query(collection(db, "students"), where("studentId", "==", friendIdVal));
-                const querySnap = await getDocs(q);
                 let targetUid = null;
+
+                // البحث بالـ ID أولاً
+                let q = query(collection(db, "students"), where("studentId", "==", queryVal));
+                let querySnap = await getDocs(q);
 
                 if (!querySnap.empty) {
                     targetUid = querySnap.docs[0].id;
                 } else {
-                    const directDoc = await getDoc(doc(db, "students", friendIdVal));
-                    if (directDoc.exists()) targetUid = friendIdVal;
+                    // البحث برقم الهاتف إذا لم يتم العثور بالـ ID
+                    q = query(collection(db, "students"), where("phone", "==", queryVal));
+                    querySnap = await getDocs(q);
+                    if (!querySnap.empty) {
+                        targetUid = querySnap.docs[0].id;
+                    } else {
+                        const directDoc = await getDoc(doc(db, "students", queryVal));
+                        if (directDoc.exists()) targetUid = queryVal;
+                    }
                 }
 
                 if (!targetUid) {
-                    alert('لم يتم العثور على طالب بهذا المعرف (ID)!');
+                    alert('لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف!');
                     return;
                 }
 
@@ -895,7 +905,6 @@
             });
         }
 
-        // --- تسريع جلب الطلبات عبر استعلام محسّن ---
         async function loadFriendRequestsList() {
             const container = document.getElementById('friendRequestsListContainer');
             container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
@@ -964,7 +973,6 @@
             }
         };
 
-        // --- تسريع جلب قائمة الأصدقاء بجمع الطلبات وجلب البيانات بسرعة ---
         async function loadFriendsList() {
             const container = document.getElementById('friendsListContainer');
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
@@ -979,7 +987,6 @@
                 }
 
                 let html = '';
-                // جمع الـ promises لجلب بيانات الأصدقاء بالتوازي (Parallel) لزيادة السرعة القصوى
                 const friendPromises = snap.docs.map(async (docSnap) => {
                     const friendData = docSnap.data();
                     if (friendData.deleted) return null;
