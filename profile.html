@@ -299,38 +299,43 @@
         .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
         .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
 
-        /* تصميم رسائل التنبيه العصرية (Custom Toast Notification) */
+        /* تصميم رسائل التنبيه العصرية في منتصف الشاشة (Center Toast Notification) */
         #customToast {
             position: fixed;
-            bottom: 25px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--card-bg);
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(30, 41, 59, 0.95);
             color: var(--text-main);
             border: 1px solid var(--primary-color);
-            padding: 12px 22px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            font-size: 0.88rem;
-            font-weight: 600;
+            padding: 16px 26px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(99, 102, 241, 0.3);
+            font-size: 0.95rem;
+            font-weight: 700;
             z-index: 9999;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             opacity: 0;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+            visibility: hidden;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+            max-width: 90%;
         }
         #customToast.show {
-            transform: translateX(-50%) translateY(0);
+            transform: translate(-50%, -50%) scale(1);
             opacity: 1;
+            visibility: visible;
         }
     </style>
 </head>
 <body>
 
-    <!-- عنصر التنبيه العصري المخصص -->
+    <!-- عنصر التنبيه العصري في المنتصف -->
     <div id="customToast">
-        <span id="toastIcon">✨</span>
+        <span id="toastIcon" style="font-size: 1.2rem;">✨</span>
         <span id="toastMessage">تم الحفظ بنجاح</span>
     </div>
 
@@ -577,7 +582,7 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- دالة إظهار التنبيه العصري المخصص بدل رسائل كروم المزعجة ---
+        // --- دالة عرض التنبيه في منتصف الشاشة وتختفي تلقائياً ---
         function showToast(message, icon = "✨") {
             const toast = document.getElementById('customToast');
             document.getElementById('toastMessage').innerText = message;
@@ -600,7 +605,6 @@
             if (user) {
                 currentUser = user;
                 
-                // تحميل فوري لحظي من الذاكرة المحلية لمنع أي تأخير أو شاشة تحميل
                 const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
                 if (cachedData) {
                     try {
@@ -616,7 +620,6 @@
             }
         });
 
-        // --- جلب فائق السرعة مع التخزين المؤقت لبيانات الطالب ---
         async function fetchStudentProfileUltraFast(emailKey, fallbackUid) {
             try {
                 let docSnap = null;
@@ -972,6 +975,7 @@
 
         window.sendFriendRequestToUser = async function(targetUid, targetName, targetImage) {
             try {
+                // حفظ الطلب بحيث يتم تخزين الـ receiverId كـ UID الحقيقي للطالب المستهدف لتظهر عنده مباشرة
                 const reqRef = collection(db, "friendRequests");
                 await addDoc(reqRef, {
                     senderId: currentUser.uid,
@@ -992,25 +996,37 @@
         };
 
         function listenToFriendRequests(uid) {
-            const q = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
-            onSnapshot(q, (snapshot) => {
-                let pendingCount = 0;
-                snapshot.forEach(docSnap => {
-                    const req = docSnap.data();
-                    if (req.status === 'pending') {
-                        pendingCount++;
-                    }
+            // الاستماع للطلبات التي تخص الحساب الحالي سواء بالـ UID أو الـ studentId لضمان وصولها 100%
+            const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
+            onSnapshot(q1, (snapshot) => {
+                processRequestsSnapshot(snapshot);
+            });
+
+            if (currentStudentData && currentStudentData.studentId) {
+                const q2 = query(collection(db, "friendRequests"), where("receiverId", "==", currentStudentData.studentId));
+                onSnapshot(q2, (snapshot) => {
+                    processRequestsSnapshot(snapshot);
                 });
-                const dot = document.getElementById('requestsBadgeDot');
-                if (dot) {
-                    if (pendingCount > 0) {
-                        dot.innerText = pendingCount;
-                        dot.style.display = 'inline-block';
-                    } else {
-                        dot.style.display = 'none';
-                    }
+            }
+        }
+
+        function processRequestsSnapshot(snapshot) {
+            let pendingCount = 0;
+            snapshot.forEach(docSnap => {
+                const req = docSnap.data();
+                if (req.status === 'pending') {
+                    pendingCount++;
                 }
             });
+            const dot = document.getElementById('requestsBadgeDot');
+            if (dot) {
+                if (pendingCount > 0) {
+                    dot.innerText = pendingCount;
+                    dot.style.display = 'inline-block';
+                } else {
+                    dot.style.display = 'none';
+                }
+            }
         }
 
         async function loadFriendRequestsList() {
@@ -1018,13 +1034,21 @@
             container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
 
             try {
-                const q = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
-                const snap = await getDocs(q);
+                // جلب الطلبات المرسلة للـ UID أو الـ studentId
+                const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
+                const snap1 = await getDocs(q1);
+                
+                let docsList = [...snap1.docs];
+                if (currentStudentData && currentStudentData.studentId) {
+                    const q2 = query(collection(db, "friendRequests"), where("receiverId", "==", currentStudentData.studentId));
+                    const snap2 = await getDocs(q2);
+                    docsList = [...docsList, ...snap2.docs];
+                }
 
                 let html = '';
                 let hasPending = false;
 
-                snap.forEach(docSnap => {
+                docsList.forEach(docSnap => {
                     const req = docSnap.data();
                     if (req.status === 'pending') {
                         hasPending = true;
@@ -1033,7 +1057,7 @@
                             <div class="friend-item-card">
                                 <div class="friend-info-trigger">
                                     <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
-                                    <span class="friend-name-text">${req.senderName}</span>
+                                    <span class="friend-name-text">${req.senderName} أرسل لك طلب صداقة</span>
                                 </div>
                                 <div class="friend-actions-group">
                                     <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
