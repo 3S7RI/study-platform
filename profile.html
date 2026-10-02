@@ -201,7 +201,6 @@
 
         .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
         
-        /* تنسيق الأزرار بجانب بعضها في الإعدادات */
         .settings-danger-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -457,7 +456,6 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                // جلب الإيميل المخزن في الـ sessionStorage أو استخدام الإيميل المباشر كمعرف للمستند
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
                 await fetchStudentProfile(studentEmail, user.uid);
                 listenToFriendRequests(user.uid);
@@ -468,29 +466,63 @@
 
         async function fetchStudentProfile(emailKey, fallbackUid) {
             try {
-                // محاولة الجلب باستخدام الإيميل أولاً، ولو مش موجود نجرب بالـ UID
-                let docRef = doc(db, "students", emailKey);
-                let docSnap = await getDoc(docRef);
+                let docRef = null;
+                let docSnap = null;
 
-                if (!docSnap.exists() && emailKey !== fallbackUid) {
+                // 1. محاولة الجلب بالإيميل إن وُجد
+                if (emailKey) {
+                    docRef = doc(db, "students", emailKey);
+                    docSnap = await getDoc(docRef);
+                }
+
+                // 2. إذا لم يوجد بالإيميل، نجرب بالـ UID المباشر
+                if ((!docSnap || !docSnap.exists()) && fallbackUid) {
                     docRef = doc(db, "students", fallbackUid);
                     docSnap = await getDoc(docRef);
                 }
 
-                if (docSnap.exists()) {
+                // 3. إذا لم يوجد بالمستند المباشر، نبحث في الكولكشن عن طريق الحقل email أو uid
+                if ((!docSnap || !docSnap.exists()) && currentUser.email) {
+                    const qEmail = query(collection(db, "students"), where("email", "==", currentUser.email));
+                    const snapEmail = await getDocs(qEmail);
+                    if (!snapEmail.empty) {
+                        docSnap = snapEmail.docs[0];
+                        docRef = docSnap.ref;
+                    }
+                }
+
+                if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
                     renderStudentProfile(currentStudentData);
                 } else {
-                    document.getElementById('studentProfileContent').innerHTML = `
-                        <div style="text-align:center; padding:20px;">
-                            <p style="color:#ef4444; margin-bottom:10px;">عذراً، لم يتم العثور على بيانات هذا الطالب في قاعدة البيانات.</p>
-                            <button class="btn" onclick="location.reload()">إعادة المحاولة 🔄</button>
-                        </div>
-                    `;
+                    // إذا لم يتم العثور نهائياً، نقوم بإنشاء ملف افتراضي جديد للطالب لضمان عدم تعليق الشاشة
+                    const defaultData = {
+                        name: currentUser.displayName || currentUser.email.split('@')[0],
+                        email: currentUser.email || '',
+                        studentId: currentUser.uid.substring(0, 8),
+                        totalScore: 0,
+                        profileImage: currentUser.photoURL || '',
+                        allowComparison: true,
+                        phone: '',
+                        parentPhone: ''
+                    };
+                    
+                    const newDocRef = doc(db, "students", currentUser.uid);
+                    await setDoc(newDocRef, defaultData);
+                    currentStudentData = defaultData;
+                    renderStudentProfile(currentStudentData);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                document.getElementById('studentProfileContent').innerHTML = `<div class="loading" style="color:#ef4444;">حدث خطأ أثناء الاتصال بقاعدة البيانات.</div>`;
+                // محاولة أخيرة بعرض بيانات أساسية لمنع التعليق
+                currentStudentData = {
+                    name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
+                    studentId: currentUser.uid.substring(0, 8),
+                    totalScore: 0,
+                    profileImage: '',
+                    allowComparison: true
+                };
+                renderStudentProfile(currentStudentData);
             }
         }
 
@@ -545,7 +577,6 @@
             });
         };
 
-        // --- النوافذ المنبثقة ---
         window.openSettingsModal = function() {
             if (!currentStudentData) return;
             document.getElementById('editName').value = currentStudentData.name || '';
@@ -700,25 +731,15 @@
             }
         };
 
-        // --- وظيفة حذف الحساب نهائياً ---
         window.deleteAccountPermanently = async function() {
             if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح بياناتك كلياً.')) return;
 
             try {
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
-                
-                // 1. حذف المستند من مجموعة students
-                try {
-                    await deleteDoc(doc(db, "students", studentEmail));
-                } catch(e) {}
-                try {
-                    await deleteDoc(doc(db, "students", currentUser.uid));
-                } catch(e) {}
+                try { await deleteDoc(doc(db, "students", studentEmail)); } catch(e) {}
+                try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
 
-                // 2. حذف الحساب من نظام المصادقة Firebase Auth
                 await deleteUser(currentUser);
-                
-                // 3. تنظيف التخزين المحلي والتوجه لصفحة التسجيل
                 sessionStorage.clear();
                 alert('تم حذف الحساب نهائياً بنجاح.');
                 window.location.href = 'login.html';
@@ -984,4 +1005,55 @@
 
             try {
                 const friendDoc = await getDoc(doc(db, "students", friendUid));
- 
+                if (!friendDoc.exists()) {
+                    body.innerHTML = `<p style="color:#ef4444; text-align:center;">تعذر جلب بيانات الصديق.</p>`;
+                    return;
+                }
+
+                const fData = friendDoc.data();
+                if (fData.allowComparison === false) {
+                    body.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
+                    return;
+                }
+
+                const myScore = currentStudentData.totalScore || 0;
+                const friendScore = fData.totalScore || 0;
+                const diff = myScore - friendScore;
+
+                let diffText = '';
+                if (diff > 0) diffText = `أنت متقدم بـ ${diff} نقطة! 🔥`;
+                else if (diff < 0) diffText = `${friendName} متقدم بـ ${Math.abs(diff)} نقطة، شد حيلك! 💪`;
+                else diffText = `تعادل تام في النقاط والمستوى! 🤝`;
+
+                body.innerHTML = `
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; text-align:center;">
+                        <div>
+                            <img src="${currentStudentData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
+                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">أنت</div>
+                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.85rem;">${myScore} ن</div>
+                        </div>
+                        <div style="font-weight:bold; font-size:1.1rem; color:var(--text-secondary);">VS</div>
+                        <div>
+                            <img src="${fData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #10b981;">
+                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">${friendName}</div>
+                            <div style="color:#10b981; font-weight:bold; font-size:0.85rem;">${friendScore} ن</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.9rem; color:var(--text-main);">
+                        ${diffText}
+                    </div>
+                `;
+            } catch (error) {
+                console.error("خطأ في المقارنة:", error);
+            }
+        };
+
+        window.logoutStudent = async function() {
+            if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
+                await signOut(auth);
+                window.location.href = 'login.html';
+            }
+        };
+    </script>
+</body>
+</html>
