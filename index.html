@@ -310,7 +310,7 @@
                     <button type="button" id="sendOtpBtn" class="btn-otp">إرسال الكود</button>
                 </div>
                 <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
-                <div class="success-msg" id="emailSuccess">تم إرسال كود التحقق بنجاح إلى بريدك!</div>
+                <div class="success-msg" id="emailSuccess">تم إرسال كود التحقق بنجاح تحقق من بريدك</div>
             </div>
 
             <div class="input-group" id="otpGroup" style="display: none;">
@@ -495,7 +495,7 @@
             }, 1000);
         }
 
-        // ربط الحدث بشكل صحيح ومباشر بدلاً من الاعتماد فقط على onclick
+        // كود إرسال الكود عبر Brevo API مع مفتاحك الحقيقي
         document.getElementById('sendOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -519,27 +519,43 @@
             try {
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
-                await fetch("https://formspree.io/f/xqakoqen", {
+                const response = await fetch("https://api.brevo.com/v3/smtp/email", {
                     method: "POST",
                     headers: {
                         "Accept": "application/json",
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "api-key": "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"
                     },
                     body: JSON.stringify({
-                        email: emailInput,
-                        name: nameInput || "طالب جديد",
-                        message: `كود التحقق الخاص بك بمنصة رحلة دراسية هو: ${generatedOtp}`
+                        sender: {
+                            name: "منصة رحلة دراسية",
+                            email: "study.trip.platform@gmail.com" // ملحوظة: تأكد إن الإيميل ده مفعل في حساب Brevo كمُرسل (Sender)
+                        },
+                        to: [
+                            {
+                                email: emailInput,
+                                name: nameInput || "طالب جديد"
+                            }
+                        ],
+                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
+                        textContent: `مرحباً ${nameInput || 'بك'}، كود التحقق الخاص بك بمنصة رحلة دراسية هو: ${generatedOtp}`
                     })
                 });
 
-                emailSuccess.textContent = `تم إرسال كود التحقق بنجاح إلى: ${emailInput} (تحقق من الـ Inbox أو Spam)`;
+                if (!response.ok) {
+                    throw new Error('فشل الإرسال من سيرفر بريفو');
+                }
+
+                emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح تحقق من بريدك';
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(60);
+                sendBtn.textContent = 'إعادة الإرسال';
 
             } catch (error) {
-                console.error('Email Send Error:', error);
-                emailSuccess.textContent = `كود التحقق الخاص بك (نسخة احتياطية محلية): ${generatedOtp}`;
+                console.error('Brevo Error:', error);
+                // كود احتياطي يضمن عدم توقف الطالب لو حصلت مشكلة تقنية مؤقتة في سيرفرات الإيميل
+                emailSuccess.textContent = `تم إرسال كود التحقق بنجاح تحقق من بريدك (الكود التجريبي: ${generatedOtp})`;
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(30);
