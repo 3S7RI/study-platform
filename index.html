@@ -170,7 +170,10 @@
             user-select: none;
         }
 
-        .gender-btn svg { width: 20px; height: 20px; }
+        .gender-btn svg {
+            width: 20px;
+            height: 20px;
+        }
 
         .gender-btn.male-option.active {
             border-color: #3b82f6;
@@ -186,8 +189,17 @@
             box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25);
         }
 
-        .email-flex { display: flex; gap: 10px; }
-        .email-flex input { flex: 1; }
+        .gender-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .email-flex {
+            display: flex;
+            gap: 10px;
+        }
+        .email-flex input {
+            flex: 1;
+        }
         .btn-otp {
             background: var(--primary);
             color: white;
@@ -198,6 +210,7 @@
             font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
+            transition: background 0.2s;
         }
         .btn-otp:hover { background: var(--primary-hover); }
         .btn-otp:disabled { background: var(--text-sub); cursor: not-allowed; }
@@ -213,6 +226,7 @@
             background: var(--input-bg);
             cursor: pointer;
         }
+        .file-upload-wrapper:hover { border-color: var(--primary); }
         .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .file-upload-label { display: flex; align-items: center; gap: 10px; color: var(--text-sub); font-size: 0.88rem; font-weight: 600; }
         .file-preview { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: none; border: 2px solid var(--success); }
@@ -241,6 +255,7 @@
 
         .footer-text { text-align: center; margin-top: 20px; color: var(--text-sub); font-size: 0.88rem; }
         .footer-text a { color: var(--primary); text-decoration: none; font-weight: bold; }
+        .footer-text a:hover { text-decoration: underline; }
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
         .success-msg { color: #10b981; font-size: 0.82rem; margin-top: 4px; display: none; }
@@ -270,10 +285,20 @@
                 <label>نوع الطالب (لتحديد شات الطلاب/الطالبات)</label>
                 <div class="gender-options-wrapper">
                     <div class="gender-btn male-option active" id="btnMale" onclick="selectGender('male')">
-                        <span>ذكر 👦</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="10" cy="14" r="5"></circle>
+                            <line x1="21" y1="3" x2="14" y2="10"></line>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                        </svg>
+                        <span>ذكر</span>
                     </div>
                     <div class="gender-btn female-option" id="btnFemale" onclick="selectGender('female')">
-                        <span>أنثى 👧</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="10" r="5"></circle>
+                            <line x1="12" y1="15" x2="12" y2="21"></line>
+                            <line x1="9" y1="18" x2="15" y2="18"></line>
+                        </svg>
+                        <span>أنثى</span>
                     </div>
                 </div>
             </div>
@@ -284,7 +309,7 @@
                     <input type="email" id="email" placeholder="example@gmail.com" required>
                     <button type="button" id="sendOtpBtn" class="btn-otp" onclick="sendOTPCode()">إرسال الكود</button>
                 </div>
-                <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
+                <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة أو مستخدم مسبقاً</div>
                 <div class="success-msg" id="emailSuccess">تم إرسال كود التحقق بنجاح إلى بريدك!</div>
             </div>
 
@@ -313,7 +338,7 @@
                         <span id="uploadIcon">📷</span>
                         <span id="fileName">اختر صورة البروفايل...</span>
                     </div>
-                    <img id="imagePreview" class="file-preview" alt="معاينة">
+                    <img id="imagePreview" class="file-preview" alt="معاينة الصورة">
                     <input type="file" id="profileImageInput" accept="image/*">
                 </div>
             </div>
@@ -351,48 +376,80 @@
 
         function selectGender(gender) {
             selectedGender = gender;
-            document.getElementById('btnMale').classList.toggle('active', gender === 'male');
-            document.getElementById('btnFemale').classList.toggle('active', gender === 'female');
+            const btnMale = document.getElementById('btnMale');
+            const btnFemale = document.getElementById('btnFemale');
+
+            if(gender === 'male') {
+                btnMale.classList.add('active');
+                btnFemale.classList.remove('active');
+            } else {
+                btnFemale.classList.add('active');
+                btnMale.classList.remove('active');
+            }
         }
 
-        document.getElementById('themeToggleBtn').addEventListener('click', () => {
-            const html = document.documentElement;
-            const isDark = html.getAttribute('data-theme') === 'dark';
-            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            document.getElementById('themeIcon').textContent = isDark ? '🌙' : '☀️';
-            document.getElementById('themeText').textContent = isDark ? 'الوضع الداكن' : 'الوضع الفاتح';
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const htmlTag = document.documentElement;
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlTag.getAttribute('data-theme') === 'dark') {
+                htmlTag.setAttribute('data-theme', 'light');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'الوضع الداكن';
+            } else {
+                htmlTag.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'الوضع الفاتح';
+            }
         });
 
-        document.getElementById('togglePassBtn').addEventListener('click', function() {
-            const p = document.getElementById('password');
-            p.type = p.type === 'password' ? 'text' : 'password';
-            this.textContent = p.type === 'password' ? '👁' : '🙈';
+        const passwordInput = document.getElementById('password');
+        const togglePassBtn = document.getElementById('togglePassBtn');
+        togglePassBtn.addEventListener('click', function() {
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                togglePassBtn.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                togglePassBtn.textContent = '👁';
+            }
         });
 
-        document.getElementById('toggleConfirmPassBtn').addEventListener('click', function() {
-            const p = document.getElementById('confirmPassword');
-            p.type = p.type === 'password' ? 'text' : 'password';
-            this.textContent = p.type === 'password' ? '👁' : '🙈';
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const toggleConfirmPassBtn = document.getElementById('toggleConfirmPassBtn');
+        toggleConfirmPassBtn.addEventListener('click', function() {
+            if (confirmPasswordInput.type === 'password') {
+                confirmPasswordInput.type = 'text';
+                toggleConfirmPassBtn.textContent = '🙈';
+            } else {
+                confirmPasswordInput.type = 'password';
+                toggleConfirmPassBtn.textContent = '👁️';
+            }
         });
 
         const profileImageInput = document.getElementById('profileImageInput');
+        const fileNameSpan = document.getElementById('fileName');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const imagePreview = document.getElementById('imagePreview');
+
         profileImageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
-                document.getElementById('fileName').textContent = file.name;
-                document.getElementById('uploadIcon').style.display = 'none';
+                fileNameSpan.textContent = file.name;
+                uploadIcon.style.display = 'none';
                 const reader = new FileReader();
-                reader.onload = e => {
-                    const imgPre = document.getElementById('imagePreview');
-                    imgPre.src = e.target.result;
-                    imgPre.style.display = 'block';
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    imagePreview.style.display = 'block';
                 };
                 reader.readAsDataURL(file);
             }
         });
 
         function convertImageToBase64(file) {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = event => {
@@ -400,13 +457,24 @@
                     img.src = event.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        let width = img.width, height = img.height;
-                        if (width > 250) { height *= 250 / width; width = 250; }
-                        canvas.width = width; canvas.height = height;
-                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                        const MAX_WIDTH = 250;
+                        const MAX_HEIGHT = 250;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height) {
+                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                        } else {
+                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
                         resolve(canvas.toDataURL('image/jpeg', 0.6));
                     };
+                    img.onerror = error => reject(error);
                 };
+                reader.onerror = error => reject(error);
             });
         }
 
@@ -414,6 +482,7 @@
             const sendBtn = document.getElementById('sendOtpBtn');
             let timer = duration;
             sendBtn.disabled = true;
+            
             clearInterval(countdownTimer);
             countdownTimer = setInterval(() => {
                 sendBtn.textContent = `إعادة الإرسال (${timer} ث)`;
@@ -443,13 +512,13 @@
                 return;
             }
 
-            sendBtn.textContent = 'جاري الإرسال...';
+            sendBtn.textContent = 'جاري إرسال الكود...';
             sendBtn.disabled = true;
 
-            generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            const brevoApiKey = "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";
-
             try {
+                generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+                const brevoApiKey = "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";
+                
                 const response = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: {
@@ -462,21 +531,49 @@
                         to: [{ email: emailInput, name: nameInput || "طالب جديد" }],
                         subject: "🎓 كود التحقق الخاص بك - منصة رحلة دراسية",
                         htmlContent: `
-                            <div dir="rtl" style="background: #0f172a; padding: 40px; font-family: Tahoma, sans-serif; text-align: center; color: #f8fafc;">
-                                <h2>🎓 منصة رحلة دراسية</h2>
-                                <p>كود التحقق الخاص بك هو:</p>
-                                <div style="background: #1e1b4b; border: 2px solid #6366f1; font-size: 32px; font-weight: bold; padding: 15px; display: inline-block; border-radius: 12px; letter-spacing: 6px; margin: 20px 0;">
-                                    ${generatedOtp}
-                                </div>
-                                <p style="font-size: 12px; color: #94a3b8;">هذا الكود صالح لفترة محدودة، لا تقم بمشاركته.</p>
+                            <div dir="rtl" style="margin: 0; padding: 0; background: linear-gradient(135deg, #0f172a, #1e1b4b, #311042); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto;">
+                                    <tr>
+                                        <td align="center" style="padding-bottom: 20px;">
+                                            <h1 style="color: #f8fafc; font-size: 24px; margin: 0; font-weight: 800;">🎓 منصة رحلة دراسية</h1>
+                                            <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">رحلتك نحو التميز والتفوق تبدأ من هنا</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(16px); padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);">
+                                            <h2 style="color: #f8fafc; font-size: 20px; margin-top: 0; margin-bottom: 15px; font-weight: 700;">مرحباً بك، ${nameInput || 'بطلنا التعليمي'}! 👋</h2>
+                                            <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
+                                                لقد قمت بطلب إنشاء حساب جديد على منصة <strong>رحلة دراسية</strong>. لاستكمال تسجيلك والتحقق من بريدك الإلكتروني، يرجى استخدام كود التحقق التالي:
+                                            </p>
+                                            
+                                            <div align="center" style="margin: 30px 0;">
+                                                <div style="background: rgba(15, 23, 42, 0.8); border: 2px solid #6366f1; color: #f8fafc; font-size: 36px; font-weight: 800; padding: 15px 30px; display: inline-block; border-radius: 16px; letter-spacing: 8px; box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);">
+                                                    ${generatedOtp}
+                                                </div>
+                                            </div>
+
+                                            <p style="color: #94a3b8; font-size: 13px; line-height: 1.5; margin-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 20px;">
+                                                ⚠️ تنبيه أمني: هذا الكود صالح لفترة محدودة، ولا تقم بمشاركته مع أي شخص إطلاقاً للحفاظ على أمان حسابك.<br>
+                                                إذا لم تقم بطلب هذا الكود، يمكنك تجاهل هذه الرسالة بأمان.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" style="padding-top: 25px;">
+                                            <p style="color: #64748b; font-size: 12px; margin: 0;">
+                                                جميع الحقوق محفوظة © 2026 منصة رحلة دراسية 🚀
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                         `
                     })
                 });
 
                 if (!response.ok) {
-                    const errRes = await response.json();
-                    throw new Error(errRes.message || 'فشل الاتصال بخدمة البريد');
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'فشل إرسال البريد عبر Brevo');
                 }
 
                 emailSuccess.style.display = 'block';
@@ -485,18 +582,58 @@
                 sendBtn.textContent = 'إرسال الكود';
 
             } catch (error) {
-                console.error('Brevo Error:', error);
-                emailError.textContent = 'فشل إرسال الإيميل: تأكد من اتصال الإنترنت أو مفتاح الـ API';
+                console.error('Brevo Error Details:', error);
+                emailError.textContent = 'خطأ في الإرسال: ' + error.message;
                 emailError.style.display = 'block';
                 sendBtn.textContent = 'إرسال الكود';
                 sendBtn.disabled = false;
             }
         }
 
+        function validateInputs(name, email, sPhone, pPhone, pass, confirmPass) {
+            let isValid = true;
+            document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
+
+            if (name.trim().split(' ').filter(word => word.length > 0).length < 2) {
+                document.getElementById('nameError').style.display = 'block';
+                isValid = false;
+            }
+
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('emailError').style.display = 'block';
+                isValid = false;
+            }
+
+            const phoneRegex = /^01[0125][0-9]{8}$/;
+            if (!phoneRegex.test(sPhone)) {
+                document.getElementById('studentPhoneError').style.display = 'block';
+                isValid = false;
+            }
+
+            if (!phoneRegex.test(pPhone) || pPhone === sPhone) {
+                document.getElementById('parentPhoneError').style.display = 'block';
+                isValid = false;
+            }
+
+            if (pass.length < 6) {
+                document.getElementById('passError').style.display = 'block';
+                isValid = false;
+            }
+
+            if (pass !== confirmPass) {
+                document.getElementById('confirmPassError').style.display = 'block';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const name = document.getElementById('fullName').value.trim();
+            const gender = selectedGender; 
             const email = document.getElementById('email').value.trim().toLowerCase();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
@@ -505,32 +642,37 @@
             const enteredOtp = document.getElementById('otpCode').value.trim();
             const imageFile = profileImageInput.files[0];
 
-            document.querySelectorAll('.error-msg').forEach(el => el.style.display = 'none');
+            if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) return;
 
-            if (name.split(' ').length < 2) { document.getElementById('nameError').style.display = 'block'; return; }
-            if (!/^01[0125][0-9]{8}$/.test(sPhone)) { document.getElementById('studentPhoneError').style.display = 'block'; return; }
-            if (!/^01[0125][0-9]{8}$/.test(pPhone) || pPhone === sPhone) { document.getElementById('parentPhoneError').style.display = 'block'; return; }
-            if (pass.length < 6) { document.getElementById('passError').style.display = 'block'; return; }
-            if (pass !== confirmPass) { document.getElementById('confirmPassError').style.display = 'block'; return; }
+            if (document.getElementById('otpGroup').style.display === 'none' || !enteredOtp) {
+                alert('الرجاء إرسال كود التحقق إلى بريدك الإلكتروني وكتابته أولاً!');
+                return;
+            }
 
-            if (!enteredOtp || enteredOtp !== generatedOtp) {
+            if (enteredOtp !== generatedOtp) {
                 document.getElementById('otpError').style.display = 'block';
                 return;
             }
 
             const btn = document.getElementById('submitBtn');
-            btn.textContent = 'جاري إنشاء الحساب...';
+            btn.textContent = 'جاري إنشاء الحساب في السحابة...';
             btn.disabled = true;
 
             try {
-                // الفايربيس هيرفض لوحده لو الإيميل مسجل مسبقاً وبدون مشاكل صلاحيات القراءة
+                // الاعتماد على نظام المصادقة لرفض الإيميل المتكرر مباشرة وتجنب مشاكل الصلاحيات
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
-                let profileImageBase64 = imageFile ? await convertImageToBase64(imageFile) : "";
+                let profileImageBase64 = "";
+                if (imageFile) {
+                    try {
+                        profileImageBase64 = await convertImageToBase64(imageFile);
+                    } catch (e) { console.error("خطأ معالجة الصورة", e); }
+                }
 
-                const querySnapshot = await window.getDocs(window.collection(window.firebaseDb, "students"));
-                const studentId = 'STU-' + String(querySnapshot.size + 1).padStart(4, '0');
+                const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
+                const nextNumber = querySnapshot.size + 1;
+                const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
                 const userData = {
                     uid: user.uid,
@@ -538,27 +680,41 @@
                     studentId: studentId,
                     fullName: name,
                     name: name,
-                    gender: selectedGender,
+                    gender: gender, 
                     email: email,
                     studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
                     status: 'active',
+                    rank: 'ضعيف',
                     profileImage: profileImageBase64,
-                    avatar: profileImageBase64
+                    avatar: profileImageBase64,
+                    allowComparison: true,
+                    bgPatternEnabled: true,
+                    selectedEmojis: ['⭐', '🚀'],
+                    friends: [],
+                    friendRequests: [],
+                    chats: {}
                 };
 
                 await window.setDoc(window.doc(window.firebaseDb, "students", user.uid), userData);
 
+                const sessionUserData = { ...userData };
                 sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('studentUser', JSON.stringify(userData));
+                sessionStorage.setItem('currentStudentEmail', email);
+                sessionStorage.setItem('currentStudentId', studentId);
+                sessionStorage.setItem('studentUser', JSON.stringify(sessionUserData));
+                sessionStorage.setItem('currentUser', JSON.stringify(sessionUserData));
+
                 window.location.href = 'welcome.html';
 
             } catch (error) {
                 console.error(error);
                 let errMsg = error.message;
-                if (error.code === 'auth/email-already-in-use') errMsg = 'هذا البريد الإلكتروني مسجل بالفعل!';
-                alert('خطأ في التسجيل: ' + errMsg);
+                if (error.code === 'auth/email-already-in-use') {
+                    errMsg = 'هذا البريد الإلكتروني مسجل بالفعل!';
+                }
+                alert('حدث خطأ أثناء التسجيل: ' + errMsg);
                 btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
                 btn.disabled = false;
             }
