@@ -231,14 +231,14 @@
         
         .edit-form-modal .form-group { margin-bottom: 14px; text-align: right; }
         .edit-form-modal label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary); letter-spacing: 0.3px; }
-        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"] { 
+        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"], .edit-form-modal input[type="email"] { 
             width: 100%; padding: 10px 14px; 
             border: 1px solid var(--border-color); 
             background-color: var(--input-bg); 
             color: var(--text-main); 
             border-radius: 12px; outline: none; font-size: 0.85rem; 
         }
-        .edit-form-modal input[type="text"]:focus, .edit-form-modal input[type="tel"]:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+        .edit-form-modal input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
         
         .setting-custom-row { display: flex; gap: 8px; align-items: center; width: 100%; }
         .setting-custom-btn { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; text-align: right; }
@@ -308,7 +308,6 @@
 
     <div class="profile-card" id="profileCardMain">
         <div id="studentProfileContent">
-            <!-- تحميل فوري من الذاكرة المحلية إن توفرت لعدم وجود أي تأخير -->
             <div class="profile-header">
                 <div class="avatar-wrapper rank-frame-legendary">
                     <img id="profileAvatarDisplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة الطالب">
@@ -354,6 +353,10 @@
             </div>
             <div class="modal-body edit-form-modal" style="text-align: right;">
                 <div class="form-group">
+                    <label>البريد الإلكتروني (للحساب المسجل)</label>
+                    <input type="email" id="editEmail" readonly style="opacity: 0.7; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
                     <label>الاسم الكامل</label>
                     <input type="text" id="editName">
                 </div>
@@ -390,7 +393,7 @@
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>تعديل صورة البروفايل 🖼️</h3>
+                <h3>تعديل صورة البروفايل 🖼️️</h3>
                 <button class="close-modal" onclick="closeAvatarModal()">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
@@ -534,23 +537,12 @@
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
 
-        // --- تحميل فوري من الذاكرة المحلية (Cache) لسرعة فائقة بدون تأخير ---
-        function loadProfileFromCache() {
-            const cachedData = sessionStorage.getItem('cachedStudentProfile');
-            if (cachedData) {
-                try {
-                    currentStudentData = JSON.parse(cachedData);
-                    renderStudentProfile(currentStudentData);
-                } catch(e) {}
-            }
-        }
-        loadProfileFromCache();
-
+        // --- تم الاستغناء تماماً عن الكاش القديم لتجنب تداخل بيانات الحسابات عند تسجيل الخروج والدخول بحساب آخر ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
-                await fetchStudentProfile(studentEmail, user.uid);
+                // جلب البيانات حصرياً من فايربيس للمستخدم الحالي مباشرة
+                await fetchStudentProfile(user.email, user.uid);
                 listenToFriendRequests(user.uid);
             } else {
                 window.location.href = 'login.html';
@@ -583,7 +575,6 @@
 
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
-                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 } else {
                     const defaultData = {
@@ -600,21 +591,19 @@
                     const newDocRef = doc(db, "students", currentUser.uid);
                     await setDoc(newDocRef, defaultData);
                     currentStudentData = defaultData;
-                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                if (!currentStudentData) {
-                    currentStudentData = {
-                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: '',
-                        allowComparison: true
-                    };
-                    renderStudentProfile(currentStudentData);
-                }
+                currentStudentData = {
+                    name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
+                    email: currentUser.email || '',
+                    studentId: currentUser.uid.substring(0, 8),
+                    totalScore: 0,
+                    profileImage: '',
+                    allowComparison: true
+                };
+                renderStudentProfile(currentStudentData);
             }
         }
 
@@ -671,6 +660,7 @@
 
         window.openSettingsModal = function() {
             if (!currentStudentData) return;
+            document.getElementById('editEmail').value = currentStudentData.email || currentUser.email || '';
             document.getElementById('editName').value = currentStudentData.name || '';
             document.getElementById('editPhone').value = currentStudentData.phone || '';
             document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
@@ -723,8 +713,7 @@
             }
 
             try {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
-                let docRef = doc(db, "students", studentEmail);
+                let docRef = doc(db, "students", currentUser.email);
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -742,7 +731,6 @@
                 currentStudentData.parentPhone = newParentPhone;
                 currentStudentData.allowComparison = allowComparison;
 
-                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حفظ التعديلات بنجاح! ✨');
@@ -779,8 +767,7 @@
             btn.disabled = true;
 
             try {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
-                let docRef = doc(db, "students", studentEmail);
+                let docRef = doc(db, "students", currentUser.email);
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -789,7 +776,6 @@
                 await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
                 currentStudentData.profileImage = selectedNewAvatarBase64;
-                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
                 alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
@@ -806,8 +792,7 @@
             if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
 
             try {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
-                let docRef = doc(db, "students", studentEmail);
+                let docRef = doc(db, "students", currentUser.email);
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -816,7 +801,6 @@
                 await updateDoc(docRef, { profileImage: '' });
 
                 currentStudentData.profileImage = '';
-                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حذف صورة البروفايل بنجاح.');
@@ -830,12 +814,10 @@
             if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم مسح بياناتك كلياً.')) return;
 
             try {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || currentUser.email;
-                try { await deleteDoc(doc(db, "students", studentEmail)); } catch(e) {}
+                try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
                 try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
 
                 await deleteUser(currentUser);
-                sessionStorage.clear();
                 alert('تم حذف الحساب نهائياً بنجاح.');
                 window.location.href = 'login.html';
             } catch (error) {
@@ -891,7 +873,6 @@
             }
         };
 
-        // --- إصلاح استماع وتحديث طلبات الصداقة لضمان ظهورها فوراً بدون مشاكل فهرسة ---
         function listenToFriendRequests(uid) {
             const q = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
             onSnapshot(q, (snapshot) => {
@@ -914,6 +895,7 @@
             });
         }
 
+        // --- تسريع جلب الطلبات عبر استعلام محسّن ---
         async function loadFriendRequestsList() {
             const container = document.getElementById('friendRequestsListContainer');
             container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
@@ -982,6 +964,7 @@
             }
         };
 
+        // --- تسريع جلب قائمة الأصدقاء بجمع الطلبات وجلب البيانات بسرعة ---
         async function loadFriendsList() {
             const container = document.getElementById('friendsListContainer');
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
@@ -996,15 +979,16 @@
                 }
 
                 let html = '';
-                for (const docSnap of snap.docs) {
+                // جمع الـ promises لجلب بيانات الأصدقاء بالتوازي (Parallel) لزيادة السرعة القصوى
+                const friendPromises = snap.docs.map(async (docSnap) => {
                     const friendData = docSnap.data();
-                    if(friendData.deleted) continue;
+                    if (friendData.deleted) return null;
                     const friendUid = friendData.user2;
 
                     const friendDocSnap = await getDoc(doc(db, "students", friendUid));
                     if (friendDocSnap.exists()) {
                         const fInfo = friendDocSnap.data();
-                        html += `
+                        return `
                             <div class="friend-item-card">
                                 <div class="friend-info-trigger" onclick="openComparisonModalWithFriend('${friendUid}', '${fInfo.name}')">
                                     <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
@@ -1020,8 +1004,17 @@
                             </div>
                         `;
                     }
+                    return null;
+                });
+
+                const results = await Promise.all(friendPromises);
+                html = results.filter(item => item !== null).join('');
+
+                if (!html) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
+                } else {
+                    container.innerHTML = html;
                 }
-                container.innerHTML = html;
             } catch (error) {
                 console.error("خطأ في تحميل الأصدقاء:", error);
                 container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
