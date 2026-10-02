@@ -183,7 +183,6 @@
             text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 15px; border-top: 1px dashed var(--border-color); width: 100%; max-width: 480px; position: relative; z-index: 2;
         }
 
-        /* تنسيق عام وموحد للإشعارات المنبثقة (Modals) بستايل شيك وغير ضخم */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: var(--modal-overlay-bg); 
@@ -309,7 +308,36 @@
 
     <div class="profile-card" id="profileCardMain">
         <div id="studentProfileContent">
-            <div class="loading">جاري ربط حسابك بـ Firebase بدقة تامة... ⏳</div>
+            <!-- تحميل فوري من الذاكرة المحلية إن توفرت لعدم وجود أي تأخير -->
+            <div class="profile-header">
+                <div class="avatar-wrapper rank-frame-legendary">
+                    <img id="profileAvatarDisplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة الطالب">
+                    <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
+                </div>
+                <div class="student-name" id="profileNameDisplay">جاري التحميل...</div>
+                <div class="student-id-container">
+                    <span class="id-text-badge" id="profileIdDisplay">ID: ...</span>
+                    <button class="copy-id-btn" onclick="copyStudentId()">نسخ 📋</button>
+                </div>
+                <div>
+                    <span class="level-badge-box badge-legendary" onclick="openRankGuideModal()">جاري تحميل المستوى...</span>
+                </div>
+            </div>
+            <div class="profile-actions-bar">
+                <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ التعديل</button>
+                <button class="profile-action-btn" onclick="openFriendsModal()">👥 الأصدقاء</button>
+                <button class="profile-action-btn" onclick="openFriendRequestsModal()" style="position:relative;">
+                    📥 الطلبات
+                    <span class="badge-dot" id="requestsBadgeDot">0</span>
+                </button>
+            </div>
+            <div class="student-search-box">
+                <h3>🔍 إضافة صديق جديد بالـ ID</h3>
+                <div class="search-input-group">
+                    <input type="text" id="friendIdInput" placeholder="أدخل معرف الـ ID الخاص بالصديق...">
+                    <button onclick="sendFriendRequest()">إرسال 🚀</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -317,7 +345,7 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- Modal Settings (تعديل الملف الشخصي) -->
+    <!-- Modal Settings -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -337,7 +365,6 @@
                     <label>رقم هاتف ولي الأمر</label>
                     <input type="tel" id="editParentPhone">
                 </div>
-                
                 <div class="form-group">
                     <label>المقارنة مع الأصدقاء</label>
                     <div class="setting-custom-row">
@@ -350,18 +377,16 @@
                         </label>
                     </div>
                 </div>
-
                 <div class="settings-danger-group">
                     <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف الصورة</button>
-                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠️️ حذف الحساب</button>
+                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠ حذف الحساب</button>
                 </div>
-                
                 <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 12px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Avatar (تعديل صورة البروفايل) -->
+    <!-- Modal Avatar -->
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -379,7 +404,7 @@
         </div>
     </div>
 
-    <!-- Modal Rank Guide (دليل المستويات) -->
+    <!-- Modal Rank Guide -->
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -390,7 +415,6 @@
                 <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 14px; text-align: center; line-height: 1.4;">
                     اجمع النقاط من خلال إكمال الدروس، حل الامتحانات، والواجبات لتتطور وترتقي بمستواك! 🚀
                 </p>
-                
                 <div class="rank-guide-item">
                     <span class="rank-guide-title" style="color: #fca5a5;">🔴 مبتدئ (ضعيف)</span>
                     <span class="rank-guide-points">0 - 499 نقطة</span>
@@ -414,7 +438,7 @@
             </div>
         </div>
     </div>
-    <!-- Modal Friends (قائمة الأصدقاء) -->
+    <!-- Modal Friends -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:420px;">
             <div class="modal-header">
@@ -429,7 +453,7 @@
         </div>
     </div>
 
-    <!-- Modal Chat (الدردشة الفورية) -->
+    <!-- Modal Chat -->
     <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -446,7 +470,7 @@
         </div>
     </div>
 
-    <!-- Modal Requests (طلبات الأصدقاء) -->
+    <!-- Modal Requests -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -461,7 +485,7 @@
         </div>
     </div>
 
-    <!-- Modal Comparison (مقارنة المستوى والتقدم) -->
+    <!-- Modal Comparison -->
     <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -500,6 +524,8 @@
         let unsubscribeChat = null;
         let selectedNewAvatarBase64 = null;
 
+        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+
         function getRankClass(score = 0) {
             if (score < 500) return { frame: 'rank-frame-weak', badge: 'badge-weak', label: 'مبتدئ (ضعيف)' };
             if (score < 1500) return { frame: 'rank-frame-medium', badge: 'badge-medium', label: 'متوسط' };
@@ -507,6 +533,18 @@
             if (score < 5000) return { frame: 'rank-frame-very-strong', badge: 'badge-very-strong', label: 'قوي جداً' };
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
+
+        // --- تحميل فوري من الذاكرة المحلية (Cache) لسرعة فائقة بدون تأخير ---
+        function loadProfileFromCache() {
+            const cachedData = sessionStorage.getItem('cachedStudentProfile');
+            if (cachedData) {
+                try {
+                    currentStudentData = JSON.parse(cachedData);
+                    renderStudentProfile(currentStudentData);
+                } catch(e) {}
+            }
+        }
+        loadProfileFromCache();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -545,6 +583,7 @@
 
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 } else {
                     const defaultData = {
@@ -561,25 +600,28 @@
                     const newDocRef = doc(db, "students", currentUser.uid);
                     await setDoc(newDocRef, defaultData);
                     currentStudentData = defaultData;
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                currentStudentData = {
-                    name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                    studentId: currentUser.uid.substring(0, 8),
-                    totalScore: 0,
-                    profileImage: '',
-                    allowComparison: true
-                };
-                renderStudentProfile(currentStudentData);
+                if (!currentStudentData) {
+                    currentStudentData = {
+                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
+                        studentId: currentUser.uid.substring(0, 8),
+                        totalScore: 0,
+                        profileImage: '',
+                        allowComparison: true
+                    };
+                    renderStudentProfile(currentStudentData);
+                }
             }
         }
 
         function renderStudentProfile(data) {
             const score = data.totalScore || 0;
             const rankInfo = getRankClass(score);
-            const avatarUrl = data.profileImage || 'https://via.placeholder.com/150';
+            const avatarUrl = data.profileImage || defaultMaleSvg;
 
             const html = `
                 <div class="profile-header">
@@ -639,7 +681,7 @@
 
         window.openAvatarModal = function() {
             selectedNewAvatarBase64 = null;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || 'https://via.placeholder.com/150';
+            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || defaultMaleSvg;
             const rankInfo = getRankClass(currentStudentData.totalScore || 0);
             document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${rankInfo.frame}`;
             document.getElementById('avatarModal').classList.add('active');
@@ -700,6 +742,7 @@
                 currentStudentData.parentPhone = newParentPhone;
                 currentStudentData.allowComparison = allowComparison;
 
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حفظ التعديلات بنجاح! ✨');
@@ -746,6 +789,7 @@
                 await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
                 currentStudentData.profileImage = selectedNewAvatarBase64;
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
                 alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
@@ -772,6 +816,7 @@
                 await updateDoc(docRef, { profileImage: '' });
 
                 currentStudentData.profileImage = '';
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حذف صورة البروفايل بنجاح.');
@@ -846,14 +891,21 @@
             }
         };
 
+        // --- إصلاح استماع وتحديث طلبات الصداقة لضمان ظهورها فوراً بدون مشاكل فهرسة ---
         function listenToFriendRequests(uid) {
-            const q = query(collection(db, "friendRequests"), where("receiverId", "==", uid), where("status", "==", "pending"));
+            const q = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
             onSnapshot(q, (snapshot) => {
-                const count = snapshot.docs.length;
+                let pendingCount = 0;
+                snapshot.forEach(docSnap => {
+                    const req = docSnap.data();
+                    if (req.status === 'pending') {
+                        pendingCount++;
+                    }
+                });
                 const dot = document.getElementById('requestsBadgeDot');
                 if (dot) {
-                    if (count > 0) {
-                        dot.innerText = count;
+                    if (pendingCount > 0) {
+                        dot.innerText = pendingCount;
                         dot.style.display = 'inline-block';
                     } else {
                         dot.style.display = 'none';
@@ -867,32 +919,37 @@
             container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
 
             try {
-                const q = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid), where("status", "==", "pending"));
+                const q = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
                 const snap = await getDocs(q);
 
-                if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
-                    return;
-                }
-
                 let html = '';
+                let hasPending = false;
+
                 snap.forEach(docSnap => {
                     const req = docSnap.data();
-                    const reqId = docSnap.id;
-                    html += `
-                        <div class="friend-item-card">
-                            <div class="friend-info-trigger">
-                                <div class="friend-avatar-wrap"><img src="${req.senderImage || 'https://via.placeholder.com/150'}" alt=""></div>
-                                <span class="friend-name-text">${req.senderName}</span>
+                    if (req.status === 'pending') {
+                        hasPending = true;
+                        const reqId = docSnap.id;
+                        html += `
+                            <div class="friend-item-card">
+                                <div class="friend-info-trigger">
+                                    <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
+                                    <span class="friend-name-text">${req.senderName}</span>
+                                </div>
+                                <div class="friend-actions-group">
+                                    <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
+                                </div>
                             </div>
-                            <div class="friend-actions-group">
-                                <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
-                                <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
-                container.innerHTML = html;
+
+                if (!hasPending) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
+                } else {
+                    container.innerHTML = html;
+                }
             } catch (error) {
                 console.error("خطأ في تحميل الطلبات:", error);
                 container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">فشل تحميل الطلبات.</p>`;
@@ -950,7 +1007,7 @@
                         html += `
                             <div class="friend-item-card">
                                 <div class="friend-info-trigger" onclick="openComparisonModalWithFriend('${friendUid}', '${fInfo.name}')">
-                                    <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || 'https://via.placeholder.com/150'}" alt=""></div>
+                                    <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
                                     <div>
                                         <div class="friend-name-text">${fInfo.name}</div>
                                         <div style="font-size:0.68rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
@@ -1078,13 +1135,13 @@
                 body.innerHTML = `
                     <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:18px; text-align:center;">
                         <div>
-                            <img src="${currentStudentData.profileImage || 'https://via.placeholder.com/150'}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
+                            <img src="${currentStudentData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
                             <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">أنت</div>
                             <div style="color:var(--primary-color); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
                         </div>
                         <div style="font-weight:bold; font-size:1rem; color:var(--text-secondary);">VS</div>
                         <div>
-                            <img src="${fData.profileImage || 'https://via.placeholder.com/150'}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
+                            <img src="${fData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
                             <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">${friendName}</div>
                             <div style="color:var(--success-color); font-weight:bold; font-size:0.82rem;">${friendScore} ن</div>
                         </div>
