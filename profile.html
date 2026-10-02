@@ -299,7 +299,6 @@
         .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
         .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
 
-        /* تصميم رسائل التنبيه العصرية في منتصف الشاشة (Center Toast Notification) */
         #customToast {
             position: fixed;
             top: 50%;
@@ -333,7 +332,6 @@
 </head>
 <body>
 
-    <!-- عنصر التنبيه العصري في المنتصف -->
     <div id="customToast">
         <span id="toastIcon" style="font-size: 1.2rem;">✨</span>
         <span id="toastMessage">تم الحفظ بنجاح</span>
@@ -384,7 +382,6 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- Modal Settings -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -429,7 +426,6 @@
         </div>
     </div>
 
-    <!-- Modal Avatar -->
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -447,7 +443,6 @@
         </div>
     </div>
 
-    <!-- Modal Rank Guide -->
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -482,7 +477,6 @@
         </div>
     </div>
 
-    <!-- Modal View Searched Student Profile -->
     <div class="modal-overlay" id="searchedProfileModal" onclick="if(event.target===this) closeSearchedProfileModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -494,7 +488,6 @@
             </div>
         </div>
     </div>
-    <!-- Modal Friends -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:420px;">
             <div class="modal-header">
@@ -509,7 +502,6 @@
         </div>
     </div>
 
-    <!-- Modal Chat -->
     <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -526,7 +518,6 @@
         </div>
     </div>
 
-    <!-- Modal Requests -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -541,7 +532,6 @@
         </div>
     </div>
 
-    <!-- Modal Comparison -->
     <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -554,7 +544,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -582,7 +571,6 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- دالة عرض التنبيه في منتصف الشاشة وتختفي تلقائياً ---
         function showToast(message, icon = "✨") {
             const toast = document.getElementById('customToast');
             document.getElementById('toastMessage').innerText = message;
@@ -614,7 +602,7 @@
                 }
 
                 await fetchStudentProfileUltraFast(user.email, user.uid);
-                listenToFriendRequests(user.uid);
+                listenToFriendRequests(user);
             } else {
                 window.location.href = 'login.html';
             }
@@ -921,31 +909,31 @@
             body.innerHTML = `<div class="loading">جاري البحث عن ملف الطالب... 🔍</div>`;
 
             try {
-                let targetUid = null;
+                let targetDocKey = null;
                 let targetData = null;
 
                 let q = query(collection(db, "students"), where("studentId", "==", queryVal));
                 let querySnap = await getDocs(q);
 
                 if (!querySnap.empty) {
-                    targetUid = querySnap.docs[0].id;
+                    targetDocKey = querySnap.docs[0].id;
                     targetData = querySnap.docs[0].data();
                 } else {
                     q = query(collection(db, "students"), where("phone", "==", queryVal));
                     querySnap = await getDocs(q);
                     if (!querySnap.empty) {
-                        targetUid = querySnap.docs[0].id;
+                        targetDocKey = querySnap.docs[0].id;
                         targetData = querySnap.docs[0].data();
                     } else {
                         const directDoc = await getDoc(doc(db, "students", queryVal));
                         if (directDoc.exists()) {
-                            targetUid = queryVal;
+                            targetDocKey = queryVal;
                             targetData = directDoc.data();
                         }
                     }
                 }
 
-                if (!targetUid || !targetData) {
+                if (!targetDocKey || !targetData) {
                     body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف.</p>`;
                     return;
                 }
@@ -960,11 +948,11 @@
                             <img src="${avatarUrl}" alt="صورة الطالب">
                         </div>
                         <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                        <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetUid.substring(0,8)}</div>
+                        <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
                         <div style="margin-bottom:16px;">
                             <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
                         </div>
-                        <button class="btn" onclick="sendFriendRequestToUser('${targetUid}', '${targetData.name || 'طالب'}', '${targetData.profileImage || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
+                        <button class="btn" onclick="sendFriendRequestToUser('${targetDocKey}', '${targetData.email || ''}', '${targetData.name || 'طالب'}', '${targetData.studentId || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
                     </div>
                 `;
             } catch (error) {
@@ -973,15 +961,17 @@
             }
         };
 
-        window.sendFriendRequestToUser = async function(targetUid, targetName, targetImage) {
+        window.sendFriendRequestToUser = async function(targetDocKey, targetEmail, targetName, targetStudentId) {
             try {
-                // حفظ الطلب بحيث يتم تخزين الـ receiverId كـ UID الحقيقي للطالب المستهدف لتظهر عنده مباشرة
                 const reqRef = collection(db, "friendRequests");
                 await addDoc(reqRef, {
                     senderId: currentUser.uid,
+                    senderEmail: currentUser.email || '',
                     senderName: currentStudentData.name || 'طالب',
                     senderImage: currentStudentData.profileImage || '',
-                    receiverId: targetUid,
+                    receiverId: targetDocKey,
+                    receiverEmail: targetEmail || '',
+                    receiverStudentId: targetStudentId || '',
                     status: 'pending',
                     createdAt: serverTimestamp()
                 });
@@ -995,19 +985,24 @@
             }
         };
 
-        function listenToFriendRequests(uid) {
-            // الاستماع للطلبات التي تخص الحساب الحالي سواء بالـ UID أو الـ studentId لضمان وصولها 100%
+        function listenToFriendRequests(user) {
+            const uid = user.uid;
+            const email = user.email;
+            
             const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
-            onSnapshot(q1, (snapshot) => {
-                processRequestsSnapshot(snapshot);
-            });
+            onSnapshot(q1, snap => processRequestsSnapshot(snap));
 
-            if (currentStudentData && currentStudentData.studentId) {
-                const q2 = query(collection(db, "friendRequests"), where("receiverId", "==", currentStudentData.studentId));
-                onSnapshot(q2, (snapshot) => {
-                    processRequestsSnapshot(snapshot);
-                });
+            if (email) {
+                const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", email));
+                onSnapshot(q2, snap => processRequestsSnapshot(snap));
             }
+
+            setTimeout(() => {
+                if (currentStudentData && currentStudentData.studentId) {
+                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
+                    onSnapshot(q3, snap => processRequestsSnapshot(snap));
+                }
+            }, 1000);
         }
 
         function processRequestsSnapshot(snapshot) {
@@ -1034,25 +1029,30 @@
             container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
 
             try {
-                // جلب الطلبات المرسلة للـ UID أو الـ studentId
+                let docsMap = new Map();
+
                 const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
                 const snap1 = await getDocs(q1);
-                
-                let docsList = [...snap1.docs];
-                if (currentStudentData && currentStudentData.studentId) {
-                    const q2 = query(collection(db, "friendRequests"), where("receiverId", "==", currentStudentData.studentId));
+                snap1.docs.forEach(d => docsMap.set(d.id, d.data()));
+
+                if (currentUser.email) {
+                    const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", currentUser.email));
                     const snap2 = await getDocs(q2);
-                    docsList = [...docsList, ...snap2.docs];
+                    snap2.docs.forEach(d => docsMap.set(d.id, d.data()));
+                }
+
+                if (currentStudentData && currentStudentData.studentId) {
+                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
+                    const snap3 = await getDocs(q3);
+                    snap3.docs.forEach(d => docsMap.set(d.id, d.data()));
                 }
 
                 let html = '';
                 let hasPending = false;
 
-                docsList.forEach(docSnap => {
-                    const req = docSnap.data();
+                docsMap.forEach((req, reqId) => {
                     if (req.status === 'pending') {
                         hasPending = true;
-                        const reqId = docSnap.id;
                         html += `
                             <div class="friend-item-card">
                                 <div class="friend-info-trigger">
@@ -1125,8 +1125,14 @@
                     if (friendData.deleted) return null;
                     const friendUid = friendData.user2;
 
-                    const friendDocSnap = await getDoc(doc(db, "students", friendUid));
-                    if (friendDocSnap.exists()) {
+                    let friendDocSnap = await getDoc(doc(db, "students", friendUid));
+                    if (!friendDocSnap.exists()) {
+                        const qMail = query(collection(db, "students"), where("email", "==", friendUid));
+                        const mSnap = await getDocs(qMail);
+                        if (!mSnap.empty) friendDocSnap = mSnap.docs[0];
+                    }
+
+                    if (friendDocSnap && friendDocSnap.exists()) {
                         const fInfo = friendDocSnap.data();
                         return `
                             <div class="friend-item-card">
@@ -1166,7 +1172,7 @@
             try {
                 await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true });
                 await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true });
-                showToast('تم إزالة الصديق بنجاح.', '🗑️');
+                showToast('تم إزالة الصديق بنجاح.', '🗑️️');
                 loadFriendsList();
             } catch (error) {
                 console.error("خطأ إزالة الصديق:", error);
@@ -1244,7 +1250,13 @@
             body.innerHTML = `<div class="loading">جاري مقارنة مستواك مع ${friendName}... 📊</div>`;
 
             try {
-                const friendDoc = await getDoc(doc(db, "students", friendUid));
+                let friendDoc = await getDoc(doc(db, "students", friendUid));
+                if (!friendDoc.exists()) {
+                    const qMail = query(collection(db, "students"), where("email", "==", friendUid));
+                    const mSnap = await getDocs(qMail);
+                    if (!mSnap.empty) friendDoc = mSnap.docs[0];
+                }
+
                 if (!friendDoc.exists()) {
                     body.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">تعذر جلب بيانات الصديق.</p>`;
                     return;
