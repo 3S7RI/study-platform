@@ -216,7 +216,8 @@
     <header class="navbar">
         <a href="profile.html" class="profile-nav-btn" title="الملف الشخصي">
             <div class="nav-avatar-frame" id="navAvatarFrame">
-                <img id="navProfileImg" src="" alt="صورة البروفايل">
+                <!-- تحميل صورة افتراضية أولية مؤقتة لمنع الفراغ -->
+                <img id="navProfileImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة البروفايل">
             </div>
             <span id="navStudentName">حسابي</span>
         </a>
@@ -307,7 +308,7 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
 
-    <!-- Firebase SDK (Modular v10) لجلب البيانات المحدثة مباشرة -->
+    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -351,27 +352,30 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- جلب البيانات وتحديثها فورياً من Firebase عند فتح الصفحة ---
+        // --- تحميل فوري من الذاكرة المحلية (Session Storage) لعدم حدوث أي تأخير أو اختفاء للصورة ---
+        function loadProfileFromCache() {
+            const cachedData = sessionStorage.getItem('cachedStudentProfile');
+            if (cachedData) {
+                try {
+                    const data = JSON.parse(cachedData);
+                    const studentName = data.name || data.fullName || 'بطل';
+                    let firstName = studentName.trim().split(' ')[0];
+                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                    document.getElementById('navStudentName').innerText = firstName;
+                    if (data.profileImage) {
+                        navProfileImg.src = data.profileImage;
+                    }
+                } catch(e) {}
+            }
+        }
+        loadProfileFromCache();
+
+        // --- التحديث في الخلفية من Firebase لضمان الدقة وتحديث الكاش ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
                 await fetchAndUpdateMainProfile(studentEmail, user.uid);
             } else {
-                // محاولة الجلب من session القديم كبديل مؤقت إذا لم تكن جلسة فايربيس جاهزة
-                const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
-                if (rawUserData) {
-                    try {
-                        const userData = JSON.parse(rawUserData);
-                        const studentName = userData.fullName || userData.name;
-                        if (studentName) {
-                            let firstName = studentName.trim().split(' ')[0];
-                            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                            document.getElementById('navStudentName').innerText = firstName;
-                            navProfileImg.src = userData.profileImage || userData.avatar || defaultMaleSvg;
-                            return;
-                        }
-                    } catch(e){}
-                }
                 window.location.href = 'index.html';
             }
         });
@@ -401,22 +405,18 @@
 
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
+                    // حفظ البيانات في الذاكرة المحلية لفتحها بسرعة فائقة في المرة القادمة
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+
                     const studentName = data.name || data.fullName || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
                     
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
                     document.getElementById('navStudentName').innerText = firstName;
                     navProfileImg.src = data.profileImage || defaultMaleSvg;
-                } else {
-                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
-                    document.getElementById('navStudentName').innerText = 'حسابي';
-                    navProfileImg.src = defaultMaleSvg;
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
-                document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
-                document.getElementById('navStudentName').innerText = 'حسابي';
-                navProfileImg.src = defaultMaleSvg;
             }
         }
     </script>
