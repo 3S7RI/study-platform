@@ -540,7 +540,6 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
-                // إرسال الكود باستخدام EmailJS مع تمرير المتغيرات للقالب الخاص بك
                 const templateParams = {
                     to_email: emailInput,
                     to_name: nameInput || "طالب جديد",
@@ -552,15 +551,16 @@
                 const serviceID = "service_dzninf9";
                 const templateID = "template_3y16bz3";
 
-                await emailjs.send(serviceID, templateID, templateParams);
+                const response = await emailjs.send(serviceID, templateID, templateParams);
+                console.log('SUCCESS!', response.status, response.text);
 
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(60);
 
             } catch (error) {
-                console.error(error);
-                emailError.textContent = 'حدث خطأ أثناء إرسال الإيميل، تأكد من الاتصال وحاول مجدداً.';
+                console.error('EmailJS Error Details:', error);
+                emailError.textContent = 'خطأ في الإرسال: ' + (error.text || error.message || 'تأكد من الاتصال وإعدادات EmailJS');
                 emailError.style.display = 'block';
                 sendBtn.textContent = 'إرسال الكود';
                 sendBtn.disabled = false;
