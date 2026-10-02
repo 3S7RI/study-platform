@@ -332,10 +332,10 @@
                 </button>
             </div>
             <div class="student-search-box">
-                <h3>🔍 بحث وإضافة صديق بالـ ID أو رقم الهاتف</h3>
+                <h3>🔍 بحث عن ملف طالب بالـ ID أو رقم الهاتف</h3>
                 <div class="search-input-group">
                     <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
-                    <button onclick="sendFriendRequest()" title="بحث وإرسال طلب الصداقة">
+                    <button onclick="searchStudentProfile()" title="بحث عن الطالب">
                         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                     </button>
                 </div>
@@ -444,6 +444,19 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal View Searched Student Profile -->
+    <div class="modal-overlay" id="searchedProfileModal" onclick="if(event.target===this) closeSearchedProfileModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>الملف الشخصي للطالب 👤</h3>
+                <button class="close-modal" onclick="closeSearchedProfileModal()">✕</button>
+            </div>
+            <div class="modal-body" id="searchedProfileModalBody" style="text-align: center;">
+                <div class="loading">جاري تحميل الملف الشخصي... ⏳</div>
+            </div>
+        </div>
+    </div>
     <!-- Modal Friends -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:420px;">
@@ -543,15 +556,25 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                await fetchStudentProfileOptimized(user.email, user.uid);
+                
+                // تحميل سريع فوري من الذاكرة المحلية لتفادي أي بطء
+                const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
+                if (cachedData) {
+                    try {
+                        currentStudentData = JSON.parse(cachedData);
+                        renderStudentProfile(currentStudentData);
+                    } catch(e) {}
+                }
+
+                await fetchStudentProfileUltraFast(user.email, user.uid);
                 listenToFriendRequests(user.uid);
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        // --- جلب بيانات البروفايل بأقصى سرعة ممكنة وبشكل مباشر من فايربيس ---
-        async function fetchStudentProfileOptimized(emailKey, fallbackUid) {
+        // --- جلب فائق السرعة مع التخزين المؤقت لبيانات الطالب ---
+        async function fetchStudentProfileUltraFast(emailKey, fallbackUid) {
             try {
                 let docSnap = null;
                 if (emailKey) {
@@ -574,8 +597,9 @@
 
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
+                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
-                } else {
+                } else if (!currentStudentData) {
                     const defaultData = {
                         name: currentUser.displayName || currentUser.email.split('@')[0],
                         email: currentUser.email || '',
@@ -589,19 +613,22 @@
                     const newDocRef = doc(db, "students", currentUser.uid);
                     await setDoc(newDocRef, defaultData);
                     currentStudentData = defaultData;
+                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                currentStudentData = {
-                    name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                    email: currentUser.email || '',
-                    studentId: currentUser.uid.substring(0, 8),
-                    totalScore: 0,
-                    profileImage: '',
-                    allowComparison: true
-                };
-                renderStudentProfile(currentStudentData);
+                if (!currentStudentData) {
+                    currentStudentData = {
+                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
+                        email: currentUser.email || '',
+                        studentId: currentUser.uid.substring(0, 8),
+                        totalScore: 0,
+                        profileImage: '',
+                        allowComparison: true
+                    };
+                    renderStudentProfile(currentStudentData);
+                }
             }
         }
 
@@ -640,10 +667,10 @@
                 </div>
 
                 <div class="student-search-box">
-                    <h3>🔍 بحث وإضافة صديق بالـ ID أو رقم الهاتف</h3>
+                    <h3>🔍 بحث عن ملف طالب بالـ ID أو رقم الهاتف</h3>
                     <div class="search-input-group">
                         <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
-                        <button onclick="sendFriendRequest()" title="بحث وإرسال طلب الصداقة">
+                        <button onclick="searchStudentProfile()" title="بحث عن الطالب">
                             <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                         </button>
                     </div>
@@ -700,6 +727,7 @@
         };
 
         window.closeComparisonModal = function() { document.getElementById('comparisonModal').classList.remove('active'); };
+        window.closeSearchedProfileModal = function() { document.getElementById('searchedProfileModal').classList.remove('active'); };
 
         window.saveStudentChanges = async function() {
             const newName = document.getElementById('editName').value.trim();
@@ -731,6 +759,7 @@
                 currentStudentData.parentPhone = newParentPhone;
                 currentStudentData.allowComparison = allowComparison;
 
+                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حفظ التعديلات بنجاح! ✨');
@@ -776,6 +805,7 @@
                 await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
                 currentStudentData.profileImage = selectedNewAvatarBase64;
+                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
                 alert('تم تحديث وحفظ صورة البروفايل بنجاح! 🖼');
@@ -801,6 +831,7 @@
                 await updateDoc(docRef, { profileImage: '' });
 
                 currentStudentData.profileImage = '';
+                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 alert('تم حذف صورة البروفايل بنجاح.');
@@ -817,6 +848,7 @@
                 try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
                 try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
 
+                localStorage.removeItem(`student_profile_${currentUser.uid}`);
                 await deleteUser(currentUser);
                 alert('تم حذف الحساب نهائياً بنجاح.');
                 window.location.href = 'login.html';
@@ -826,45 +858,80 @@
             }
         };
 
-        // --- البحث عن الطالب بالـ ID أو رقم الهاتف وإرسال طلب الصداقة بدقة ---
-        window.sendFriendRequest = async function() {
+        // --- البحث عن الملف الشخصي للطالب وعرضه في نافذة منبثقة مع زر إرسال طلب الصداقة ---
+        window.searchStudentProfile = async function() {
             const queryVal = document.getElementById('friendIdInput').value.trim();
             if (!queryVal) {
-                alert('يرجى إدخال معرف الـ ID أو رقم الهاتف الخاص بالصديق!');
+                alert('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!');
                 return;
             }
 
             if (queryVal === currentStudentData.studentId || queryVal === currentStudentData.phone || queryVal === currentUser.uid) {
-                alert('لا يمكنك إضافة نفسك كصديق!');
+                alert('هذا هو حسابك الشخصي!');
                 return;
             }
 
+            document.getElementById('searchedProfileModal').classList.add('active');
+            const body = document.getElementById('searchedProfileModalBody');
+            body.innerHTML = `<div class="loading">جاري البحث عن ملف الطالب... 🔍</div>`;
+
             try {
                 let targetUid = null;
+                let targetData = null;
 
-                // البحث بالـ ID أولاً
+                // البحث بالـ ID
                 let q = query(collection(db, "students"), where("studentId", "==", queryVal));
                 let querySnap = await getDocs(q);
 
                 if (!querySnap.empty) {
                     targetUid = querySnap.docs[0].id;
+                    targetData = querySnap.docs[0].data();
                 } else {
-                    // البحث برقم الهاتف إذا لم يتم العثور بالـ ID
+                    // البحث برقم الهاتف
                     q = query(collection(db, "students"), where("phone", "==", queryVal));
                     querySnap = await getDocs(q);
                     if (!querySnap.empty) {
                         targetUid = querySnap.docs[0].id;
+                        targetData = querySnap.docs[0].data();
                     } else {
                         const directDoc = await getDoc(doc(db, "students", queryVal));
-                        if (directDoc.exists()) targetUid = queryVal;
+                        if (directDoc.exists()) {
+                            targetUid = queryVal;
+                            targetData = directDoc.data();
+                        }
                     }
                 }
 
-                if (!targetUid) {
-                    alert('لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف!');
+                if (!targetUid || !targetData) {
+                    body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف.</p>`;
                     return;
                 }
 
+                const score = targetData.totalScore || 0;
+                const rankInfo = getRankClass(score);
+                const avatarUrl = targetData.profileImage || defaultMaleSvg;
+
+                body.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
+                            <img src="${avatarUrl}" alt="صورة الطالب">
+                        </div>
+                        <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
+                        <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetUid.substring(0,8)}</div>
+                        <div style="margin-bottom:16px;">
+                            <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
+                        </div>
+                        <button class="btn" onclick="sendFriendRequestToUser('${targetUid}', '${targetData.name || 'طالب'}', '${targetData.profileImage || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
+                    </div>
+                `;
+            } catch (error) {
+                console.error("خطأ في البحث:", error);
+                body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">حدث خطأ أثناء البحث، يرجى المحاولة لاحقاً.</p>`;
+            }
+        };
+
+        window.sendFriendRequestToUser = async function(targetUid, targetName, targetImage) {
+            try {
                 const reqRef = collection(db, "friendRequests");
                 await addDoc(reqRef, {
                     senderId: currentUser.uid,
@@ -876,10 +943,11 @@
                 });
 
                 document.getElementById('friendIdInput').value = '';
-                alert('تم إرسال طلب الصداقة بنجاح! 📨');
+                closeSearchedProfileModal();
+                alert(`تم إرسال طلب الصداقة إلى ${targetName} بنجاح! 📨`);
             } catch (error) {
                 console.error("خطأ في إرسال طلب الصداقة:", error);
-                alert('حدث خطأ أثناء إرسال الطلب.');
+                alert('حدث خطأ أثناء إرسال طلب الصداقة.');
             }
         };
 
@@ -1157,6 +1225,7 @@
 
         window.logoutStudent = async function() {
             if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
+                localStorage.clear();
                 await signOut(auth);
                 window.location.href = 'login.html';
             }
