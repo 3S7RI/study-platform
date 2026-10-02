@@ -263,7 +263,7 @@
 </head>
 <body>
 
-    <button class="theme-toggle-btn" id="themeToggleBtn">
+    <button class="theme-toggle-btn" id="themeToggleBtn" type="button">
         <span id="themeIcon">☀️</span>
         <span id="themeText">الوضع الفاتح</span>
     </button>
@@ -307,7 +307,7 @@
                 <label for="email">البريد الإلكتروني</label>
                 <div class="email-flex">
                     <input type="email" id="email" placeholder="example@gmail.com" required>
-                    <button type="button" id="sendOtpBtn" class="btn-otp" onclick="sendOTPCode()">إرسال الكود</button>
+                    <button type="button" id="sendOtpBtn" class="btn-otp">إرسال الكود</button>
                 </div>
                 <div class="error-msg" id="emailError">صيغة البريد الإلكتروني غير صحيحة</div>
                 <div class="success-msg" id="emailSuccess">تم إرسال كود التحقق بنجاح إلى بريدك!</div>
@@ -448,37 +448,6 @@
             }
         });
 
-        function convertImageToBase64(file) {
-            return new PasswordGeneratorPromise = new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = event => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 250;
-                        const MAX_HEIGHT = 250;
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > height) {
-                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                        } else {
-                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
-                    };
-                    img.onerror = error => reject(error);
-                };
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        // تم تصحيح وظيفة الـ Promise لتفادي أي خطأ برمجي
         function processImage(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -526,8 +495,8 @@
             }, 1000);
         }
 
-        // إرسال كود OTP نظيف وحقيقي من غير ما نسجل الحساب في الفايربيس وقت إرسال الكود
-        async function sendOTPCode() {
+        // ربط الحدث بشكل صحيح ومباشر بدلاً من الاعتماد فقط على onclick
+        document.getElementById('sendOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
             const emailError = document.getElementById('emailError');
@@ -550,8 +519,7 @@
             try {
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
-                // إرسال الكود برمجياً لبريد الطالب
-                const response = await fetch("https://formspree.io/f/xqakoqen", {
+                await fetch("https://formspree.io/f/xqakoqen", {
                     method: "POST",
                     headers: {
                         "Accept": "application/json",
@@ -568,18 +536,16 @@
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(60);
-                sendBtn.textContent = 'إعادة الإرسال';
 
             } catch (error) {
                 console.error('Email Send Error:', error);
-                // بديل فوري يظهر الكود لو حصل أي عطل في نت السيرفر الخارجي عشان ميعطلش الطالب
                 emailSuccess.textContent = `كود التحقق الخاص بك (نسخة احتياطية محلية): ${generatedOtp}`;
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(30);
                 sendBtn.textContent = 'إعادة الإرسال';
             }
-        }
+        });
 
         function validateInputs(name, email, sPhone, pPhone, pass, confirmPass) {
             let isValid = true;
@@ -620,7 +586,6 @@
             return isValid;
         }
 
-        // إنشاء الحساب وتسجيله في فايربيس يتم فقط هنا بعد التحقق من الكود بنجاح
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -651,7 +616,6 @@
             btn.disabled = true;
 
             try {
-                // إنشاء الحساب بجد مرة واحدة فقط عند الضغط النهائي هنا
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -703,7 +667,7 @@
                 console.error(error);
                 let errMsg = error.message;
                 if (error.code === 'auth/email-already-in-use') {
-                    errMsg = 'هذا البريد الإلكتروني مسجل بالفعل!';
+                    errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً!';
                 }
                 alert('حدث خطأ أثناء التسجيل: ' + errMsg);
                 btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
