@@ -107,7 +107,6 @@
         .welcome-section h1 { color: var(--text-main); font-size: 1.6rem; margin-bottom: 6px; font-weight: 800; }
         .welcome-section p { color: var(--text-sub); font-size: 0.92rem; }
         
-        /* التعديل المصغر لبانر الواتساب ليناسب الشاشات ويبقى مدمجاً */
         .whatsapp-banner-wrapper {
             max-width: 1000px; 
             margin: 0 15px 15px 15px; 
@@ -239,7 +238,6 @@
         <p>استعد للتفوق.. اختر القسم اللي حابب تبدأ فيه دلوقتي</p>
     </section>
 
-    <!-- بانر قناة الواتساب المصغر والأنيق -->
     <div class="whatsapp-banner-wrapper">
         <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" class="whatsapp-banner">
             <div class="whatsapp-info">
@@ -256,7 +254,6 @@
     </div>
 
     <main class="sections-container">
-        <!-- 1. الملازم والملفات -->
         <div class="card" style="border-top: 4px solid #0ea5e9;">
             <div>
                 <h3>📑 الملازم والملفات</h3>
@@ -265,7 +262,6 @@
             <a href="files.html" class="card-btn" style="background-color: #0ea5e9;">تصفح الملازم</a>
         </div>
 
-        <!-- 2. الامتحانات الإلكترونية -->
         <div class="card" style="border-top: 4px solid #10b981;">
             <div>
                 <h3>📝 الامتحانات الإلكترونية</h3>
@@ -274,7 +270,6 @@
             <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات</a>
         </div>
 
-        <!-- 3. الفيديوهات التعليمية -->
         <div class="card" style="border-top: 4px solid #8b5cf6;">
             <div>
                 <h3>🎬 الفيديوهات التعليمية</h3>
@@ -283,7 +278,6 @@
             <a href="videos.html" class="card-btn" style="background-color: #8b5cf6;">مشاهدة الفيديوهات</a>
         </div>
 
-        <!-- 4. دردشة الطلاب -->
         <div class="card" style="border-top: 4px solid #6366f1;">
             <div>
                 <h3>💬 دردشة الطلاب</h3>
@@ -292,7 +286,6 @@
             <a href="chat.html" class="card-btn" style="background-color: #6366f1;">دخول الدردشة</a>
         </div>
 
-        <!-- 5. إحصائيات الطالب -->
         <div class="card" style="border-top: 4px solid #f59e0b;">
             <div>
                 <h3>📈 إحصائيات الطالب</h3>
@@ -301,7 +294,6 @@
             <a href="stats.html" class="card-btn" style="background-color: #f59e0b;">عرض الإحصائيات</a>
         </div>
 
-        <!-- 6. منتدى الأسئلة -->
         <div class="card" style="border-top: 4px solid #ec4899;">
             <div>
                 <h3>💬 منتدى الأسئلة</h3>
@@ -315,9 +307,25 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
 
-    <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+    <!-- Firebase SDK (Modular v10) لجلب البيانات المحدثة مباشرة -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // --- نظام الوضع الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -340,58 +348,75 @@
             }
         });
 
-        // --- التحقق المرن وصحيح تسجيل دخول الطالب ---
-        const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-        const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
-        const userData = rawUserData ? JSON.parse(rawUserData) : null;
-
-        if (isLoggedIn !== 'true' && (!userData || Object.keys(userData).length === 0)) {
-            const currentPage = window.location.pathname.split("/").pop();
-            if (currentPage !== 'login.html' && currentPage !== 'index.html') {
-                alert('يجب تسجيل الدخول أولاً!');
-                window.location.href = 'index.html';
-            }
-        }
-        
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        const studentName = userData ? (userData.fullName || userData.name) : null;
+        // --- جلب البيانات وتحديثها فورياً من Firebase عند فتح الصفحة ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
+                await fetchAndUpdateMainProfile(studentEmail, user.uid);
+            } else {
+                // محاولة الجلب من session القديم كبديل مؤقت إذا لم تكن جلسة فايربيس جاهزة
+                const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
+                if (rawUserData) {
+                    try {
+                        const userData = JSON.parse(rawUserData);
+                        const studentName = userData.fullName || userData.name;
+                        if (studentName) {
+                            let firstName = studentName.trim().split(' ')[0];
+                            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                            document.getElementById('navStudentName').innerText = firstName;
+                            navProfileImg.src = userData.profileImage || userData.avatar || defaultMaleSvg;
+                            return;
+                        }
+                    } catch(e){}
+                }
+                window.location.href = 'index.html';
+            }
+        });
 
-        if (userData && studentName) {
-            let firstName = studentName.trim().split(' ')[0];
-            document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-            document.getElementById('navStudentName').innerText = firstName;
-            navProfileImg.src = userData.profileImage || userData.avatar || defaultMaleSvg;
-            checkMainNotifications(userData.email);
-        } else {
-            document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
-            document.getElementById('navStudentName').innerText = 'حسابي';
-            navProfileImg.src = defaultMaleSvg;
-        }
-
-        async function checkMainNotifications(email) {
-            if (!email) return;
+        async function fetchAndUpdateMainProfile(emailKey, fallbackUid) {
             try {
-                let res = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=${new Date().getTime()}`;
-                let response = await fetch(res, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    cache: 'no-cache'
-                });
-                let data = await response.json();
-                let record = data.record || data;
-                let users = record.users || record.students || [];
-                let currentUser = users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase());
+                let docRef = null;
+                let docSnap = null;
 
-                if (currentUser && currentUser.friendRequests && currentUser.friendRequests.length > 0) {
-                    const dot = document.getElementById('mainNotifDot');
-                    if (dot) {
-                        dot.innerText = currentUser.friendRequests.length;
-                        dot.style.display = 'inline-block';
+                if (emailKey) {
+                    docRef = doc(db, "students", emailKey);
+                    docSnap = await getDoc(docRef);
+                }
+
+                if ((!docSnap || !docSnap.exists()) && fallbackUid) {
+                    docRef = doc(db, "students", fallbackUid);
+                    docSnap = await getDoc(docRef);
+                }
+
+                if ((!docSnap || !docSnap.exists()) && auth.currentUser && auth.currentUser.email) {
+                    const qEmail = query(collection(db, "students"), where("email", "==", auth.currentUser.email));
+                    const snapEmail = await getDocs(qEmail);
+                    if (!snapEmail.empty) {
+                        docSnap = snapEmail.docs[0];
                     }
                 }
-            } catch (e) {
-                console.error("خطأ في تحديث إشعارات الرئيسية:", e);
+
+                if (docSnap && docSnap.exists()) {
+                    const data = docSnap.data();
+                    const studentName = data.name || data.fullName || 'بطل';
+                    let firstName = studentName.trim().split(' ')[0];
+                    
+                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                    document.getElementById('navStudentName').innerText = firstName;
+                    navProfileImg.src = data.profileImage || defaultMaleSvg;
+                } else {
+                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
+                    document.getElementById('navStudentName').innerText = 'حسابي';
+                    navProfileImg.src = defaultMaleSvg;
+                }
+            } catch (error) {
+                console.error("خطأ في جلب بيانات الرئيسية:", error);
+                document.getElementById('studentWelcome').innerText = `أهلاً بك يا بطل في منصتك! 🚀`;
+                document.getElementById('navStudentName').innerText = 'حسابي';
+                navProfileImg.src = defaultMaleSvg;
             }
         }
     </script>
