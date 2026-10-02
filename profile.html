@@ -15,12 +15,15 @@
             --text-secondary: #94a3b8;
             --border-color: #334155;
             --input-bg: #0f172a;
+            --modal-overlay-bg: rgba(15, 23, 42, 0.75);
+            --success-color: #10b981;
+            --danger-color: #ef4444;
         }
 
         * { 
             margin: 0; padding: 0; box-sizing: border-box; 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            transition: background 0.3s, border-color 0.3s; 
+            transition: background 0.3s, border-color 0.3s, transform 0.2s; 
         }
 
         body { 
@@ -120,7 +123,7 @@
         .upload-badge {
             position: absolute; bottom: 2px; left: 2px; background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 0.75rem; z-index: 6;
         }
-        .upload-badge:hover { background: var(--primary-hover); }
+        .upload-badge:hover { background: var(--primary-hover); transform: scale(1.1); }
 
         .student-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
         
@@ -145,7 +148,6 @@
             position: relative;
             z-index: 5;
             cursor: pointer;
-            transition: transform 0.2s, filter 0.2s;
         }
         .level-badge-box:hover { transform: scale(1.03); filter: brightness(1.1); }
         .level-badge-box::after { content: " ℹ️"; font-size: 0.75rem; opacity: 0.8; }
@@ -167,67 +169,121 @@
         .profile-action-btn {
             background: var(--input-bg); color: #fff; padding: 11px 5px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 5px; text-align: center; white-space: nowrap;
         }
-        .profile-action-btn:hover { background: #334155; }
+        .profile-action-btn:hover { background: #334155; border-color: var(--primary-color); }
 
         .student-search-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; }
         .student-search-box h3 { font-size: 0.88rem; margin-bottom: 10px; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
         .search-input-group { display: flex; gap: 6px; align-items: center; width: 100%; }
         .search-input-group input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.82rem; background: var(--card-bg); color: var(--text-main); outline: none; }
+        .search-input-group input:focus { border-color: var(--primary-color); }
         .search-input-group button { padding: 9px 16px; background: var(--primary-color); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.82rem; }
+        .search-input-group button:hover { background: var(--primary-hover); }
 
         .footer-rights {
             text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 15px; border-top: 1px dashed var(--border-color); width: 100%; max-width: 480px; position: relative; z-index: 2;
         }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px; }
+        /* تنسيق عام وموحد للإشعارات المنبثقة (Modals) بستايل شيك وغير ضخم */
+        .modal-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: var(--modal-overlay-bg); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center; 
+            z-index: 1000; opacity: 0; visibility: hidden; 
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+            padding: 15px; 
+        }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 460px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.85); transition: transform 0.3s; }
-        .modal-overlay.active .modal-card { transform: scale(1); }
-        .modal-header { padding: 12px 16px; background: var(--form-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .close-modal { background: none; border: none; font-size: 1.1rem; color: var(--text-secondary); cursor: pointer; }
-        .modal-body { padding: 16px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        
+        .modal-card { 
+            background: linear-gradient(145deg, #1e293b, #0f172a); 
+            width: 100%; max-width: 420px; 
+            border-radius: 22px; 
+            border: 1px solid rgba(99, 102, 241, 0.25); 
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.1); 
+            overflow: hidden; 
+            transform: scale(0.9) translateY(10px); 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
+        
+        .modal-header { 
+            padding: 14px 18px; 
+            background: rgba(15, 23, 42, 0.6); 
+            border-bottom: 1px solid var(--border-color); 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        .modal-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        
+        .close-modal { 
+            background: rgba(255, 255, 255, 0.05); 
+            border: 1px solid var(--border-color); 
+            width: 28px; height: 28px; border-radius: 50%;
+            font-size: 0.9rem; color: var(--text-secondary); 
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .close-modal:hover { background: var(--danger-color); color: #fff; border-color: var(--danger-color); }
+        
+        .modal-body { padding: 18px; text-align: right; max-height: 75vh; overflow-y: auto; }
+        .modal-body::-webkit-scrollbar { width: 5px; }
+        .modal-body::-webkit-scrollbar-track { background: var(--bg-color); }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
         
         .edit-form-modal .form-group { margin-bottom: 14px; text-align: right; }
-        .edit-form-modal label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; color: var(--text-secondary); }
-        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"] { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 10px; outline: none; font-size: 0.85rem; }
+        .edit-form-modal label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary); letter-spacing: 0.3px; }
+        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"] { 
+            width: 100%; padding: 10px 14px; 
+            border: 1px solid var(--border-color); 
+            background-color: var(--input-bg); 
+            color: var(--text-main); 
+            border-radius: 12px; outline: none; font-size: 0.85rem; 
+        }
+        .edit-form-modal input[type="text"]:focus, .edit-form-modal input[type="tel"]:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
         
         .setting-custom-row { display: flex; gap: 8px; align-items: center; width: 100%; }
-        .setting-custom-btn { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: space-between; text-align: right; }
-        .setting-toggle-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--text-main); cursor: pointer; white-space: nowrap; }
+        .setting-custom-btn { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; text-align: right; }
+        .setting-toggle-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-main); cursor: pointer; white-space: nowrap; }
         .setting-toggle-box input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer; }
 
-        .modal-avatar-wrapper { position: relative; width: 100px; height: 100px; margin: 0 auto 12px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .modal-avatar-wrapper { position: relative; width: 95px; height: 95px; margin: 0 auto 14px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
         .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
 
-        .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
+        .btn { width: 100%; padding: 11px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
+        .btn:hover { background-color: var(--primary-hover); }
         
         .settings-danger-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 14px;
         }
-        .btn-delete-avatar { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 9px 5px; font-size: 0.78rem; border-radius: 10px; margin-top: 0; }
-        .btn-delete-account { background-color: rgba(239, 68, 68, 0.25); color: #ff3333; border: 1px solid rgba(239, 68, 68, 0.7); padding: 9px 5px; font-size: 0.78rem; border-radius: 10px; margin-top: 0; font-weight: bold; }
-        .btn-delete-account:hover { background-color: #ef4444; color: #fff; }
+        .btn-delete-avatar { background-color: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 9px 5px; font-size: 0.75rem; border-radius: 10px; margin-top: 0; font-weight: 600; }
+        .btn-delete-avatar:hover { background-color: rgba(239, 68, 68, 0.25); }
+        
+        .btn-delete-account { background-color: rgba(239, 68, 68, 0.2); color: #ff4d4d; border: 1px solid rgba(239, 68, 68, 0.6); padding: 9px 5px; font-size: 0.75rem; border-radius: 10px; margin-top: 0; font-weight: bold; }
+        .btn-delete-account:hover { background-color: var(--danger-color); color: #fff; }
 
-        .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.9rem; }
-        .badge-dot { position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
+        .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.85rem; }
+        .badge-dot { position: absolute; top: -4px; right: -4px; background: var(--danger-color); color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
 
-        .friend-item-card { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); width: 100%; }
+        .friend-item-card { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border-color); width: 100%; }
+        .friend-item-card:hover { border-color: rgba(99, 102, 241, 0.4); }
         .friend-info-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; text-align: right; }
-        .friend-info-trigger .friend-avatar-wrap { width: 42px; height: 42px; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .friend-info-trigger .friend-avatar-wrap { width: 38px; height: 38px; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--primary-color); }
         .friend-info-trigger img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-        .friend-info-trigger .friend-name-text { font-size: 0.85rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .friend-actions-group { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
-        .friend-action-icon-btn { border: none; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 0.68rem; font-weight: 600; color: #fff; white-space: nowrap; }
-        .btn-chat-action { background: #10b981; }
-        .btn-ban-action { background: #ef4444; }
+        .friend-info-trigger .friend-name-text { font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .friend-actions-group { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+        .friend-action-icon-btn { border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: 600; color: #fff; white-space: nowrap; }
+        .btn-chat-action { background: var(--success-color); }
+        .btn-chat-action:hover { filter: brightness(1.1); }
+        .btn-ban-action { background: var(--danger-color); }
+        .btn-ban-action:hover { filter: brightness(1.1); }
 
-        .chat-box-container { height: 260px; overflow-y: auto; background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .chat-msg { max-width: 80%; padding: 7px 12px; border-radius: 12px; font-size: 0.82rem; word-break: break-word; }
-        .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; }
-        .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); }
+        .chat-box-container { height: 240px; overflow-y: auto; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; word-break: break-word; line-height: 1.4; }
+        .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; border-bottom-left-radius: 2px; }
+        .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); border-bottom-right-radius: 2px; }
 
         .rank-guide-item {
             display: flex;
@@ -240,15 +296,15 @@
             border: 1px solid var(--border-color);
             text-align: right;
         }
-        .rank-guide-title { font-weight: 700; font-size: 0.85rem; }
-        .rank-guide-points { font-size: 0.78rem; font-weight: bold; color: var(--primary-color); }
+        .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
+        .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
     </style>
 </head>
 <body>
 
     <div class="top-nav-bar">
         <a href="main.html" class="back-btn"><span>←</span> الرئيسية</a>
-        <button class="back-btn" onclick="logoutStudent()" style="color: #ef4444;">تسجيل الخروج 🚪</button>
+        <button class="back-btn" onclick="logoutStudent()" style="color: var(--danger-color);">تسجيل الخروج 🚪</button>
     </div>
 
     <div class="profile-card" id="profileCardMain">
@@ -261,7 +317,7 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- Modal Settings -->
+    <!-- Modal Settings (تعديل الملف الشخصي) -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -297,33 +353,33 @@
 
                 <div class="settings-danger-group">
                     <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف الصورة</button>
-                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠️ حذف الحساب نهائياً</button>
+                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠️️ حذف الحساب</button>
                 </div>
                 
-                <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 10px;">حفظ التعديلات والخيارات 💾</button>
+                <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 12px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Avatar -->
+    <!-- Modal Avatar (تعديل صورة البروفايل) -->
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
                 <h3>تعديل صورة البروفايل 🖼️</h3>
                 <button class="close-modal" onclick="closeAvatarModal()">✕</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="text-align: center;">
                 <div class="modal-avatar-wrapper rank-frame-legendary" id="modalAvatarFrame">
                     <img id="modalAvatarPreview" src="" alt="معاينة الصورة">
                 </div>
                 <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="previewNewAvatar(event)">
-                <button type="button" class="btn" onclick="document.getElementById('avatarFileInput').click()">اختر صورة جديدة من جهازك 📁</button>
-                <button type="button" class="btn" id="saveAvatarBtn" onclick="saveAvatarDirectly()" style="margin-top: 10px; background: #10b981;">حفظ وتحديث الصورة 💾</button>
+                <button type="button" class="btn" onclick="document.getElementById('avatarFileInput').click()" style="background: var(--input-bg); border: 1px solid var(--border-color);">اختر صورة جديدة من جهازك 📁</button>
+                <button type="button" class="btn" id="saveAvatarBtn" onclick="saveAvatarDirectly()" style="margin-top: 10px; background: var(--success-color);">حفظ وتحديث الصورة 💾</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Rank Guide -->
+    <!-- Modal Rank Guide (دليل المستويات) -->
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -331,7 +387,7 @@
                 <button class="close-modal" onclick="closeRankGuideModal()">✕</button>
             </div>
             <div class="modal-body" style="text-align: right;">
-                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 14px; text-align: center;">
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 14px; text-align: center; line-height: 1.4;">
                     اجمع النقاط من خلال إكمال الدروس، حل الامتحانات، والواجبات لتتطور وترتقي بمستواك! 🚀
                 </p>
                 
@@ -358,10 +414,9 @@
             </div>
         </div>
     </div>
-
-    <!-- Modal Friends -->
+    <!-- Modal Friends (قائمة الأصدقاء) -->
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
-        <div class="modal-card" style="max-width:480px;">
+        <div class="modal-card" style="max-width:420px;">
             <div class="modal-header">
                 <h3>قائمة أصدقائي 👥</h3>
                 <button class="close-modal" onclick="closeFriendsModal()">✕</button>
@@ -374,7 +429,7 @@
         </div>
     </div>
 
-    <!-- Modal Chat -->
+    <!-- Modal Chat (الدردشة الفورية) -->
     <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -391,7 +446,7 @@
         </div>
     </div>
 
-    <!-- Modal Requests -->
+    <!-- Modal Requests (طلبات الأصدقاء) -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -406,7 +461,7 @@
         </div>
     </div>
 
-    <!-- Modal Comparison -->
+    <!-- Modal Comparison (مقارنة المستوى والتقدم) -->
     <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -469,19 +524,16 @@
                 let docRef = null;
                 let docSnap = null;
 
-                // 1. محاولة الجلب بالإيميل إن وُجد
                 if (emailKey) {
                     docRef = doc(db, "students", emailKey);
                     docSnap = await getDoc(docRef);
                 }
 
-                // 2. إذا لم يوجد بالإيميل، نجرب بالـ UID المباشر
                 if ((!docSnap || !docSnap.exists()) && fallbackUid) {
                     docRef = doc(db, "students", fallbackUid);
                     docSnap = await getDoc(docRef);
                 }
 
-                // 3. إذا لم يوجد بالمستند المباشر، نبحث في الكولكشن عن طريق الحقل email أو uid
                 if ((!docSnap || !docSnap.exists()) && currentUser.email) {
                     const qEmail = query(collection(db, "students"), where("email", "==", currentUser.email));
                     const snapEmail = await getDocs(qEmail);
@@ -495,7 +547,6 @@
                     currentStudentData = docSnap.data();
                     renderStudentProfile(currentStudentData);
                 } else {
-                    // إذا لم يتم العثور نهائياً، نقوم بإنشاء ملف افتراضي جديد للطالب لضمان عدم تعليق الشاشة
                     const defaultData = {
                         name: currentUser.displayName || currentUser.email.split('@')[0],
                         email: currentUser.email || '',
@@ -514,7 +565,6 @@
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                // محاولة أخيرة بعرض بيانات أساسية لمنع التعليق
                 currentStudentData = {
                     name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
                     studentId: currentUser.uid.substring(0, 8),
@@ -682,7 +732,7 @@
             }
 
             const btn = document.getElementById('saveAvatarBtn');
-            btn.innerText = 'جاري الحفظ في القاعدة... ⏳';
+            btn.innerText = 'جاري الحفظ... ⏳';
             btn.disabled = true;
 
             try {
@@ -821,7 +871,7 @@
                 const snap = await getDocs(q);
 
                 if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
                     return;
                 }
 
@@ -845,7 +895,7 @@
                 container.innerHTML = html;
             } catch (error) {
                 console.error("خطأ في تحميل الطلبات:", error);
-                container.innerHTML = `<p style="color:#ef4444; text-align:center;">فشل تحميل الطلبات.</p>`;
+                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">فشل تحميل الطلبات.</p>`;
             }
         }
 
@@ -884,7 +934,7 @@
                 const snap = await getDocs(q);
 
                 if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
                     return;
                 }
 
@@ -903,7 +953,7 @@
                                     <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || 'https://via.placeholder.com/150'}" alt=""></div>
                                     <div>
                                         <div class="friend-name-text">${fInfo.name}</div>
-                                        <div style="font-size:0.685rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
+                                        <div style="font-size:0.68rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
                                     </div>
                                 </div>
                                 <div class="friend-actions-group">
@@ -917,7 +967,7 @@
                 container.innerHTML = html;
             } catch (error) {
                 console.error("خطأ في تحميل الأصدقاء:", error);
-                container.innerHTML = `<p style="color:#ef4444; text-align:center;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
+                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
             }
         }
 
@@ -953,7 +1003,7 @@
             unsubscribeChat = onSnapshot(msgsRef, (snapshot) => {
                 let html = '';
                 if (snapshot.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:0.75rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:0.78rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
                     return;
                 }
 
@@ -1006,13 +1056,13 @@
             try {
                 const friendDoc = await getDoc(doc(db, "students", friendUid));
                 if (!friendDoc.exists()) {
-                    body.innerHTML = `<p style="color:#ef4444; text-align:center;">تعذر جلب بيانات الصديق.</p>`;
+                    body.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">تعذر جلب بيانات الصديق.</p>`;
                     return;
                 }
 
                 const fData = friendDoc.data();
                 if (fData.allowComparison === false) {
-                    body.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
+                    body.innerHTML = `<p style="text-align:center; color:var(--danger-color); padding:15px; font-size:0.82rem;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
                     return;
                 }
 
@@ -1026,20 +1076,20 @@
                 else diffText = `تعادل تام في النقاط والمستوى! 🤝`;
 
                 body.innerHTML = `
-                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:20px; text-align:center;">
+                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:18px; text-align:center;">
                         <div>
-                            <img src="${currentStudentData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
-                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">أنت</div>
-                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.85rem;">${myScore} ن</div>
+                            <img src="${currentStudentData.profileImage || 'https://via.placeholder.com/150'}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
+                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">أنت</div>
+                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
                         </div>
-                        <div style="font-weight:bold; font-size:1.1rem; color:var(--text-secondary);">VS</div>
+                        <div style="font-weight:bold; font-size:1rem; color:var(--text-secondary);">VS</div>
                         <div>
-                            <img src="${fData.profileImage || 'https://via.placeholder.com/150'}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid #10b981;">
-                            <div style="font-weight:bold; font-size:0.82rem; margin-top:5px;">${friendName}</div>
-                            <div style="color:#10b981; font-weight:bold; font-size:0.85rem;">${friendScore} ن</div>
+                            <img src="${fData.profileImage || 'https://via.placeholder.com/150'}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
+                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">${friendName}</div>
+                            <div style="color:var(--success-color); font-weight:bold; font-size:0.82rem;">${friendScore} ن</div>
                         </div>
                     </div>
-                    <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.9rem; color:var(--text-main);">
+                    <div style="background:var(--bg-color); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.85rem; color:var(--text-main);">
                         ${diffText}
                     </div>
                 `;
