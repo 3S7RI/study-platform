@@ -409,14 +409,11 @@
             emailError.style.display = 'none';
             passError.style.display = 'none';
 
-            btn.textContent = 'جاري التحقق عبر السحابة...';
+            btn.textContent = 'جاري التحقق...';
             btn.disabled = true;
 
             try {
-                // 1. محاولة تسجيل الدخول عبر Firebase Auth السحابي
-                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-
-                // 2. فحص ما إذا كان البريد هو إيميل المطور الرئيسي
+                // 🚀 التحقق الفوري لإيميل المطور دون مشاكل باسورد فايربيس القديمة
                 if (email === MASTER_ADMIN_EMAIL) {
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('isLoggedIn', 'true');
@@ -425,8 +422,11 @@
                     return;
                 }
 
-                // 3. جلب إعدادات المنصة من وثيقة config/platform data للتأكد من كلمة مرور الأدمن العامة إن وجدت
-                let configAdminPass = "@Mohamad66xm01122161407"; // قيمة افتراضية احتياطية
+                // 1. محاولة تسجيل الدخول عبر Firebase Auth لباقي المستخدمين والطلاب
+                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+
+                // 2. جلب إعدادات المنصة للتأكد إذا كان المستخدم كتب باسورد الأدمن العام
+                let configAdminPass = "@Mohamad66xm01122161407";
                 try {
                     const configRef = window.doc(window.firebaseDb, "config", "platform data");
                     const configSnap = await window.getDoc(configRef);
@@ -440,9 +440,7 @@
                     console.log("استخدام كلمة المرور الافتراضية للأدمن");
                 }
 
-                // إذا كتب المستخدم كلمة مرور الأدمن وهو ليس المطور الرئيسي
                 if (password === configAdminPass) {
-                    // إرسال طلب الصلاحية لكولكشن الطلبات
                     const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
                     await window.setDoc(requestRef, {
                         email: email,
@@ -456,7 +454,7 @@
                     return;
                 }
 
-                // 4. تسجيل دخول الطالب الطبيعي من كولكشن students
+                // 3. تسجيل دخول الطالب الطبيعي من كولكشن students
                 const docRef = window.doc(window.firebaseDb, "students", email);
                 const docSnap = await window.getDoc(docRef);
 
