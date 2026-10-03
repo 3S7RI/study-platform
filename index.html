@@ -319,13 +319,6 @@
                 <div class="error-msg" id="otpError">كود التحقق غير صحيح</div>
             </div>
 
-            <!-- حقل جديد اختياري لكود تفعيل المسؤول (الأدمن) -->
-            <div class="input-group">
-                <label for="adminSecret">كود تفعيل الأدمن (اختياري)</label>
-                <input type="password" id="adminSecret" placeholder="اتركه فارغاً إذا كنت طالباً">
-                <div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">اكتب الكود السري الخاص بالمسؤول إذا كنت تريد إنشاء حساب أدمن</div>
-            </div>
-
             <div class="input-group">
                 <label for="studentPhone">رقم الهاتف الشخصي</label>
                 <input type="tel" id="studentPhone" maxlength="11" placeholder="01xxxxxxxxx" required>
@@ -422,7 +415,7 @@
             "يا طالب العلم، استعينوا بالله واصبروا، إن العاقبة للمتقين والمجتهدين.",
             "اجعل لقرآنك نصيباً من يومك، يبارك الله لك في وقتك وفهمك.",
             "الطموح الحقيقي لا يعرف المستحيل، بل يصنع من الصعاب سلماً للنجاح.",
-            "اللهم صلِ على محمد وعلى آله وسلم تسليماً كثيراً إلى يوم الدين.",
+            "اللهم صلِ على محمد وعلى آل محمد وسلم تسليماً كثيراً إلى يوم الدين.",
             "التعب مأجور، والسهر في طلب العلم مكتوب عند الله في صحائف النور.",
             "كن صبوراً، فإن الله لا يضيع أجر من أحسن عملاً.",
             "من طلب العلا سهر الليالي، ومن استعان بالله أتاه المعين من حيث لا يدري.",
@@ -770,7 +763,6 @@
             const name = document.getElementById('fullName').value.trim();
             const gender = selectedGender; 
             const email = document.getElementById('email').value.trim().toLowerCase();
-            const adminSecret = document.getElementById('adminSecret').value.trim();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
@@ -778,8 +770,8 @@
             const enteredOtp = document.getElementById('otpCode').value.trim();
             const imageFile = profileImageInput.files[0];
 
-            // الكود السري الخاص بإنشاء حساب المسؤول (يمكنك تغييره هنا كما تريد)
-            const SECRET_ADMIN_CODE = "ADMIN_SECRET_2026";
+            // كلمة المرور السرية الخاصة بإنشاء حساب المسؤول (يمكنك تعديلها هنا)
+            const ADMIN_SECRET_PASSWORD = "ADMIN_SECRET_2026";
 
             if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) return;
 
@@ -809,8 +801,8 @@
                     } catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // 2. التحقق مما إذا كان المستخدم أدخل كود الأدمن الصحيح
-                if (adminSecret !== "" && adminSecret === SECRET_ADMIN_CODE) {
+                // 2. التحقق مما إذا كانت كلمة المرور هي كلمة سر الأدمن
+                if (pass === ADMIN_SECRET_PASSWORD) {
                     // بيانات الأدمن
                     const adminData = {
                         adminId: user.uid,
@@ -840,12 +832,9 @@
 
                     window.location.href = 'admin.html';
                     return;
-
-                } else if (adminSecret !== "" && adminSecret !== SECRET_ADMIN_CODE) {
-                    throw new Error('كود تفعيل الأدمن غير صحيح! يرجى ترك الحقل فارغاً لتسجيل حساب طالب، أو إدخال الكود الصحيح.');
                 }
 
-                // 3. التسجيل العادي كطالب
+                // 3. التسجيل العادي كطالب (إذا كانت كلمة المرور عادية)
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
