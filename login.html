@@ -419,13 +419,21 @@
                 const adminSnap = await window.getDoc(adminDocRef);
 
                 if (adminSnap.exists()) {
-                    // البريد مسجل كأدمن، نقوم بالتحقق من كلمة المرور عبر فايربيس
+                    // التحقق من كلمة المرور عبر فايربيس
                     await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
 
+                    const adminData = adminSnap.data();
+                    const adminDataString = JSON.stringify(adminData);
+
+                    // تخزين تفاصيل الأدمن بالكامل في الـ sessionStorage
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
-                    sessionStorage.setItem('adminRole', 'admin');
-                    sessionStorage.setItem('adminEmail', email);
+                    sessionStorage.setItem('adminRole', adminData.role || 'admin');
+                    sessionStorage.setItem('adminEmail', adminData.email || email);
+                    sessionStorage.setItem('currentAdminId', adminData.adminId || '');
+                    sessionStorage.setItem('adminUser', adminDataString);
+                    sessionStorage.setItem('currentUser', adminDataString);
+
                     window.location.href = 'admin.html';
                     return;
                 }
@@ -440,9 +448,10 @@
                     const studentData = studentSnap.data();
                     const studentDataString = JSON.stringify(studentData);
                     
-                    sessionStorage.setItem('isLoggedIn' , 'true');
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('isAdmin', 'false');
                     sessionStorage.setItem('currentStudentEmail', studentData.email || email);
-                    sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id);
+                    sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id || '');
                     sessionStorage.setItem('studentUser', studentDataString);
                     sessionStorage.setItem('currentUser', studentDataString);
 
