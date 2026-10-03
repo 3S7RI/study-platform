@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
@@ -32,6 +32,7 @@
         window.firebaseStorage = storage;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.doc = doc;
+        window.getDoc = getDoc;
         window.setDoc = setDoc;
         window.ref = ref;
         window.uploadBytes = uploadBytes;
@@ -121,7 +122,6 @@
             margin-bottom: 25px;
         }
         
-        /* جعل العنوان على سطر واحد وبنفس مقاسات وثيم صفحة الطالب */
         .brand-header h2 {
             color: var(--text-main);
             font-size: 1.55rem;
@@ -300,7 +300,6 @@
         let generatedOtp = ""; 
         let countdownTimer = null;
 
-        // قائمة الكلمات التحفيزية العميقة الخاصة بالأدمن والمطورين
         const inspirationalQuotes = [
             "اللهم صلِ وسلّم وبارك على نبينا محمد وعلى آله وصحبه أجمعين.",
             "من أتقن عمله وأخلص نيته، جعل الله له من كل هم فرجاً ومن كل ضيق مخرجاً.",
@@ -316,7 +315,6 @@
             "اللهم صلِ وسلم وبارك على نبينا محمد في الأولين وفي الآخرين."
         ];
 
-        // نظام تبديل الثيم (الليلي / الفاتح)
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
@@ -334,7 +332,6 @@
             }
         });
 
-        // إظهار وإخفاء الباسورد
         const passwordInput = document.getElementById('adminPassword');
         const togglePassBtn = document.getElementById('togglePassBtn');
         togglePassBtn.addEventListener('click', function() {
@@ -359,7 +356,6 @@
             }
         });
 
-        // معاينة الصورة المرفوعة
         const adminAvatarInput = document.getElementById('adminAvatar');
         const fileNameSpan = document.getElementById('fileName');
         const uploadIcon = document.getElementById('uploadIcon');
@@ -396,7 +392,7 @@
             }, 1000);
         }
 
-        // إرسال كود التحقق (OTP) عبر Brevo
+        // إرسال كود التحقق (OTP) بعد التحقق من عدم وجود الإيميل مسبقاً في جدول admins
         document.getElementById('sendOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('adminEmail').value.trim().toLowerCase();
             const nameInput = document.getElementById('adminName').value.trim();
@@ -414,10 +410,28 @@
                 return;
             }
 
-            sendBtn.textContent = 'جاري إرسال الكود...';
+            sendBtn.textContent = 'جاري التحقق...';
             sendBtn.disabled = true;
 
             try {
+                // فحص ما إذا كان البريد موجوداً مسبقاً في جدول admins في Firestore
+                const adminDocRef = window.doc(window.firebaseDb, "admins", emailInput);
+                const adminDocSnap = await window.getDoc(adminDocRef);
+
+                if (adminDocSnap.exists()) {
+                    const adminData = adminDocSnap.data();
+                    if (adminData.status === 'banned' || adminData.status === 'blocked') {
+                        emailError.textContent = 'عذراً، هذا البريد الإداري محظور من النظام!';
+                    } else {
+                        emailError.textContent = 'هذا البريد الإلكتروني مسجل بحساب إداري بالفعل!';
+                    }
+                    emailError.style.display = 'block';
+                    sendBtn.textContent = 'إرسال الكود';
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
                 const adminName = nameInput || "المسؤول الجديد";
@@ -557,6 +571,16 @@
             submitBtn.innerText = "جاري إنشاء الحساب في السحابة...";
 
             try {
+                // الفحص مرة أخرى قبل الإنشاء لضمان الأمان التام
+                const adminDocRef = window.doc(window.firebaseDb, "admins", email);
+                const adminDocSnap = await window.getDoc(adminDocRef);
+                if (adminDocSnap.exists()) {
+                    alert("عذراً، هذا البريد مسجل بالفعل كحساب إداري!");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "اعتماد وإنشاء الحساب 🚀";
+                    return;
+                }
+
                 // 1. إنشاء الحساب في Firebase Authentication
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
                 const user = userCredential.user;
