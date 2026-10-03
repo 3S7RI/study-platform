@@ -124,7 +124,7 @@
             font-weight: 800;
             letter-spacing: -0.5px;
             margin: 0 0 6px 0;
-            cursor: pointer; /* لو دوست دبل كليك هنا تفتح نافذة المطور */
+            cursor: pointer; /* النقر المزدوج هنا يفتح بوابة المطور */
             user-select: none;
         }
         
@@ -212,7 +212,7 @@
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
         .success-msg { color: #10b981; font-size: 0.82rem; margin-top: 4px; display: none; }
 
-        /* تصميم المودال المخصص الموحد بثيم المنصة بدلاً من نوافذ المتصفح القديمة */
+        /* نافذة المودال المخصصة بثيم المنصة */
         .custom-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
@@ -252,8 +252,8 @@
 
     <div class="register-container">
         <div class="brand-header">
-            <!-- ضغطتين مزدوجتين (Double Click) على عنوان المنصة تفتح نافذة المطور السرية بثيم المنصة -->
-            <h2 id="secretAdminTrigger" title="انقر مرتين للوصول السريع">منصة رحلة دراسية</h2>
+            <!-- تم إضافة إيموجي قبعة التخرج بجانب العنوان ورجعت الدبل كليك على العنوان للفتح -->
+            <h2 id="secretAdminTrigger" title="انقر مرتين للوصول السريع">🎓 منصة رحلة دراسية</h2>
             <p>أنشئ حسابك وانطلق في رحلتك التعليمية</p>
         </div>
 
@@ -352,7 +352,7 @@
         </div>
     </div>
 
-    <!-- نافذة المودال المخصصة لبوابة المطور بدلاً من الـ Prompt القديم -->
+    <!-- نافذة المودال المخصصة لبوابة المطور -->
     <div class="custom-modal-overlay" id="adminModal">
         <div class="custom-modal-box">
             <h3>🔐 بوابة المطور والمديرين</h3>
@@ -366,7 +366,6 @@
     </div>
 
     <script>
-        // === نافذة المطور المخصصة بثيم المنصة ===
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
         const adminPasswordInput = document.getElementById('adminPasswordInput');
@@ -392,7 +391,6 @@
             }
             adminModal.classList.remove('active');
         });
-        // ===========================================
 
         let generatedOtp = ""; 
         let countdownTimer = null;
@@ -627,7 +625,6 @@
             return isValid;
         }
 
-        // === معالجة التسجيل التلقائي للطالب وحفظه في Firestore كولكشن students أوتوماتيك ===
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -658,7 +655,6 @@
             btn.disabled = true;
 
             try {
-                // 1. إنشاء حساب المصادقة في Firebase Authentication
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -668,12 +664,10 @@
                     catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // 2. حساب رقم الطالب وتوليد الـ ID أوتوماتيك
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
-                // 3. هيكل بيانات الطالب الجاهز للحفظ في Firestore
                 const studentData = {
                     uid: user.uid,
                     id: studentId,
@@ -698,10 +692,8 @@
                     createdAt: new Date().toISOString()
                 };
 
-                // حفظ المستند في كولكشن students (بحيث يكون الـ Doc ID هو الإيميل تماماً زي صورتك)
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
 
-                // حفظ جلسة الدخول في المتصفح
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
