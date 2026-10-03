@@ -382,6 +382,7 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
+    <!-- النوافذ المنبثقة (Modals) -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -488,6 +489,7 @@
             </div>
         </div>
     </div>
+
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:420px;">
             <div class="modal-header">
@@ -680,7 +682,7 @@
                     
                     <div class="student-id-container">
                         <span class="id-text-badge">ID: ${data.studentId || currentUser.uid.substring(0,8)}</span>
-                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser.uid}')">نسخ 📋</button>
+                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser.uid.substring(0,8)}')">نسخ 📋</button>
                     </div>
 
                     <div>
@@ -883,7 +885,7 @@
 
                 localStorage.removeItem(`student_profile_${currentUser.uid}`);
                 await deleteUser(currentUser);
-                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️️');
+                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠');
                 setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             } catch (error) {
                 console.error("خطأ في حذف الحساب:", error);
@@ -894,7 +896,7 @@
         window.searchStudentProfile = async function() {
             const queryVal = document.getElementById('friendIdInput').value.trim();
             if (!queryVal) {
-                showToast('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!', '⚠️');
+                showToast('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!', '⚠');
                 return;
             }
 
@@ -937,7 +939,6 @@
                     return;
                 }
 
-                // التحقق هل هم أصدقاء بالفعل أو بينهم طلب معلق لمنع تكرار الإرسال
                 const friendshipId = [currentUser.uid, targetDocKey].sort().join('_');
                 const friendshipSnap = await getDoc(doc(db, "friends", friendshipId));
                 let isAlreadyFriend = false;
@@ -1088,7 +1089,6 @@
             try {
                 await updateDoc(doc(db, "friendRequests", reqId), { status: 'accepted' });
 
-                // إنشاء معرف موحد للعلاقة بغض النظر عن من أرسل ومن استقبل
                 const friendshipId = [currentUser.uid, senderId].sort().join('_');
 
                 await setDoc(doc(db, "friends", friendshipId), { 
@@ -1120,7 +1120,6 @@
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
 
             try {
-                // جلب العلاقات التي يكون فيها المستخدم إما user1 أو user2
                 const q1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
                 const q2 = query(collection(db, "friends"), where("user2", "==", currentUser.uid));
                 
@@ -1171,7 +1170,7 @@
                                 </div>
                                 <div class="friend-actions-group">
                                     <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friendUid}', '${fInfo.name}')">محادثة 💬</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑️️</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑</button>
                                 </div>
                             </div>
                         `;
@@ -1198,7 +1197,6 @@
                 loadFriendsList();
             } catch (error) {
                 console.error("خطأ إزالة الصديق:", error);
-                // لو الوثيقة مش موجودة بالمعرف الموحد، نجرب بطريقة بديلة
                 try {
                     await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true }, { merge: true });
                     await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true }, { merge: true });
