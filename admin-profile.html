@@ -1,44 +1,98 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بروفايل الأدمن - رحلة دراسية</title>
+    
+    <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.deleteDoc = deleteDoc;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.query = query;
+        window.where = where;
+        window.serverTimestamp = serverTimestamp;
+    </script>
+
     <style>
         :root {
             --primary-color: #6366f1;
             --primary-hover: #4f46e5;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --form-bg: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --form-bg: rgba(15, 23, 42, 0.6);
             --text-main: #f8fafc;
             --text-secondary: #94a3b8;
             --border-color: #334155;
-            --input-bg: #1e293b;
+            --input-bg: rgba(15, 23, 42, 0.8);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            --success: #10b981;
         }
 
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Tahoma, sans-serif; 
-            transition: background 0.3s, border-color 0.3s; 
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --form-bg: #f8fafc;
+            --text-main: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #cbd5e1;
+            --input-bg: #ffffff;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        
         body { 
-            background-color: var(--bg-color); 
+            background: var(--bg-gradient);
             color: var(--text-main); 
             min-height: 100vh; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             padding: 20px; 
-            user-select: none; 
-            -webkit-user-select: none; 
         }
         
-        .profile-container { background-color: var(--card-bg); width: 100%; max-width: 520px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); padding: 25px; border: 1px solid var(--border-color); position: relative; overflow: hidden; }
-        
+        .profile-container { 
+            background-color: var(--card-bg); 
+            backdrop-filter: blur(16px);
+            width: 100%; 
+            max-width: 520px; 
+            border-radius: 24px; 
+            box-shadow: var(--shadow); 
+            padding: 25px; 
+            border: 1px solid var(--border-color); 
+            position: relative; 
+            overflow: hidden; 
+        }
+
         .card-bg-pattern {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1; opacity: 0.22; background-repeat: repeat; background-size: 40px 40px;
+            pointer-events: none; z-index: 1; opacity: 0.15; background-repeat: repeat; background-size: 40px 40px;
         }
 
         .profile-container > * { position: relative; z-index: 2; }
@@ -55,23 +109,12 @@
         }
         .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
 
-        .rank-frame-bronze { background: linear-gradient(45deg, #a77044, #cd7f32); box-shadow: 0 0 12px rgba(205, 127, 50, 0.4); animation: bronzePulse 2s infinite alternate; }
-        .rank-frame-silver { background: linear-gradient(45deg, #95a5a6, #cbd5e1); box-shadow: 0 0 14px rgba(149, 165, 166, 0.5); animation: silverPulse 2s infinite alternate; }
-        .rank-frame-gold { background: linear-gradient(45deg, #eab308, #ca8a04, #fef08a); box-shadow: 0 0 18px rgba(234, 179, 8, 0.7); animation: goldPulse 1.8s infinite alternate; }
-        .rank-frame-diamond { background: linear-gradient(45deg, #06b6d4, #3b82f6, #67e8f9); box-shadow: 0 0 22px rgba(6, 182, 212, 0.8); animation: diamondPulse 1.6s infinite alternate; }
         .rank-frame-mythic { 
             background: linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6, #ec4899); background-size: 300% 300%; 
-            box-shadow: 0 0 25px rgba(236, 72, 153, 0.8), 0 0 10px rgba(139, 92, 246, 0.6); 
-            animation: mythicGlow 2.5s ease infinite, mythicGradient 4s ease infinite; 
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.8); 
+            animation: mythicGlow 2.5s ease infinite;
         }
-        .rank-frame-unranked { background: var(--border-color); }
-
-        @keyframes bronzePulse { 0% { box-shadow: 0 0 8px rgba(205,127,50,0.3); } 100% { box-shadow: 0 0 15px rgba(205,127,50,0.7); } }
-        @keyframes silverPulse { 0% { box-shadow: 0 0 8px rgba(149,165,166,0.3); } 100% { box-shadow: 0 0 16px rgba(149,165,166,0.7); } }
-        @keyframes goldPulse { 0% { box-shadow: 0 0 10px rgba(234,179,8,0.4); } 100% { box-shadow: 0 0 20px rgba(234,179,8,0.9); } }
-        @keyframes diamondPulse { 0% { box-shadow: 0 0 12px rgba(6,182,212,0.4); } 100% { box-shadow: 0 0 24px rgba(6,182,212,0.9); } }
         @keyframes mythicGlow { 0% { box-shadow: 0 0 15px rgba(236,72,153,0.6); } 50% { box-shadow: 0 0 30px rgba(6,182,212,0.8); } 100% { box-shadow: 0 0 15px rgba(236,72,153,0.6); } }
-        @keyframes mythicGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
         .upload-badge {
             position: absolute; bottom: 2px; left: 2px; background: var(--primary-color); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 0.85rem; transition: transform 0.2s; z-index: 5;
@@ -85,14 +128,10 @@
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 8px;
             padding: 7px 18px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1.5px solid rgba(255,255,255,0.2);
+            background: linear-gradient(135deg, #be185d, #831843); color: #fce7f3; border: 1.5px solid #ec4899;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+            cursor: pointer;
         }
-        .badge-bronze { background: linear-gradient(135deg, #92400e, #78350f); color: #fef3c7; border-color: #b45309; }
-        .badge-silver { background: linear-gradient(135deg, #475569, #334155); color: #f8fafc; border-color: #64748b; }
-        .badge-gold { background: linear-gradient(135deg, #a16207, #713f12); color: #fef9c3; border-color: #ca8a04; }
-        .badge-diamond { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); color: #bfdbfe; border-color: #3b82f6; }
-        .badge-mythic { background: linear-gradient(135deg, #be185d, #831843); color: #fce7f3; border-color: #ec4899; box-shadow: 0 0 15px rgba(236, 72, 153, 0.5); }
-        .badge-unranked { background-color: #334155; color: #94a3b8; }
 
         .admin-email { color: var(--text-secondary); font-size: 0.88rem; }
         .info-card { background-color: var(--form-bg); border-radius: 12px; padding: 12px 18px; margin-bottom: 15px; border: 1px solid var(--border-color); }
@@ -100,56 +139,32 @@
         .info-label { color: var(--text-secondary); }
         .info-value { font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
+        .action-buttons-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-full { grid-column: span 2; }
+        .btn-save { background-color: #10b981; }
+        .btn-danger { background-color: #ef4444; }
+        .btn-secondary { background-color: #334155; }
+        .btn-special { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+
         .edit-form { margin-bottom: 15px; background: var(--form-bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); display: none; }
         .edit-form.active { display: block; }
-        .form-group { margin-bottom: 10px; }
+        .form-group { margin-bottom: 10px; text-align: right; }
         .form-group label { display: block; font-size: 0.82rem; font-weight: bold; margin-bottom: 4px; color: var(--text-secondary); }
-        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 8px; outline: none; font-size: 0.88rem; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main); border-radius: 8px; outline: none; font-size: 0.88rem; }
 
-        .pattern-control-row { display: flex; gap: 8px; align-items: center; }
-        .pattern-control-row select { flex: 1; }
-        .toggle-switch-container { display: flex; align-items: center; gap: 6px; background: var(--input-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-        .toggle-switch-container input { cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color); }
-        .toggle-switch-container span { font-size: 0.8rem; color: var(--text-main); font-weight: 600; }
-
-        .admin-search-box { background: var(--form-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 15px; }
-        .admin-search-box h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
-        .search-input-group { display: flex; gap: 8px; align-items: center; width: 100%; }
-        .search-input-group input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.88rem; background: var(--input-bg); color: var(--text-main); outline: none; }
-        .search-input-group button { padding: 10px 18px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.88rem; white-space: nowrap; flex-shrink: 0; }
-
-        .whatsapp-banner {
-            display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(135deg, #25d366, #128c7e); color: white;
-            padding: 12px 16px; border-radius: 12px; text-decoration: none;
-            font-weight: bold; font-size: 0.9rem; margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2); transition: transform 0.2s;
-        }
-        .whatsapp-banner:hover { transform: translateY(-2px); }
-
+        /* نوافذ عائمة منظمة وموحدة */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 440px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.85) translateY(20px); transition: transform 0.3s; }
+        .modal-card { background: var(--card-bg); width: 100%; max-width: 460px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); overflow: hidden; transform: scale(0.85) translateY(20px); transition: transform 0.3s; }
         .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
         .modal-header { padding: 15px 20px; background: var(--form-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer; }
-        .modal-body { padding: 20px; text-align: center; max-height: 80vh; overflow-y: auto; }
+        .modal-body { padding: 20px; text-align: right; max-height: 80vh; overflow-y: auto; }
 
-        .modal-avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 12px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
-        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
-
-        .modal-info-list { margin-top: 15px; text-align: right; background: var(--form-bg); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color); }
-        .modal-field { text-align: right; margin-bottom: 10px; }
-        .modal-field label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 3px; }
-        .modal-field input, .modal-field select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); font-size: 0.85rem; outline: none; }
-
-        .modal-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-        .modal-actions-grid button { width: 100%; padding: 9px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.82rem; cursor: pointer; }
-        .btn-full { grid-column: span 2; }
-
-        .btn { width: 100%; padding: 11px; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; background-color: var(--primary-color); color: white; transition: background 0.2s; margin-bottom: 8px; }
-        .btn:hover { background-color: var(--primary-hover); }
-        .btn-save { background-color: #10b981; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: #f8fafc; padding: 12px 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 0.9rem; z-index: 2000; transition: transform 0.3s ease; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
     </style>
 </head>
@@ -167,451 +182,595 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
+    <!-- نافذة عائمة للإعدادات وتعديل الملف -->
+    <div class="modal-overlay" id="settingsModal" onclick="closeModalOnOuterClick(event, 'settingsModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalProfileTitle">تفاصيل الحساب 🔍</h3>
-                <button class="close-modal" onclick="closeModal()">✕</button>
+                <h3>⚙️ إعدادات وتعديل البروفايل</h3>
+                <button class="close-modal" onclick="closeModal('settingsModal')">✕</button>
             </div>
-            <div class="modal-body" id="modalContent"></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>الاسم الكامل</label>
+                    <input type="text" id="editAdminName" placeholder="اسم الأدمن">
+                </div>
+                <div class="form-group">
+                    <label>رقم الهاتف</label>
+                    <input type="tel" id="editAdminPhone" placeholder="01xxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور الجديدة</label>
+                    <input type="password" id="editAdminPassword" placeholder="اتركها فارغة إذا لم ترد تغييرها">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 15px;">
+                    <button class="btn btn-save btn-full" onclick="saveAdminChanges()">حفظ التعديلات 💾</button>
+                    <button class="btn btn-secondary btn-full" onclick="removeProfileImage()">حذف صورة البروفايل 🗑️</button>
+                    <button class="btn btn-danger btn-full" onclick="deleteAccountPermanently()">حذف الحساب نهائياً ⚠️</button>
+                </div>
+            </div>
         </div>
+    </div>
+    <!-- نافذة عائمة للإشعار الجماعي -->
+    <div class="modal-overlay" id="broadcastModal" onclick="closeModalOnOuterClick(event, 'broadcastModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📢 إرسال إشعار جماعي للطلاب</h3>
+                <button class="close-modal" onclick="closeModal('broadcastModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>عنوان الإشعار</label>
+                    <input type="text" id="broadcastTitle" placeholder="مثال: تنبيه هام بخصوص الامتحان القادم">
+                </div>
+                <div class="form-group">
+                    <label>محتوى الإشعار</label>
+                    <textarea id="broadcastMsg" rows="4" placeholder="اكتب نص الإشعار هنا ليصل لجميع الطلاب..."></textarea>
+                </div>
+                <button class="btn btn-special btn-full" onclick="sendBroadcastNotification()">إرسال لجميع الطلاب الآن 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عائمة للملاحظات (متزامنة مع Firebase) -->
+    <div class="modal-overlay" id="notesModal" onclick="closeModalOnOuterClick(event, 'notesModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📝 مفكرة الملاحظات الشخصية</h3>
+                <button class="close-modal" onclick="closeModal('notesModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>تدوين أفكارك أو مهامك (تتزامن سحابياً)</label>
+                    <textarea id="adminNotesText" rows="6" placeholder="اكتب ملاحظاتك هنا..."></textarea>
+                </div>
+                <button class="btn btn-save btn-full" onclick="saveAdminNotesToCloud()">حفظ الملاحظات في السحابة 💾</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عائمة لمؤلف الرسائل السريعة -->
+    <div class="modal-overlay" id="messageComposerModal" onclick="closeModalOnOuterClick(event, 'messageComposerModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>⚡ مؤلف الرسائل السريعة للطلاب</h3>
+                <button class="close-modal" onclick="closeModal('messageComposerModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>اختر تصنيف الرسالة</label>
+                    <select id="msgCategorySelect" onchange="loadQuickMessage()">
+                        <option value="motivation">🔥 تحفيز وشحن معنوي (مكتبة كاملة)</option>
+                        <option value="warning">⚠️ تنبيه للطلاب المتكسلين (مكتبة كاملة)</option>
+                        <option value="congrats">🌟 تهنئة وتفوق (مكتبة كاملة)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>الرسالة المولدة (جاهزة للنسخ)</label>
+                    <textarea id="generatedMsgOutput" rows="4" readonly style="background:var(--bg-gradient); cursor:pointer;" onclick="copyGeneratedMessage()" title="اضغط للنسخ"></textarea>
+                </div>
+                <button class="btn btn-special btn-full" onclick="loadQuickMessage()">توليد رسالة جديدة 🔄</button>
+                <button class="btn btn-save btn-full" onclick="copyGeneratedMessage()" style="margin-top:8px;">نسخ النص للحافظة 📋</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عائمة لتحدي اليوم للمشرف -->
+    <div class="modal-overlay" id="adminQuestModal" onclick="closeModalOnOuterClick(event, 'adminQuestModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🎯 تحدي اليوم للمشرف</h3>
+                <button class="close-modal" onclick="closeModal('adminQuestModal')">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;">
+                <div style="font-size:3rem; margin-bottom:10px;">👑</div>
+                <div id="dailyQuestDisplay" style="font-size:1.05rem; font-weight:bold; color:var(--text-main); line-height:1.6; margin-bottom:20px; background:var(--form-bg); padding:15px; border-radius:12px; border:1px solid var(--border-color);">
+                    جاري تحميل تحدي اليوم...
+                </div>
+                <button class="btn btn-save btn-full" onclick="loadDailyQuest()">إحضار تحدي جديد 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="customToast">
+        <span id="toastIcon">✨</span>
+        <span id="toastMessage">تم بنجاح</span>
     </div>
 
     <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 
     <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
-        
-        let globalRecord = {};
         let currentAdminData = null;
-        let oldAdminEmail = '';
 
-        // التحقق من وجود إيميل مسجل في الجلسة، ولو مش موجود أو الحساب طالب، نثبّت إيميل المطور الرئيسي كافتراضي للأدمن
-        let currentEmail = sessionStorage.getItem('adminEmail');
-        if (!currentEmail || currentEmail === '') {
-            currentEmail = 'mohamad66xm@gmail.com';
-            sessionStorage.setItem('adminEmail', currentEmail);
+        function showToast(message, icon = "✨") {
+            const toast = document.getElementById('customToast');
+            document.getElementById('toastMessage').innerText = message;
+            document.getElementById('toastIcon').innerText = icon;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        const verifiedBadgeHTML = `
-            <span class="verified-badge" title="حساب موثق">
-                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            </span>
-        `;
+        async function initProfile() {
+            const container = document.getElementById('profileContent');
+            let sessionAdmin = sessionStorage.getItem('adminUser') || sessionStorage.getItem('currentUser');
+            let adminEmail = sessionStorage.getItem('adminEmail');
 
-        function getUserImage(userObj) {
-            if (userObj && userObj.profileImage && userObj.profileImage.trim() !== '') {
-                return userObj.profileImage;
-            }
-            return "https://via.placeholder.com/150/1e293b/94a3b8?text=لا+توجد+صورة";
-        }
-
-        function getRankDetails(rank) {
-            switch (rank) {
-                case 'bronze': return { title: 'ضعيف (Level 1)', class: 'rank-frame-bronze', badgeClass: 'badge-bronze', icon: '🥉', levelNum: 1 };
-                case 'silver': return { title: 'متوسط (Level 2)', class: 'rank-frame-silver', badgeClass: 'badge-silver', icon: '🥈', levelNum: 2 };
-                case 'gold': return { title: 'قوي (Level 3)', class: 'rank-frame-gold', badgeClass: 'badge-gold', icon: '🥇', levelNum: 3 };
-                case 'diamond': return { title: 'قوي جداً (Level 4)', class: 'rank-frame-diamond', badgeClass: 'badge-diamond', icon: '💎', levelNum: 4 };
-                case 'mythic': return { title: 'أسطوري (Level 5)', class: 'rank-frame-mythic', badgeClass: 'badge-mythic', icon: '👑', levelNum: 5 };
-                default: return { title: 'جديد (Level 0)', class: 'rank-frame-unranked', badgeClass: 'badge-unranked', icon: '⚪', levelNum: 0 };
-            }
-        }
-
-        function updateCardBackgroundPattern(patternChoice, levelNum, isEnabled) {
-            const bgDiv = document.getElementById('cardPatternBg');
-            if (!bgDiv) return;
-
-            if (!isEnabled || levelNum < 3) {
-                bgDiv.style.backgroundImage = 'none';
+            if (!sessionAdmin && !adminEmail) {
+                container.innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على جلسة نشطة. <br><a href="login.html" style="color:#6366f1; text-decoration:underline;">تسجيل الدخول</a></div>`;
                 return;
             }
 
-            let strokeColor = levelNum === 3 ? '%23facc15' : (levelNum === 4 ? '%2338bdf8' : '%23f472b6');
-            let symbols = {
-                star: '<polygon points=\'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2\'/>',
-                heart: '<path d=\'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z\'/>',
-                crown: '<path d=\'M2 4l3 12h14l3-12-6 7-4-5-4 5-6-7zm3 16h14\'/>',
-                lightning: '<path d=\'M13 2L3 14h9l-1 8 10-12h-9l1-8z\'/>',
-                shield: '<path d=\'M12 2l10 5v6c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V7l10-5z\'/>'
-            };
-
-            let chosenSvgContent = symbols.star;
-            if (patternChoice === 'heart') chosenSvgContent = symbols.heart;
-            else if (patternChoice === 'crown') chosenSvgContent = symbols.crown;
-            else if (patternChoice === 'lightning') chosenSvgContent = symbols.lightning;
-            else if (patternChoice === 'shield') chosenSvgContent = symbols.shield;
-            else if (patternChoice === 'mixed' || !patternChoice) {
-                chosenSvgContent = symbols.star + symbols.heart + symbols.crown;
-            }
-
-            let svgString = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='${strokeColor}' stroke-width='1.5'>${chosenSvgContent}</svg>`;
-            bgDiv.style.backgroundImage = `url("data:image/svg+xml;utf8,${encodeURIComponent(svgString)}")`;
-        }
-
-        async function initProfileFromCloud() {
             try {
-                oldAdminEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
+                if (sessionAdmin) currentAdminData = JSON.parse(sessionAdmin);
 
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let result = await response.json();
-                globalRecord = result.record || {};
-                let adminsList = Array.isArray(globalRecord.admins) ? globalRecord.admins : [];
-
-                // البحث عن الأدمن بناءً على الإيميل الحالي في الجلسة
-                currentAdminData = adminsList.find(a => a.email && a.email.toLowerCase() === oldAdminEmail.toLowerCase());
-
-                // لو الحساب مش موجود في قائمة الأدمنز وكان هو المطور الرئيسي، بننشئه تلقائياً عشان يفتح معاه فوراً
-                if (!currentAdminData && oldAdminEmail.toLowerCase() === 'mohamad66xm@gmail.com') {
-                    currentAdminData = {
-                        fullName: "محمد عماد محمد (عشري)",
-                        email: "mohamad66xm@gmail.com",
-                        phone: "01000000000",
-                        adminId: "ADM-0001",
-                        role: "owner",
-                        status: "active",
-                        isVerified: true,
-                        rank: "mythic",
-                        bgPattern: "mixed",
-                        bgPatternEnabled: true,
-                        profileImage: ""
-                    };
-                    adminsList.push(currentAdminData);
-                    globalRecord.admins = adminsList;
+                if (adminEmail && window.firebaseDb && window.doc && window.getDoc) {
+                    const docRef = window.doc(window.firebaseDb, "admins", adminEmail.toLowerCase());
+                    const docSnap = await window.getDoc(docRef);
+                    if (docSnap.exists()) {
+                        currentAdminData = docSnap.data();
+                    }
                 }
 
                 if (currentAdminData) {
                     renderProfile(currentAdminData);
                 } else {
-                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على بيانات الأدمن في السحابة. <br><a href="login.html" style="color:#6366f1; text-decoration:underline;">تسجيل الدخول كأدمن</a></div>`;
+                    container.innerHTML = `<div class="loading" style="color: #ef4444;">عذراً، لم يتم العثور على بيانات الحساب!</div>`;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالسحابة! تأكد من الإنترنت.</div>`;
+                container.innerHTML = `<div class="loading" style="color: #ef4444;">حدث خطأ أثناء تحميل البيانات.</div>`;
             }
         }
 
         function renderProfile(admin) {
             const container = document.getElementById('profileContent');
-            let isMaster = (admin.role === 'owner' || admin.email === 'mohamad66xm@gmail.com');
-            let roleText = isMaster ? 'متحكم رئيسي (Owner) ⚡' : 'أدمن فرعي 🛡️';
-            let avatarUrl = getUserImage(admin);
-            let isVerified = admin.isVerified === true;
-            let rankKey = admin.rank || 'mythic';
-            let rankInfo = getRankDetails(rankKey);
-            let patternChoice = admin.bgPattern || 'mixed';
-            let isPatternEnabled = admin.bgPatternEnabled !== false;
-
-            updateCardBackgroundPattern(patternChoice, rankInfo.levelNum, isPatternEnabled);
+            let avatarUrl = admin.profileImage || admin.avatar || "https://via.placeholder.com/150/1e293b/94a3b8?text=صورة";
+            let fullName = admin.fullname || admin.name || "مسؤول النظام";
+            let email = admin.email || sessionStorage.getItem('adminEmail') || "";
+            let phone = admin.phone || "غير محدد";
 
             container.innerHTML = `
                 <div class="profile-header">
-                    <div class="avatar-wrapper ${rankInfo.class}">
-                        <img src="${avatarUrl}" alt="صورة الأدمن" class="avatar" id="adminAvatarImg">
+                    <div class="avatar-wrapper rank-frame-mythic">
+                        <img src="${avatarUrl}" alt="صورة الأدمن" id="adminAvatarImg">
                         <label for="imageInput" class="upload-badge" title="تغيير صورة البروفايل">📷</label>
                     </div>
-                    <div class="level-badge-box ${rankInfo.badgeClass}">
-                        <span>${rankInfo.icon}</span>
-                        <span>${rankInfo.title}</span>
+                    <div class="level-badge-box" onclick="openModal('adminQuestModal'); loadDailyQuest();">
+                        <span>👑</span>
+                        <span>مستوى مشرف رئيسي (اضغط للتحدي)</span>
                     </div>
                     <h1 class="admin-name">
-                        <span id="displayAdminName">${admin.fullName || 'محمد عماد'}</span>
-                        ${isVerified ? verifiedBadgeHTML : ''}
+                        <span>${fullName}</span>
+                        <span class="verified-badge" title="حساب موثق">
+                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                        </span>
                     </h1>
-                    <p class="admin-email" id="displayAdminEmail">${admin.email}</p>
+                    <p class="admin-email">${email}</p>
                 </div>
 
                 <div class="info-card">
                     <div class="info-row">
-                        <span class="info-label">الصلاحية:</span>
-                        <span class="info-value" style="color: #6366f1;">${roleText}</span>
+                        <span class="info-label">رقم الهاتف:</span>
+                        <span class="info-value">${phone}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">معرف الأدمن (ID):</span>
-                        <span class="info-value">${admin.adminId || 'ADM-0001'}</span>
+                        <span class="info-label">نوع الحساب:</span>
+                        <span class="info-value" style="color: #6366f1;">أدمن / مشرف 🛡️</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">حالة الحساب:</span>
-                        <span class="info-value" style="color: #10b981;">${admin.status || 'active'}</span>
+                        <span class="info-value" style="color: #10b981;">نشط ✅</span>
                     </div>
                 </div>
 
-                <!-- قناة الواتساب الرسمية -->
-                <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" class="whatsapp-banner">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span>📢</span>
-                        <span>قناة الواتساب الرسمية (رحلة دراسية)</span>
-                    </div>
-                    <span style="background: white; color: #128c7e; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem;">انضم 🔗</span>
-                </a>
-
-                <div class="admin-search-box">
-                    <h3>🔍 البحث الفوري عن بروفايل طالب أو أدمن</h3>
-                    <div class="search-input-group">
-                        <input type="text" id="adminSearchQuery" placeholder="كود ID، البريد، أو الاسم..." onkeydown="if(event.key==='Enter') searchUserProfile()">
-                        <button onclick="searchUserProfile()">بحث</button>
-                    </div>
-                </div>
-
-                <button class="btn" onclick="toggleEditForm()" style="background: #334155; margin-bottom: 15px;">⚙️ تعديل الملف الشخصي والإعدادات</button>
-
-                <div class="edit-form" id="editFormSection">
-                    <div class="form-group">
-                        <label>الاسم الكامل</label>
-                        <input type="text" id="editAdminName" value="${admin.fullName || ''}" placeholder="اسم الأدمن">
-                    </div>
-                    <div class="form-group">
-                        <label>البريد الإلكتروني</label>
-                        <input type="email" id="editAdminEmail" value="${admin.email || ''}" placeholder="example@mail.com">
-                    </div>
-                    <div class="form-group">
-                        <label>رقم الهاتف</label>
-                        <input type="tel" id="editAdminPhone" value="${admin.phone || ''}" placeholder="01xxxxxxxxx">
-                    </div>
-                    <div class="form-group">
-                        <label>تخصيص رموز خلفية البروفايل</label>
-                        <div class="pattern-control-row">
-                            <select id="editAdminBgPattern">
-                                <option value="mixed" ${patternChoice === 'mixed' ? 'selected' : ''}>✨ مدمج (تشكيلة متعددة)</option>
-                                <option value="star" ${patternChoice === 'star' ? 'selected' : ''}>🌟 نجوم ورموز</option>
-                                <option value="heart" ${patternChoice === 'heart' ? 'selected' : ''}>💖 قلوب وورد</option>
-                                <option value="crown" ${patternChoice === 'crown' ? 'selected' : ''}>👑 تيجان وملك</option>
-                                <option value="lightning" ${patternChoice === 'lightning' ? 'selected' : ''}>⚡ صواعق وطاقة</option>
-                                <option value="shield" ${patternChoice === 'shield' ? 'selected' : ''}>🛡️ دروع وحماية</option>
-                            </select>
-                            <label class="toggle-switch-container">
-                                <input type="checkbox" id="editAdminPatternToggle" ${isPatternEnabled ? 'checked' : ''}>
-                                <span>تفعيل</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>كلمة المرور الجديدة</label>
-                        <input type="password" id="editAdminPassword" value="${admin.password || ''}" placeholder="كلمة المرور">
-                    </div>
-                    <button type="button" class="btn btn-save" onclick="saveAdminChanges()">حفظ البيانات المحدثة 💾</button>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--text-secondary);">
-                    جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
+                <!-- أزرار التحكم والبروفايل المنظمة -->
+                <div class="action-buttons-grid">
+                    <button class="btn btn-secondary" onclick="openModal('settingsModal')">⚙️ الإعدادات</button>
+                    <button class="btn btn-special" onclick="openModal('broadcastModal')">📢 إشعار جماعي</button>
+                    <button class="btn btn-special" onclick="openModal('notesModal'); loadAdminNotesFromCloud();">📝 الملاحظات</button>
+                    <button class="btn" onclick="openModal('messageComposerModal'); loadQuickMessage();">⚡ الرسائل السريعة</button>
+                    <button class="btn btn-full btn-special" onclick="openModal('adminQuestModal'); loadDailyQuest();">🎯 تحدي اليوم للمشرف</button>
                 </div>
             `;
         }
 
-        function toggleEditForm() {
-            document.getElementById('editFormSection').classList.toggle('active');
+        window.openModal = function(modalId) { document.getElementById(modalId).classList.add('active'); };
+        window.closeModal = function(modalId) { document.getElementById(modalId).classList.remove('active'); };
+        window.closeModalOnOuterClick = function(e, modalId) { if (e.target.classList.contains('modal-overlay')) closeModal(modalId); };
+
+        function processImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 250;
+                        let width = img.width, height = img.height;
+                        if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } }
+                        else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    img.onerror = error => reject(error);
+                };
+                reader.onerror = error => reject(error);
+            });
         }
 
-        function searchUserProfile() {
-            const query = document.getElementById('adminSearchQuery').value.trim().toLowerCase();
-            const modal = document.getElementById('searchModal');
-            const modalContent = document.getElementById('modalContent');
-            
-            if (!query) { alert('اكتب بيانات البحث أولاً!'); return; }
-
-            modal.classList.add('active');
-            modalContent.innerHTML = '<p style="font-size:0.9rem; padding:20px;">جاري الاستعلام عن البيانات... ⏳</p>';
-
-            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
-            let admins = Array.isArray(globalRecord.admins) ? globalRecord.admins : [];
-
-            let foundStudent = users.find(u => (u.studentId && u.studentId.toLowerCase() === query) || (u.email && u.email.toLowerCase() === query) || (u.studentPhone && u.studentPhone === query) || (u.fullName && u.fullName.toLowerCase().includes(query)));
-            let foundAdmin = admins.find(a => (a.email && a.email.toLowerCase() === query) || (a.fullName && a.fullName.toLowerCase().includes(query)));
-
-            if (foundStudent) {
-                let imgUrl = getUserImage(foundStudent);
-                let rankKey = foundStudent.rank || 'bronze';
-                let rankInfo = getRankDetails(rankKey);
-                let isBlocked = foundStudent.status === 'blocked';
-
-                modalContent.innerHTML = `
-                    <div class="modal-avatar-wrapper ${rankInfo.class}">
-                        <img src="${imgUrl}" alt="صورة الطالب">
-                    </div>
-                    <div class="level-badge-box ${rankInfo.badgeClass}">
-                        <span>${rankInfo.icon}</span>
-                        <span>${rankInfo.title}</span>
-                    </div>
-                    <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:2px;">${foundStudent.fullName}</h2>
-                    <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">طالب مسجل - الكود: ${foundStudent.studentId || 'N/A'}</p>
-
-                    <div class="modal-info-list">
-                        <div class="modal-field">
-                            <label>اسم الطالب:</label>
-                            <input type="text" id="modalStudentName" value="${foundStudent.fullName}">
-                        </div>
-                        <div class="modal-field">
-                            <label>كود الطالب (ID):</label>
-                            <input type="text" id="modalStudentId" value="${foundStudent.studentId || ''}">
-                        </div>
-                        <div class="modal-field">
-                            <label>هاتف الطالب:</label>
-                            <input type="text" id="modalStudentPhone" value="${foundStudent.studentPhone || ''}">
-                        </div>
-                        <div class="modal-field">
-                            <label>المستوى:</label>
-                            <select id="modalStudentRank">
-                                <option value="bronze" ${rankKey === 'bronze' ? 'selected' : ''}>🥉 ضعيف (Level 1)</option>
-                                <option value="silver" ${rankKey === 'silver' ? 'selected' : ''}>🥈 متوسط (Level 2)</option>
-                                <option value="gold" ${rankKey === 'gold' ? 'selected' : ''}>🥇 قوي (Level 3)</option>
-                                <option value="diamond" ${rankKey === 'diamond' ? 'selected' : ''}>💎 قوي جداً (Level 4)</option>
-                                <option value="mythic" ${rankKey === 'mythic' ? 'selected' : ''}>👑 أسطوري (Level 5)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="modal-actions-grid">
-                        <button style="background:#e67e22; color:#fff;" onclick="toggleBlockStudentModal('${foundStudent.email}')">${isBlocked ? 'فك الحظر' : 'حظر الطالب'}</button>
-                        <button style="background:#ef4444; color:#fff;" onclick="deleteStudentModal('${foundStudent.email}')">حذف الطالب</button>
-                        <button style="background:#10b981; color:#fff;" class="btn-full" onclick="saveStudentSearchModal('${foundStudent.email}')">حفظ التعديلات 💾</button>
-                    </div>
-                `;
-            } else if (foundAdmin) {
-                let imgUrl = getUserImage(foundAdmin);
-                let isMasterRole = (foundAdmin.role === 'owner' || foundAdmin.email === 'mohamad66xm@gmail.com');
-
-                modalContent.innerHTML = `
-                    <div class="modal-avatar-wrapper rank-frame-unranked" style="border: 3px solid var(--primary-color);">
-                        <img src="${imgUrl}" alt="صورة الأدمن">
-                    </div>
-                    <h2 style="font-size:1.1rem; color:var(--text-main); margin-bottom:4px;">${foundAdmin.fullName || 'مشرف'}</h2>
-                    <p style="font-size:0.8rem; color:#6366f1; margin-bottom:12px;">${isMasterRole ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️'}</p>
-
-                    <div class="modal-info-list">
-                        <div class="modal-field">
-                            <label>الاسم الكامل:</label>
-                            <input type="text" id="modalAdminName" value="${foundAdmin.fullName || ''}">
-                        </div>
-                        <div class="modal-field">
-                            <label>رقم الهاتف:</label>
-                            <input type="text" id="modalAdminPhone" value="${foundAdmin.phone || ''}">
-                        </div>
-                    </div>
-
-                    <div class="modal-actions-grid">
-                        <button style="background:#10b981; color:#fff;" class="btn-full" onclick="saveAdminSearchModal('${foundAdmin.email}')">حفظ التعديلات 💾</button>
-                    </div>
-                `;
-            } else {
-                modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>لم يتم العثور على أي حساب بهذه البيانات!</p></div>`;
-            }
-        }
-
-        async function saveStudentSearchModal(email) {
-            let student = (globalRecord.users || []).find(u => u.email === email);
-            if (student) {
-                student.fullName = document.getElementById('modalStudentName').value;
-                student.studentId = document.getElementById('modalStudentId').value;
-                student.studentPhone = document.getElementById('modalStudentPhone').value;
-                student.rank = document.getElementById('modalStudentRank').value;
-                await syncDataToCloud("تم تحديث بيانات الطالب بنجاح! ⚡");
-                closeModal();
-            }
-        }
-
-        async function saveAdminSearchModal(email) {
-            let admin = (globalRecord.admins || []).find(a => a.email === email);
-            if (admin) {
-                admin.fullName = document.getElementById('modalAdminName').value;
-                admin.phone = document.getElementById('modalAdminPhone').value;
-                await syncDataToCloud("تم تحديث بيانات المشرف بنجاح! ⚡");
-                closeModal();
-            }
-        }
-
-        async function toggleBlockStudentModal(email) {
-            let st = (globalRecord.users || []).find(u => u.email === email);
-            if (st) { 
-                st.status = st.status === 'blocked' ? 'active' : 'blocked'; 
-                await syncDataToCloud("تم تغيير حالة الحظر بنجاح!"); 
-                searchUserProfile(); 
-            }
-        }
-
-        async function deleteStudentModal(email) {
-            if (confirm("هل أنت متأكد من حذف الطالب نهائياً؟")) {
-                globalRecord.users = (globalRecord.users || []).filter(u => u.email !== email);
-                await syncDataToCloud("تم حذف الطالب!"); 
-                closeModal();
-            }
-        }
-
-        function closeModal() { document.getElementById('searchModal').classList.remove('active'); }
-        function closeModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
-
-        function handleImageUpload(e) {
+        async function handleImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(event) {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    if (width > height) { if (width > 200) { height *= 200 / width; width = 200; } }
-                    else { if (height > 200) { width *= 200 / height; height = 200; } }
-                    canvas.width = width; canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    let base64Img = canvas.toDataURL('image/jpeg', 0.6);
-
-                    document.getElementById('adminAvatarImg').src = base64Img;
-                    currentAdminData.profileImage = base64Img;
-                    syncDataToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
-                };
-            };
-        }
-
-        async function saveAdminChanges() {
-            currentAdminData.fullName = document.getElementById('editAdminName').value.trim();
-            currentAdminData.email = document.getElementById('editAdminEmail').value.trim().toLowerCase();
-            currentAdminData.phone = document.getElementById('editAdminPhone').value.trim();
-            currentAdminData.bgPattern = document.getElementById('editAdminBgPattern').value;
-            currentAdminData.bgPatternEnabled = document.getElementById('editAdminPatternToggle').checked;
-            let newPass = document.getElementById('editAdminPassword').value.trim();
-            if (newPass) currentAdminData.password = newPass;
-
-            await syncDataToCloud("تم حفظ بيانات الأدمن بنجاح! ✅");
-            sessionStorage.setItem('adminEmail', currentAdminData.email);
-            oldAdminEmail = currentAdminData.email;
-            renderProfile(currentAdminData);
-        }
-
-        async function syncDataToCloud(successMsg) {
             try {
-                if (!Array.isArray(globalRecord.admins)) globalRecord.admins = [];
-                let index = globalRecord.admins.findIndex(a => a.email && a.email.toLowerCase() === oldAdminEmail.toLowerCase());
-                if (index !== -1) {
-                    globalRecord.admins[index] = currentAdminData;
-                } else {
-                    globalRecord.admins.push(currentAdminData);
+                let base64Img = await processImage(file);
+                document.getElementById('adminAvatarImg').src = base64Img;
+                currentAdminData.profileImage = base64Img;
+                currentAdminData.avatar = base64Img;
+
+                let email = currentAdminData.email;
+                if (window.firebaseDb && window.doc) {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", email), currentAdminData, { merge: true });
                 }
-
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    body: JSON.stringify(globalRecord)
-                });
-
-                if (response.ok) alert(successMsg);
-                else alert("فشل التحديث في السحابة!");
+                sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
+                showToast("تم تحديث صورة البروفايل بنجاح! 📸", "🖼");
             } catch (err) {
                 console.error(err);
-                alert("حدث خطأ أثناء الاتصال بالخادم!");
+                showToast("حدث خطأ أثناء معالجة الصورة.", "❌");
             }
         }
+
+        window.removeProfileImage = async function() {
+            if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
+            currentAdminData.profileImage = "";
+            currentAdminData.avatar = "";
+            let email = currentAdminData.email;
+            if (window.firebaseDb && window.doc) {
+                await window.setDoc(window.doc(window.firebaseDb, "admins", email), currentAdminData, { merge: true });
+            }
+            sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
+            renderProfile(currentAdminData);
+            closeModal('settingsModal');
+            showToast("تم حذف الصورة بنجاح.", "🗑️");
+        };
+
+        window.saveAdminChanges = async function() {
+            let newName = document.getElementById('editAdminName').value.trim();
+            let newPhone = document.getElementById('editAdminPhone').value.trim();
+            let newPass = document.getElementById('editAdminPassword').value.trim();
+
+            if (!newName) {
+                showToast("الرجاء إدخال الاسم الكامل!", "⚠️");
+                return;
+            }
+
+            currentAdminData.fullname = newName;
+            currentAdminData.name = newName;
+            currentAdminData.phone = newPhone;
+            if (newPass) currentAdminData.password = newPass;
+
+            let email = currentAdminData.email;
+            try {
+                if (window.firebaseDb && window.doc) {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", email), currentAdminData, { merge: true });
+                }
+                sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
+                renderProfile(currentAdminData);
+                closeModal('settingsModal');
+                showToast("تم حفظ تعديلات البروفايل بنجاح! ✅", "💾");
+            } catch (err) {
+                console.error(err);
+                showToast("حدث خطأ أثناء حفظ التعديلات!", "❌");
+            }
+        };
+
+        window.deleteAccountPermanently = async function() {
+            if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
+            try {
+                let email = currentAdminData.email;
+                if (window.firebaseDb && window.doc) {
+                    await window.deleteDoc(window.doc(window.firebaseDb, "admins", email));
+                }
+                sessionStorage.clear();
+                showToast("تم حذف حسابك نهائياً.", "⚠️");
+                setTimeout(() => { window.location.href = "login.html"; }, 1500);
+            } catch (err) {
+                console.error(err);
+                showToast("حدث خطأ أثناء محاولة حذف الحساب.", "❌");
+            }
+        };
+
+        window.sendBroadcastNotification = async function() {
+            const title = document.getElementById('broadcastTitle').value.trim();
+            const message = document.getElementById('broadcastMsg').value.trim();
+
+            if (!title || !message) {
+                showToast("يرجى إدخال عنوان ومحتوى الإشعار!", "⚠️");
+                return;
+            }
+
+            try {
+                await window.addDoc(window.collection(window.firebaseDb, "notifications"), {
+                    title: title,
+                    message: message,
+                    sender: currentAdminData.fullname || "الإدارة",
+                    createdAt: window.serverTimestamp()
+                });
+                document.getElementById('broadcastTitle').value = '';
+                document.getElementById('broadcastMsg').value = '';
+                closeModal('broadcastModal');
+                showToast("تم إرسال الإشعار الجماعي لجميع الطلاب بنجاح! 🚀", "📢");
+            } catch (err) {
+                console.error(err);
+                showToast("فشل إرسال الإشعار.", "❌");
+            }
+        };
+
+        window.loadAdminNotesFromCloud = async function() {
+            try {
+                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email);
+                const docSnap = await window.getDoc(docRef);
+                if (docSnap.exists()) {
+                    document.getElementById('adminNotesText').value = docSnap.data().notes || '';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        window.saveAdminNotesToCloud = async function() {
+            const notesContent = document.getElementById('adminNotesText').value;
+            try {
+                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email);
+                await window.setDoc(docRef, { notes: notesContent, updatedAt: window.serverTimestamp() }, { merge: true });
+                showToast("تم حفظ الملاحظات في السحابة بنجاح! 💾", "✅");
+            } catch (err) {
+                console.error(err);
+                showToast("فشل حفظ الملاحظات.", "❌");
+            }
+        };
+
+        // مكتبة النصوص الضخمة (مكتوبة صراحة وكاملة بالعدد المطلوب)
+        const quickMessagesDb = {
+            motivation: [
+                "يا بطل، القمة لا تستوعب الكباره بل تستوعب المجتهدين، استمر ولا تتوقف أبداً! 🔥",
+                "التعثر ليس نهاية المطاف، بل هو مجرد درس لتكون أقوى في المرة القادمة. أنت لها! 💪",
+                "كل دقيقة تعب تقضيها اليوم، ستراها راحة وفخر واعتزاز غداً. انطلق نحو حلمك! 🚀",
+                "النجاح يبدأ بخطوة شجاعة، وخطوتك اليوم هي أساس مستقبلك المشرق 🌟.",
+                "لا تقارن نفسك بأحد، قارن نفسك بنسخك القديمة وكن أفضل كل يوم 🦅.",
+                "عزيمتك هي سر تفوقك، استمر في الضغط على أهدافك حتى تحققها كاملة 🎯.",
+                "اصنع لنفسك مجداً يفتخر به من يحبونك، اصبر واجتهد فالقاع مزدحم والقمة واسعة 🏔️.",
+                "كل صعبة تذللها اليوم تصبح وساماً على صدر تفوقك غداً ✨.",
+                "خطواتك الصغيرة اليوم تصنع إنجازاتك العظيمة غداً، واصل السير بعزيمة لا تلين 🌅.",
+                "النجاح ليس صدفة، بل هو ثمرة صبر طويل وعمل دؤوب لا يتوقف 🏆.",
+                "كن أنت البطل في قصة نجاحك، ولا تسمح للظروف أن توقف حلمك 💫.",
+                "الإصرار الحقيقي هو أن تقوم بعد كل سقوط وتستأنف المسير بقوة أكبر ⚡.",
+                "ثق بنفسك أولاً، فكل الصعاب تذوب أمام الإرادة الصادقة والنية الخالصة 💎.",
+                "اجعل هدفك واضحاً، وكل جهد تبذله اليوم يقربك خطوة إضافية نحو القمة 🦅.",
+                "لا تلتفت للخلف، فالمستقبل ينتظر صنع يديك وفكرك المستنير 🌈.",
+                "العزيمة الصادقة هي مفتاح الأبواب المغلقة، واصل طريقك ولا تلتفت للوراء 🚪.",
+                "أنت قادراً على صنع المستحيل إذا تووكلت على الله وبذلت أقصى جهدك 🌠.",
+                "اصنع من كل عثرة سلماً ترتقي به نحو أحلامك الكبيرة 🪜.",
+                "لا تيأس مهما كانت الظروف صعبة، فبعد العسر يسراً عظيماً 🌤️.",
+                "خطوات واثقة وثابتة خير من تسرع بلا هدف، ادرس بتأنٍ وذكاء 🦉.",
+                "كل كتاب تفتحه اليوم هو نافذة تفتح لك على عالم من الفرص 📚.",
+                "اجعل الشغف هو وقودك الدائم في رحلة العلم والتعلم الهادفة ⛽.",
+                "الناجحون لا يستسلمون أبداً، بل يجددون طرقهم ليصلوا إلى ما يرغبون 🎯.",
+                "ثابر واجتهد فالجهد المبذول لا يضيع عند الله أبداً 🤲.",
+                "تجاوز كل مخاوفك وانطلق بكل قوة نحو أهدافك المنشودة 🦁.",
+                "أنت تمتلك طاقات هائلة، فقط أخرجها ووظفها في مكانها الصحيح ⚡.",
+                "التميز ليس وصولاً فحسب، بل هو رحلة استمرار في العطاء والتعلم 🚀.",
+                "كل نجاح صغير تحققه اليوم يبني ثقتك بنفسك لغدٍ أفضل 🌟.",
+                "اصنع لنفسك بيئة إيجابية تدفعك دائماً نحو الأمام والقمة 🌿.",
+                "لا تدع أي شخص يقلل من حماسك وأحلامك، أنت صاحب القرار 👑.",
+                "استثمر وقتك بحكمة، فالوقت هو أثمن ما يمتلكه الإنسان الناجح ⏳.",
+                "العلم نور، وبحثك المستمر عنه يضيء لك دروب المستقبل 🔦.",
+                "كن طموحاً كالسماء، ولا تقبل بأقل من القمة التي تستحقها 🌌.",
+                "العمل الدؤوب يذلل أصعب الصعاب ويجعل المستحيل حقيقة واقعة ⛏️.",
+                "تفاءل خيراً تجده، وادخل في كل امتحان بروح الواثق المطمئن 🍀.",
+                "اجعل الفشل معلماً لك لا هادماً لمعنوياتك، وتعلم من كل خطأ 📈.",
+                "التفوق يحتاج إلى تضحيات بسيطة اليوم لتنعم بثمارها طوال العمر 🍎.",
+                "انطلق بثقة، فكل الظروف تحيط بك لتنجح وتتفوق إن شاء الله 🎯.",
+                "التركيز العالي يختصر عليك نصف الطريق نحو التفوق الدراسي 🎯.",
+                "ثق بأن تعبك لن يضيع، وسيريك الله أثر عملك قريباً جداً 🌺.",
+                "كن صاحب بصمة فريدة في دراستك وفي كل مكان تحل فيه 👣.",
+                "الهمة العالية تطوي الصعاب وتجعل المستحيل سهلاً ميسوراً 🦅.",
+                "استمتع برحلة التعلم، فالوصول إلى القمة ممتع لمن صبر واجتهد 🏔️.",
+                "لا توجل عمل اليوم إلى الغد، فالإنجاز الفوري يمنحك راحة وسعادة ⏱️.",
+                "أنت على قدر المسؤولية، أثبت لنفسك ولكل من حولك تفوقك 🛡️.",
+                "كل خطوة تخطوها نحو العلم تقربك أكثر من تحقيق حلمك الأبدي 🌠.",
+                "اصنع طاقة إيجابية حولك وانشر شغف التعلم بين زملائك 💡.",
+                "الإتقان في العمل عبادة، فأتقن مذاكرتك ودراستك لتنال الأجر والفخر 🤲.",
+                "لا تهتم لكثرة العقبات، بل ركز فقط على هدفك النهائي والواضح 🎯.",
+                "بإرادتك الصلبة تستطيع أن تغير مجرى مستقبلك الأكاديمي للأفضل ⚡.",
+                "الصبر على طلب العلم مرّ، ولكن حلاوة التفوق تنسيك كل تعب 🍯.",
+                "كن صبوراً، حازماً مع نفسك، وستصل حتماً إلى ما تتمناه 🦅.",
+                "ابدأ يومك بنشاط وتفاؤل، واجعل كل درس فرصة جديدة للاكتشاف 🌅.",
+                "الذكاء الحقيقي يكمن في الاستمرارية وعدم الاستسلام للظروف 🧠.",
+                "انتظر اللحظة التي سترفع فيها رأسك فخراً بنجاحك الكبير 🏆.",
+                "كل سؤال تجيب عليه صحيحاً هو دليل على استيعابك وتفوقك 📝.",
+                "حافظ على هدوئك وثقتك بنفسك في أوقات الضغط والامتحانات 🧘‍♂️.",
+                "النجاح الحقيقي هو الذي يصنعه الإنسان بجهده وعرقه المستمر 💧.",
+                "كن شجاعاً في مواجهة المواد الصعبة، فبالتكرار تصبح سهلة 🛡️.",
+                "لا تيأس من كثرة المحاولات، فالمحاولة الأخيرة قد تكون هي باب النجاح 🔑.",
+                "عقلك قادر على استيعاب أضخم العلوم إذا أعطيته الفرصة والتركيز 🧠.",
+                "اجعل القراءة والمذاكرة عادة يومية لا غنى عنها في حياتك 📖.",
+                "التفوق يحتاج إلى قلب شجاع وعقل متيقظ لا يهدأ 🦅.",
+                "استعن بالله ولا تعجز، فالتوفيق بيد الله وحده لمن جدّ واجتهد 🤲.",
+                "كل نجاح تحققه يفتح لك آفاقاً جديدة لم تكن تتخيلها من قبل 🌌.",
+                "كن منظمًا في وقتك، فالترتيب يمنحك راحة وسرعة في الإنجاز ⏱️.",
+                "لا تخف من الأخطاء، فهي الأدوات التي يتعلم منها العباقرة 🧪.",
+                "اجعل هدفك إرضاء الله أولاً ثم تحقيق طموحك الشخصي 🌺.",
+                "استمر في المضي قدماً، فالأفق المشرق ينتظر وصولك بفارغ الصبر 🌅.",
+                "أنت بطل هذه المرحلة، أثبت جدارتك وتفوقك الساحق في كل اختبار 🥇."
+            ],
+            warning: [
+                "أين حضورك وتفاعلك اليوم؟ منصتك تفتقد إنجازك، استدرك الوقت فالعمر يمر ⏳.",
+                "المذاكرة المؤجلة تتراكم وتصبح جبلاً، فكك هذا الجبل اليوم بخطوة بسيطة وادخل حل امتحانك! ⚠️",
+                "النجاح لا يأتي بالكسل والانتظار، افتح فيديوهاتك وراجع دروسك فوراً 🛑.",
+                "الوقت كالسيف إن لم تقطعه قطعتك، لا تركن للكسل وبادر بالدراسة الآن ⏰.",
+                "الغياب المتكرر وتأجيل المهام سيدمر نتائجك، استيقظ وعُد لمسارك الصحيح ⚡.",
+                "المنافسون يسبقونك بخطوات، لا تهدر وقتك في التسويف وتحرك اليوم 🏃‍♂️.",
+                "تراكم الدروس سيزيد الضغط عليك لاحقاً، تدارك الأمر قبل فوات الأوان 📉.",
+                "التسويف هو سارق الأحلام الأول، انهض الآن وابدأ في إنجاز مهامك الدراسية 🚨.",
+                "الكسل اليوم سيتحول إلى حسرة غداً، لا تضيع الفرصة بين يديك ⌛.",
+                "أين الهمة التي عهدناها؟ استدرك ما فاتك ولا تجعل الوقت يفلت منك 📌.",
+                "توقف عن الأعذار وابدأ بالعمل فوراً، مستقبلك يستحق كل جهد ممكن 💼.",
+                "كل ساعة تمر بدون إنجاز هي فرصة ضائعة من رصيد تفوقك ⏳.",
+                "التكاسل الآن يكلفك الكثير لاحقاً، شد حيلك وتابع دروسك بانتظام 🎯.",
+                "لا تترك أعداء النجاح كالكسل والتسويف يسيطران على يومك 🚫.",
+                "الاستمرار في التأجيل سيدمّر طموحاتك، استيقظ وابدأ فوراً 💪.",
+                "الدروس لا تذاكر وحدها، والمجهود يبدأ بخطوة جادة منك الآن 📚.",
+                "توقف عن تصفح الهاتف بلا فائدة وركز في مستقبلك الأكاديمي 📱.",
+                "كل يوم يمر بدون مذاكرة هو خطوة للوراء، استدرك الأمر سريعاً 🔄.",
+                "الكسل صديق الفشل، فلا تصادقه وكن دائماً في صف الناجحين 🦁.",
+                "لا تتوقع نتائج مبهرة وأنت لم تبذل الجهد الكافي لها ⚖️.",
+                "أمامك فرصة ذهبية لتصحيح مسارك، فلا تضيعها بين يديك 🌟.",
+                "العام الدراسي قصير ولا يحتمل المزيد من التكاسل والتهاون ⏳.",
+                "قم وافتح كتابك الآن، ولا تؤجل عمل اليوم بأعذار واهية 📖.",
+                "التفوق يحتاج لرجال وفتيات أصحاب همة لا تنطفئ ولا تكل 🦅.",
+                "إذا لم تبدأ اليوم، فمتى ستفعل؟ الوقت ينفد بسرعة سرت ⏱️.",
+                "حافظ على مكانتك بين الأوائل ولا ترضَ بالتقصير والتراجع 📉.",
+                "الندم لن يفيد بعد ضياع الفرص، تحرك قبل فوات الأوان 🚨.",
+                "كل تأخير في المذاكرة يعقّد عليك الفهم لاحقاً، لا تراكم الدروس 📚.",
+                "استفق من غفلتك، فالمستقبل ينتظر المجتهد لا الكسلان 🌅.",
+                "الأعذار لا تصنع نجاحاً، العمل الجاد وحده هو ما يصنع الأبطال ⚡.",
+                "لا تجعل اليأس أو الكسل يسرقان منك فرحة النجاح والتفوق 🏆.",
+                "المذاكرة بانتظام تبعد عنك ضغط الامتحانات في اللحظات الأخيرة 🧘‍♂️.",
+                "أنت المسؤول الأول عن مستقبلك، فكن على قدر المسؤولية 🛡️.",
+                "التكاسل اليوم هو ثمن باهظ ستدفعه من مستقبلك غداً 🏷️.",
+                "انهض من فراش الكسل، واجعل اليوم نقطة تحول كبرى في حياتك 🚀.",
+                "لا تتكل على الحظ، فالحظ لا يُسعف إلا من اجتهد وثابر 🎯.",
+                "ضع هاتف جانباً، وامنح عقلك فرصة لاستيعاب العلم النافع 📵.",
+                "التسويف مرض مدمر، وعلاجه الوحيد هو البدء الفوري في التنفيذ 💊.",
+                "النجاح يتطلب تضحية بوقت الراحة، فلا تنم مبكراً وتترك مستقبلك 🛌.",
+                "استدرك ما فاتك من دروس، فكل درس مفقود يترك فجوة في تحصيلك 🧩.",
+                "لا تكن من الغافلين الذين يكتشفون قيمة الوقت بعد ضياعه ⏳.",
+                "اجعل الجد والاجتهاد هما شعارك الدائم في هذه المرحلة الهامة ⚔️.",
+                "التراخي في بداية المشوار يؤدي إلى السقوط في نهايته 🛑.",
+                "قم بواجباتك الدراسية الآن لتستمتع براحة البال طوال المساء 🌙.",
+                "العلم لا ينال براحة الجسد، بل بالتعب والتركيز المستمر 🧠.",
+                "توقف عن الشكوى من صعوبة المناهج وابدأ في فهمها بذكاء 💡.",
+                "كل دقيقة تقضيها في الكسل هي دقيقة مسروقة من نجاحك القادم 🕰️.",
+                "كن حازماً مع نفسك ولا تستسلم لرغبتها الدائمة في الراحة 🛑.",
+                "الفرص لا تتر Await الكسلانين، بل تختطفها عيون المجتهدين 🦅.",
+                "تحرك الآن، فخطوة اليوم البسيطة خير من ألف أمنية مؤجلة 👣."
+            ],
+            congrats: [
+                "ما شاء الله، إنجازك اليوم يثبت أنك طارق حقيقي لأبواب المجد. استمر في هذا المستوى العظيم! 🌟",
+                "اسمك يلمع بين المتميزين اليوم، فخور جداً بهمتك وتطورك المستمر يا بطل! 🏆",
+                "أداء مذهل في الامتحان الأخير! استمر في هذا العطاء والتميز المستمر 🥇.",
+                "لقد صنعت الفارق اليوم بجهدك الرائع، هكذا تبنى البطولات الحقيقية 👏.",
+                "تهانينا الحارة على تفوقك المستمر، أنت نموذج مشرف لكل الطلاب 🎖️.",
+                "جهودك البارزة بدأت تؤتي ثمارها، مبارك لك هذا التفوق المستحق 🌺.",
+                "خطوات ثابتة نحو القمة، استمر في هذا التألق الساحق يا مبدع 🚀.",
+                "إنجازك اليوم يبعث على الفخر والاعتزاز، دمتم متألقين دائماً 🌟.",
+                "هنيئاً لك هذا المستوى الرفيع، وعقبال الدرجات النهائية الكبرى 🎓.",
+                "لقد أثبتّ للجميع أن الاجتهاد يصنع المعجزات، مبارك لك هذا النجاح 🎆.",
+                "بصمتك الواضحة في التميز تجعلنا فخورين بوجودك معنا في المنصة 🛡️.",
+                "نجاحك هو دليل قاطع على أن من زرع حصد، مبارك الحصاد الجميل 🌾.",
+                "استمر في هذا الإبداع ولا تقف عند هذا الحد، فالقمة تنتظرك 🏔️.",
+                "كلمات الثناء تفشل أحياناً في وصف حجم إنجازك العظيم 📜.",
+                "مبارك لك هذا التفوق الرائع، وإلى الامام دائماً نحو النجاحات 🚀.",
+                "لقد تفوقت على نفسك قبل أن تتفوق على الآخرين، هذا هو النجاح الحقيقي 🦅.",
+                "دمت متميزاً ومحلقاً في سماء التفوق والإبداع المستمر 🌌.",
+                "كل التقدير لهذا العقل الذكي والجهد المبارك الذي بذلته 🧠.",
+                "حققت ما عجز عنه غيرك بإصرارك وعزيمتك، فهنيئاً لك 🏆.",
+                "هذا النجاح هو البداية فقط لسلسلة من الانجازات الكبرى القادمة 🌠.",
+                "فرحتنا بنجاحك لا تقدر بثمن، استمر في إسعادنا بتفوقك الدائم 🎉.",
+                "تميزك هو ردك الأبلغ على كل من شكك في قدراتك 🎯.",
+                "مبارك لك ولوالديك هذا الفخر العظيم والنتيجة المشرفة 👨‍👩‍👧‍‍👦.",
+                "أثبتّ بجدارة أنك تستحق لقب الطالب المثالي والمتميز 🥇.",
+                "نفتخر بوجود طلاب بحجم كفاءتك وعزيمتك داخل المنصة 💎.",
+                "خطوة موفقة نحو مستقبل باهر ومليء بالإنجازات العظيمة 🌅.",
+                "دمت شمعة تحترق لتضيء طريق العلم والمعرفة للآخرين 🕯️.",
+                "نجاحك الباهر يعكس مدى انضباطك وحرصك على التفوق 📈.",
+                "تهانينا القلبية لك، ونتمنى لك دوام التقدم والازدهار 🌺.",
+                "هكذا يكون التفوق وإلا فلا، مبارك لك هذا الأداء الأسطوري 👑."
+            ]
+        };
+
+        window.loadQuickMessage = function() {
+            const cat = document.getElementById('msgCategorySelect').value;
+            const list = quickMessagesDb[cat] || quickMessagesDb.motivation;
+            const randomMsg = list[Math.floor(Math.random() * list.length)];
+            document.getElementById('generatedMsgOutput').value = randomMsg;
+        };
+
+        window.copyGeneratedMessage = function() {
+            const textarea = document.getElementById('generatedMsgOutput');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("تم نسخ الرسالة إلى الحافظة بنجاح! 📋", "✨");
+        };
+
+        // تحدي اليوم للمشرف (مكتبة كاملة وموسعة من المهام والتحديات)
+        const adminQuestsDb = [
+            "مهمة اليوم: قم بمراجعة آخر 5 أسئلة طرحها الطلاب في المنتدى وقم بتثبيت أفضل إجابة 💬.",
+            "مهمة اليوم: تصفح إحصائيات الطلاب وابحث عن اسم طالب تطور مستواه فجأة وأرسل له رسالة تشجيعية 📊.",
+            "مهمة اليوم: اختبر رابطاً عشوائياً أو فيديواً في المنهج لضمان أن كل شيء يعمل بسلاسة تامة ⚙️.",
+            "مهمة اليوم: خذ استراحة قهوة لمدة 10 دقائق بعيداً عن الشاشات لتصفية ذهنك وإعادة شحن طاقتك ☕.",
+            "مهمة اليوم: اكتب فكرة مجنونة واحدة لتطوير المنصة في مفكرتك الخاصة 💡.",
+            "مهمة اليوم: افتح صفحة بروفايلك وتأكد أنك تبتسم لأنك تقود مجتمعاً تعليمياً ناجحاً 😊.",
+            "مهمة اليوم: قم بنشر إشعار ترحيب حماسي للطلاب الجدد لبث الحماس في المنصة 🚀.",
+            "مهمة اليوم: نظف لوحة التحكم من أي تنبيهات قديمة أو بيانات غير مهمة 🧹.",
+            "مهمة اليوم: راجع درجات الامتحانات الأخيرة وتحقق من سير العملية التعليمية باحترافية 📝.",
+            "مهمة اليوم: أضف سؤالاً تحدياً جديداً في المنتدى لتنشيط عقول الطلاب 🧠.",
+            "مهمة اليوم: تفقد حسابات المشرفين الفرعيين وتأكد من استقرار الأذونات والصلاحيات 🛡️.",
+            "مهمة اليوم: رتب أفكار الأسبوع القادم في مفكرة الملاحظات الشخصية 📅.",
+            "مهمة اليوم: قم بتحفيز نفسك بكلمات إيجابية واستعد لجلسة عمل قوية ومثمرة 🌟.",
+            "مهمة اليوم: ابحث عن طالب غائب منذ فترة وأرسل له دعوة خاصة للعودة بحماس 📬.",
+            "مهمة اليوم: تأكد من أن جميع الروابط الحيوية في الواجهة الرئيسية تعمل بدون أخطاء 🔗.",
+            "مهمة اليوم: خصص 15 دقيقة لقراءة مقال تقني أو تربوي يطور من مهاراتك الإدارية 📚.",
+            "مهمة اليوم: قم بتكريم اسم طالب متميز عبر نشر تهنئة خاصة في المنتدى العام 🏆.",
+            "مهمة اليوم: راجع تقارير الأمان وحالة السيرفر لضمان حماية بيانات الطلاب 🔒.",
+            "مهمة اليوم: رتب مكتبك أو مكان عملك الرقمي لتشعر بالراحة والصفاء الذهني 🖥️.",
+            "مهمة اليوم: ضع خطة سريعة لإنهاء مهام اليوم قبل أن تبدأ في تصفح المنصة 📋.",
+            "مهمة اليوم: أجب على أصعب استفسار معلق في المنتدى لتريح ذهن أحد الطلاب 💡.",
+            "مهمة اليوم: قم بتجربة تسجيل الدخول بحساب تجريبي للتأكد من سلاسة تجربة المستخدم 👤.",
+            "مهمة اليوم: ابتكر جائزة رمزية جديدة يمكن منحها للطلاب المتفوقين أسبوعياً 🎁.",
+            "مهمة اليوم: خذ نفساً عميقاً واشكر الله على نعمة إدارتك لهذا الصرح التعليمي الناجح 🙏.",
+            "مهمة اليوم: قم بمراجعة الإعدادات العامة لضمان توافقها مع أحدث التحديثات ⚙️.",
+            "مهمة اليوم: تواصل مع أحد المشرفين الزملاء لتبادل الأفكار وتطوير المنصة 🤝.",
+            "مهمة اليوم: قم بإنشاء امتحان تجريبي قصير لاختبار قوة وسرعة النظام 📝.",
+            "مهمة اليوم: تأكد من خلو المنتدى من أي تعليقات مخالفة لضمان بيئة آمنة ونظيفة 🛡️.",
+            "مهمة اليوم: قم بتدوين 3 إنجازات حققتها هذا الأسبوع لتشعر بالفخر والرضا 🌟.",
+            "مهمة اليوم: اغلق الشاشات وخذ قسطاً كافياً من الراحة لتستعيد نشاطك الكامل غداً 🌙."
+        ];
+
+        window.loadDailyQuest = function() {
+            const randomQuest = adminQuestsDb[Math.floor(Math.random() * adminQuestsDb.length)];
+            document.getElementById('dailyQuestDisplay').innerText = randomQuest;
+        };
 
         function logoutAdmin() {
             sessionStorage.clear();
             window.location.href = 'login.html';
         }
 
-        initProfileFromCloud();
+        initProfile();
     </script>
 </body>
 </html>
