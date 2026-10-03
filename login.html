@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // 🚀 إعدادات Firebase الحقيقية لمشروعك
         const firebaseConfig = {
@@ -323,7 +323,6 @@
     </div>
 
     <script>
-        const ADMIN_PASS = '@Mohamad66xm01122161407';
         const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com';
 
         function showPlatformModal(title, message) {
@@ -361,7 +360,7 @@
                 togglePassBtn.textContent = '🙈';
             } else {
                 passwordInput.type = 'password';
-                togglePassBtn.textContent, togglePassBtn.textContent = '👁️';
+                togglePassBtn.textContent = '👁️';
             }
         });
 
@@ -414,36 +413,50 @@
             btn.disabled = true;
 
             try {
-                // أولاً: تحقق سحابياً بحت من خلال محاولة تسجيل الدخول في Firebase Auth
-                // هذا يضمن أن البريد مسجل بالفعل في السحابة وليس وهمياً
-                const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                
-                // إذا كتب كلمة مرور الأدمن
-                if (password === ADMIN_PASS) {
-                    if (email === MASTER_ADMIN_EMAIL) {
-                        // الأدمن الحقيقي يدخل مباشرة للوحة التحكم سحابياً
-                        sessionStorage.setItem('isAdmin', 'true');
-                        sessionStorage.setItem('isLoggedIn', 'true');
-                        sessionStorage.setItem('adminEmail', email);
-                        window.location.href = 'admin.html';
-                        return;
-                    } else {
-                        // مستخدم عادي كتب باسورد الأدمن -> إرسال طلب الصلاحية للسحابة (Firestore) بأمان
-                        const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
-                        await window.setDoc(requestRef, {
-                            email: email,
-                            requestedAt: new Date().toISOString(),
-                            status: 'pending'
-                        });
+                // 1. محاولة تسجيل الدخول عبر Firebase Auth السحابي
+                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
 
-                        showPlatformModal('تم إرسال طلبك بنجاح', 'كلمة المرور صحيحة ولكنك لست المشرف الرئيسي. تم رفع طلبك للسحابة لمراجعته من قبل المطور.');
-                        btn.textContent = 'تسجيل الدخول 🚀';
-                        btn.disabled = false;
-                        return;
-                    }
+                // 2. فحص ما إذا كان البريد هو إيميل المطور الرئيسي
+                if (email === MASTER_ADMIN_EMAIL) {
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('adminEmail', email);
+                    window.location.href = 'admin.html';
+                    return;
                 }
 
-                // تسجيل دخول الطالب الطبيعي عبر السحابة
+                // 3. جلب إعدادات المنصة من وثيقة config/platform data للتأكد من كلمة مرور الأدمن العامة إن وجدت
+                let configAdminPass = "@Mohamad66xm01122161407"; // قيمة افتراضية احتياطية
+                try {
+                    const configRef = window.doc(window.firebaseDb, "config", "platform data");
+                    const configSnap = await window.getDoc(configRef);
+                    if (configSnap.exists()) {
+                        const data = configSnap.data();
+                        if (data.systemConfig && data.systemConfig.adminPassword) {
+                            configAdminPass = data.systemConfig.adminPassword;
+                        }
+                    }
+                } catch (cfgErr) {
+                    console.log("استخدام كلمة المرور الافتراضية للأدمن");
+                }
+
+                // إذا كتب المستخدم كلمة مرور الأدمن وهو ليس المطور الرئيسي
+                if (password === configAdminPass) {
+                    // إرسال طلب الصلاحية لكولكشن الطلبات
+                    const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
+                    await window.setDoc(requestRef, {
+                        email: email,
+                        requestedAt: new Date().toISOString(),
+                        status: 'pending'
+                    });
+
+                    showPlatformModal('تم إرسال طلبك بنجاح', 'كلمة المرور صحيحة ولكنك لست المشرف الرئيسي. تم رفع طلب صلاحية الأدمن للسحابة بنجاح!');
+                    btn.textContent = 'تسجيل الدخول 🚀';
+                    btn.disabled = false;
+                    return;
+                }
+
+                // 4. تسجيل دخول الطالب الطبيعي من كولكشن students
                 const docRef = window.doc(window.firebaseDb, "students", email);
                 const docSnap = await window.getDoc(docRef);
 
@@ -464,25 +477,6 @@
 
             } catch (error) {
                 console.error(error);
-                
-                // معالجة حالة محاولة إرسال طلب صلاحية الأدمن من حساب لم يتم تسجيله مسبقاً في Auth أو خطأ صلاحيات السحابة
-                if (password === ADMIN_PASS && email !== MASTER_ADMIN_EMAIL) {
-                    try {
-                        // محاولة كتابة الطلب مباشرة إذا كان الحساب غير مسجل في Auth لكن كتب باسورد الأدمن
-                        const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
-                        await window.setDoc(requestRef, {
-                            email: email,
-                            requestedAt: new Date().toISOString(),
-                            status: 'pending'
-                        });
-                        showPlatformModal('تم إرسال طلبك بنجاح', 'تم إرسال طلب صلاحية "أدمن" إلى السحابة بنجاح بانتظار الموافقة!');
-                        btn.textContent = 'تسجيل الدخول 🚀';
-                        btn.disabled = false;
-                        return;
-                    } catch (dbErr) {
-                        console.error("Firestore Error:", dbErr);
-                    }
-                }
 
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
                     emailError.style.display = 'block';
