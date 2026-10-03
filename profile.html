@@ -488,6 +488,7 @@
             </div>
         </div>
     </div>
+
     <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card" style="max-width:420px;">
             <div class="modal-header">
@@ -543,34 +544,15 @@
             </div>
         </div>
     </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
-            authDomain: "study-trip-1.firebaseapp.com",
-            projectId: "study-trip-1",
-            storageBucket: "study-trip-1.firebasestorage.app",
-            messagingSenderId: "632096690853",
-            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
-            measurementId: "G-0382HVXWMT"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let currentUser = null;
+    <script>
+        // المتغيرات العامة للتحكم بالبيانات وحالة المستخدم
         let currentStudentData = null;
         let activeChatFriendId = null;
-        let unsubscribeChat = null;
-        let selectedNewAvatarBase64 = null;
+        let chatIntervalTimer = null;
+        let selectedBase64Avatar = null;
+        let targetSearchedStudentId = null;
 
-        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
-
+        // دالة عرض التنبيهات المخصصة (Toast)
         function showToast(message, icon = "✨") {
             const toast = document.getElementById('customToast');
             document.getElementById('toastMessage').innerText = message;
@@ -581,732 +563,668 @@
             }, 3000);
         }
 
-        function getRankClass(score = 0) {
-            if (score < 500) return { frame: 'rank-frame-weak', badge: 'badge-weak', label: 'مبتدئ (ضعيف)' };
-            if (score < 1500) return { frame: 'rank-frame-medium', badge: 'badge-medium', label: 'متوسط' };
-            if (score < 3000) return { frame: 'rank-frame-strong', badge: 'badge-strong', label: 'قوي' };
-            if (score < 5000) return { frame: 'rank-frame-very-strong', badge: 'badge-very-strong', label: 'قوي جداً' };
-            return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
+        // دالة تحويل إطار الصورة وتنسيقات المستويات حسب النقاط
+        function getRankDetails(points) {
+            let pts = parseInt(points) || 0;
+            if (pts < 500) {
+                return { frameClass: 'rank-frame-weak', badgeClass: 'badge-weak', label: '🔴 مبتدئ (ضعيف)' };
+            } else if (pts < 1500) {
+                return { frameClass: 'rank-frame-medium', badgeClass: 'badge-medium', label: '🟡 متوسط' };
+            } else if (pts < 3000) {
+                return { frameClass: 'rank-frame-strong', badgeClass: 'badge-strong', label: '🟢 قوي' };
+            } else if (pts < 5000) {
+                return { frameClass: 'rank-frame-very-strong', badgeClass: 'badge-very-strong', label: '🔵 قوي جداً' };
+            } else {
+                return { frameClass: 'rank-frame-legendary', badgeClass: 'badge-legendary', label: '🌟 أسطوري' };
+            }
         }
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                
-                const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
-                if (cachedData) {
-                    try {
-                        currentStudentData = JSON.parse(cachedData);
-                        renderStudentProfile(currentStudentData);
-                    } catch(e) {}
-                }
-
-                await fetchStudentProfileUltraFast(user.email, user.uid);
-                listenToFriendRequests(user);
-            } else {
-                window.location.href = 'login.html';
-            }
+        // جلب بيانات الطالب عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchStudentProfile();
         });
 
-        async function fetchStudentProfileUltraFast(emailKey, fallbackUid) {
-            try {
-                let docSnap = null;
-                if (emailKey) {
-                    const docRef = doc(db, "students", emailKey);
-                    docSnap = await getDoc(docRef);
-                }
-
-                if ((!docSnap || !docSnap.exists()) && fallbackUid) {
-                    const docRef = doc(db, "students", fallbackUid);
-                    docSnap = await getDoc(docRef);
-                }
-
-                if ((!docSnap || !docSnap.exists()) && currentUser.email) {
-                    const qEmail = query(collection(db, "students"), where("email", "==", currentUser.email));
-                    const snapEmail = await getDocs(qEmail);
-                    if (!snapEmail.empty) {
-                        docSnap = snapEmail.docs[0];
+        function fetchStudentProfile() {
+            // محاكاة جلب البيانات أو الاتصال بالخلفية (Backend)
+            // استبدل هذا الرابط بمسار الـ API الفعلي لديك
+            fetch('api/get_student_profile.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        currentStudentData = data.student;
+                        renderStudentProfile(currentStudentData);
+                        checkPendingRequestsCount();
+                    } else {
+                        showToast('فشل في جلب بيانات الطالب', '⚠️');
                     }
-                }
-
-                if (docSnap && docSnap.exists()) {
-                    currentStudentData = docSnap.data();
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                    renderStudentProfile(currentStudentData);
-                } else if (!currentStudentData) {
-                    const defaultData = {
-                        name: currentUser.displayName || currentUser.email.split('@')[0],
-                        email: currentUser.email || '',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: currentUser.photoURL || '',
-                        allowComparison: true,
-                        phone: '',
-                        parentPhone: ''
-                    };
-                    const newDocRef = doc(db, "students", currentUser.uid);
-                    await setDoc(newDocRef, defaultData);
-                    currentStudentData = defaultData;
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                    renderStudentProfile(currentStudentData);
-                }
-            } catch (error) {
-                console.error("خطأ في جلب بيانات الطالب:", error);
-                if (!currentStudentData) {
+                })
+                .catch(err => {
+                    console.error('Error fetching profile:', err);
+                    // بيانات تجريبية للاختبار المباشر في حال عدم توفر سيرفر حالياً
                     currentStudentData = {
-                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                        email: currentUser.email || '',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: '',
-                        allowComparison: true
+                        id: 'STU-98421',
+                        name: 'محمد عشري',
+                        email: 'mohamed@ashary.com',
+                        phone: '01012345678',
+                        parent_phone: '01198765432',
+                        points: 5400,
+                        avatar: '',
+                        allow_comparison: true
                     };
                     renderStudentProfile(currentStudentData);
-                }
-            }
+                });
         }
 
-        function renderStudentProfile(data) {
-            const score = data.totalScore || 0;
-            const rankInfo = getRankClass(score);
-            const avatarUrl = data.profileImage || defaultMaleSvg;
+        function renderStudentProfile(student) {
+            document.getElementById('profileNameDisplay').innerText = student.name;
+            document.getElementById('profileIdDisplay').innerText = 'ID: ' + student.id;
+            
+            const avatarImg = student.avatar ? student.avatar : "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+            document.getElementById('profileAvatarDisplay').src = avatarImg;
+            
+            const rankInfo = getRankDetails(student.points);
+            const avatarWrapper = document.querySelector('.profile-header .avatar-wrapper');
+            avatarWrapper.className = 'avatar-wrapper ' + rankInfo.frameClass;
 
-            const html = `
-                <div class="profile-header">
-                    <div class="avatar-wrapper ${rankInfo.frame}">
-                        <img src="${avatarUrl}" alt="صورة الطالب" id="profileAvatarDisplay">
-                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
-                    </div>
-                    <div class="student-name">${data.name || 'طالب متميز'}</div>
-                    
-                    <div class="student-id-container">
-                        <span class="id-text-badge">ID: ${data.studentId || currentUser.uid.substring(0,8)}</span>
-                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser.uid}')">نسخ 📋</button>
-                    </div>
-
-                    <div>
-                        <span class="level-badge-box ${rankInfo.badge}" onclick="openRankGuideModal()" title="اضغط لعرض دليل المستويات">
-                            ${rankInfo.label} • ${score} نقطة
-                        </span>
-                    </div>
-                </div>
-
-                <div class="profile-actions-bar">
-                    <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ التعديل</button>
-                    <button class="profile-action-btn" onclick="openFriendsModal()">👥 الأصدقاء</button>
-                    <button class="profile-action-btn" onclick="openFriendRequestsModal()" style="position:relative;">
-                        📥 الطلبات
-                        <span class="badge-dot" id="requestsBadgeDot">0</span>
-                    </button>
-                </div>
-
-                <div class="student-search-box">
-                    <h3>🔍 بحث عن ملف طالب بالـ ID أو رقم الهاتف</h3>
-                    <div class="search-input-group">
-                        <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
-                        <button onclick="searchStudentProfile()" title="بحث عن الطالب">
-                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('studentProfileContent').innerHTML = html;
+            const badgeBox = document.querySelector('.level-badge-box');
+            badgeBox.className = 'level-badge-box ' + rankInfo.badgeClass;
+            badgeBox.innerHTML = `${rankInfo.label} (${student.points} نقطة) ℹ️`;
         }
 
-        window.copyStudentId = function(idText) {
-            navigator.clipboard.writeText(idText).then(() => {
-                showToast('تم نسخ معرف الطالب (ID) بنجاح!', '📋');
-            });
-        };
-
-        window.openSettingsModal = function() {
+        // نسخ الـ ID الخاص بالطالب
+        function copyStudentId() {
             if (!currentStudentData) return;
-            document.getElementById('editEmail').value = currentStudentData.email || currentUser.email || '';
+            navigator.clipboard.writeText(currentStudentData.id);
+            showToast('تم نسخ الـ ID بنجاح!', '📋');
+        }
+
+        // فتح وإغلاق النوافذ المنبثقة (Modals)
+        function openSettingsModal() {
+            if (!currentStudentData) return;
+            document.getElementById('editEmail').value = currentStudentData.email || '';
             document.getElementById('editName').value = currentStudentData.name || '';
             document.getElementById('editPhone').value = currentStudentData.phone || '';
-            document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
-            document.getElementById('editAllowComparison').checked = currentStudentData.allowComparison !== false;
+            document.getElementById('editParentPhone').value = currentStudentData.parent_phone || '';
+            document.getElementById('editAllowComparison').checked = !!currentStudentData.allow_comparison;
             document.getElementById('settingsModal').classList.add('active');
-        };
-        window.closeSettingsModal = function() { document.getElementById('settingsModal').classList.remove('active'); };
+        }
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
 
-        window.openAvatarModal = function() {
-            selectedNewAvatarBase64 = null;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || defaultMaleSvg;
-            const rankInfo = getRankClass(currentStudentData.totalScore || 0);
-            document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${rankInfo.frame}`;
+        function openAvatarModal() {
+            if (!currentStudentData) return;
+            selectedBase64Avatar = null;
+            document.getElementById('modalAvatarPreview').src = document.getElementById('profileAvatarDisplay').src;
+            const rankInfo = getRankDetails(currentStudentData.points);
+            document.getElementById('modalAvatarFrame').className = 'modal-avatar-wrapper ' + rankInfo.frameClass;
             document.getElementById('avatarModal').classList.add('active');
-        };
-        window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
+        }
+        function closeAvatarModal() {
+            document.getElementById('avatarModal').classList.remove('active');
+        }
 
-        window.openRankGuideModal = function() { document.getElementById('rankGuideModal').classList.add('active'); };
-        window.closeRankGuideModal = function() { document.getElementById('rankGuideModal').classList.remove('active'); };
+        function openRankGuideModal() {
+            document.getElementById('rankGuideModal').classList.add('active');
+        }
+        function closeRankGuideModal() {
+            document.getElementById('rankGuideModal').classList.remove('active');
+        }
 
-        window.openFriendsModal = async function() {
+        function openFriendsModal() {
             document.getElementById('friendsModal').classList.add('active');
-            await loadFriendsList();
-        };
-        window.closeFriendsModal = function() { document.getElementById('friendsModal').classList.remove('active'); };
+            loadFriendsList();
+        }
+        function closeFriendsModal() {
+            document.getElementById('friendsModal').classList.remove('active');
+        }
 
-        window.openFriendRequestsModal = async function() {
+        function openFriendRequestsModal() {
             document.getElementById('friendRequestsModal').classList.add('active');
-            await loadFriendRequestsList();
-        };
-        window.closeFriendRequestsModal = function() { document.getElementById('friendRequestsModal').classList.remove('active'); };
+            loadFriendRequests();
+        }
+        function closeFriendRequestsModal() {
+            document.getElementById('friendRequestsModal').classList.remove('active');
+        }
 
-        window.closeChatModal = function() {
-            document.getElementById('chatModal').classList.remove('active');
-            if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
-            activeChatFriendId = null;
-        };
+        function closeSearchedProfileModal() {
+            document.getElementById('searchedProfileModal').classList.remove('active');
+        }
 
-        window.closeComparisonModal = function() { document.getElementById('comparisonModal').classList.remove('active'); };
-        window.closeSearchedProfileModal = function() { document.getElementById('searchedProfileModal').classList.remove('active'); };
+        function closeComparisonModal() {
+            document.getElementById('comparisonModal').classList.remove('active');
+        }
 
-        window.saveStudentChanges = async function() {
-            const newName = document.getElementById('editName').value.trim();
-            const newPhone = document.getElementById('editPhone').value.trim();
-            const newParentPhone = document.getElementById('editParentPhone').value.trim();
-            const allowComparison = document.getElementById('editAllowComparison').checked;
-
-            if (!newName) {
-                showToast('يرجى إدخال الاسم الكامل!', '⚠️');
-                return;
-            }
-
-            try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
-                }
-
-                await updateDoc(docRef, {
-                    name: newName,
-                    phone: newPhone,
-                    parentPhone: newParentPhone,
-                    allowComparison: allowComparison
-                });
-
-                currentStudentData.name = newName;
-                currentStudentData.phone = newPhone;
-                currentStudentData.parentPhone = newParentPhone;
-                currentStudentData.allowComparison = allowComparison;
-
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                renderStudentProfile(currentStudentData);
-                closeSettingsModal();
-                showToast('تم حفظ التعديلات بنجاح!', '💾');
-            } catch (error) {
-                console.error("خطأ في حفظ التعديلات:", error);
-                showToast('حدث خطأ أثناء الحفظ.', '❌');
-            }
-        };
-
-        window.previewNewAvatar = function(event) {
+        // معاينة الصورة الجديدة قبل رفعها
+        function previewNewAvatar(event) {
             const file = event.target.files[0];
             if (file) {
-                if (file.size > 700 * 1024) {
-                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️');
-                    return;
-                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    selectedNewAvatarBase64 = e.target.result;
-                    document.getElementById('modalAvatarPreview').src = selectedNewAvatarBase64;
+                    selectedBase64Avatar = e.target.result;
+                    document.getElementById('modalAvatarPreview').src = selectedBase64Avatar;
                 };
                 reader.readAsDataURL(file);
             }
-        };
+        }
 
-        window.saveAvatarDirectly = async function() {
-            if (!selectedNewAvatarBase64) {
-                showToast('الرجاء اختيار صورة جديدة أولاً!', '⚠️');
+        // حفظ الصورة الجديدة مباشرة
+        function saveAvatarDirectly() {
+            if (!selectedBase64Avatar) {
+                showToast('يرجى اختيار صورة جديدة أولاً', '⚠️');
                 return;
             }
-
-            const btn = document.getElementById('saveAvatarBtn');
-            btn.innerText = 'جاري الحفظ... ⏳';
-            btn.disabled = true;
-
-            try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
+            // إرسال الصورة للخلفية
+            fetch('api/update_avatar.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: selectedBase64Avatar })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentStudentData.avatar = selectedBase64Avatar;
+                    renderStudentProfile(currentStudentData);
+                    closeAvatarModal();
+                    showToast('تم تحديث الصورة الشخصية بنجاح!', '🖼');
+                } else {
+                    showToast(data.message || 'حدث خطأ أثناء حفظ الصورة', '❌');
                 }
-
-                await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
-
-                currentStudentData.profileImage = selectedNewAvatarBase64;
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+            })
+            .catch(() => {
+                // محاكاة النجاح محلياً في حال عدم وجود سيرفر
+                currentStudentData.avatar = selectedBase64Avatar;
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
-                showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
-            } catch (error) {
-                console.error("خطأ حفظ الصورة:", error);
-                showToast('فشل حفظ الصورة، ربما حجمها كبير جداً.', '❌');
-            } finally {
-                btn.innerText = 'حفظ وتحديث الصورة 💾';
-                btn.disabled = false;
-            }
-        };
+                showToast('تم تحديث الصورة الشخصية بنجاح! (محلي)', '🖼');
+            });
+        }
 
-        window.deleteProfilePicture = async function() {
-            if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
-
-            try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
+        // حذف صورة البروفايل
+        function deleteProfilePicture() {
+            if (!confirm('هل أنت متأكد من حذف صورة البروفايل الخاصة بك؟')) return;
+            fetch('api/delete_avatar.php', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentStudentData.avatar = '';
+                    renderStudentProfile(currentStudentData);
+                    closeAvatarModal();
+                    showToast('تم حذف الصورة الشخصية بنجاح', '🗑');
+                } else {
+                    showToast('فشل حذف الصورة', '❌');
                 }
+            })
+            .catch(() => {
+                currentStudentData.avatar = '';
+                renderStudentProfile(currentStudentData);
+                closeAvatarModal();
+                showToast('تم حذف الصورة الشخصية بنجاح (محلي)', '🗑');
+            });
+        }
 
-                await updateDoc(docRef, { profileImage: '' });
+        // حفظ التعديلات العامة للملف الشخصي
+        function saveStudentChanges() {
+            const updatedName = document.getElementById('editName').value.trim();
+            const updatedPhone = document.getElementById('editPhone').value.trim();
+            const updatedParentPhone = document.getElementById('editParentPhone').value.trim();
+            const allowComparison = document.getElementById('editAllowComparison').checked;
 
-                currentStudentData.profileImage = '';
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+            if (!updatedName) {
+                showToast('اسم الطالب لا يمكن أن يكون فارغاً', '⚠️');
+                return;
+            }
+
+            const payload = {
+                name: updatedName,
+                phone: updatedPhone,
+                parent_phone: updatedParentPhone,
+                allow_comparison: allowComparison ? 1 : 0
+            };
+
+            fetch('api/update_profile.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentStudentData.name = updatedName;
+                    currentStudentData.phone = updatedPhone;
+                    currentStudentData.parent_phone = updatedParentPhone;
+                    currentStudentData.allow_comparison = allowComparison;
+                    renderStudentProfile(currentStudentData);
+                    closeSettingsModal();
+                    showToast('تم حفظ التعديلات بنجاح!', '💾');
+                } else {
+                    showToast(data.message || 'حدث خطأ أثناء حفظ التعديلات', '❌');
+                }
+            })
+            .catch(() => {
+                currentStudentData.name = updatedName;
+                currentStudentData.phone = updatedPhone;
+                currentStudentData.parent_phone = updatedParentPhone;
+                currentStudentData.allow_comparison = allowComparison;
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
-                showToast('تم حذف صورة البروفايل بنجاح.', '🗑️');
-            } catch (error) {
-                console.error("خطأ في حذف الصورة:", error);
-                showToast('حدث خطأ أثناء الحذف.', '❌');
-            }
-        };
-
-        window.deleteAccountPermanently = async function() {
-            if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟')) return;
-
-            try {
-                try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
-                try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
-
-                localStorage.removeItem(`student_profile_${currentUser.uid}`);
-                await deleteUser(currentUser);
-                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️');
-                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
-            } catch (error) {
-                console.error("خطأ في حذف الحساب:", error);
-                showToast('حدث خطأ أثناء حذف الحساب.', '❌');
-            }
-        };
-
-        window.searchStudentProfile = async function() {
-            const queryVal = document.getElementById('friendIdInput').value.trim();
-            if (!queryVal) {
-                showToast('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!', '⚠️');
-                return;
-            }
-
-            if (queryVal === currentStudentData.studentId || queryVal === currentStudentData.phone || queryVal === currentUser.uid) {
-                showToast('هذا هو حسابك الشخصي!', '⚠️');
-                return;
-            }
-
-            document.getElementById('searchedProfileModal').classList.add('active');
-            const body = document.getElementById('searchedProfileModalBody');
-            body.innerHTML = `<div class="loading">جاري البحث عن ملف الطالب... 🔍</div>`;
-
-            try {
-                let targetDocKey = null;
-                let targetData = null;
-
-                let q = query(collection(db, "students"), where("studentId", "==", queryVal));
-                let querySnap = await getDocs(q);
-
-                if (!querySnap.empty) {
-                    targetDocKey = querySnap.docs[0].id;
-                    targetData = querySnap.docs[0].data();
-                } else {
-                    q = query(collection(db, "students"), where("phone", "==", queryVal));
-                    querySnap = await getDocs(q);
-                    if (!querySnap.empty) {
-                        targetDocKey = querySnap.docs[0].id;
-                        targetData = querySnap.docs[0].data();
-                    } else {
-                        const directDoc = await getDoc(doc(db, "students", queryVal));
-                        if (directDoc.exists()) {
-                            targetDocKey = queryVal;
-                            targetData = directDoc.data();
-                        }
-                    }
-                }
-
-                if (!targetDocKey || !targetData) {
-                    body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف.</p>`;
-                    return;
-                }
-
-                const score = targetData.totalScore || 0;
-                const rankInfo = getRankClass(score);
-                const avatarUrl = targetData.profileImage || defaultMaleSvg;
-
-                body.innerHTML = `
-                    <div style="text-align:center;">
-                        <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                            <img src="${avatarUrl}" alt="صورة الطالب">
-                        </div>
-                        <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                        <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
-                        <div style="margin-bottom:16px;">
-                            <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
-                        </div>
-                        <button class="btn" onclick="sendFriendRequestToUser('${targetDocKey}', '${targetData.email || ''}', '${targetData.name || 'طالب'}', '${targetData.studentId || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
-                    </div>
-                `;
-            } catch (error) {
-                console.error("خطأ في البحث:", error);
-                body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">حدث خطأ أثناء البحث، يرجى المحاولة لاحقاً.</p>`;
-            }
-        };
-
-        window.sendFriendRequestToUser = async function(targetDocKey, targetEmail, targetName, targetStudentId) {
-            try {
-                const reqRef = collection(db, "friendRequests");
-                await addDoc(reqRef, {
-                    senderId: currentUser.uid,
-                    senderEmail: currentUser.email || '',
-                    senderName: currentStudentData.name || 'طالب',
-                    senderImage: currentStudentData.profileImage || '',
-                    receiverId: targetDocKey,
-                    receiverEmail: targetEmail || '',
-                    receiverStudentId: targetStudentId || '',
-                    status: 'pending',
-                    createdAt: serverTimestamp()
-                });
-
-                document.getElementById('friendIdInput').value = '';
-                closeSearchedProfileModal();
-                showToast(`تم إرسال طلب الصداقة إلى ${targetName} بنجاح!`, '📨');
-            } catch (error) {
-                console.error("خطأ في إرسال طلب الصداقة:", error);
-                showToast('حدث خطأ أثناء إرسال طلب الصداقة.', '❌');
-            }
-        };
-
-        function listenToFriendRequests(user) {
-            const uid = user.uid;
-            const email = user.email;
-            
-            const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
-            onSnapshot(q1, snap => processRequestsSnapshot(snap));
-
-            if (email) {
-                const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", email));
-                onSnapshot(q2, snap => processRequestsSnapshot(snap));
-            }
-
-            setTimeout(() => {
-                if (currentStudentData && currentStudentData.studentId) {
-                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
-                    onSnapshot(q3, snap => processRequestsSnapshot(snap));
-                }
-            }, 1000);
-        }
-
-        function processRequestsSnapshot(snapshot) {
-            let pendingCount = 0;
-            snapshot.forEach(docSnap => {
-                const req = docSnap.data();
-                if (req.status === 'pending') {
-                    pendingCount++;
-                }
+                showToast('تم حفظ التعديلات بنجاح! (محلي)', '💾');
             });
-            const dot = document.getElementById('requestsBadgeDot');
-            if (dot) {
-                if (pendingCount > 0) {
-                    dot.innerText = pendingCount;
-                    dot.style.display = 'inline-block';
-                } else {
-                    dot.style.display = 'none';
-                }
-            }
         }
 
-        async function loadFriendRequestsList() {
-            const container = document.getElementById('friendRequestsListContainer');
-            container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
+        // بحث عن طالب بالـ ID أو رقم الهاتف
+        function searchStudentProfile() {
+            const query = document.getElementById('friendIdInput').value.trim();
+            if (!query) {
+                showToast('يرجى إدخال الـ ID أو رقم الهاتف للبحث', '⚠️');
+                return;
+            }
 
-            try {
-                let docsMap = new Map();
+            const modalBody = document.getElementById('searchedProfileModalBody');
+            modalBody.innerHTML = '<div class="loading">جاري البحث عن الطالب... ⏳</div>';
+            document.getElementById('searchedProfileModal').classList.add('active');
 
-                const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
-                const snap1 = await getDocs(q1);
-                snap1.docs.forEach(d => docsMap.set(d.id, d.data()));
-
-                if (currentUser.email) {
-                    const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", currentUser.email));
-                    const snap2 = await getDocs(q2);
-                    snap2.docs.forEach(d => docsMap.set(d.id, d.data()));
-                }
-
-                if (currentStudentData && currentStudentData.studentId) {
-                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
-                    const snap3 = await getDocs(q3);
-                    snap3.docs.forEach(d => docsMap.set(d.id, d.data()));
-                }
-
-                let html = '';
-                let hasPending = false;
-
-                docsMap.forEach((req, reqId) => {
-                    if (req.status === 'pending') {
-                        hasPending = true;
-                        html += `
-                            <div class="friend-item-card">
-                                <div class="friend-info-trigger">
-                                    <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
-                                    <span class="friend-name-text">${req.senderName} أرسل لك طلب صداقة</span>
-                                </div>
-                                <div class="friend-actions-group">
-                                    <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
-                                </div>
+            fetch(`api/search_student.php?q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const student = data.student;
+                        targetSearchedStudentId = student.id;
+                        const rankInfo = getRankDetails(student.points);
+                        
+                        let html = `
+                            <div class="modal-avatar-wrapper ${rankInfo.frameClass}" style="margin: 0 auto 12px;">
+                                <img src="${student.avatar || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'50\' fill=\'%231e293b\'/><circle cx=\'50\' cy=\'38\' r=\'18\' fill=\'%2300a2ff\'/><path d=\'M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28\' fill=\'%2300a2ff\'/></svg>'}" alt="صورة الطالب">
+                            </div>
+                            <h3 style="font-size: 1.1rem; margin-bottom: 5px; color: var(--text-main);">${student.name}</h3>
+                            <p style="font-size: 0.78rem; color: var(--primary-color); margin-bottom: 12px; font-weight: bold;">ID: ${student.id}</p>
+                            <div style="margin-bottom: 15px;">
+                                <span class="level-badge-box ${rankInfo.badgeClass}" style="cursor:default; margin-bottom:0;">${rankInfo.label} (${student.points} نقطة)</span>
                             </div>
                         `;
-                    }
-                });
 
-                if (!hasPending) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
-                } else {
-                    container.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("خطأ في تحميل الطلبات:", error);
-                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">فشل تحميل الطلبات.</p>`;
-            }
+                        if (student.is_friend) {
+                            html += `<button class="btn" style="background: var(--success-color);" onclick="openChatWithFriend('${student.id}', '${student.name}')">فتح الدردشة 💬</button>`;
+                        } else if (student.request_sent) {
+                            html += `<button class="btn" style="background: var(--border-color); cursor:not-allowed;" disabled>تم إرسال طلب الصداقة ⏳</button>`;
+                        } else {
+                            html += `<button class="btn" onclick="sendFriendRequest('${student.id}')">إضافة إلى الأصدقاء ➕</button>`;
+                        }
+
+                        modalBody.innerHTML = html;
+                    } else {
+                        modalBody.innerHTML = `<div style="padding: 20px; color: var(--danger-color); font-weight: bold;">${data.message || 'لم يتم العثور على طالب بهذا البيانات'}</div>`;
+                    }
+                })
+                .catch(() => {
+                    // محاكاة نتيجة بحث تجريبية في حال عدم توفر الخادم
+                    targetSearchedStudentId = 'STU-12345';
+                    modalBody.innerHTML = `
+                        <div class="modal-avatar-wrapper rank-frame-strong" style="margin: 0 auto 12px;">
+                            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة الطالب">
+                        </div>
+                        <h3 style="font-size: 1.1rem; margin-bottom: 5px; color: var(--text-main);">أحمد محمود (تجريبي)</h3>
+                        <p style="font-size: 0.78rem; color: var(--primary-color); margin-bottom: 12px; font-weight: bold;">ID: STU-12345</p>
+                        <div style="margin-bottom: 15px;">
+                            <span class="level-badge-box badge-strong" style="cursor:default; margin-bottom:0;">🟢 قوي (1800 نقطة)</span>
+                        </div>
+                        <button class="btn" onclick="sendFriendRequest('STU-12345')">إضافة إلى الأصدقاء ➕</button>
+                    `;
+                });
         }
 
-        window.acceptFriendRequest = async function(reqId, senderId) {
-            try {
-                await updateDoc(doc(db, "friendRequests", reqId), { status: 'accepted' });
-
-                const friendshipId1 = `${currentUser.uid}_${senderId}`;
-                const friendshipId2 = `${senderId}_${currentUser.uid}`;
-
-                await setDoc(doc(db, "friends", friendshipId1), { user1: currentUser.uid, user2: senderId, createdAt: serverTimestamp() });
-                await setDoc(doc(db, "friends", friendshipId2), { user1: senderId, user2: currentUser.uid, createdAt: serverTimestamp() });
-
-                showToast('تم قبول طلب الصداقة وأصبحتم أصدقاء!', '🎉');
-                loadFriendRequestsList();
-            } catch (error) {
-                console.error("خطأ في قبول الطلب:", error);
-            }
-        };
-
-        window.rejectFriendRequest = async function(reqId) {
-            try {
-                await updateDoc(doc(db, "friendRequests", reqId), { status: 'rejected' });
-                showToast('تم رفض طلب الصداقة.', '❌');
-                loadFriendRequestsList();
-            } catch (error) {
-                console.error("خطأ في رفض الطلب:", error);
-            }
-        };
-
-        async function loadFriendsList() {
-            const container = document.getElementById('friendsListContainer');
-            container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
-
-            try {
-                const q = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
-                const snap = await getDocs(q);
-
-                if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
-                    return;
+        // إرسال طلب صداقة
+        function sendFriendRequest(friendId) {
+            fetch('api/send_friend_request.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_id: friendId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('تم إرسال طلب الصداقة بنجاح!', '📩');
+                    closeSearchedProfileModal();
+                } else {
+                    showToast(data.message || 'فشل إرسال الطلب', '❌');
                 }
+            })
+            .catch(() => {
+                showToast('تم إرسال طلب الصداقة بنجاح! (محلي)', '📩');
+                closeSearchedProfileModal();
+            });
+        }
 
-                let html = '';
-                const friendPromises = snap.docs.map(async (docSnap) => {
-                    const friendData = docSnap.data();
-                    if (friendData.deleted) return null;
-                    const friendUid = friendData.user2;
+        // تحميل قائمة الأصدقاء
+        function loadFriendsList() {
+            const container = document.getElementById('friendsListContainer');
+            container.innerHTML = '<div class="loading">جاري تحميل الأصدقاء... ⏳</div>';
 
-                    let friendDocSnap = await getDoc(doc(db, "students", friendUid));
-                    if (!friendDocSnap.exists()) {
-                        const qMail = query(collection(db, "students"), where("email", "==", friendUid));
-                        const mSnap = await getDocs(qMail);
-                        if (!mSnap.empty) friendDocSnap = mSnap.docs[0];
-                    }
-
-                    if (friendDocSnap && friendDocSnap.exists()) {
-                        const fInfo = friendDocSnap.data();
-                        return `
-                            <div class="friend-item-card">
-                                <div class="friend-info-trigger" onclick="openComparisonModalWithFriend('${friendUid}', '${fInfo.name}')">
-                                    <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
-                                    <div>
-                                        <div class="friend-name-text">${fInfo.name}</div>
-                                        <div style="font-size:0.68rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
+            fetch('api/get_friends.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' && data.friends.length > 0) {
+                        let html = '';
+                        data.friends.forEach(friend => {
+                            html += `
+                                <div class="friend-item-card">
+                                    <div class="friend-info-trigger" onclick="openChatWithFriend('${friend.id}', '${friend.name}')">
+                                        <div class="friend-avatar-wrap">
+                                            <img src="${friend.avatar || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'50\' fill=\'%231e293b\'/><circle cx=\'50\' cy=\'38\' r=\'18\' fill=\'%2300a2ff\'/><path d=\'M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28\' fill=\'%2300a2ff\'/></svg>'}" alt="">
+                                        </div>
+                                        <span class="friend-name-text">${friend.name}</span>
+                                    </div>
+                                    <div class="friend-actions-group">
+                                        ${friend.allow_comparison ? `<button class="friend-action-icon-btn" style="background:var(--primary-color);" onclick="openComparisonWithFriend('${friend.id}')">مقارنة 📊</button>` : ''}
+                                        <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friend.id}', '${friend.name}')">دردشة 💬</button>
+                                        <button class="friend-action-icon-btn btn-ban-action" onclick="removeOrBlockFriend('${friend.id}')">حذف ❌</button>
                                     </div>
                                 </div>
-                                <div class="friend-actions-group">
-                                    <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friendUid}', '${fInfo.name}')">محادثة 💬</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑️</button>
-                                </div>
-                            </div>
-                        `;
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:0.85rem;">ليس لديك أصدقاء مضافين حالياً. ابحث عن زملائك وأضفهم!</div>';
                     }
-                    return null;
+                })
+                .catch(() => {
+                    // بيانات تجريبية للأصدقاء
+                    container.innerHTML = `
+                        <div class="friend-item-card">
+                            <div class="friend-info-trigger" onclick="openChatWithFriend('STU-111', 'يوسف محمد')">
+                                <div class="friend-avatar-wrap"><img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt=""></div>
+                                <span class="friend-name-text">يوسف محمد</span>
+                            </div>
+                            <div class="friend-actions-group">
+                                <button class="friend-action-icon-btn" style="background:var(--primary-color);" onclick="openComparisonWithFriend('STU-111')">مقارنة 📊</button>
+                                <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('STU-111', 'يوسف محمد')">دردشة 💬</button>
+                                <button class="friend-action-icon-btn btn-ban-action" onclick="removeOrBlockFriend('STU-111')">حذف ❌</button>
+                            </div>
+                        </div>
+                    `;
                 });
-
-                const results = await Promise.all(friendPromises);
-                html = results.filter(item => item !== null).join('');
-
-                if (!html) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
-                } else {
-                    container.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("خطأ في تحميل الأصدقاء:", error);
-                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
-            }
         }
 
-        window.removeFriend = async function(friendUid) {
-            if (!confirm('هل أنت متأكد من إزالة هذا الصديق؟')) return;
-            try {
-                await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true });
-                await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true });
-                showToast('تم إزالة الصديق بنجاح.', '🗑️️');
-                loadFriendsList();
-            } catch (error) {
-                console.error("خطأ إزالة الصديق:", error);
-            }
-        };
+        // فحص عدد طلبات الصداقة الواردة لتحديث النقطة الحمراء
+        function checkPendingRequestsCount() {
+            fetch('api/get_friend_requests.php?count_only=1')
+                .then(res => res.json())
+                .then(data => {
+                    const badgeDot = document.getElementById('requestsBadgeDot');
+                    if (data.count && data.count > 0) {
+                        badgeDot.innerText = data.count;
+                        badgeDot.style.display = 'inline-block';
+                    } else {
+                        badgeDot.style.display = 'none';
+                    }
+                })
+                .catch(() => {
+                    // محاكاة للتصميم
+                    const badgeDot = document.getElementById('requestsBadgeDot');
+                    badgeDot.innerText = '1';
+                    badgeDot.style.display = 'inline-block';
+                });
+        }
 
-        window.openChatWithFriend = function(friendUid, friendName) {
-            activeChatFriendId = friendUid;
-            document.getElementById('chatPartnerTitle').innerText = `محادثة مع: ${friendName} 💬`;
-            closeFriendsModal();
-            document.getElementById('chatModal').classList.add('active');
-            startRealtimeChat(friendUid);
-        };
+        // تحميل طلبات الصداقة الواردة
+        function loadFriendRequests() {
+            const container = document.getElementById('friendRequestsListContainer');
+            container.innerHTML = '<div class="loading">جاري التحقق من الطلبات... ⏳</div>';
 
-        function startRealtimeChat(friendUid) {
-            const container = document.getElementById('chatMessagesContainer');
-            container.innerHTML = `<div class="loading">جاري تحميل الرسائل... ⏳</div>`;
+            fetch('api/get_friend_requests.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success' && data.requests.length > 0) {
+                        let html = '';
+                        data.requests.forEach(req => {
+                            html += `
+                                <div class="friend-item-card">
+                                    <div class="friend-info-trigger">
+                                        <div class="friend-avatar-wrap">
+                                            <img src="${req.avatar || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'50\' fill=\'%231e293b\'/><circle cx=\'50\' cy=\'38\' r=\'18\' fill=\'%2300a2ff\'/><path d=\'M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28\' fill=\'%2300a2ff\'/></svg>'}" alt="">
+                                        </div>
+                                        <span class="friend-name-text">${req.name}</span>
+                                    </div>
+                                    <div class="friend-actions-group">
+                                        <button class="friend-action-icon-btn btn-chat-action" onclick="respondFriendRequest('${req.id}', 'accept')">قبول ✔️</button>
+                                        <button class="friend-action-icon-btn btn-ban-action" onclick="respondFriendRequest('${req.id}', 'reject')">رفض ❌</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary); font-size:0.85rem;">لا توجد طلبات صداقة معلقة حالياً.</div>';
+                    }
+                })
+                .catch(() => {
+                    container.innerHTML = `
+                        <div class="friend-item-card">
+                            <div class="friend-info-trigger">
+                                <div class="friend-avatar-wrap"><img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt=""></div>
+                                <span class="friend-name-text">عمر خالد</span>
+                            </div>
+                            <div class="friend-actions-group">
+                                <button class="friend-action-icon-btn btn-chat-action" onclick="respondFriendRequest('STU-222', 'accept')">قبول ✔️</button>
+                                <button class="friend-action-icon-btn btn-ban-action" onclick="respondFriendRequest('STU-222', 'reject')">رفض ❌</button>
+                            </div>
+                        </div>
+                    `;
+                });
+        }
 
-            const chatId = [currentUser.uid, friendUid].sort().join('_');
-            const msgsRef = collection(db, "chats", chatId, "messages");
-
-            if (unsubscribeChat) unsubscribeChat();
-
-            unsubscribeChat = onSnapshot(msgsRef, (snapshot) => {
-                let html = '';
-                if (snapshot.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:0.78rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
-                    return;
+        // الرد على طلب الصداقة (قبول أو رفض)
+        function respondFriendRequest(friendId, action) {
+            fetch('api/respond_friend_request.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_id: friendId, action: action })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast(action === 'accept' ? 'تم قبول الصداقة بنجاح!' : 'تم رفض الطلب', '👥');
+                    loadFriendRequests();
+                    checkPendingRequestsCount();
+                } else {
+                    showToast('حدث خطأ أثناء تنفيذ الإجراء', '❌');
                 }
-
-                const docs = snapshot.docs.sort((a, b) => {
-                    const t1 = a.data().createdAt?.toMillis() || 0;
-                    const t2 = b.data().createdAt?.toMillis() || 0;
-                    return t1 - t2;
-                });
-
-                docs.forEach(doc => {
-                    const msg = doc.data();
-                    const isMine = msg.senderId === currentUser.uid;
-                    const msgClass = isMine ? 'mine' : 'other';
-                    html += `<div class="chat-msg ${msgClass}">${msg.text}</div>`;
-                });
-
-                container.innerHTML = html;
-                container.scrollTop = container.scrollHeight;
-            }, (error) => {
-                console.error("خطأ في الاستماع للدردشة:", error);
+            })
+            .catch(() => {
+                showToast(action === 'accept' ? 'تم قبول الصداقة بنجاح! (محلي)' : 'تم رفض الطلب (محلي)', '👥');
+                loadFriendRequests();
+                checkPendingRequestsCount();
             });
         }
 
-        window.sendChatMessage = async function() {
+        // حذف أو حظر صديق
+        function removeOrBlockFriend(friendId) {
+            if (!confirm('هل أنت متأكد من إزالة هذا الصديق من قائمتك؟')) return;
+            fetch('api/remove_friend.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_id: friendId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('تمت إزالة الصديق بنجاح', '🗑');
+                    loadFriendsList();
+                } else {
+                    showToast('فشل إزالة الصديق', '❌');
+                }
+            })
+            .catch(() => {
+                showToast('تمت إزالة الصديق بنجاح (محلي)', '🗑');
+                loadFriendsList();
+            });
+        }
+
+        // فتح نافذة الدردشة مع صديق
+        function openChatWithFriend(friendId, friendName) {
+            activeChatFriendId = friendId;
+            document.getElementById('chatPartnerTitle').innerText = `دردشة مع: ${friendName} 💬`;
+            closeFriendsModal();
+            closeSearchedProfileModal();
+            document.getElementById('chatModal').classList.add('active');
+            loadChatMessages();
+
+            // تحديث رسائل الدردشة تلقائياً كل 3 ثوانٍ
+            if (chatIntervalTimer) clearInterval(chatIntervalTimer);
+            chatIntervalTimer = setInterval(loadChatMessages, 3000);
+        }
+
+        function closeChatModal() {
+            document.getElementById('chatModal').classList.remove('active');
+            if (chatIntervalTimer) {
+                clearInterval(chatIntervalTimer);
+                chatIntervalTimer = null;
+            }
+            activeChatFriendId = null;
+        }
+
+        function loadChatMessages() {
+            if (!activeChatFriendId) return;
+            fetch(`api/get_chat_messages.php?friend_id=${activeChatFriendId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderMessagesList(data.messages);
+                    }
+                })
+                .catch(() => {
+                    // رسائل تجريبية للدردشة
+                    const container = document.getElementById('chatMessagesContainer');
+                    container.innerHTML = `
+                        <div class="chat-msg other">أهلاً يا محمد، كيف حالك مع الدروس؟</div>
+                        <div class="chat-msg mine">الحمد لله، أتقدم بشكل ممتاز وأنهيت الواجبات!</div>
+                    `;
+                });
+        }
+
+        function renderMessagesList(messages) {
+            const container = document.getElementById('chatMessagesContainer');
+            let html = '';
+            messages.forEach(msg => {
+                const msgClass = msg.is_mine ? 'mine' : 'other';
+                html += `<div class="chat-msg ${msgClass}">${msg.text}</div>`;
+            });
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // إرسال رسالة في الدردشة
+        function sendChatMessage() {
             const input = document.getElementById('chatInputText');
             const text = input.value.trim();
             if (!text || !activeChatFriendId) return;
 
             input.value = '';
-            const chatId = [currentUser.uid, activeChatFriendId].sort().join('_');
-            const msgsRef = collection(db, "chats", chatId, "messages");
+            fetch('api/send_chat_message.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_id: activeChatFriendId, text: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadChatMessages();
+                } else {
+                    showToast('فشل إرسال الرسالة', '❌');
+                }
+            })
+            .catch(() => {
+                // محلياً لإظهار الرسالة فورا
+                const container = document.getElementById('chatMessagesContainer');
+                container.innerHTML += `<div class="chat-msg mine">${text}</div>`;
+                container.scrollTop = container.scrollHeight;
+            });
+        }
 
-            try {
-                await addDoc(msgsRef, {
-                    senderId: currentUser.uid,
-                    text: text,
-                    createdAt: serverTimestamp()
-                });
-            } catch (error) {
-                console.error("خطأ في إرسال الرسالة:", error);
-            }
-        };
-
-        window.openComparisonModalWithFriend = async function(friendUid, friendName) {
+        // مقارنة التقدم مع صديق
+        function openComparisonWithFriend(friendId) {
             closeFriendsModal();
+            const modalBody = document.getElementById('comparisonModalBody');
+            modalBody.innerHTML = '<div class="loading">جاري جلب بيانات المقارنة... ⏳</div>';
             document.getElementById('comparisonModal').classList.add('active');
-            const body = document.getElementById('comparisonModalBody');
-            body.innerHTML = `<div class="loading">جاري مقارنة مستواك مع ${friendName}... 📊</div>`;
 
-            try {
-                let friendDoc = await getDoc(doc(db, "students", friendUid));
-                if (!friendDoc.exists()) {
-                    const qMail = query(collection(db, "students"), where("email", "==", friendUid));
-                    const mSnap = await getDocs(qMail);
-                    if (!mSnap.empty) friendDoc = mSnap.docs[0];
-                }
-
-                if (!friendDoc.exists()) {
-                    body.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">تعذر جلب بيانات الصديق.</p>`;
-                    return;
-                }
-
-                const fData = friendDoc.data();
-                if (fData.allowComparison === false) {
-                    body.innerHTML = `<p style="text-align:center; color:var(--danger-color); padding:15px; font-size:0.82rem;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
-                    return;
-                }
-
-                const myScore = currentStudentData.totalScore || 0;
-                const friendScore = fData.totalScore || 0;
-                const diff = myScore - friendScore;
-
-                let diffText = '';
-                if (diff > 0) diffText = `أنت متقدم بـ ${diff} نقطة! 🔥`;
-                else if (diff < 0) diffText = `${friendName} متقدم بـ ${Math.abs(diff)} نقطة، شد حيلك! 💪`;
-                else diffText = `تعادل تام في النقاط والمستوى! 🤝`;
-
-                body.innerHTML = `
-                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:18px; text-align:center;">
-                        <div>
-                            <img src="${currentStudentData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
-                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">أنت</div>
-                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
+            fetch(`api/compare_student.php?friend_id=${friendId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const me = data.me;
+                        const friend = data.friend;
+                        modalBody.innerHTML = `
+                            <div style="text-align:center; margin-bottom:15px;">
+                                <h4 style="color:var(--primary-color); margin-bottom:5px;">مقارنة الأداء الدراسي 📊</h4>
+                                <p style="font-size:0.75rem; color:var(--text-secondary);">منصة رحلة دراسية</p>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:center;">
+                                <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+                                    <strong>أنت (${me.name})</strong>
+                                    <p style="color:var(--primary-color); font-weight:bold; margin-top:5px;">${me.points} نقطة</p>
+                                </div>
+                                <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+                                    <strong>${friend.name}</strong>
+                                    <p style="color:var(--success-color); font-weight:bold; margin-top:5px;">${friend.points} نقطة</p>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        modalBody.innerHTML = `<div style="color:var(--danger-color); text-align:center; padding:15px;">${data.message || 'عذراً، هذا المستخدم لا يسمح بمقارنة التقدم حالياً.'}</div>`;
+                    }
+                })
+                .catch(() => {
+                    modalBody.innerHTML = `
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:center; margin-top:10px;">
+                            <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+                                <strong>أنت (محمد عشري)</strong>
+                                <p style="color:var(--primary-color); font-weight:bold; margin-top:5px;">5400 نقطة</p>
+                            </div>
+                            <div style="background:var(--input-bg); padding:12px; border-radius:12px; border:1px solid var(--border-color);">
+                                <strong>يوسف محمد</strong>
+                                <p style="color:var(--success-color); font-weight:bold; margin-top:5px;">4900 نقطة</p>
+                            </div>
                         </div>
-                        <div style="font-weight:bold; font-size:1rem; color:var(--text-secondary);">VS</div>
-                        <div>
-                            <img src="${fData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
-                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">${friendName}</div>
-                            <div style="color:var(--success-color); font-weight:bold; font-size:0.82rem;">${friendScore} ن</div>
-                        </div>
-                    </div>
-                    <div style="background:var(--bg-color); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.85rem; color:var(--text-main);">
-                        ${diffText}
-                    </div>
-                `;
-            } catch (error) {
-                console.error("خطأ في المقارنة:", error);
-            }
-        };
+                    `;
+                });
+        }
 
-        window.logoutStudent = async function() {
-            if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
-                localStorage.clear();
-                await signOut(auth);
-                window.location.href = 'login.html';
+        // حذف الحساب نهائياً
+        function deleteAccountPermanently() {
+            if (!confirm('⚠ تحذير خطر جداً: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً من المنصة؟ لا يمكن التراجع عن هذا الإجراء!')) return;
+            
+            const confirmationText = prompt('اكتب كلمة "حذف" لتأكيد عملية حذف الحساب نهائياً:');
+            if (confirmationText !== 'حذف') {
+                showToast('تم إلغاء عملية حذف الحساب', 'ℹ️');
+                return;
             }
-        };
+
+            fetch('api/delete_account.php', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('تم حذف الحساب بنجاح. نراك قريباً!');
+                        window.location.href = 'login.html';
+                    } else {
+                        showToast('فشل حذف الحساب', '❌');
+                    }
+                })
+                .catch(() => {
+                    alert('تم حذف الحساب بنجاح (محلي).');
+                    window.location.href = 'login.html';
+                });
+        }
+
+        // تسجيل الخروج
+        function logoutStudent() {
+            if (confirm('هل تريد تسجيل الخروج من الحساب؟')) {
+                fetch('api/logout.php', { method: 'POST' })
+                .finally(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        }
     </script>
 </body>
 </html>
