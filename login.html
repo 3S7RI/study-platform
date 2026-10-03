@@ -155,7 +155,9 @@
         }
 
         .forgot-pass {
-            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 18px;
             font-size: 0.85rem;
         }
@@ -165,6 +167,32 @@
             font-weight: 600;
         }
         .forgot-pass a:hover { text-decoration: underline; }
+
+        .login-type-selector {
+            display: flex;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        .type-btn {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 9px;
+            cursor: pointer;
+        }
+        .type-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
 
         .btn-submit {
             width: 100%;
@@ -199,7 +227,7 @@
         }
         .custom-modal {
             background: var(--card-bg);
-            border: 1px solid var(--card-border);
+            border: 1px is solid var(--card-border);
             padding: 30px;
             border-radius: 20px;
             width: 100%;
@@ -267,15 +295,21 @@
             <p>تسجيل الدخول لمتابعة دروسك</p>
         </div>
 
+        <!-- اختيار وضع الدخول (طالب أو أدمن) -->
+        <div class="login-type-selector">
+            <button type="button" class="type-btn active" id="studentModeBtn" onclick="setLoginMode('student')">👨‍🎓 دخول طالب</button>
+            <button type="button" class="type-btn" id="adminModeBtn" onclick="setLoginMode('admin')">🔒 لوحة الأدمن</button>
+        </div>
+
         <form id="loginForm">
             <div class="input-group">
-                <label for="email">البريد الإلكتروني</label>
+                <label for="email" id="emailLabel">البريد الإلكتروني للطالب</label>
                 <input type="email" id="email" placeholder="example@gmail.com" required>
                 <div class="error-msg" id="emailError">البريد الإلكتروني غير مسجل معنا</div>
             </div>
 
             <div class="input-group">
-                <label for="password">كلمة المرور</label>
+                <label for="password" id="passLabel">كلمة المرور</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" placeholder="******" required>
                     <span class="toggle-password" id="togglePassBtn">👁️</span>
@@ -285,9 +319,10 @@
 
             <div class="forgot-pass">
                 <a href="#" onclick="openForgotModal(event)">نسيت كلمة المرور؟</a>
+                <span id="modeIndicator" style="font-size: 0.75rem; color: var(--success); font-weight: bold;">الوضع: طالب</span>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn-submit">تسجيل الدخول 🚀</button>
+            <button type="submit" id="submitBtn" class="btn-submit">تسجيل الدخول كطالب 🚀</button>
         </form>
 
         <div class="footer-text">
@@ -324,6 +359,35 @@
 
     <script>
         const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com';
+        // كلمة السر السرية الموحدة للأدمن لأي إيميل مسموح له بالدخول كأدمن (يمكنك تعديلها)
+        const SECRET_ADMIN_PASSWORD = 'AdminSecretPassword123*'; 
+
+        let currentMode = 'student'; // 'student' or 'admin'
+
+        function setLoginMode(mode) {
+            currentMode = mode;
+            const studentBtn = document.getElementById('studentModeBtn');
+            const adminBtn = document.getElementById('adminModeBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const emailLabel = document.getElementById('emailLabel');
+            const modeIndicator = document.getElementById('modeIndicator');
+
+            if (mode === 'student') {
+                studentBtn.classList.add('active');
+                adminBtn.classList.remove('active');
+                submitBtn.textContent = 'تسجيل الدخول كطالب 🚀';
+                emailLabel.textContent = 'البريد الإلكتروني للطالب';
+                modeIndicator.textContent = 'الوضع: طالب';
+                modeIndicator.style.color = 'var(--success)';
+            } else {
+                adminBtn.classList.add('active');
+                studentBtn.classList.remove('active');
+                submitBtn.textContent = 'دخول لوحة التحكم السرية 🔒';
+                emailLabel.textContent = 'البريد الإلكتروني للإدارة';
+                modeIndicator.textContent = 'الوضع: أدمن سري';
+                modeIndicator.style.color = '#ef4444';
+            }
+        }
 
         function showPlatformModal(title, message) {
             document.getElementById('alertTitle').textContent = title;
@@ -409,61 +473,75 @@
             emailError.style.display = 'none';
             passError.style.display = 'none';
 
-            btn.textContent = 'جاري التحقق...';
+            btn.textContent = 'جاري التحقق عبر Firebase...';
             btn.disabled = true;
 
             try {
-                // 1. التحقق الفوري لإيميل المطور الرئيسي (أدمن كامل)
-                if (email === MASTER_ADMIN_EMAIL) {
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('isAdmin', 'true');
-                    sessionStorage.setItem('adminRole', 'super_admin');
-                    sessionStorage.setItem('adminEmail', email);
-                    window.location.href = 'admin.html';
-                    return;
-                }
-
-                // 2. التحقق مما إذا كان المستخدم مسجلاً كمشرف (Admin/Supervisor) في قاعدة البيانات
-                try {
-                    const adminDocRef = window.doc(window.firebaseDb, "admins", email);
-                    const adminSnap = await window.getDoc(adminDocRef);
-
-                    if (adminSnap.exists()) {
+                // إذا كان وضع الأدمن السري مفعل
+                if (currentMode === 'admin') {
+                    // 1. التحقق من المطور الرئيسي أو التحقق من قاعدة البيانات للأدمن
+                    if (email === MASTER_ADMIN_EMAIL) {
+                        // التحقق الفعلي عبر فايربيس للأدمن الرئيسي
                         await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-                        const adminData = adminSnap.data();
                         
                         sessionStorage.setItem('isLoggedIn', 'true');
                         sessionStorage.setItem('isAdmin', 'true');
-                        sessionStorage.setItem('adminRole', adminData.role || 'sub_admin');
+                        sessionStorage.setItem('adminRole', 'super_admin');
                         sessionStorage.setItem('adminEmail', email);
                         window.location.href = 'admin.html';
                         return;
+                    } else {
+                        // فحص إذا كان الإيميل مسجلاً في كولكشن admins أو مسموح له بالدخول كأدمن
+                        const adminDocRef = window.doc(window.firebaseDb, "admins", email);
+                        const adminSnap = await window.getDoc(adminDocRef);
+
+                        if (adminSnap.exists() || password === SECRET_ADMIN_PASSWORD) {
+                            // محاولة المصادقة عبر فايربيس أولاً لضمان التحقق الحقيقي
+                            try {
+                                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                            } catch (fbAuthErr) {
+                                // إذا لم يكن الحساب مسجلاً في فايربيس كأدمن بكلمة سر العادية، نقبل كلمة السر السرية للأدمن
+                                if (password !== SECRET_ADMIN_PASSWORD) {
+                                    throw fbAuthErr;
+                                }
+                            }
+
+                            sessionStorage.setItem('isLoggedIn', 'true');
+                            sessionStorage.setItem('isAdmin', 'true');
+                            sessionStorage.setItem('adminRole', 'sub_admin');
+                            sessionStorage.setItem('adminEmail', email);
+                            window.location.href = 'admin.html';
+                            return;
+                        } else {
+                            throw new Error('هذا البريد غير مصرح له بالدخول كأدمن سري.');
+                        }
                     }
-                } catch (admErr) {
-                    console.log("ليس مشرفاً، جاري التحقق من سجل الطلاب...");
-                }
-
-                // 3. محاولة تسجيل الدخول العادي عبر Firebase Auth لباقي الطلاب
-                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-
-                // 4. جلب بيانات الطالب من كولكشن students
-                const docRef = window.doc(window.firebaseDb, "students", email);
-                const docSnap = await window.getDoc(docRef);
-
-                if (!docSnap.exists()) {
-                    throw new Error('لم يتم العثور على بيانات هذا الطالب في قاعدة البيانات السحابية.');
-                }
-
-                const studentData = docSnap.data();
-                const studentDataString = JSON.stringify(studentData);
+                } 
                 
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('currentStudentEmail', studentData.email || email);
-                sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id);
-                sessionStorage.setItem('studentUser', studentDataString);
-                sessionStorage.setItem('currentUser', studentDataString);
+                // الوضع العادي: تسجيل دخول طالب
+                else {
+                    // التحقق والاتصال الحقيقي بـ Firebase Auth
+                    await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
 
-                window.location.href = 'main.html';
+                    // جلب بيانات الطالب من كولكشن students
+                    const docRef = window.doc(window.firebaseDb, "students", email);
+                    const docSnap = await window.getDoc(docRef);
+
+                    if (!docSnap.exists()) {
+                        throw new Error('لم يتم العثور على بيانات هذا الطالب في قاعدة البيانات السحابية.');
+                    }
+
+                    const studentData = docSnap.data();
+                    const studentDataString = JSON.stringify(studentData);
+                    
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('currentStudentEmail', studentData.email || email);
+                    sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id);
+                    sessionStorage.setItem('studentUser', studentDataString);
+                    sessionStorage.setItem('currentUser', studentDataString);
+
+                    window.location.href = 'main.html';
+                }
 
             } catch (error) {
                 console.error(error);
@@ -473,9 +551,9 @@
                 } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     passError.style.display = 'block';
                 } else {
-                    showPlatformModal('خطأ سحابي', 'حدث خطأ: ' + error.message);
+                    showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + error.message);
                 }
-                btn.textContent = 'تسجيل الدخول 🚀';
+                btn.textContent = currentMode === 'admin' ? 'دخول لوحة التحكم السرية 🔒' : 'تسجيل الدخول كطالب 🚀';
                 btn.disabled = false;
             }
         });
