@@ -413,48 +413,40 @@
             btn.disabled = true;
 
             try {
-                // 🚀 التحقق الفوري لإيميل المطور دون مشاكل باسورد فايربيس القديمة
+                // 1. التحقق الفوري لإيميل المطور الرئيسي (أدمن كامل)
                 if (email === MASTER_ADMIN_EMAIL) {
-                    sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('adminRole', 'super_admin');
                     sessionStorage.setItem('adminEmail', email);
                     window.location.href = 'admin.html';
                     return;
                 }
 
-                // 1. محاولة تسجيل الدخول عبر Firebase Auth لباقي المستخدمين والطلاب
+                // 2. التحقق مما إذا كان المستخدم مسجلاً كمشرف (Admin/Supervisor) في قاعدة البيانات
+                try {
+                    const adminDocRef = window.doc(window.firebaseDb, "admins", email);
+                    const adminSnap = await window.getDoc(adminDocRef);
+
+                    if (adminSnap.exists()) {
+                        await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                        const adminData = adminSnap.data();
+                        
+                        sessionStorage.setItem('isLoggedIn', 'true');
+                        sessionStorage.setItem('isAdmin', 'true');
+                        sessionStorage.setItem('adminRole', adminData.role || 'sub_admin');
+                        sessionStorage.setItem('adminEmail', email);
+                        window.location.href = 'admin.html';
+                        return;
+                    }
+                } catch (admErr) {
+                    console.log("ليس مشرفاً، جاري التحقق من سجل الطلاب...");
+                }
+
+                // 3. محاولة تسجيل الدخول العادي عبر Firebase Auth لباقي الطلاب
                 await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
 
-                // 2. جلب إعدادات المنصة للتأكد إذا كان المستخدم كتب باسورد الأدمن العام
-                let configAdminPass = "@Mohamad66xm01122161407";
-                try {
-                    const configRef = window.doc(window.firebaseDb, "config", "platform data");
-                    const configSnap = await window.getDoc(configRef);
-                    if (configSnap.exists()) {
-                        const data = configSnap.data();
-                        if (data.systemConfig && data.systemConfig.adminPassword) {
-                            configAdminPass = data.systemConfig.adminPassword;
-                        }
-                    }
-                } catch (cfgErr) {
-                    console.log("استخدام كلمة المرور الافتراضية للأدمن");
-                }
-
-                if (password === configAdminPass) {
-                    const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
-                    await window.setDoc(requestRef, {
-                        email: email,
-                        requestedAt: new Date().toISOString(),
-                        status: 'pending'
-                    });
-
-                    showPlatformModal('تم إرسال طلبك بنجاح', 'كلمة المرور صحيحة ولكنك لست المشرف الرئيسي. تم رفع طلب صلاحية الأدمن للسحابة بنجاح!');
-                    btn.textContent = 'تسجيل الدخول 🚀';
-                    btn.disabled = false;
-                    return;
-                }
-
-                // 3. تسجيل دخول الطالب الطبيعي من كولكشن students
+                // 4. جلب بيانات الطالب من كولكشن students
                 const docRef = window.doc(window.firebaseDb, "students", email);
                 const docSnap = await window.getDoc(docRef);
 
