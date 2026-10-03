@@ -152,30 +152,46 @@
         .btn-save { background-color: #10b981; }
         .loading { text-align: center; padding: 30px; color: var(--text-secondary); }
     </style>
+</head>
+<body>
 
-    <!-- استيراد فايربيس SDKs النسخة المتوافقة مع المتصفح -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/js/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/js/firebase-firestore.js";
+    <div class="profile-container" id="profileCardMain">
+        <div id="cardPatternBg" class="card-bg-pattern"></div>
 
-        // إعدادات مشروعك في فايربيس (تأكد من مطابقتها لإعدادات منصتك)
-        const firebaseConfig = {
-            apiKey: "AIzaSy...", // ضع مفتاحك هنا أو اربطه بملف الإعدادات المشترك
-            authDomain: "study-trip.firebaseapp.com",
-            projectId: "study-trip",
-            storageBucket: "study-trip.appspot.com",
-            messagingSenderId: "...",
-            appId: "..."
-        };
+        <div class="header-actions">
+            <a href="admin.html" class="back-btn"><span>←</span> عودة لوحة التحكم</a>
+            <button class="back-btn" onclick="logoutAdmin()" style="color: #ef4444;">تسجيل الخروج 🚪</button>
+        </div>
+        <div id="profileContent">
+            <div class="loading">جاري جلب بيانات البروفايل من السحابة... ⏳</div>
+        </div>
+    </div>
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalProfileTitle">تفاصيل الحساب 🔍</h3>
+                <button class="close-modal" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+        </div>
+    </div>
 
+    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+
+    <script>
+        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
+        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+        
+        let globalRecord = {};
         let currentAdminData = null;
-        let currentAdminDocId = '';
+        let oldAdminEmail = '';
 
-        if (!sessionStorage.getItem('adminEmail')) {
-            sessionStorage.setItem('adminEmail', 'mohamad66xm@gmail.com');
+        // التحقق من وجود إيميل مسجل في الجلسة، ولو مش موجود أو الحساب طالب، نثبّت إيميل المطور الرئيسي كافتراضي للأدمن
+        let currentEmail = sessionStorage.getItem('adminEmail');
+        if (!currentEmail || currentEmail === '') {
+            currentEmail = 'mohamad66xm@gmail.com';
+            sessionStorage.setItem('adminEmail', currentEmail);
         }
 
         const verifiedBadgeHTML = `
@@ -235,25 +251,45 @@
 
         async function initProfileFromCloud() {
             try {
-                let currentEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
-                
-                // البحث عن مستند الأدمن في مجموعة students أو collection مخصصة للأدمنز
-                const studentsRef = collection(db, "students");
-                const q = query(studentsRef, where("email", "==", currentEmail));
-                const querySnapshot = await getDocs(q);
+                oldAdminEmail = sessionStorage.getItem('adminEmail') || 'mohamad66xm@gmail.com';
 
-                if (!querySnapshot.empty) {
-                    querySnapshot.forEach((documentSnapshot) => {
-                        currentAdminDocId = documentSnapshot.id;
-                        currentAdminData = documentSnapshot.data();
-                    });
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let result = await response.json();
+                globalRecord = result.record || {};
+                let adminsList = Array.isArray(globalRecord.admins) ? globalRecord.admins : [];
+
+                // البحث عن الأدمن بناءً على الإيميل الحالي في الجلسة
+                currentAdminData = adminsList.find(a => a.email && a.email.toLowerCase() === oldAdminEmail.toLowerCase());
+
+                // لو الحساب مش موجود في قائمة الأدمنز وكان هو المطور الرئيسي، بننشئه تلقائياً عشان يفتح معاه فوراً
+                if (!currentAdminData && oldAdminEmail.toLowerCase() === 'mohamad66xm@gmail.com') {
+                    currentAdminData = {
+                        fullName: "محمد عماد محمد (عشري)",
+                        email: "mohamad66xm@gmail.com",
+                        phone: "01000000000",
+                        adminId: "ADM-0001",
+                        role: "owner",
+                        status: "active",
+                        isVerified: true,
+                        rank: "mythic",
+                        bgPattern: "mixed",
+                        bgPatternEnabled: true,
+                        profileImage: ""
+                    };
+                    adminsList.push(currentAdminData);
+                    globalRecord.admins = adminsList;
+                }
+
+                if (currentAdminData) {
                     renderProfile(currentAdminData);
                 } else {
-                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على بيانات الحساب في فايربيس.</div>`;
+                    document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">لم يتم العثور على بيانات الأدمن في السحابة. <br><a href="login.html" style="color:#6366f1; text-decoration:underline;">تسجيل الدخول كأدمن</a></div>`;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بسحابة فايربيس!</div>`;
+                document.getElementById('profileContent').innerHTML = `<div class="loading" style="color: #ef4444;">خطأ في الاتصال بالسحابة! تأكد من الإنترنت.</div>`;
             }
         }
 
@@ -294,7 +330,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">معرف الأدمن (ID):</span>
-                        <span class="info-value">${admin.studentId || admin.adminId || 'ADM-0001'}</span>
+                        <span class="info-value">${admin.adminId || 'ADM-0001'}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">حالة الحساب:</span>
@@ -302,6 +338,7 @@
                     </div>
                 </div>
 
+                <!-- قناة الواتساب الرسمية -->
                 <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" class="whatsapp-banner">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span>📢</span>
@@ -313,8 +350,8 @@
                 <div class="admin-search-box">
                     <h3>🔍 البحث الفوري عن بروفايل طالب أو أدمن</h3>
                     <div class="search-input-group">
-                        <input type="text" id="adminSearchQuery" placeholder="كود ID، البريد، أو الاسم..." onkeydown="if(event.key==='Enter') window.searchUserProfile()">
-                        <button onclick="window.searchUserProfile()">بحث</button>
+                        <input type="text" id="adminSearchQuery" placeholder="كود ID، البريد، أو الاسم..." onkeydown="if(event.key==='Enter') searchUserProfile()">
+                        <button onclick="searchUserProfile()">بحث</button>
                     </div>
                 </div>
 
@@ -327,11 +364,11 @@
                     </div>
                     <div class="form-group">
                         <label>البريد الإلكتروني</label>
-                        <input type="email" id="editAdminEmail" value="${admin.email || ''}" placeholder="example@mail.com" disabled>
+                        <input type="email" id="editAdminEmail" value="${admin.email || ''}" placeholder="example@mail.com">
                     </div>
                     <div class="form-group">
                         <label>رقم الهاتف</label>
-                        <input type="tel" id="editAdminPhone" value="${admin.phone || admin.studentPhone || ''}" placeholder="01xxxxxxxxx">
+                        <input type="tel" id="editAdminPhone" value="${admin.phone || ''}" placeholder="01xxxxxxxxx">
                     </div>
                     <div class="form-group">
                         <label>تخصيص رموز خلفية البروفايل</label>
@@ -350,7 +387,11 @@
                             </label>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-save" onclick="window.saveAdminChanges()">حفظ البيانات المحدثة 💾</button>
+                    <div class="form-group">
+                        <label>كلمة المرور الجديدة</label>
+                        <input type="password" id="editAdminPassword" value="${admin.password || ''}" placeholder="كلمة المرور">
+                    </div>
+                    <button type="button" class="btn btn-save" onclick="saveAdminChanges()">حفظ البيانات المحدثة 💾</button>
                 </div>
                 
                 <div style="text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--text-secondary);">
@@ -359,133 +400,148 @@
             `;
         }
 
-        window.toggleEditForm = function() {
+        function toggleEditForm() {
             document.getElementById('editFormSection').classList.toggle('active');
-        };
+        }
 
-        window.searchUserProfile = async function() {
-            const queryText = document.getElementById('adminSearchQuery').value.trim();
+        function searchUserProfile() {
+            const query = document.getElementById('adminSearchQuery').value.trim().toLowerCase();
             const modal = document.getElementById('searchModal');
             const modalContent = document.getElementById('modalContent');
             
-            if (!queryText) { alert('اكتب بيانات البحث أولاً!'); return; }
+            if (!query) { alert('اكتب بيانات البحث أولاً!'); return; }
 
             modal.classList.add('active');
-            modalContent.innerHTML = '<p style="font-size:0.9rem; padding:20px;">جاري الاستعلام من فايربيس... ⏳</p>';
+            modalContent.innerHTML = '<p style="font-size:0.9rem; padding:20px;">جاري الاستعلام عن البيانات... ⏳</p>';
 
-            try {
-                const studentsRef = collection(db, "students");
-                const querySnapshot = await getDocs(studentsRef);
-                let foundUser = null;
-                let foundDocId = '';
+            let users = Array.isArray(globalRecord.users) ? globalRecord.users : [];
+            let admins = Array.isArray(globalRecord.admins) ? globalRecord.admins : [];
 
-                querySnapshot.forEach((docSnap) => {
-                    let uData = docSnap.data();
-                    if (
-                        (uData.studentId && uData.studentId.toLowerCase() === queryText.toLowerCase()) ||
-                        (uData.email && uData.email.toLowerCase() === queryText.toLowerCase()) ||
-                        (uData.phone && uData.phone === queryText) ||
-                        (uData.fullName && uData.fullName.includes(queryText))
-                    ) {
-                        foundUser = uData;
-                        foundDocId = docSnap.id;
-                    }
-                });
+            let foundStudent = users.find(u => (u.studentId && u.studentId.toLowerCase() === query) || (u.email && u.email.toLowerCase() === query) || (u.studentPhone && u.studentPhone === query) || (u.fullName && u.fullName.toLowerCase().includes(query)));
+            let foundAdmin = admins.find(a => (a.email && a.email.toLowerCase() === query) || (a.fullName && a.fullName.toLowerCase().includes(query)));
 
-                if (foundUser) {
-                    let imgUrl = getUserImage(foundUser);
-                    let rankKey = foundUser.rank || 'bronze';
-                    let rankInfo = getRankDetails(rankKey);
-                    let isBlocked = foundUser.status === 'blocked';
+            if (foundStudent) {
+                let imgUrl = getUserImage(foundStudent);
+                let rankKey = foundStudent.rank || 'bronze';
+                let rankInfo = getRankDetails(rankKey);
+                let isBlocked = foundStudent.status === 'blocked';
 
-                    modalContent.innerHTML = `
-                        <div class="modal-avatar-wrapper ${rankInfo.class}">
-                            <img src="${imgUrl}" alt="صورة الطالب">
+                modalContent.innerHTML = `
+                    <div class="modal-avatar-wrapper ${rankInfo.class}">
+                        <img src="${imgUrl}" alt="صورة الطالب">
+                    </div>
+                    <div class="level-badge-box ${rankInfo.badgeClass}">
+                        <span>${rankInfo.icon}</span>
+                        <span>${rankInfo.title}</span>
+                    </div>
+                    <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:2px;">${foundStudent.fullName}</h2>
+                    <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">طالب مسجل - الكود: ${foundStudent.studentId || 'N/A'}</p>
+
+                    <div class="modal-info-list">
+                        <div class="modal-field">
+                            <label>اسم الطالب:</label>
+                            <input type="text" id="modalStudentName" value="${foundStudent.fullName}">
                         </div>
-                        <div class="level-badge-box ${rankInfo.badgeClass}">
-                            <span>${rankInfo.icon}</span>
-                            <span>${rankInfo.title}</span>
+                        <div class="modal-field">
+                            <label>كود الطالب (ID):</label>
+                            <input type="text" id="modalStudentId" value="${foundStudent.studentId || ''}">
                         </div>
-                        <h2 style="font-size:1.15rem; color:var(--text-main); margin-bottom:2px;">${foundUser.fullName}</h2>
-                        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px;">مستخدم المنصة - الكود: ${foundUser.studentId || 'N/A'}</p>
+                        <div class="modal-field">
+                            <label>هاتف الطالب:</label>
+                            <input type="text" id="modalStudentPhone" value="${foundStudent.studentPhone || ''}">
+                        </div>
+                        <div class="modal-field">
+                            <label>المستوى:</label>
+                            <select id="modalStudentRank">
+                                <option value="bronze" ${rankKey === 'bronze' ? 'selected' : ''}>🥉 ضعيف (Level 1)</option>
+                                <option value="silver" ${rankKey === 'silver' ? 'selected' : ''}>🥈 متوسط (Level 2)</option>
+                                <option value="gold" ${rankKey === 'gold' ? 'selected' : ''}>🥇 قوي (Level 3)</option>
+                                <option value="diamond" ${rankKey === 'diamond' ? 'selected' : ''}>💎 قوي جداً (Level 4)</option>
+                                <option value="mythic" ${rankKey === 'mythic' ? 'selected' : ''}>👑 أسطوري (Level 5)</option>
+                            </select>
+                        </div>
+                    </div>
 
-                        <div class="modal-info-list">
-                            <div class="modal-field">
-                                <label>الاسم:</label>
-                                <input type="text" id="modalStudentName" value="${foundUser.fullName}">
-                            </div>
-                            <div class="modal-field">
-                                <label>الكود (ID):</label>
-                                <input type="text" id="modalStudentId" value="${foundUser.studentId || ''}">
-                            </div>
-                            <div class="modal-field">
-                                <label>الهاتف:</label>
-                                <input type="text" id="modalStudentPhone" value="${foundUser.phone || foundUser.studentPhone || ''}">
-                            </div>
-                            <div class="modal-field">
-                                <label>المستوى:</label>
-                                <select id="modalStudentRank">
-                                    <option value="bronze" ${rankKey === 'bronze' ? 'selected' : ''}>🥉 ضعيف (Level 1)</option>
-                                    <option value="silver" ${rankKey === 'silver' ? 'selected' : ''}>🥈 متوسط (Level 2)</option>
-                                    <option value="gold" ${rankKey === 'gold' ? 'selected' : ''}>🥇 قوي (Level 3)</option>
-                                    <option value="diamond" ${rankKey === 'diamond' ? 'selected' : ''}>💎 قوي جداً (Level 4)</option>
-                                    <option value="mythic" ${rankKey === 'mythic' ? 'selected' : ''}>👑 أسطوري (Level 5)</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="modal-actions-grid">
+                        <button style="background:#e67e22; color:#fff;" onclick="toggleBlockStudentModal('${foundStudent.email}')">${isBlocked ? 'فك الحظر' : 'حظر الطالب'}</button>
+                        <button style="background:#ef4444; color:#fff;" onclick="deleteStudentModal('${foundStudent.email}')">حذف الطالب</button>
+                        <button style="background:#10b981; color:#fff;" class="btn-full" onclick="saveStudentSearchModal('${foundStudent.email}')">حفظ التعديلات 💾</button>
+                    </div>
+                `;
+            } else if (foundAdmin) {
+                let imgUrl = getUserImage(foundAdmin);
+                let isMasterRole = (foundAdmin.role === 'owner' || foundAdmin.email === 'mohamad66xm@gmail.com');
 
-                        <div class="modal-actions-grid">
-                            <button style="background:#e67e22; color:#fff;" onclick="window.toggleBlockUser('${foundDocId}', '${foundUser.status}')">${isBlocked ? 'فك الحظر' : 'حظر الحساب'}</button>
-                            <button style="background:#10b981; color:#fff;" class="btn-full" onclick="window.saveSearchedUser('${foundDocId}')">حفظ التعديلات 💾</button>
+                modalContent.innerHTML = `
+                    <div class="modal-avatar-wrapper rank-frame-unranked" style="border: 3px solid var(--primary-color);">
+                        <img src="${imgUrl}" alt="صورة الأدمن">
+                    </div>
+                    <h2 style="font-size:1.1rem; color:var(--text-main); margin-bottom:4px;">${foundAdmin.fullName || 'مشرف'}</h2>
+                    <p style="font-size:0.8rem; color:#6366f1; margin-bottom:12px;">${isMasterRole ? 'متحكم رئيسي ⚡' : 'أدمن فرعي 🛡️'}</p>
+
+                    <div class="modal-info-list">
+                        <div class="modal-field">
+                            <label>الاسم الكامل:</label>
+                            <input type="text" id="modalAdminName" value="${foundAdmin.fullName || ''}">
                         </div>
-                    `;
-                } else {
-                    modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>لم يتم العثور على أي حساب بهذه البيانات في قاعدة البيانات!</p></div>`;
-                }
-            } catch (e) {
-                console.error(e);
-                modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>حدث خطأ أثناء البحث!</p></div>`;
+                        <div class="modal-field">
+                            <label>رقم الهاتف:</label>
+                            <input type="text" id="modalAdminPhone" value="${foundAdmin.phone || ''}">
+                        </div>
+                    </div>
+
+                    <div class="modal-actions-grid">
+                        <button style="background:#10b981; color:#fff;" class="btn-full" onclick="saveAdminSearchModal('${foundAdmin.email}')">حفظ التعديلات 💾</button>
+                    </div>
+                `;
+            } else {
+                modalContent.innerHTML = `<div style="padding:20px; color:#ef4444;"><p>لم يتم العثور على أي حساب بهذه البيانات!</p></div>`;
             }
-        };
+        }
 
-        window.saveSearchedUser = async function(docId) {
-            try {
-                const userRef = doc(db, "students", docId);
-                await updateDoc(userRef, {
-                    fullName: document.getElementById('modalStudentName').value,
-                    studentId: document.getElementById('modalStudentId').value,
-                    phone: document.getElementById('modalStudentPhone').value,
-                    rank: document.getElementById('modalStudentRank').value
-                });
-                alert("تم تحديث بيانات المستخدم بنجاح! ⚡");
-                window.closeModal();
-            } catch (err) {
-                console.error(err);
-                alert("فشل حفظ التعديلات!");
+        async function saveStudentSearchModal(email) {
+            let student = (globalRecord.users || []).find(u => u.email === email);
+            if (student) {
+                student.fullName = document.getElementById('modalStudentName').value;
+                student.studentId = document.getElementById('modalStudentId').value;
+                student.studentPhone = document.getElementById('modalStudentPhone').value;
+                student.rank = document.getElementById('modalStudentRank').value;
+                await syncDataToCloud("تم تحديث بيانات الطالب بنجاح! ⚡");
+                closeModal();
             }
-        };
+        }
 
-        window.toggleBlockUser = async function(docId, currentStatus) {
-            try {
-                const userRef = doc(db, "students", docId);
-                let newStatus = currentStatus === 'blocked' ? 'active' : 'blocked';
-                await updateDoc(userRef, { status: newStatus });
-                alert("تم تغيير حالة الحساب بنجاح!");
-                window.closeModal();
-            } catch (err) {
-                console.error(err);
+        async function saveAdminSearchModal(email) {
+            let admin = (globalRecord.admins || []).find(a => a.email === email);
+            if (admin) {
+                admin.fullName = document.getElementById('modalAdminName').value;
+                admin.phone = document.getElementById('modalAdminPhone').value;
+                await syncDataToCloud("تم تحديث بيانات المشرف بنجاح! ⚡");
+                closeModal();
             }
-        };
+        }
 
-        window.closeModal = function() { 
-            document.getElementById('searchModal').classList.remove('active'); 
-        };
+        async function toggleBlockStudentModal(email) {
+            let st = (globalRecord.users || []).find(u => u.email === email);
+            if (st) { 
+                st.status = st.status === 'blocked' ? 'active' : 'blocked'; 
+                await syncDataToCloud("تم تغيير حالة الحظر بنجاح!"); 
+                searchUserProfile(); 
+            }
+        }
 
-        window.closeModalOnOuterClick = function(e) { 
-            if (e.target.classList.contains('modal-overlay')) window.closeModal(); 
-        };
+        async function deleteStudentModal(email) {
+            if (confirm("هل أنت متأكد من حذف الطالب نهائياً؟")) {
+                globalRecord.users = (globalRecord.users || []).filter(u => u.email !== email);
+                await syncDataToCloud("تم حذف الطالب!"); 
+                closeModal();
+            }
+        }
 
-        window.handleImageUpload = function(e) {
+        function closeModal() { document.getElementById('searchModal').classList.remove('active'); }
+        function closeModalOnOuterClick(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
+
+        function handleImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
 
@@ -494,7 +550,7 @@
             reader.onload = function(event) {
                 const img = new Image();
                 img.src = event.target.result;
-                img.onload = async function() {
+                img.onload = function() {
                     const canvas = document.createElement('canvas');
                     let width = img.width, height = img.height;
                     if (width > height) { if (width > 200) { height *= 200 / width; width = 200; } }
@@ -506,68 +562,56 @@
 
                     document.getElementById('adminAvatarImg').src = base64Img;
                     currentAdminData.profileImage = base64Img;
-                    
-                    // التحديث في فايربيس
-                    if (currentAdminDocId) {
-                        const adminRef = doc(db, "students", currentAdminDocId);
-                        await updateDoc(adminRef, { profileImage: base64Img });
-                        alert("تم تحديث صورة البروفايل وحفظها في فايربيس بنجاح! 📸");
-                    }
+                    syncDataToCloud("تم تحديث صورة البروفايل بنجاح! 📸");
                 };
             };
-        };
+        }
 
-        window.saveAdminChanges = async function() {
+        async function saveAdminChanges() {
             currentAdminData.fullName = document.getElementById('editAdminName').value.trim();
+            currentAdminData.email = document.getElementById('editAdminEmail').value.trim().toLowerCase();
             currentAdminData.phone = document.getElementById('editAdminPhone').value.trim();
             currentAdminData.bgPattern = document.getElementById('editAdminBgPattern').value;
             currentAdminData.bgPatternEnabled = document.getElementById('editAdminPatternToggle').checked;
+            let newPass = document.getElementById('editAdminPassword').value.trim();
+            if (newPass) currentAdminData.password = newPass;
 
-            if (currentAdminDocId) {
-                const adminRef = doc(db, "students", currentAdminDocId);
-                await updateDoc(adminRef, {
-                    fullName: currentAdminData.fullName,
-                    phone: currentAdminData.phone,
-                    bgPattern: currentAdminData.bgPattern,
-                    bgPatternEnabled: currentAdminData.bgPatternEnabled
+            await syncDataToCloud("تم حفظ بيانات الأدمن بنجاح! ✅");
+            sessionStorage.setItem('adminEmail', currentAdminData.email);
+            oldAdminEmail = currentAdminData.email;
+            renderProfile(currentAdminData);
+        }
+
+        async function syncDataToCloud(successMsg) {
+            try {
+                if (!Array.isArray(globalRecord.admins)) globalRecord.admins = [];
+                let index = globalRecord.admins.findIndex(a => a.email && a.email.toLowerCase() === oldAdminEmail.toLowerCase());
+                if (index !== -1) {
+                    globalRecord.admins[index] = currentAdminData;
+                } else {
+                    globalRecord.admins.push(currentAdminData);
+                }
+
+                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
+                    body: JSON.stringify(globalRecord)
                 });
-                alert("تم حفظ بيانات الأدمن في سحابة فايربيس بنجاح! ✅");
-                renderProfile(currentAdminData);
-            }
-        };
 
-        window.logoutAdmin = function() {
+                if (response.ok) alert(successMsg);
+                else alert("فشل التحديث في السحابة!");
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء الاتصال بالخادم!");
+            }
+        }
+
+        function logoutAdmin() {
             sessionStorage.clear();
             window.location.href = 'login.html';
-        };
+        }
 
         initProfileFromCloud();
     </script>
-</head>
-<body>
-
-    <div class="profile-container" id="profileCardMain">
-        <div id="cardPatternBg" class="card-bg-pattern"></div>
-
-        <div class="header-actions">
-            <a href="admin.html" class="back-btn"><span>←</span> عودة لوحة التحكم</a>
-            <button class="back-btn" onclick="logoutAdmin()" style="color: #ef4444;">تسجيل الخروج 🚪</button>
-        </div>
-        <div id="profileContent">
-            <div class="loading">جاري جلب بيانات البروفايل من فايربيس... ⏳</div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="searchModal" onclick="closeModalOnOuterClick(event)">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="modalProfileTitle">تفاصيل الحساب 🔍</h3>
-                <button class="close-modal" onclick="closeModal()">✕</button>
-            </div>
-            <div class="modal-body" id="modalContent"></div>
-        </div>
-    </div>
-
-    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
 </body>
 </html>
