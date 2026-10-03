@@ -401,6 +401,9 @@
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // 🧹 تنظيف الـ Session السابق لمنع تداخل أو تخزين بيانات وهمية قديمة
+            sessionStorage.clear();
+
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const emailError = document.getElementById('emailError');
@@ -425,7 +428,7 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // تخزين تفاصيل الأدمن بالكامل في الـ sessionStorage
+                    // تخزين تفاصيل الأدمن الحقيقي فقط
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminRole', adminData.role || 'admin');
@@ -438,7 +441,7 @@
                     return;
                 }
 
-                // 2. إذا لم يكن أدمن، نتحقق من كولكشن الطلاب (students)
+                // 2. إذا لم يكن مسجلاً في الأدمن، نتحقق من كولكشن الطلاب (students)
                 const studentDocRef = window.doc(window.firebaseDb, "students", email);
                 const studentSnap = await window.getDoc(studentDocRef);
 
@@ -459,8 +462,8 @@
                     return;
                 }
 
-                // إذا لم يوجد في الاثنين
-                throw new Error('البريد الإلكتروني غير مسجل معنا.');
+                // إذا لم يوجد في الاثنين في قاعدة البيانات
+                throw new Error('البريد الإلكتروني غير مسجل معنا أو غير مصرح له.');
 
             } catch (error) {
                 console.error(error);
