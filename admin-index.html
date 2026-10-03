@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل إدارة المنصة - بوابة المطور</title>
+    <!-- استدعي ملفات الـ CSS بتاعتك هنا -->
+    <style>
+        /* تنسيق سريع وخفيف، تقدر تبدله بتنسيق المنصة بتاعك */
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: #f0f2f5; padding: 20px; }
+        .admin-form-container { max-width: 450px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .form-group { margin-bottom: 15px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .file-upload { margin-bottom: 15px; padding: 10px; border: 1px dashed #ccc; border-radius: 6px; background: #fafafa; }
+        .file-upload label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
+        button { width: 100%; padding: 14px; background: #1a252f; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #2c3e50; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="admin-form-container">
+        <h2 style="text-align: center; color: #1a252f; margin-bottom: 5px;">إنشاء حساب إداري جديد</h2>
+        <p style="text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px;">مرحباً بك.. يرجى تعبئة البيانات الوظيفية أدناه.</p>
+        
+        <form id="adminRegisterForm">
+            <div class="form-group">
+                <input type="text" id="adminName" placeholder="الاسم الكامل (رباعي)" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="email" id="adminEmail" placeholder="البريد الإلكتروني الرسمي للمنصة" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="tel" id="adminPhone" placeholder="رقم الهاتف (للتواصل الإداري)" required>
+            </div>
+            
+            <!-- حقل رفع الصورة -->
+            <div class="file-upload">
+                <label for="adminAvatar">صورة الملف الشخصي للإداري:</label>
+                <input type="file" id="adminAvatar" accept="image/*" required>
+            </div>
+
+            <div class="form-group">
+                <input type="password" id="adminPassword" placeholder="كلمة المرور الموحدة للإدارة" required>
+            </div>
+            
+            <div class="form-group">
+                <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">اعتماد وإنشاء الحساب</button>
+        </form>
+    </div>
+
+    <!-- كود الجافاسكريبت -->
+    <script type="module">
+        // استدعاء مكتبات فايربيس (بما فيها الـ Storage عشان نرفع الصورة)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-storage.js";
+
+        // إعدادات فايربيس الخاصة بمشروعك
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app); // تشغيل التخزين للصور
+
+        document.getElementById('adminRegisterForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const name = document.getElementById('adminName').value;
+            const email = document.getElementById('adminEmail').value.toLowerCase();
+            const phone = document.getElementById('adminPhone').value;
+            const password = document.getElementById('adminPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const avatarFile = document.getElementById('adminAvatar').files[0]; // سحب الصورة
+
+            // 1. التحقق من تطابق كلمة المرور
+            if (password !== confirmPassword) {
+                alert("عذراً، كلمتي المرور غير متطابقتين. تأكد من إدخال الباسورد الموحد بشكل صحيح.");
+                return;
+            }
+
+            // قفل الزرار وتغيير النص عشان اليوزر ميكررش الضغط أثناء الرفع
+            submitBtn.disabled = true;
+            submitBtn.innerText = "جاري رفع الصورة وإنشاء الحساب...";
+
+            try {
+                // 2. إنشاء الحساب في Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 3. رفع الصورة لـ Firebase Storage وجلب رابطها
+                let avatarUrl = "";
+                if (avatarFile) {
+                    // بنسمي الصورة باسم الإيميل عشان متتكررش
+                    const storageRef = ref(storage, `admins_avatars/${email}_${avatarFile.name}`);
+                    const snapshot = await uploadBytes(storageRef, avatarFile);
+                    avatarUrl = await getDownloadURL(snapshot.ref); // الرابط النهائي للصورة
+                }
+
+                // 4. بناء ملف الأدمن في Firestore وتحديد الصلاحيات
+                await setDoc(doc(db, "admins", email), {
+                    adminId: user.uid,
+                    avatar: avatarUrl, // رابط الصورة اللي اترفع
+                    email: email,
+                    fullname: name,
+                    isVerified: true,
+                    phone: phone,
+                    role: "a", 
+                    adminLevel: "moderator", // مشرف عادي، وإنت كمطور اللي بترقيه بعدين لـ developer
+                    status: "active"
+                });
+
+                alert("تم تسجيل الإداري بنجاح وإضافته للنظام!");
+                window.location.href = "admin-profile.html";
+
+            } catch (error) {
+                console.error("Error: ", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    alert("هذا البريد مسجل به حساب بالفعل!");
+                } else {
+                    alert("حدث خطأ أثناء التسجيل: " + error.message);
+                }
+                // إرجاع الزرار لحالته لو حصل خطأ
+                submitBtn.disabled = false;
+                submitBtn.innerText = "اعتماد وإنشاء الحساب";
+            }
+        });
+    </script>
+</body>
+</html>
