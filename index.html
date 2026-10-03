@@ -10,7 +10,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -31,6 +31,7 @@
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.collection = collection;
         window.doc = doc;
+        window.getDoc = getDoc;
         window.setDoc = setDoc;
         window.getDocs = getDocs;
     </script>
@@ -395,7 +396,6 @@
         let countdownTimer = null;
         let selectedGender = 'male'; 
 
-        // قائمة الكلمات التحفيزية العميقة والمؤثرة جداً (أكثر من 150 عبارة مختارة بعناية)
         const inspirationalQuotes = [
             "اللهم صلِ وسلّم وبارك على نبينا محمد وعلى آله وصحبه أجمعين.",
             "من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة.",
@@ -524,7 +524,7 @@
                 themeText.textContent = 'الوضع الداكن';
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
-                themeIcon.textContent = '☀️';
+                themeIcon.textContent = '☀️️';
                 themeText.textContent = 'الوضع الفاتح';
             }
         });
@@ -619,6 +619,7 @@
             }, 1000);
         }
 
+        // إرسال كود التحقق (OTP) بعد التحقق من عدم وجود الإيميل مسبقاً في جدول students
         document.getElementById('sendOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const nameInput = document.getElementById('fullName').value.trim();
@@ -636,16 +637,33 @@
                 return;
             }
 
-            sendBtn.textContent = 'جاري إرسال الكود...';
+            sendBtn.textContent = 'جاري التحقق...';
             sendBtn.disabled = true;
 
             try {
+                // فحص ما إذا كان البريد مسجلاً مسبقاً في جدول students في Firestore
+                const studentDocRef = window.doc(window.firebaseDb, "students", emailInput);
+                const studentDocSnap = await window.getDoc(studentDocRef);
+
+                if (studentDocSnap.exists()) {
+                    const studentData = studentDocSnap.data();
+                    if (studentData.status === 'banned' || studentData.status === 'blocked') {
+                        emailError.textContent = 'عذراً، هذا البريد محظور من النظام!';
+                    } else {
+                        emailError.textContent = 'هذا البريد الإلكتروني مسجل بحساب طالب بالفعل!';
+                    }
+                    emailError.style.display = 'block';
+                    sendBtn.textContent = 'إرسال الكود';
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
                 const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
                 const studentName = nameInput || "زائرنا المتميز";
 
-                // قالب البريد الإلكتروني الاحترافي الكامل والمزود بالعبارات التحفيزية العميقة
                 const emailHtmlContent = `
                 <div dir="rtl" style="background-color: #0f172a; padding: 30px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
                     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background: linear-gradient(135deg, #1e1b4b, #311042); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;">
@@ -733,7 +751,7 @@
 
             } catch (error) {
                 console.error('Brevo Error:', error);
-                emailSuccess.textContent = `تم إرسال كود التحقق بنجاح تحقق من بريدك (الكود التجريبي: ${generatedOtp})`;
+                emailSuccess.textContent = `تم إرسال الكود التجريبي: ${generatedOtp}`;
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(30);
@@ -810,6 +828,16 @@
             btn.disabled = true;
 
             try {
+                // الفحص مرة أخرى قبل الإنشاء لضمان الأمان التام
+                const studentDocRef = window.doc(window.firebaseDb, "students", email);
+                const studentDocSnap = await window.getDoc(studentDocRef);
+                if (studentDocSnap.exists()) {
+                    alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
+                    btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
+                    btn.disabled = false;
+                    return;
+                }
+
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
