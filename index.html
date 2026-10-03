@@ -12,7 +12,6 @@
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // إعدادات فايربيس الصحيحة
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
             authDomain: "study-trip-1.firebaseapp.com",
@@ -119,34 +118,16 @@
             margin-bottom: 25px;
         }
         
-        /* تنسيق لزر قبعة التخرج السري */
-        .brand-header .header-title-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 6px;
-        }
-        
         .brand-header h2 {
             color: var(--text-main);
             font-size: 1.7rem;
             font-weight: 800;
             letter-spacing: -0.5px;
-            margin: 0;
+            margin: 0 0 6px 0;
+            cursor: pointer; /* لو دوست دبل كليك هنا تفتح نافذة المطور */
+            user-select: none;
         }
         
-        .admin-secret-icon {
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            fill: var(--text-main);
-            transition: transform 0.2s;
-        }
-        .admin-secret-icon:hover {
-            transform: scale(1.1) rotate(5deg);
-        }
-
         .brand-header p {
             color: var(--text-sub);
             font-size: 0.88rem;
@@ -170,11 +151,7 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
 
-        .gender-options-wrapper {
-            display: flex;
-            gap: 12px;
-            width: 100%;
-        }
+        .gender-options-wrapper { display: flex; gap: 12px; width: 100%; }
 
         .gender-btn {
             flex: 1;
@@ -192,38 +169,16 @@
             color: var(--text-sub);
             user-select: none;
         }
-
         .gender-btn svg { width: 20px; height: 20px; }
-
-        .gender-btn.male-option.active {
-            border-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.15);
-            color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-        }
-
-        .gender-btn.female-option.active {
-            border-color: #ec4899;
-            background: rgba(236, 72, 153, 0.15);
-            color: #ec4899;
-            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25);
-        }
-
+        .gender-btn.male-option.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.15); color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); }
+        .gender-btn.female-option.active { border-color: #ec4899; background: rgba(236, 72, 153, 0.15); color: #ec4899; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25); }
         .gender-btn:hover { transform: translateY(-2px); }
 
         .email-flex { display: flex; gap: 10px; }
         .email-flex input { flex: 1; }
         .btn-otp {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0 16px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: background 0.2s;
+            background: var(--primary); color: white; border: none; padding: 0 16px;
+            border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap;
         }
         .btn-otp:hover { background: var(--primary-hover); }
         .btn-otp:disabled { background: var(--text-sub); cursor: not-allowed; }
@@ -232,7 +187,6 @@
             position: relative; display: flex; align-items: center; justify-content: space-between;
             border: 2px dashed var(--input-border); padding: 12px 16px; border-radius: 12px; background: var(--input-bg); cursor: pointer;
         }
-        .file-upload-wrapper:hover { border-color: var(--primary); }
         .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .file-upload-label { display: flex; align-items: center; gap: 10px; color: var(--text-sub); font-size: 0.88rem; font-weight: 600; }
         .file-preview { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: none; border: 2px solid var(--success); }
@@ -257,6 +211,36 @@
         
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
         .success-msg { color: #10b981; font-size: 0.82rem; margin-top: 4px; display: none; }
+
+        /* تصميم المودال المخصص الموحد بثيم المنصة بدلاً من نوافذ المتصفح القديمة */
+        .custom-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .custom-modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-modal-box {
+            background: var(--card-bg); border: 1px solid var(--card-border);
+            padding: 25px; border-radius: 20px; width: 90%; max-width: 400px;
+            box-shadow: var(--shadow); text-align: center; color: var(--text-main);
+            transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        .custom-modal-overlay.active .custom-modal-box { transform: scale(1); }
+        .custom-modal-box h3 { margin-bottom: 12px; font-size: 1.2rem; color: var(--text-main); }
+        .custom-modal-box p { color: var(--text-sub); font-size: 0.9rem; margin-bottom: 20px; }
+        .custom-modal-box input {
+            width: 100%; padding: 12px; background: var(--input-bg); border: 1.5px solid var(--input-border);
+            border-radius: 10px; color: var(--text-main); font-size: 1rem; margin-bottom: 20px; text-align: center; outline: none;
+        }
+        .custom-modal-actions { display: flex; gap: 10px; }
+        .custom-modal-actions button {
+            flex: 1; padding: 10px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 0.95rem;
+        }
+        .btn-modal-confirm { background: var(--primary); color: white; }
+        .btn-modal-confirm:hover { background: var(--primary-hover); }
+        .btn-modal-cancel { background: transparent; border: 1px solid var(--input-border) !important; color: var(--text-sub); }
+        .btn-modal-cancel:hover { background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
@@ -268,13 +252,8 @@
 
     <div class="register-container">
         <div class="brand-header">
-            <div class="header-title-container">
-                <!-- قبعة التخرج بقت زرار مخفي للإدارة -->
-                <svg id="adminSecretBtn" class="admin-secret-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 3L1 9L5 11.18V17.18L12 21L19 17.18V11.18L21 10.09V17H23V9L12 3ZM18.82 9L12 12.72L5.18 9L12 5.28L18.82 9ZM17 15.9L12 18.62L7 15.9V12.27L12 15L17 12.27V15.9Z"/>
-                </svg>
-                <h2>منصة رحلة دراسية</h2>
-            </div>
+            <!-- ضغطتين مزدوجتين (Double Click) على عنوان المنصة تفتح نافذة المطور السرية بثيم المنصة -->
+            <h2 id="secretAdminTrigger" title="انقر مرتين للوصول السريع">منصة رحلة دراسية</h2>
             <p>أنشئ حسابك وانطلق في رحلتك التعليمية</p>
         </div>
 
@@ -373,15 +352,45 @@
         </div>
     </div>
 
+    <!-- نافذة المودال المخصصة لبوابة المطور بدلاً من الـ Prompt القديم -->
+    <div class="custom-modal-overlay" id="adminModal">
+        <div class="custom-modal-box">
+            <h3>🔐 بوابة المطور والمديرين</h3>
+            <p>أدخل رمز المطور السري للوصول إلى لوحة الإدارة:</p>
+            <input type="password" id="adminPasswordInput" placeholder="أدخل الرمز هنا...">
+            <div class="custom-modal-actions">
+                <button type="button" class="btn-modal-confirm" id="adminModalSubmit">دخول</button>
+                <button type="button" class="btn-modal-cancel" id="adminModalCancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // === كود الزر المخفي للإدارة (قبعة التخرج) ===
-        document.getElementById('adminSecretBtn').addEventListener('click', function() {
-            let password = prompt("أدخل رمز المطور السري للوصول إلى لوحة الإدارة:");
-            if (password === "@Mohamad66xm01122161407") {
-                window.location.href = "admin-index.html"; // توجيه لصفحة تسجيل الأدمن الجديدة
-            } else if (password !== null && password !== "") {
-                alert("عذراً، الرمز غير صحيح!");
+        // === نافذة المطور المخصصة بثيم المنصة ===
+        const secretTrigger = document.getElementById('secretAdminTrigger');
+        const adminModal = document.getElementById('adminModal');
+        const adminPasswordInput = document.getElementById('adminPasswordInput');
+        const adminModalSubmit = document.getElementById('adminModalSubmit');
+        const adminModalCancel = document.getElementById('adminModalCancel');
+
+        secretTrigger.addEventListener('dblclick', () => {
+            adminPasswordInput.value = '';
+            adminModal.classList.add('active');
+            adminPasswordInput.focus();
+        });
+
+        adminModalCancel.addEventListener('click', () => {
+            adminModal.classList.remove('active');
+        });
+
+        adminModalSubmit.addEventListener('click', () => {
+            const enteredPass = adminPasswordInput.value;
+            if (enteredPass === "@Mohamad66xm01122161407") {
+                window.location.href = "admin-index.html";
+            } else {
+                alert("عذراً، رمز المطور غير صحيح!");
             }
+            adminModal.classList.remove('active');
         });
         // ===========================================
 
@@ -391,8 +400,8 @@
 
         const inspirationalQuotes = [
             "اللهم صلِ وسلّم وبارك على نبينا محمد وعلى آله وصحبه أجمعين.",
-            "من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة."
-            // بقية الأقوال كما هي...
+            "من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة.",
+            "احلم بما شئت، فالنجم البعيد ليس ببعيد على من صدق النية وجدّ السعي."
         ];
 
         function selectGender(gender) {
@@ -538,14 +547,12 @@
 
             try {
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                
                 const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)] || "استعن بالله ولا تعجز.";
                 const studentName = nameInput || "زائرنا المتميز";
 
                 const emailHtmlContent = `
                 <div dir="rtl" style="background-color: #0f172a; padding: 30px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
-                    <!-- تم اختصار محتوى الإيميل للتركيز على الكود، المحتوى كما هو عندك -->
-                    <h1 style="color:white;">رمز التحقق: ${generatedOtp}</h1>
+                    <h1 style="color:white; text-align:center;">رمز التحقق: ${generatedOtp}</h1>
                 </div>`;
 
                 const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -556,10 +563,7 @@
                         "api-key": "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"
                     },
                     body: JSON.stringify({
-                        sender: {
-                            name: "منصة رحلة دراسية",
-                            email: "mohamad91xm@gmail.com"
-                        },
+                        sender: { name: "منصة رحلة دراسية", email: "mohamad91xm@gmail.com" },
                         to: [{ email: emailInput, name: nameInput || "مستخدم جديد" }],
                         subject: "✨ كود التحقق الخاص بك - منصة رحلة دراسية",
                         htmlContent: emailHtmlContent
@@ -576,7 +580,7 @@
 
             } catch (error) {
                 console.error('Brevo Error:', error);
-                emailSuccess.textContent = `تم إرسال كود التحقق بنجاح تحقق من بريدك (الكود التجريبي: ${generatedOtp})`;
+                emailSuccess.textContent = `تم إرسال الكود (تجريبي: ${generatedOtp})`;
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
                 startCooldown(30);
@@ -623,6 +627,7 @@
             return isValid;
         }
 
+        // === معالجة التسجيل التلقائي للطالب وحفظه في Firestore كولكشن students أوتوماتيك ===
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -653,7 +658,7 @@
             btn.disabled = true;
 
             try {
-                // 1. إنشاء الحساب في Firebase Authentication
+                // 1. إنشاء حساب المصادقة في Firebase Authentication
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -663,11 +668,12 @@
                     catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // 2. التسجيل العادي كطالب فقط (تم حذف كود بناء الأدمن من هنا لأنه في صفحة admin-index.html)
+                // 2. حساب رقم الطالب وتوليد الـ ID أوتوماتيك
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
+                // 3. هيكل بيانات الطالب الجاهز للحفظ في Firestore
                 const studentData = {
                     uid: user.uid,
                     id: studentId,
@@ -688,11 +694,14 @@
                     selectedEmojis: ['⭐', '🚀'],
                     friends: [],
                     friendRequests: [],
-                    chats: {}
+                    chats: {},
+                    createdAt: new Date().toISOString()
                 };
 
+                // حفظ المستند في كولكشن students (بحيث يكون الـ Doc ID هو الإيميل تماماً زي صورتك)
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
 
+                // حفظ جلسة الدخول في المتصفح
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
