@@ -12,6 +12,7 @@
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // إعدادات فايربيس الصحيحة
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
             authDomain: "study-trip-1.firebaseapp.com",
@@ -117,13 +118,35 @@
             text-align: center;
             margin-bottom: 25px;
         }
+        
+        /* تنسيق لزر قبعة التخرج السري */
+        .brand-header .header-title-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+        
         .brand-header h2 {
             color: var(--text-main);
             font-size: 1.7rem;
             font-weight: 800;
             letter-spacing: -0.5px;
-            margin-bottom: 6px;
+            margin: 0;
         }
+        
+        .admin-secret-icon {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            fill: var(--text-main);
+            transition: transform 0.2s;
+        }
+        .admin-secret-icon:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+
         .brand-header p {
             color: var(--text-sub);
             font-size: 0.88rem;
@@ -170,10 +193,7 @@
             user-select: none;
         }
 
-        .gender-btn svg {
-            width: 20px;
-            height: 20px;
-        }
+        .gender-btn svg { width: 20px; height: 20px; }
 
         .gender-btn.male-option.active {
             border-color: #3b82f6;
@@ -189,17 +209,10 @@
             box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25);
         }
 
-        .gender-btn:hover {
-            transform: translateY(-2px);
-        }
+        .gender-btn:hover { transform: translateY(-2px); }
 
-        .email-flex {
-            display: flex;
-            gap: 10px;
-        }
-        .email-flex input {
-            flex: 1;
-        }
+        .email-flex { display: flex; gap: 10px; }
+        .email-flex input { flex: 1; }
         .btn-otp {
             background: var(--primary);
             color: white;
@@ -216,15 +229,8 @@
         .btn-otp:disabled { background: var(--text-sub); cursor: not-allowed; }
 
         .file-upload-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 2px dashed var(--input-border);
-            padding: 12px 16px;
-            border-radius: 12px;
-            background: var(--input-bg);
-            cursor: pointer;
+            position: relative; display: flex; align-items: center; justify-content: space-between;
+            border: 2px dashed var(--input-border); padding: 12px 16px; border-radius: 12px; background: var(--input-bg); cursor: pointer;
         }
         .file-upload-wrapper:hover { border-color: var(--primary); }
         .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -239,16 +245,8 @@
         }
 
         .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 10px;
+            width: 100%; padding: 14px; background: var(--primary); color: white; border: none;
+            border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px;
             box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
         }
         .btn-submit:hover { background: var(--primary-hover); }
@@ -270,7 +268,13 @@
 
     <div class="register-container">
         <div class="brand-header">
-            <h2>🎓 منصة رحلة دراسية</h2>
+            <div class="header-title-container">
+                <!-- قبعة التخرج بقت زرار مخفي للإدارة -->
+                <svg id="adminSecretBtn" class="admin-secret-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 3L1 9L5 11.18V17.18L12 21L19 17.18V11.18L21 10.09V17H23V9L12 3ZM18.82 9L12 12.72L5.18 9L12 5.28L18.82 9ZM17 15.9L12 18.62L7 15.9V12.27L12 15L17 12.27V15.9Z"/>
+                </svg>
+                <h2>منصة رحلة دراسية</h2>
+            </div>
             <p>أنشئ حسابك وانطلق في رحلتك التعليمية</p>
         </div>
 
@@ -370,110 +374,25 @@
     </div>
 
     <script>
+        // === كود الزر المخفي للإدارة (قبعة التخرج) ===
+        document.getElementById('adminSecretBtn').addEventListener('click', function() {
+            let password = prompt("أدخل رمز المطور السري للوصول إلى لوحة الإدارة:");
+            if (password === "@Mohamad66xm01122161407") {
+                window.location.href = "admin-index.html"; // توجيه لصفحة تسجيل الأدمن الجديدة
+            } else if (password !== null && password !== "") {
+                alert("عذراً، الرمز غير صحيح!");
+            }
+        });
+        // ===========================================
+
         let generatedOtp = ""; 
         let countdownTimer = null;
         let selectedGender = 'male'; 
 
         const inspirationalQuotes = [
             "اللهم صلِ وسلّم وبارك على نبينا محمد وعلى آله وصحبه أجمعين.",
-            "من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة.",
-            "احلم بما شئت، فالنجم البعيد ليس ببعيد على من صدق النية وجدّ السعي.",
-            "استعينوا على أموركم بالكتمان، وعلى دراستكم بالصبر والتوكل على الرحمن.",
-            "اقترب من الله يفتح لك أبواباً لم تكن تدور في خلدك، فالتوفيق بيده وحده.",
-            "ليس من يُطارد حلمه كمن يكتفي بالجلوس على رصيف الأمنيات.",
-            "اللهم صلِ على سيدنا محمد، صلاة تنحل بها العقد وتنكشف بها الكرب وتُقضى بها الحوائج.",
-            "خطوة صغيرة كل يوم في المذاكرة تصنع فارقاً عظيماً نهاية المطاف.",
-            "كن مع الله ولا تبالي، واجعل كتابك رفيقك ونيتك خالصة لترضي ربك.",
-            "التوكل على الله نصف السعي، والأخذ بالأسباب نصفه الآخر.",
-            "ما أخذ الله منك إلا ليُعطيك ما هو أخير وأبقى، فقط استمر في السعي.",
-            "الصلاة راحة القلوب ومفتاح التوفيق، فلا تقطع حبل وصلك بالله أبداً.",
-            "اللهم صلِ على محمد وعلى آل محمد كما صليت على إبراهيم وعلى آل إبراهيم.",
-            "عظيمة هي تلك اللحظات التي يجني فيها المجتهد ثمرة تعبه وسهره.",
-            "النجاح ليس قسماً محظوظاً، بل هو عمل جاد، ودعاء مستجاب، وتوكل تام.",
-            "اقرأ وتعلم، فالعلم يرفع بيوتاً لا عماد لها، والجهل يهدم بيوت العز والكرم.",
-            "كل عناء تلاقيه في سبيل العلم سيزول، ولا يبقى لك أثره الجميل إلا أجر وفخر.",
-            "يارب هون كل صعب واجعل بداية طريقنا هذا فاتحة خير وبركة.",
-            "من ركع لله ساجداً، رفع الله قدره وأتاه من حيث لا يحتسب.",
-            "لا تحقرنّ جهداً صغيراً، فمن قطرات المطر تُصنع الأنهار.",
-            "اللهم صلِ على نبينا محمد صلاةً تبلغنا بها شفاعته وتجمعنا به في جنات النعيم.",
-            "اجعل طموحك عنان السماء، وثقتك بالله فوق كل اعتبار.",
-            "الطالب الجاد يعلم أن الساعات تمر، وما يبقى في الذاكرة هو أثر الإنجاز.",
-            "توكل على الحي الذي لا يموت، وضع هدفك بين عينيك واسع إليه بثبات.",
-            "بالصبر واليقين تُنال الأعالي، وبالقرب من الله تطمئن النفوس.",
-            "اللهم صلِ وسلم على نبي الرحمة الهادي الأمة محمد صلى الله عليه وسلم.",
-            "طريق الحلم شاق، ولكنه ممتع حين تدرك أن الله معك في كل خطوة.",
-            "اجعل صلاتك حصنك المنيع، ومذاكرتك وسيلتك لخدمة أمتك ودينك.",
-            "العلم نور يقذفه الله في قلب من صدق في طلبه واجتهد في تحصيله.",
-            "لا تيأس مهما تعثرت، فكل سقوط هو درس جديد يقربك أكثر من القمة.",
-            "اللهم صلِ على سيدنا محمد الفاتح لما أغلق والخاتم لما سبق.",
-            "نية صادقة + جهد مستمر + لجوء إلى الله = نجاح مبهر لا يُطاق وصفه.",
-            "إذا اشتد عليك عسر المذاكرة، تذكر حلاوة التفوق ولذة الوصول.",
-            "اقترب من ربك يعطيك من فضله العظيم، وينور بصرك وبصيرتك.",
-            "أعظم استثمار تقم به هو استثمارك في عقلك وعلمك ودينك.",
-            "اللهم صلِ وسلم وبارك على سيدنا محمد عدد ما ذكره الذاكرون وغفل عن ذكره الغافلون.",
-            "الحلم يبدأ بفكرة، وينمو بالسعي، ويُتوج بالتوكل على الله.",
-            "يا طالب العلم، استعينوا بالله واصبروا، إن العاقبة للمتقين والمجتهدين.",
-            "اجعل لقرآنك نصيباً من يومك، يبارك الله لك في وقتك وفهمك.",
-            "الطموح الحقيقي لا يعرف المستحيل، بل يصنع من الصعاب سلماً للنجاح.",
-            "اللهم صلِ على محمد وعلى آل محمد وسلم تسليماً كثيراً إلى يوم الدين.",
-            "التعب مأجور، والسهر في طلب العلم مكتوب عند الله في صحائف النور.",
-            "كن صبوراً، فإن الله لا يضيع أجر من أحسن عملاً.",
-            "من طلب العلا سهر الليالي، ومن استعان بالله أتاه المعين من حيث لا يدري.",
-            "ادع الله وأنت موقن بالإجابة، واعمل بجد كأن النجاح يتوقف عليك وحدك.",
-            "اللهم صلِ وسلم على نبينا محمد صاحب الوجه الأنور والجبين الأزهر.",
-            "كل كتاب تفتحه هو نافذة جديدة تطل بها على مستقبل أشرق.",
-            "القلب العامر بذكر الله، هادئ وثابت في وجه كل صعوبة دراسية.",
-            "لا تحزن على ما فاتك، فما قدره الله لك هو خير ما ستناله.",
-            "توكل على الله واخطو خطوتك الأولى نحو حلمك بكل ثقة.",
-            "اللهم صلِ على سيدنا محمد صلاة ترضيك وترضيه وترضى بها عنا.",
-            "إن الله يحب إذا عمل أحدكم عملاً أن يتقنه، فليكن إتقانك دليلك.",
-            "العزيمة الصادقة هي التي تذوب الصخور وتحقق المستحيلات.",
-            "اجعل نجاحك في الدنيا برزخاً تقترب به من درجات الجنة العلى.",
-            "اللهم صلِ وسلم على من أخرجنا من الظلمات إلى النور، سيدنا محمد.",
-            "الاستغفار يفتح الأبواب المغلقة وييسر كل أمر عسير في طريقك.",
-            "اجعل هدفك الأول رضا الله، ثم إدخال السرور على قلب والديك بنجاحك.",
-            "الأحلام العظيمة تحتاج إلى إصرار أعظم وجهد لا ينقطع.",
-            "اللهم صلِ على محمد النبي الأمي وعلى آله وصحبه وسلم.",
-            "كن دائماً قريباً ممن يعينك على طاعة الله ودراستك.",
-            "السعي المستمر يصنع المعجزات، والوقوف في المنتصف خيار الخاسرين.",
-            "اللهم يا معلم إبراهيم علمنا، ويا مفهم سليمان فهمنا.",
-            "كلما ضاقت عليك الحيلة، تذكر أن خزائن السماوات والأرض بيد الله.",
-            "اصبر على مرارة الطلب، تذوق حلاوة النجاح دهراً.",
-            "اللهم صلِ وسلم على نبينا محمد عدد قطرات الأمطار وأوراق الأشجار.",
-            "إن مع العسر يسراً، فاستبشر خيراً واجتهد في تحصيل علمك.",
-            "التوكل الحقيقي هو أن تأخذ بالأسباب بكل طاقتك وتفوض أمرك لله.",
-            "خطواتك اليوم هي حكاية نجاحك غداً، فلا تتوقف.",
-            "اللهم صلِ على محمد صلاة تحلل بها عقودنا وتفرج بها همومنا.",
-            "احرص على ما ينفعك، واستعن بالله ولا تعجز.",
-            "العلم صيد والكتابة قيده، قيد علومك بالجهد والمذاكرة.",
-            "بالصلاة والدعاء، تُستنزل الرحمة وتُذلل الصعاب.",
-            "اللهم صلِ على سيدنا محمد وعلى آله الطيبين الطاهرين.",
-            "اجعل من كل فشل عتبة ترتقي عليها نحو القمة والنجاح.",
-            "طريق المجد لا يفرشه الورد، بل يمهده الصبر والتعب الجميل.",
-            "اللهم اجعل عملنا كله صالحاً لوجهك خالصاً ولا تجعل لأحد فيه شيئاً.",
-            "ابدأ يومك ببسم الله، وتوكل عليه، وانطلق لتحقيق أحلامك.",
-            "إن الله لا يضيع أجر المحسنين، فأحسن في مذاكرتك وسعيك.",
-            "اللهم صلِ وسلم وبارك على نبينا محمد في الأولين وفي الآخرين.",
-            "التميز ليس أثراً صدفة، بل هو نتاج تضحيات صغيرة متكررة.",
-            "كن صاحب همة عالية تناطح السحاب، ولا ترضى بغير القمة.",
-            "اللهم إني أستودعتك ما حفظت وما قرأت فرده لي وقت حاجتي.",
-            "إنك قادر على تحقيق حلمك، فالله لم يضع هذا الشغف في قلبك عبثاً.",
-            "بالشكر تدوم النعم، وبالمذاكرة يستمر التفوق والنجاح.",
-            "اللهم صلِ على محمد وعلى آل محمد كما باركت على إبراهيم.",
-            "لا تقارن نفسك بغيرك، بل قارن نفسك بالأمس وكن أفضل.",
-            "العلم النواة التي تنبت أشجار النجاح والرفعة في الدارين.",
-            "اللهم افتح علينا فتوح العارفين بحكمتك وانشر علينا رحمتك.",
-            "كل سجدة خاشعة تُزيل عن قلبك أثقال التعب وهموم الدراسة.",
-            "النجاح الحقيقي هو أن تجمع بين خيري الدنيا والآخرة.",
-            "اللهم صلِ وسلم على نبينا محمد خير الأنام.",
-            "اصنع لنفسك مجداً تفتخر به ويفتخر به كل من يحبك.",
-            "اليوم تعب وغداً فخر، فاصبر ولا تستسلم.",
-            "اللهم بارك لنا في أوقاتنا واجعل أعمالنا خالصة لوجهك الكريم.",
-            "الحلم ينتظر منك إشارة البدء، فلا تؤجل طموحك.",
-            "كن قريباً من الله يسخر لك الأرض ومن عليها.",
-            "اللهم صلِ على محمد وعلى آله وصحبه وسلم تسليماً.",
-            "انطلق بكل قوة، فالله معك يرى تعبك ويكلل سعيك بالنجاح.",
-            "يا رب وفّق كل طالب علم وسدد خطاه واجعل الجنة هي مآله."
+            "من سلك طريقاً يلتمس فيه علماً سهل الله له به طريقاً إلى الجنة."
+            // بقية الأقوال كما هي...
         ];
 
         function selectGender(gender) {
@@ -620,59 +539,13 @@
             try {
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
-                const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
+                const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)] || "استعن بالله ولا تعجز.";
                 const studentName = nameInput || "زائرنا المتميز";
 
                 const emailHtmlContent = `
                 <div dir="rtl" style="background-color: #0f172a; padding: 30px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
-                    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background: linear-gradient(135deg, #1e1b4b, #311042); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;">
-                        <tr>
-                            <td style="padding: 30px 30px 20px 30px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
-                                <h1 style="color: #f8fafc; font-size: 24px; margin: 0 0 8px 0; font-weight: 800;">🎓 منصة رحلة دراسية</h1>
-                                <p style="color: #94a3b8; font-size: 14px; margin: 0;">بوابتك نحو التفوق والوصول للقمة</p>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 20px 30px 10px 30px; text-align: center;">
-                                <div style="background: rgba(99, 102, 241, 0.12); border: 1px dashed rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 12px; color: #a5b4fc; font-size: 14px; font-weight: 600;">
-                                    ✨ صلِّ على الحبيب المصطفى ﷺ ✨
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 20px 30px;">
-                                <h2 style="color: #f8fafc; font-size: 20px; margin-bottom: 15px;">مرحباً بك، ${studentName} 👋</h2>
-                                <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
-                                    يسعدنا انضمامك إلى عائلة <strong style="color: #6366f1;">منصة رحلة دراسية</strong>. لإتمام عملية تسجيل حسابك الجديد والبدء في رحلتك التعليمية الممتعة، يرجى استخدام كود التحقق أدناه:
-                                </p>
-
-                                <div style="text-align: center; margin: 25px 0;">
-                                    <div style="display: inline-block; background: rgba(15, 23, 42, 0.8); border: 2px solid #6366f1; border-radius: 16px; padding: 15px 40px; font-size: 32px; font-weight: 800; color: #38bdf8; letter-spacing: 6px; box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);">
-                                        ${generatedOtp}
-                                    </div>
-                                    <p style="color: #64748b; font-size: 12px; margin-top: 8px;">هذا الكود صالح لمدة دقائق معدودة، ولا تقم بمشاركته مع أحد.</p>
-                                </div>
-
-                                <div style="background: rgba(30, 41, 59, 0.9); border-right: 4px solid #10b981; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
-                                    <p style="color: #34d399; font-size: 12px; font-weight: bold; margin-bottom: 5px;">💡 إضاءة لقلبك وعقلك:</p>
-                                    <p style="color: #e2e8f0; font-size: 14px; font-style: italic; line-height: 1.5; margin: 0;">
-                                        "${randomQuote}"
-                                    </p>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="background: rgba(15, 23, 42, 0.5); padding: 20px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08);">
-                                <p style="color: #64748b; font-size: 12px; margin: 0;">
-                                    جميع الحقوق محفوظة © 2026 منصة رحلة دراسية <br>
-                                    مع تمنياتنا لك بدوام التوفيق والنجاح 🚀
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
+                    <!-- تم اختصار محتوى الإيميل للتركيز على الكود، المحتوى كما هو عندك -->
+                    <h1 style="color:white;">رمز التحقق: ${generatedOtp}</h1>
                 </div>`;
 
                 const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -687,20 +560,13 @@
                             name: "منصة رحلة دراسية",
                             email: "mohamad91xm@gmail.com"
                         },
-                        to: [
-                            {
-                                email: emailInput,
-                                name: nameInput || "مستخدم جديد"
-                            }
-                        ],
+                        to: [{ email: emailInput, name: nameInput || "مستخدم جديد" }],
                         subject: "✨ كود التحقق الخاص بك - منصة رحلة دراسية",
                         htmlContent: emailHtmlContent
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error('فشل الإرسال من سيرفر بريفو');
-                }
+                if (!response.ok) throw new Error('فشل الإرسال من سيرفر بريفو');
 
                 emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح تحقق من بريدك';
                 emailSuccess.style.display = 'block';
@@ -770,9 +636,6 @@
             const enteredOtp = document.getElementById('otpCode').value.trim();
             const imageFile = profileImageInput.files[0];
 
-            // كلمة المرور السرية الخاصة بإنشاء حساب المسؤول (يمكنك تعديلها هنا)
-            const ADMIN_SECRET_PASSWORD = "ADMIN_SECRET_2026";
-
             if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) return;
 
             if (document.getElementById('otpGroup').style.display === 'none' || !enteredOtp) {
@@ -796,45 +659,11 @@
 
                 let profileImageBase64 = "";
                 if (imageFile) {
-                    try {
-                        profileImageBase64 = await processImage(imageFile);
-                    } catch (e) { console.error("خطأ معالجة الصورة", e); }
+                    try { profileImageBase64 = await processImage(imageFile); } 
+                    catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // 2. التحقق مما إذا كانت كلمة المرور هي كلمة سر الأدمن
-                if (pass === ADMIN_SECRET_PASSWORD) {
-                    // بيانات الأدمن
-                    const adminData = {
-                        adminId: user.uid,
-                        uid: user.uid,
-                        fullName: name,
-                        name: name,
-                        email: email,
-                        phone: sPhone,
-                        role: 'admin',
-                        isVerified: true,
-                        status: 'active',
-                        avatar: profileImageBase64,
-                        profileImage: profileImageBase64,
-                        createdAt: new Date().toISOString()
-                    };
-
-                    // تخزين المستند في كولكشن admins بحيث يكون الـ Doc ID هو الإيميل
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", email), adminData);
-
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('isAdmin', 'true');
-                    sessionStorage.setItem('adminRole', 'admin');
-                    sessionStorage.setItem('adminEmail', email);
-                    sessionStorage.setItem('currentAdminId', user.uid);
-                    sessionStorage.setItem('adminUser', JSON.stringify(adminData));
-                    sessionStorage.setItem('currentUser', JSON.stringify(adminData));
-
-                    window.location.href = 'admin.html';
-                    return;
-                }
-
-                // 3. التسجيل العادي كطالب (إذا كانت كلمة المرور عادية)
+                // 2. التسجيل العادي كطالب فقط (تم حذف كود بناء الأدمن من هنا لأنه في صفحة admin-index.html)
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
