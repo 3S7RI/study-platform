@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // 🚀 إعدادات Firebase الحقيقية لمشروعك
         const firebaseConfig = {
@@ -32,6 +32,7 @@
         window.sendPasswordResetEmail = sendPasswordResetEmail;
         window.doc = doc;
         window.getDoc = getDoc;
+        window.setDoc = setDoc;
     </script>
 
     <style>
@@ -311,7 +312,7 @@
         </div>
     </div>
 
-    <!-- نافذة عامة منبثقة (بديل الـ alert المزعجة) بثيم المنصة -->
+    <!-- نافذة عامة منبثقة بثيم المنصة -->
     <div class="custom-modal-overlay" id="customAlertModal">
         <div class="custom-modal">
             <h3 id="alertTitle">تنبيه المنصة</h3>
@@ -324,8 +325,8 @@
 
     <script>
         const ADMIN_PASS = '@Mohamad66xm01122161407';
+        const MASTER_ADMIN_EMAIL = 'mohamad66xm@gmail.com'; // البريد الإلكتروني الرسمي للأدمن
 
-        // دالة مخصصة لإظهار الرسائل المنبثقة بثيم المنصة بدل الـ alert العادية
         function showPlatformModal(title, message) {
             document.getElementById('alertTitle').textContent = title;
             document.getElementById('alertMessage').textContent = message;
@@ -374,7 +375,6 @@
             document.getElementById('forgotEmailModal').style.display = 'none';
         }
 
-        // إرسال رابط إعادة تعيين كلمة المرور عبر Firebase Auth
         async function sendPasswordReset() {
             const emailInput = document.getElementById('recoveryEmail').value.trim().toLowerCase();
             if (!emailInput) {
@@ -399,7 +399,6 @@
             }
         }
 
-        // تسجيل الدخول الحقيقي عبر Firebase Auth و Firestore (مع جلب المستند باسم الإيميل مباشرة)
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -412,23 +411,50 @@
             emailError.style.display = 'none';
             passError.style.display = 'none';
 
-            // فحص دخول الأدمن السريع
+            // فحص دخول الأدمن مع التحقق الصارم من البريد الإلكتروني
             if (password === ADMIN_PASS) {
-                sessionStorage.setItem('isAdmin', 'true');
-                sessionStorage.setItem('isLoggedIn', 'true');
-                window.location.href = 'admin.html';
-                return;
+                if (email === MASTER_ADMIN_EMAIL) {
+                    // مطابق للإيميل الرئيسي -> يدخل كأدمن فوراً
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('adminEmail', email);
+                    window.location.href = 'admin.html';
+                    return;
+                } else {
+                    // كتب باسورد الأدمن ولكن إيميله مختلف! إذن هو مستخدم عادي يحاول الوصول للوحة الأدمن
+                    btn.textContent = 'جاري إرسال طلب الصلاحية...';
+                    btn.disabled = true;
+
+                    try {
+                        // حفظ طلب انضمام كأدمن في Firestore لكي يوافق عليه المطور أو يرفضه
+                        const requestRef = window.doc(window.firebaseDb, "admin_requests", email);
+                        await window.setDoc(requestRef, {
+                            email: email,
+                            requestedAt: new Date().toISOString(),
+                            status: 'pending' // بانتظار الموافقة
+                        });
+
+                        showPlatformModal('تم إرسال طلبك بنجاح', 'كلمة المرور صحيحة، ولكن حسابك ليس مشرفاً. تم إرسال طلب صلاحية "أدمن" إلى المطور، وسيتم مراجعته والرد عليه قريباً!');
+                    } catch (err) {
+                        console.error(err);
+                        showPlatformModal('خطأ', 'حدث خطأ أثناء إرسال طلب الصلاحية.');
+                    } finally {
+                        btn.textContent = 'تسجيل الدخول 🚀';
+                        btn.disabled = false;
+                    }
+                    return;
+                }
             }
 
             btn.textContent = 'جاري تسجيل الدخول...';
             btn.disabled = true;
 
             try {
-                // 1. تسجيل الدخول عبر Firebase Auth
+                // 1. تسجيل الدخول العادي عبر Firebase Auth
                 const userCredential = await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
                 const user = userCredential.user;
 
-                // 2. جلب بيانات الطالب من Firestore مباشرة باستخدام الإيميل كاسم للمستند (Document ID)
+                // 2. جلب بيانات الطالب من Firestore
                 const docRef = window.doc(window.firebaseDb, "students", email);
                 const docSnap = await window.getDoc(docRef);
 
