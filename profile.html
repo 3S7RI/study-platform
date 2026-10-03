@@ -543,6 +543,7 @@
             </div>
         </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -883,7 +884,7 @@
 
                 localStorage.removeItem(`student_profile_${currentUser.uid}`);
                 await deleteUser(currentUser);
-                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️️');
+                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️');
                 setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             } catch (error) {
                 console.error("خطأ في حذف الحساب:", error);
@@ -937,44 +938,23 @@
                     return;
                 }
 
-                // التحقق هل هم أصدقاء بالفعل أو بينهم طلب معلق لمنع تكرار الإرسال
-                const friendshipId = [currentUser.uid, targetDocKey].sort().join('_');
-                const friendshipSnap = await getDoc(doc(db, "friends", friendshipId));
-                let isAlreadyFriend = false;
-                if (friendshipSnap.exists() && !friendshipSnap.data().deleted) {
-                    isAlreadyFriend = true;
-                }
-
                 const score = targetData.totalScore || 0;
                 const rankInfo = getRankClass(score);
                 const avatarUrl = targetData.profileImage || defaultMaleSvg;
 
-                if (isAlreadyFriend) {
-                    body.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                                <img src="${avatarUrl}" alt="صورة الطالب">
-                            </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
-                            <p style="color: var(--success-color); font-weight: bold; font-size: 0.85rem; margin-top: 15px;">هذا الطالب صديقك بالفعل 🤝</p>
+                body.innerHTML = `
+                    <div style="text-align:center;">
+                        <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
+                            <img src="${avatarUrl}" alt="صورة الطالب">
                         </div>
-                    `;
-                } else {
-                    body.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                                <img src="${avatarUrl}" alt="صورة الطالب">
-                            </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
-                            <div style="margin-bottom:16px;">
-                                <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
-                            </div>
-                            <button class="btn" onclick="sendFriendRequestToUser('${targetDocKey}', '${targetData.email || ''}', '${targetData.name || 'طالب'}', '${targetData.studentId || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
+                        <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
+                        <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
+                        <div style="margin-bottom:16px;">
+                            <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
                         </div>
-                    `;
-                }
+                        <button class="btn" onclick="sendFriendRequestToUser('${targetDocKey}', '${targetData.email || ''}', '${targetData.name || 'طالب'}', '${targetData.studentId || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
+                    </div>
+                `;
             } catch (error) {
                 console.error("خطأ في البحث:", error);
                 body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">حدث خطأ أثناء البحث، يرجى المحاولة لاحقاً.</p>`;
@@ -1016,6 +996,13 @@
                 const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", email));
                 onSnapshot(q2, snap => processRequestsSnapshot(snap));
             }
+
+            setTimeout(() => {
+                if (currentStudentData && currentStudentData.studentId) {
+                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
+                    onSnapshot(q3, snap => processRequestsSnapshot(snap));
+                }
+            }, 1000);
         }
 
         function processRequestsSnapshot(snapshot) {
@@ -1044,33 +1031,41 @@
             try {
                 let docsMap = new Map();
 
-                const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid), where("status", "==", "pending"));
+                const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid));
                 const snap1 = await getDocs(q1);
                 snap1.docs.forEach(d => docsMap.set(d.id, d.data()));
 
                 if (currentUser.email) {
-                    const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", currentUser.email), where("status", "==", "pending"));
+                    const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", currentUser.email));
                     const snap2 = await getDocs(q2);
                     snap2.docs.forEach(d => docsMap.set(d.id, d.data()));
+                }
+
+                if (currentStudentData && currentStudentData.studentId) {
+                    const q3 = query(collection(db, "friendRequests"), where("receiverStudentId", "==", currentStudentData.studentId));
+                    const snap3 = await getDocs(q3);
+                    snap3.docs.forEach(d => docsMap.set(d.id, d.data()));
                 }
 
                 let html = '';
                 let hasPending = false;
 
                 docsMap.forEach((req, reqId) => {
-                    hasPending = true;
-                    html += `
-                        <div class="friend-item-card">
-                            <div class="friend-info-trigger">
-                                <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
-                                <span class="friend-name-text">${req.senderName} أرسل لك طلب صداقة</span>
+                    if (req.status === 'pending') {
+                        hasPending = true;
+                        html += `
+                            <div class="friend-item-card">
+                                <div class="friend-info-trigger">
+                                    <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
+                                    <span class="friend-name-text">${req.senderName} أرسل لك طلب صداقة</span>
+                                </div>
+                                <div class="friend-actions-group">
+                                    <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
+                                </div>
                             </div>
-                            <div class="friend-actions-group">
-                                <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
-                                <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
-                            </div>
-                        </div>
-                    `;
+                        `;
+                    }
                 });
 
                 if (!hasPending) {
@@ -1088,17 +1083,13 @@
             try {
                 await updateDoc(doc(db, "friendRequests", reqId), { status: 'accepted' });
 
-                // إنشاء معرف موحد للعلاقة بغض النظر عن من أرسل ومن استقبل
-                const friendshipId = [currentUser.uid, senderId].sort().join('_');
+                const friendshipId1 = `${currentUser.uid}_${senderId}`;
+                const friendshipId2 = `${senderId}_${currentUser.uid}`;
 
-                await setDoc(doc(db, "friends", friendshipId), { 
-                    user1: currentUser.uid, 
-                    user2: senderId, 
-                    deleted: false,
-                    createdAt: serverTimestamp() 
-                });
+                await setDoc(doc(db, "friends", friendshipId1), { user1: currentUser.uid, user2: senderId, createdAt: serverTimestamp() });
+                await setDoc(doc(db, "friends", friendshipId2), { user1: senderId, user2: currentUser.uid, createdAt: serverTimestamp() });
 
-                showToast('تم قبول طلب الصداقة وأصبحتم أصدقاء! 🎉', '🎉');
+                showToast('تم قبول طلب الصداقة وأصبحتم أصدقاء!', '🎉');
                 loadFriendRequestsList();
             } catch (error) {
                 console.error("خطأ في قبول الطلب:", error);
@@ -1120,37 +1111,20 @@
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
 
             try {
-                // جلب العلاقات التي يكون فيها المستخدم إما user1 أو user2
-                const q1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
-                const q2 = query(collection(db, "friends"), where("user2", "==", currentUser.uid));
-                
-                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-                
-                let friendsMap = new Map();
-                
-                snap1.docs.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user2, data.user2);
-                    }
-                });
+                const q = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
+                const snap = await getDocs(q);
 
-                snap2.docs.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user1, data.user1);
-                    }
-                });
-
-                if (friendsMap.size === 0) {
+                if (snap.empty) {
                     container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
                     return;
                 }
 
                 let html = '';
-                const friendUids = Array.from(friendsMap.keys());
-                
-                for (const friendUid of friendUids) {
+                const friendPromises = snap.docs.map(async (docSnap) => {
+                    const friendData = docSnap.data();
+                    if (friendData.deleted) return null;
+                    const friendUid = friendData.user2;
+
                     let friendDocSnap = await getDoc(doc(db, "students", friendUid));
                     if (!friendDocSnap.exists()) {
                         const qMail = query(collection(db, "students"), where("email", "==", friendUid));
@@ -1160,7 +1134,7 @@
 
                     if (friendDocSnap && friendDocSnap.exists()) {
                         const fInfo = friendDocSnap.data();
-                        html += `
+                        return `
                             <div class="friend-item-card">
                                 <div class="friend-info-trigger" onclick="openComparisonModalWithFriend('${friendUid}', '${fInfo.name}')">
                                     <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
@@ -1171,12 +1145,16 @@
                                 </div>
                                 <div class="friend-actions-group">
                                     <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friendUid}', '${fInfo.name}')">محادثة 💬</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑️️</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑️</button>
                                 </div>
                             </div>
                         `;
                     }
-                }
+                    return null;
+                });
+
+                const results = await Promise.all(friendPromises);
+                html = results.filter(item => item !== null).join('');
 
                 if (!html) {
                     container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
@@ -1192,19 +1170,12 @@
         window.removeFriend = async function(friendUid) {
             if (!confirm('هل أنت متأكد من إزالة هذا الصديق؟')) return;
             try {
-                const friendshipId = [currentUser.uid, friendUid].sort().join('_');
-                await updateDoc(doc(db, "friends", friendshipId), { deleted: true });
-                showToast('تم إزالة الصديق بنجاح.', '🗑');
+                await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true });
+                await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true });
+                showToast('تم إزالة الصديق بنجاح.', '🗑️️');
                 loadFriendsList();
             } catch (error) {
                 console.error("خطأ إزالة الصديق:", error);
-                // لو الوثيقة مش موجودة بالمعرف الموحد، نجرب بطريقة بديلة
-                try {
-                    await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true }, { merge: true });
-                    await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true }, { merge: true });
-                    showToast('تم إزالة الصديق بنجاح.', '🗑');
-                    loadFriendsList();
-                } catch(e) {}
             }
         };
 
