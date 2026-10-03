@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - تسجيل طالب جديد</title>
+    <title>منصة رحلة دراسية - تسجيل حساب جديد</title>
     <meta name="google-site-verification" content="MC3Rq1pTIdJP0dN2fwFucfpowlsfzQnmTTtvVxj9O28" />
     
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
@@ -276,13 +276,13 @@
 
         <form id="registerForm" onsubmit="return false;">
             <div class="input-group">
-                <label for="fullName">اسم الطالب الكامل</label>
+                <label for="fullName">الاسم الكامل</label>
                 <input type="text" id="fullName" placeholder="اكتب اسمك الثلاثي أو الرباعي" required>
                 <div class="error-msg" id="nameError">الرجاء كتابة الاسم الكامل بصورة صحيحة</div>
             </div>
 
             <div class="input-group">
-                <label>نوع الطالب</label>
+                <label>نوع الحساب / الطالب</label>
                 <div class="gender-options-wrapper">
                     <div class="gender-btn male-option active" id="btnMale" onclick="selectGender('male')">
                         <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -319,16 +319,23 @@
                 <div class="error-msg" id="otpError">كود التحقق غير صحيح</div>
             </div>
 
+            <!-- حقل جديد اختياري لكود تفعيل المسؤول (الأدمن) -->
             <div class="input-group">
-                <label for="studentPhone">رقم هاتف الطالب</label>
+                <label for="adminSecret">كود تفعيل الأدمن (اختياري)</label>
+                <input type="password" id="adminSecret" placeholder="اتركه فارغاً إذا كنت طالباً">
+                <div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 4px;">اكتب الكود السري الخاص بالمسؤول إذا كنت تريد إنشاء حساب أدمن</div>
+            </div>
+
+            <div class="input-group">
+                <label for="studentPhone">رقم الهاتف الشخصي</label>
                 <input type="tel" id="studentPhone" maxlength="11" placeholder="01xxxxxxxxx" required>
                 <div class="error-msg" id="studentPhoneError">يجب أن يبدأ بـ 01 ويتكون من 11 رقماً</div>
             </div>
 
             <div class="input-group">
-                <label for="parentPhone">رقم هاتف ولي الأمر</label>
+                <label for="parentPhone">رقم هاتف ولي الأمر (أو رقم احتياطي)</label>
                 <input type="tel" id="parentPhone" maxlength="11" placeholder="01xxxxxxxxx" required>
-                <div class="error-msg" id="parentPhoneError">رقم هاتف غير صحيح أو مطابق لرقم الطالب</div>
+                <div class="error-msg" id="parentPhoneError">رقم هاتف غير صحيح أو مطابق لرقم الهاتف الشخصي</div>
             </div>
             
             <div class="input-group">
@@ -400,7 +407,7 @@
             "الطالب الجاد يعلم أن الساعات تمر، وما يبقى في الذاكرة هو أثر الإنجاز.",
             "توكل على الحي الذي لا يموت، وضع هدفك بين عينيك واسع إليه بثبات.",
             "بالصبر واليقين تُنال الأعالي، وبالقرب من الله تطمئن النفوس.",
-            "اللهم صلِ وسلم على نبي الرحمة Hهادي الأمة محمد صلى الله عليه وسلم.",
+            "اللهم صلِ وسلم على نبي الرحمة الهادي الأمة محمد صلى الله عليه وسلم.",
             "طريق الحلم شاق، ولكنه ممتع حين تدرك أن الله معك في كل خطوة.",
             "اجعل صلاتك حصنك المنيع، ومذاكرتك وسيلتك لخدمة أمتك ودينك.",
             "العلم نور يقذفه الله في قلب من صدق في طلبه واجتهد في تحصيله.",
@@ -621,7 +628,7 @@
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
                 const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
-                const studentName = nameInput || "طالبنا المتميز";
+                const studentName = nameInput || "زائرنا المتميز";
 
                 const emailHtmlContent = `
                 <div dir="rtl" style="background-color: #0f172a; padding: 30px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
@@ -690,7 +697,7 @@
                         to: [
                             {
                                 email: emailInput,
-                                name: nameInput || "طالب جديد"
+                                name: nameInput || "مستخدم جديد"
                             }
                         ],
                         subject: "✨ كود التحقق الخاص بك - منصة رحلة دراسية",
@@ -763,12 +770,16 @@
             const name = document.getElementById('fullName').value.trim();
             const gender = selectedGender; 
             const email = document.getElementById('email').value.trim().toLowerCase();
+            const adminSecret = document.getElementById('adminSecret').value.trim();
             const sPhone = document.getElementById('studentPhone').value.trim();
             const pPhone = document.getElementById('parentPhone').value.trim();
             const pass = document.getElementById('password').value;
             const confirmPass = document.getElementById('confirmPassword').value;
             const enteredOtp = document.getElementById('otpCode').value.trim();
             const imageFile = profileImageInput.files[0];
+
+            // الكود السري الخاص بإنشاء حساب المسؤول (يمكنك تغييره هنا كما تريد)
+            const SECRET_ADMIN_CODE = "ADMIN_SECRET_2026";
 
             if (!validateInputs(name, email, sPhone, pPhone, pass, confirmPass)) return;
 
@@ -787,6 +798,7 @@
             btn.disabled = true;
 
             try {
+                // 1. إنشاء الحساب في Firebase Authentication
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -797,11 +809,48 @@
                     } catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
+                // 2. التحقق مما إذا كان المستخدم أدخل كود الأدمن الصحيح
+                if (adminSecret !== "" && adminSecret === SECRET_ADMIN_CODE) {
+                    // بيانات الأدمن
+                    const adminData = {
+                        adminId: user.uid,
+                        uid: user.uid,
+                        fullName: name,
+                        name: name,
+                        email: email,
+                        phone: sPhone,
+                        role: 'admin',
+                        isVerified: true,
+                        status: 'active',
+                        avatar: profileImageBase64,
+                        profileImage: profileImageBase64,
+                        createdAt: new Date().toISOString()
+                    };
+
+                    // تخزين المستند في كولكشن admins بحيث يكون الـ Doc ID هو الإيميل
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", email), adminData);
+
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('isAdmin', 'true');
+                    sessionStorage.setItem('adminRole', 'admin');
+                    sessionStorage.setItem('adminEmail', email);
+                    sessionStorage.setItem('currentAdminId', user.uid);
+                    sessionStorage.setItem('adminUser', JSON.stringify(adminData));
+                    sessionStorage.setItem('currentUser', JSON.stringify(adminData));
+
+                    window.location.href = 'admin.html';
+                    return;
+
+                } else if (adminSecret !== "" && adminSecret !== SECRET_ADMIN_CODE) {
+                    throw new Error('كود تفعيل الأدمن غير صحيح! يرجى ترك الحقل فارغاً لتسجيل حساب طالب، أو إدخال الكود الصحيح.');
+                }
+
+                // 3. التسجيل العادي كطالب
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
-                const userData = {
+                const studentData = {
                     uid: user.uid,
                     id: studentId,
                     studentId: studentId,
@@ -824,14 +873,14 @@
                     chats: {}
                 };
 
-                // التعديل هنا: حفظ المستند بحيث يكون الـ Document ID هو البريد الإلكتروني (email) بدلاً من user.uid
-                await window.setDoc(window.doc(window.firebaseDb, "students", email), userData);
+                await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
 
                 sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
                 sessionStorage.setItem('currentStudentId', studentId);
-                sessionStorage.setItem('studentUser', JSON.stringify(userData));
-                sessionStorage.setItem('currentUser', JSON.stringify(userData));
+                sessionStorage.setItem('studentUser', JSON.stringify(studentData));
+                sessionStorage.setItem('currentUser', JSON.stringify(studentData));
 
                 window.location.href = 'welcome.html';
 
