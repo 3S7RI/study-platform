@@ -374,7 +374,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">نوع الحساب:</span>
-                        <span class="info-value" style="color: #6366f1;">أدمن / مشرف 🛡️</span>
+                        <span class="info-value" style="color: #6366f1;">أدمن / مشرف 🛡️️</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">حالة الحساب:</span>
@@ -389,7 +389,7 @@
                     <button class="btn btn-special" onclick="openModal('notesModal'); loadAdminNotesFromCloud();">📝 الملاحظات</button>
                     <button class="btn" onclick="openModal('messageComposerModal'); loadQuickMessageFromCloud();">⚡ الرسائل السريعة</button>
                     <button class="btn btn-full btn-special" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();">🎯 تحدي اليوم للمشرف</button>
-                    <!-- زر مؤقت لربط ملف الرفع temp-upload.js -->
+                    <!-- زر مؤقت لرفع الـ 200 جملة للمسار الصحيح messagestore -> motivation -->
                     <button class="btn btn-full btn-danger" onclick="runTempUploadScript()" style="background:#f59e0b; margin-top:5px;">🚀 زر مؤقت: رفع الـ 200 جملة لفايربيس</button>
                 </div>
             `;
@@ -554,17 +554,16 @@
             }
         };
 
-        // دالة الزر المؤقت التي تستدعي محتوى ملف temp-upload.js لرفع الـ 200 جملة
+        // دالة الرفع المحدثة لتتوافق بدقة مع messagestore -> motivation
         window.runTempUploadScript = async function() {
-            if (!confirm("هل تريد تنفيذ ملف الرفع المؤقت وإرسال الـ 200 جملة لفايربيس الآن؟")) return;
-            showToast("جاري تنفيذ عملية الرفع من ملف temp-upload... ⏳", "🚀");
+            if (!confirm("هل تريد رفع الـ 200 جملة إلى مستند motivation مباشرة؟")) return;
+            showToast("جاري رفع الـ 200 جملة إلى فايربيس... ⏳", "🚀");
 
             try {
-                // نربط متغير db بملف البروفايل هنا لتنفيذ كود الرفع الخاص بك
                 const db = window.firebaseDb;
-                const docRef = window.doc(db, "messageStore", "libraries");
+                // تم تعديل اسم الكولكشن إلى messagestore واسم المستند إلى motivation
+                const docRef = window.doc(db, "messagestore", "motivation");
                 
-                // مصفوفة الـ 200 جملة الخاصة بك
                 const motivationArray = [
                     "التعليم هو السلاح الأقوى الذي يمكنك استفاده لتغيير العالم. - نيلسون ماندela",
                     "ابدأ من حيث أنت، استخدم ما لديك، وافعل ما تستطيع. - آرثر آش",
@@ -629,7 +628,7 @@
                     "الأفعال تعبر بصوت أعلى بكثير من الأقوال.",
                     "الفرص لا تقرع الأبواب غالباً، بل عليك أن تبني لها باباً. - ميلتون بيرل",
                     "التركيز هو سر التفوق والتميّز.",
-                    "الشمس لا تغيب عن من يعمل بجد واجتهاد.",
+                    "الش الشمس لا تغيب عن من يعمل بجد واجتهاد.",
                     "كل صباح هو فرصة جديدة لكتابة قصة نجاح مختلفة.",
                     "العلم نور، والجهل ظلام.",
                     "الأهداف الكبيرة تحتاج إلى صبر أعظم.",
@@ -761,9 +760,9 @@
                     "كن دائماً مستعداً لاغتنام الفرص العظيمة."
                 ];
 
-                await window.updateDoc(docRef, {
+                await window.setDoc(docRef, {
                     motivation: motivationArray
-                });
+                }, { merge: true });
 
                 showToast("تم رفع الـ 200 جملة بنجاح يا وحش! 🚀", "✅");
             } catch (error) {
@@ -772,19 +771,19 @@
             }
         };
 
-        // دالة جلب الرسائل السريعة ديناميكياً من فايربيس (messageStore/libraries)
+        // دالة جلب الرسائل السريعة ديناميكياً من messagestore -> motivation
         window.loadQuickMessageFromCloud = async function() {
             const cat = document.getElementById('msgCategorySelect').value;
             const outputArea = document.getElementById('generatedMsgOutput');
             outputArea.value = "جاري جلب الرسالة من السحابة... ⏳";
 
             try {
-                const docRef = window.doc(window.firebaseDb, "messageStore", "libraries");
+                const docRef = window.doc(window.firebaseDb, "messagestore", cat);
                 const docSnap = await window.getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const messagesList = data[cat]; 
+                    const messagesList = data[cat] || data.motivation; 
 
                     if (messagesList && messagesList.length > 0) {
                         const randomMsg = messagesList[Math.floor(Math.random() * messagesList.length)];
@@ -793,7 +792,7 @@
                         outputArea.value = "عذراً، هذا الحقل فارغ حالياً في فايربيس.";
                     }
                 } else {
-                    outputArea.value = "لم يتم العثور على مستند libraries في مخزن messageStore!";
+                    outputArea.value = "لم يتم العثور على المستند في messagestore!";
                 }
             } catch (err) {
                 console.error(err);
@@ -808,27 +807,27 @@
             showToast("تم نسخ الرسالة إلى الحافظة بنجاح! 📋", "✨");
         };
 
-        // دالة جلب تحدي اليوم للمشرف من فايربيس (adminQuests)
+        // دالة جلب تحدي اليوم للمشرف من messagestore -> adminQuests
         window.loadDailyQuestFromCloud = async function() {
             const questDisplay = document.getElementById('dailyQuestDisplay');
             questDisplay.innerText = "جاري جلب التحدي من السحابة... ⏳";
 
             try {
-                const docRef = window.doc(window.firebaseDb, "messageStore", "libraries");
+                const docRef = window.doc(window.firebaseDb, "messagestore", "adminQuests");
                 const docSnap = await window.getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const questsList = data.adminQuests; 
+                    const questsList = data.adminQuests || []; 
 
-                    if (questsList && questsList.length > 0) {
+                    if (questsList.length > 0) {
                         const randomQuest = questsList[Math.floor(Math.random() * questsList.length)];
                         questDisplay.innerText = randomQuest;
                     } else {
-                        questDisplay.innerText = "لا توجد تحديات مسجلة في حقل adminQuests حالياً.";
+                        questDisplay.innerText = "لا توجد تحديات مسجلة حالياً.";
                     }
                 } else {
-                    questDisplay.innerText = "لم يتم العثور على مكتبة المستندات في فايربيس!";
+                    questDisplay.innerText = "لم يتم العثور على مستند adminQuests في messagestore!";
                 }
             } catch (err) {
                 console.error(err);
