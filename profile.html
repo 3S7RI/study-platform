@@ -545,793 +545,594 @@
     </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, onSnapshot, setDoc, Timestamp, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+        // إعدادات فايربيس الخاصة بالمنصة
         const firebaseConfig = {
-            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
-            authDomain: "study-trip-1.firebaseapp.com",
-            projectId: "study-trip-1",
-            storageBucket: "study-trip-1.firebasestorage.app",
-            messagingSenderId: "632096690853",
-            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
-            measurementId: "G-0382HVXWMT"
+            apiKey: "AIzaSyD... (استبدل مفتاحك هنا)",
+            authDomain: "study-journey-org.firebaseapp.com",
+            projectId: "study-journey-org",
+            storageBucket: "study-journey-org.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123:web:abc"
         };
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+        const storage = getStorage(app);
 
         let currentUser = null;
         let currentStudentData = null;
-        let activeChatFriendId = null;
-        let unsubscribeChat = null;
-        let selectedNewAvatarBase64 = null;
+        let selectedAvatarFile = null;
+        let activeChatListener = null;
+        let activeRequestsListener = null;
+        let currentActiveChatFriendId = null;
 
-        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
-
-        function showToast(message, icon = "✨") {
+        window.showToast = function(message, icon = "✨") {
             const toast = document.getElementById('customToast');
             document.getElementById('toastMessage').innerText = message;
             document.getElementById('toastIcon').innerText = icon;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function getRankClass(score = 0) {
-            if (score < 500) return { frame: 'rank-frame-weak', badge: 'badge-weak', label: 'مبتدئ (ضعيف)' };
-            if (score < 1500) return { frame: 'rank-frame-medium', badge: 'badge-medium', label: 'متوسط' };
-            if (score < 3000) return { frame: 'rank-frame-strong', badge: 'badge-strong', label: 'قوي' };
-            if (score < 5000) return { frame: 'rank-frame-very-strong', badge: 'badge-very-strong', label: 'قوي جداً' };
-            return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                
-                const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
-                if (cachedData) {
-                    try {
-                        currentStudentData = JSON.parse(cachedData);
-                        renderStudentProfile(currentStudentData);
-                    } catch(e) {}
-                }
-
-                await fetchStudentProfileUltraFast(user.email, user.uid);
-                listenToFriendRequests(user);
+                await loadStudentProfile(user.uid);
             } else {
-                window.location.href = 'login.html';
+                window.location.href = "login.html";
             }
         });
 
-        async function fetchStudentProfileUltraFast(emailKey, fallbackUid) {
+        async function loadStudentProfile(uid) {
             try {
-                let docSnap = null;
-                if (emailKey) {
-                    const docRef = doc(db, "students", emailKey);
-                    docSnap = await getDoc(docRef);
-                }
-
-                if ((!docSnap || !docSnap.exists()) && fallbackUid) {
-                    const docRef = doc(db, "students", fallbackUid);
-                    docSnap = await getDoc(docRef);
-                }
-
-                if ((!docSnap || !docSnap.exists()) && currentUser.email) {
-                    const qEmail = query(collection(db, "students"), where("email", "==", currentUser.email));
-                    const snapEmail = await getDocs(qEmail);
-                    if (!snapEmail.empty) {
-                        docSnap = snapEmail.docs[0];
-                    }
-                }
-
-                if (docSnap && docSnap.exists()) {
+                const docRef = doc(db, "students", uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
                     currentStudentData = docSnap.data();
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                    renderStudentProfile(currentStudentData);
-                } else if (!currentStudentData) {
-                    const defaultData = {
-                        name: currentUser.displayName || currentUser.email.split('@')[0],
-                        email: currentUser.email || '',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: currentUser.photoURL || '',
-                        allowComparison: true,
-                        phone: '',
-                        parentPhone: ''
-                    };
-                    const newDocRef = doc(db, "students", currentUser.uid);
-                    await setDoc(newDocRef, defaultData);
-                    currentStudentData = defaultData;
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                    renderStudentProfile(currentStudentData);
+                    renderProfileUI(currentStudentData, uid);
+                    listenToFriendRequests(uid);
+                } else {
+                    window.showToast("لم يتم العثور على بيانات الطالب في القاعدة!", "⚠");
                 }
             } catch (error) {
-                console.error("خطأ في جلب بيانات الطالب:", error);
-                if (!currentStudentData) {
-                    currentStudentData = {
-                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                        email: currentUser.email || '',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: '',
-                        allowComparison: true
-                    };
-                    renderStudentProfile(currentStudentData);
-                }
+                console.error("خطأ في جلب الملف:", error);
+                window.showToast("حدث خطأ أثناء تحميل بيانات البروفايل", "❌");
             }
         }
 
-        function renderStudentProfile(data) {
-            const score = data.totalScore || 0;
-            const rankInfo = getRankClass(score);
-            const avatarUrl = data.profileImage || defaultMaleSvg;
+        function renderProfileUI(data, uid) {
+            document.getElementById('profileNameDisplay').innerText = data.name || "طالب رحلة دراسية";
+            document.getElementById('profileIdDisplay').innerText = `ID: ${data.customId || uid.substring(0, 8)}`;
+            
+            if (data.profileImage) {
+                document.getElementById('profileAvatarDisplay').src = data.profileImage;
+            }
 
-            const html = `
-                <div class="profile-header">
-                    <div class="avatar-wrapper ${rankInfo.frame}">
-                        <img src="${avatarUrl}" alt="صورة الطالب" id="profileAvatarDisplay">
-                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
-                    </div>
-                    <div class="student-name">${data.name || 'طالب متميز'}</div>
-                    
-                    <div class="student-id-container">
-                        <span class="id-text-badge">ID: ${data.studentId || currentUser.uid.substring(0,8)}</span>
-                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser.uid}')">نسخ 📋</button>
-                    </div>
+            const points = data.points || 0;
+            const badgeBox = document.querySelector('.level-badge-box');
+            let frameClass = "rank-frame-weak";
+            let badgeClass = "badge-weak";
+            let rankText = "مبتدئ (ضعيف)";
 
-                    <div>
-                        <span class="level-badge-box ${rankInfo.badge}" onclick="openRankGuideModal()" title="اضغط لعرض دليل المستويات">
-                            ${rankInfo.label} • ${score} نقطة
-                        </span>
-                    </div>
-                </div>
+            if (points >= 5000) {
+                frameClass = "rank-frame-legendary"; badgeClass = "badge-legendary"; rankText = "🌟 أسطوري";
+            } else if (points >= 3000) {
+                frameClass = "rank-frame-very-strong"; badgeClass = "badge-very-strong"; rankText = "🔵 قوي جداً";
+            } else if (points >= 1500) {
+                frameClass = "rank-frame-strong"; badgeClass = "badge-strong"; rankText = "🟢 قوي";
+            } else if (points >= 500) {
+                frameClass = "rank-frame-medium"; badgeClass = "badge-medium"; rankText = "🟡 متوسط";
+            }
 
-                <div class="profile-actions-bar">
-                    <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ التعديل</button>
-                    <button class="profile-action-btn" onclick="openFriendsModal()">👥 الأصدقاء</button>
-                    <button class="profile-action-btn" onclick="openFriendRequestsModal()" style="position:relative;">
-                        📥 الطلبات
-                        <span class="badge-dot" id="requestsBadgeDot">0</span>
-                    </button>
-                </div>
+            const avatarWrapper = document.querySelector('.avatar-wrapper');
+            avatarWrapper.className = `avatar-wrapper ${frameClass}`;
+            badgeBox.className = `level-badge-box ${badgeClass}`;
+            badgeBox.innerText = `${rankText} (${points} نقطة)`;
 
-                <div class="student-search-box">
-                    <h3>🔍 بحث عن ملف طالب بالـ ID أو رقم الهاتف</h3>
-                    <div class="search-input-group">
-                        <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
-                        <button onclick="searchStudentProfile()" title="بحث عن الطالب">
-                            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('studentProfileContent').innerHTML = html;
+            document.getElementById('editEmail').value = currentUser.email || "";
+            document.getElementById('editName').value = data.name || "";
+            document.getElementById('editPhone').value = data.phone || "";
+            document.getElementById('editParentPhone').value = data.parentPhone || "";
+            document.getElementById('editAllowComparison').checked = data.allowComparison !== false;
         }
 
-        window.copyStudentId = function(idText) {
-            navigator.clipboard.writeText(idText).then(() => {
-                showToast('تم نسخ معرف الطالب (ID) بنجاح!', '📋');
-            });
-        };
+        window.copyStudentId = function() {
+            const idText = currentStudentData.customId || currentUser.uid;
+            navigator.clipboard.writeText(idText);
+            window.showToast("تم نسخ الـ ID بنجاح!", "📋");
+        }
 
-        window.openSettingsModal = function() {
-            if (!currentStudentData) return;
-            document.getElementById('editEmail').value = currentStudentData.email || currentUser.email || '';
-            document.getElementById('editName').value = currentStudentData.name || '';
-            document.getElementById('editPhone').value = currentStudentData.phone || '';
-            document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
-            document.getElementById('editAllowComparison').checked = currentStudentData.allowComparison !== false;
-            document.getElementById('settingsModal').classList.add('active');
-        };
-        window.closeSettingsModal = function() { document.getElementById('settingsModal').classList.remove('active'); };
+        window.openSettingsModal = () => document.getElementById('settingsModal').classList.add('active');
+        window.closeSettingsModal = () => document.getElementById('settingsModal').classList.remove('active');
 
-        window.openAvatarModal = function() {
-            selectedNewAvatarBase64 = null;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || defaultMaleSvg;
-            const rankInfo = getRankClass(currentStudentData.totalScore || 0);
-            document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${rankInfo.frame}`;
+        window.openAvatarModal = () => {
+            document.getElementById('modalAvatarPreview').src = document.getElementById('profileAvatarDisplay').src;
+            document.getElementById('modalAvatarFrame').className = document.querySelector('.avatar-wrapper').className;
             document.getElementById('avatarModal').classList.add('active');
-        };
-        window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
+        }
+        window.closeAvatarModal = () => {
+            document.getElementById('avatarModal').classList.remove('active');
+            selectedAvatarFile = null;
+        }
 
-        window.openRankGuideModal = function() { document.getElementById('rankGuideModal').classList.add('active'); };
-        window.closeRankGuideModal = function() { document.getElementById('rankGuideModal').classList.remove('active'); };
-
-        window.openFriendsModal = async function() {
-            document.getElementById('friendsModal').classList.add('active');
-            await loadFriendsList();
-        };
-        window.closeFriendsModal = function() { document.getElementById('friendsModal').classList.remove('active'); };
-
-        window.openFriendRequestsModal = async function() {
-            document.getElementById('friendRequestsModal').classList.add('active');
-            await loadFriendRequestsList();
-        };
-        window.closeFriendRequestsModal = function() { document.getElementById('friendRequestsModal').classList.remove('active'); };
-
-        window.closeChatModal = function() {
-            document.getElementById('chatModal').classList.remove('active');
-            if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
-            activeChatFriendId = null;
-        };
-
-        window.closeComparisonModal = function() { document.getElementById('comparisonModal').classList.remove('active'); };
-        window.closeSearchedProfileModal = function() { document.getElementById('searchedProfileModal').classList.remove('active'); };
-
-        window.saveStudentChanges = async function() {
-            const newName = document.getElementById('editName').value.trim();
-            const newPhone = document.getElementById('editPhone').value.trim();
-            const newParentPhone = document.getElementById('editParentPhone').value.trim();
-            const allowComparison = document.getElementById('editAllowComparison').checked;
-
-            if (!newName) {
-                showToast('يرجى إدخال الاسم الكامل!', '⚠️');
-                return;
-            }
-
-            try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
-                }
-
-                await updateDoc(docRef, {
-                    name: newName,
-                    phone: newPhone,
-                    parentPhone: newParentPhone,
-                    allowComparison: allowComparison
-                });
-
-                currentStudentData.name = newName;
-                currentStudentData.phone = newPhone;
-                currentStudentData.parentPhone = newParentPhone;
-                currentStudentData.allowComparison = allowComparison;
-
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                renderStudentProfile(currentStudentData);
-                closeSettingsModal();
-                showToast('تم حفظ التعديلات بنجاح!', '💾');
-            } catch (error) {
-                console.error("خطأ في حفظ التعديلات:", error);
-                showToast('حدث خطأ أثناء الحفظ.', '❌');
-            }
-        };
+        window.openRankGuideModal = () => document.getElementById('rankGuideModal').classList.add('active');
+        window.closeRankGuideModal = () => document.getElementById('rankGuideModal').classList.remove('active');
 
         window.previewNewAvatar = function(event) {
             const file = event.target.files[0];
             if (file) {
-                if (file.size > 700 * 1024) {
-                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️');
-                    return;
-                }
+                selectedAvatarFile = file;
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    selectedNewAvatarBase64 = e.target.result;
-                    document.getElementById('modalAvatarPreview').src = selectedNewAvatarBase64;
-                };
+                    document.getElementById('modalAvatarPreview').src = e.target.result;
+                }
                 reader.readAsDataURL(file);
             }
-        };
+        }
 
         window.saveAvatarDirectly = async function() {
-            if (!selectedNewAvatarBase64) {
-                showToast('الرجاء اختيار صورة جديدة أولاً!', '⚠️');
+            if (!selectedAvatarFile) {
+                window.showToast("الرجاء اختيار صورة أولاً", "⚠️");
+                return;
+            }
+            try {
+                window.showToast("جاري رفع وتحديث الصورة...", "⏳");
+                const fileRef = storageRef(storage, `avatars/${currentUser.uid}_${Date.now()}`);
+                await uploadBytes(fileRef, selectedAvatarFile);
+                const downloadURL = await getDownloadURL(fileRef);
+
+                await updateDoc(doc(db, "students", currentUser.uid), { profileImage: downloadURL });
+                document.getElementById('profileAvatarDisplay').src = downloadURL;
+                window.showToast("تم تحديث صورة البروفايل بنجاح!", "✅");
+                closeAvatarModal();
+                await loadStudentProfile(currentUser.uid);
+            } catch (error) {
+                console.error("خطأ رفع الصورة:", error);
+                window.showToast("فشل رفع الصورة، حاول مرة أخرى", "❌");
+            }
+        }
+
+        window.saveStudentChanges = async function() {
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const parentPhone = document.getElementById('editParentPhone').value.trim();
+            const allowComparison = document.getElementById('editAllowComparison').checked;
+
+            if (!name) {
+                window.showToast("الاسم لا يمكن أن يكون فارغاً", "⚠️");
                 return;
             }
 
-            const btn = document.getElementById('saveAvatarBtn');
-            btn.innerText = 'جاري الحفظ... ⏳';
-            btn.disabled = true;
-
             try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
-                }
-
-                await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
-
-                currentStudentData.profileImage = selectedNewAvatarBase64;
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                renderStudentProfile(currentStudentData);
-                closeAvatarModal();
-                showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
+                await updateDoc(doc(db, "students", currentUser.uid), {
+                    name, phone, parentPhone, allowComparison
+                });
+                window.showToast("تم حفظ التعديلات بنجاح!", "💾");
+                closeSettingsModal();
+                await loadStudentProfile(currentUser.uid);
             } catch (error) {
-                console.error("خطأ حفظ الصورة:", error);
-                showToast('فشل حفظ الصورة، ربما حجمها كبير جداً.', '❌');
-            } finally {
-                btn.innerText = 'حفظ وتحديث الصورة 💾';
-                btn.disabled = false;
+                console.error("خطأ الحفظ:", error);
+                window.showToast("حدث خطأ أثناء الحفظ", "❌");
             }
-        };
+        }
 
         window.deleteProfilePicture = async function() {
-            if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
-
+            if (!confirm("هل أنت متأكد من حذف صورة البروفايل الحالية؟")) return;
             try {
-                let docRef = doc(db, "students", currentUser.email);
-                let docSnap = await getDoc(docRef);
-                if (!docSnap.exists()) {
-                    docRef = doc(db, "students", currentUser.uid);
-                }
-
-                await updateDoc(docRef, { profileImage: '' });
-
-                currentStudentData.profileImage = '';
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
-                renderStudentProfile(currentStudentData);
+                await updateDoc(doc(db, "students", currentUser.uid), { profileImage: deleteField() });
+                document.getElementById('profileAvatarDisplay').src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
+                window.showToast("تم حذف الصورة بنجاح", "🗑");
                 closeSettingsModal();
-                showToast('تم حذف صورة البروفايل بنجاح.', '🗑️');
+                await loadStudentProfile(currentUser.uid);
             } catch (error) {
-                console.error("خطأ في حذف الصورة:", error);
-                showToast('حدث خطأ أثناء الحذف.', '❌');
+                console.error(error);
+                window.showToast("فشل حذف الصورة", "❌");
             }
-        };
+        }
 
         window.deleteAccountPermanently = async function() {
-            if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟')) return;
-
+            if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك نهائياً من المنصة؟ لا يمكن التراجع عن هذا الإجراء!")) return;
             try {
-                try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
-                try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
-
-                localStorage.removeItem(`student_profile_${currentUser.uid}`);
-                await deleteUser(currentUser);
-                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠');
-                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+                await deleteDoc(doc(db, "students", currentUser.uid));
+                await currentUser.delete();
+                window.showToast("تم حذف الحساب بنجاح", "👋");
+                setTimeout(() => window.location.href = "login.html", 1500);
             } catch (error) {
-                console.error("خطأ في حذف الحساب:", error);
-                showToast('حدث خطأ أثناء حذف الحساب.', '❌');
+                console.error(error);
+                window.showToast("يرجى إعادة تسجيل الدخول ثم محاولة حذف الحساب مجدداً لأسباب أمنية", "🔐");
             }
-        };
+        }
 
         window.searchStudentProfile = async function() {
             const queryVal = document.getElementById('friendIdInput').value.trim();
             if (!queryVal) {
-                showToast('يرجى إدخال معرف الـ ID أو رقم الهاتف للبحث!', '⚠️');
+                window.showToast("أدخل الـ ID أو رقم الهاتف للبحث", "⚠️");
                 return;
             }
-
-            if (queryVal === currentStudentData.studentId || queryVal === currentStudentData.phone || queryVal === currentUser.uid) {
-                showToast('هذا هو حسابك الشخصي!', '⚠️');
-                return;
-            }
-
-            document.getElementById('searchedProfileModal').classList.add('active');
-            const body = document.getElementById('searchedProfileModalBody');
-            body.innerHTML = `<div class="loading">جاري البحث عن ملف الطالب... 🔍</div>`;
 
             try {
-                let targetDocKey = null;
-                let targetData = null;
+                window.showToast("جاري البحث عن الطالب...", "🔍");
+                let studentDoc = null;
+                let studentUid = null;
 
-                let q = query(collection(db, "students"), where("studentId", "==", queryVal));
-                let querySnap = await getDocs(q);
-
-                if (!querySnap.empty) {
-                    targetDocKey = querySnap.docs[0].id;
-                    targetData = querySnap.docs[0].data();
+                const byIdRef = doc(db, "students", queryVal);
+                const byIdSnap = await getDoc(byIdRef);
+                if (byIdSnap.exists()) {
+                    studentDoc = byIdSnap.data();
+                    studentUid = byIdSnap.id;
                 } else {
-                    q = query(collection(db, "students"), where("phone", "==", queryVal));
-                    querySnap = await getDocs(q);
-                    if (!querySnap.empty) {
-                        targetDocKey = querySnap.docs[0].id;
-                        targetData = querySnap.docs[0].data();
+                    const qCustom = query(collection(db, "students"), where("customId", "==", queryVal));
+                    const snapCustom = await getDocs(qCustom);
+                    if (!snapCustom.empty) {
+                        studentDoc = snapCustom.docs[0].data();
+                        studentUid = snapCustom.docs[0].id;
                     } else {
-                        const directDoc = await getDoc(doc(db, "students", queryVal));
-                        if (directDoc.exists()) {
-                            targetDocKey = queryVal;
-                            targetData = directDoc.data();
+                        const qPhone = query(collection(db, "students"), where("phone", "==", queryVal));
+                        const snapPhone = await getDocs(qPhone);
+                        if (!snapPhone.empty) {
+                            studentDoc = snapPhone.docs[0].data();
+                            studentUid = snapPhone.docs[0].id;
                         }
                     }
                 }
 
-                if (!targetDocKey || !targetData) {
-                    body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">لم يتم العثور على طالب بهذا المعرف أو رقم الهاتف.</p>`;
+                if (!studentDoc || studentUid === currentUser.uid) {
+                    window.showToast("لم يتم العثور على طالب بهذا البيانات", "❌");
                     return;
                 }
 
-                const friendshipId = [currentUser.uid, targetDocKey].sort().join('_');
-                const friendshipSnap = await getDoc(doc(db, "friends", friendshipId));
-                let isAlreadyFriend = false;
-                if (friendshipSnap.exists() && !friendshipSnap.data().deleted) {
-                    isAlreadyFriend = true;
-                }
-
-                const score = targetData.totalScore || 0;
-                const rankInfo = getRankClass(score);
-                const avatarUrl = targetData.profileImage || defaultMaleSvg;
-
-                if (isAlreadyFriend) {
-                    body.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                                <img src="${avatarUrl}" alt="صورة الطالب">
-                            </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
-                            <p style="color: var(--success-color); font-weight: bold; font-size: 0.85rem; margin-top: 15px;">هذا الطالب صديقك بالفعل 🤝</p>
-                        </div>
-                    `;
-                } else {
-                    body.innerHTML = `
-                        <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                                <img src="${avatarUrl}" alt="صورة الطالب">
-                            </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
-                            <div style="margin-bottom:16px;">
-                                <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
-                            </div>
-                            <button class="btn" onclick="sendFriendRequestToUser('${targetDocKey}', '${targetData.email || ''}', '${targetData.name || 'طالب'}', '${targetData.studentId || ''}')" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>
-                        </div>
-                    `;
-                }
+                renderSearchedProfileModal(studentDoc, studentUid);
             } catch (error) {
-                console.error("خطأ في البحث:", error);
-                body.innerHTML = `<p style="color:var(--danger-color); padding:20px; font-size:0.85rem;">حدث خطأ أثناء البحث، يرجى المحاولة لاحقاً.</p>`;
-            }
-        };
-
-        window.sendFriendRequestToUser = async function(targetDocKey, targetEmail, targetName, targetStudentId) {
-            try {
-                const reqRef = collection(db, "friendRequests");
-                await addDoc(reqRef, {
-                    senderId: currentUser.uid,
-                    senderEmail: currentUser.email || '',
-                    senderName: currentStudentData.name || 'طالب',
-                    senderImage: currentStudentData.profileImage || '',
-                    receiverId: targetDocKey,
-                    receiverEmail: targetEmail || '',
-                    receiverStudentId: targetStudentId || '',
-                    status: 'pending',
-                    createdAt: serverTimestamp()
-                });
-
-                document.getElementById('friendIdInput').value = '';
-                closeSearchedProfileModal();
-                showToast(`تم إرسال طلب الصداقة إلى ${targetName} بنجاح!`, '📨');
-            } catch (error) {
-                console.error("خطأ في إرسال طلب الصداقة:", error);
-                showToast('حدث خطأ أثناء إرسال طلب الصداقة.', '❌');
-            }
-        };
-
-        function listenToFriendRequests(user) {
-            const uid = user.uid;
-            const email = user.email;
-            
-            const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", uid));
-            onSnapshot(q1, snap => processRequestsSnapshot(snap));
-
-            if (email) {
-                const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", email));
-                onSnapshot(q2, snap => processRequestsSnapshot(snap));
+                console.error(error);
+                window.showToast("حدث خطأ أثناء عملية البحث", "❌");
             }
         }
 
-        function processRequestsSnapshot(snapshot) {
-            let pendingCount = 0;
-            snapshot.forEach(docSnap => {
-                const req = docSnap.data();
-                if (req.status === 'pending') {
-                    pendingCount++;
+        function renderSearchedProfileModal(data, uid) {
+            const modalBody = document.getElementById('searchedProfileModalBody');
+            const avatar = data.profileImage || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/></svg>";
+            
+            modalBody.innerHTML = `
+                <div class="modal-avatar-wrapper rank-frame-legendary">
+                    <img src="${avatar}" alt="صورة الطالب">
+                </div>
+                <div class="student-name" style="font-size: 1.1rem; margin-bottom: 5px;">${data.name || "طالب"}</div>
+                <div style="font-size: 0.78rem; color: var(--primary-color); margin-bottom: 12px; font-weight: bold;">نقاط التميز: ${data.points || 0} نقطة</div>
+                <button class="btn" onclick="sendFriendRequest('${uid}')" style="background: var(--success-color);">إضافة لصديق 👥</button>
+            `;
+            document.getElementById('searchedProfileModal').classList.add('active');
+        }
+
+        window.closeSearchedProfileModal = () => document.getElementById('searchedProfileModal').classList.remove('active');
+
+        window.sendFriendRequest = async function(targetUid) {
+            try {
+                const reqQuery1 = query(collection(db, "friendRequests"), where("from", "==", currentUser.uid), where("to", "==", targetUid));
+                const reqQuery2 = query(collection(db, "friendRequests"), where("from", "==", targetUid), where("to", "==", currentUser.uid));
+                const [snap1, snap2] = await Promise.all([getDocs(reqQuery1), getDocs(reqQuery2)]);
+
+                if (!snap1.empty || !snap2.empty) {
+                    window.showToast("يوجد طلب صداقة قائم بالفعل بينكم!", "⚠️");
+                    return;
+                }
+
+                const friendCheck1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid), where("user2", "==", targetUid));
+                const friendCheck2 = query(collection(db, "friends"), where("user1", "==", targetUid), where("user2", "==", currentUser.uid));
+                const [fSnap1, fSnap2] = await Promise.all([getDocs(friendCheck1), getDocs(friendCheck2)]);
+
+                if (!fSnap1.empty || !fSnap2.empty) {
+                    window.showToast("أنتم أصدقاء بالفعل في المنصة!", "🤝");
+                    return;
+                }
+
+                await addDoc(collection(db, "friendRequests"), {
+                    from: currentUser.uid,
+                    to: targetUid,
+                    timestamp: Timestamp.now(),
+                    status: "pending"
+                });
+
+                window.showToast("تم إرسال طلب الصداقة بنجاح!", "✅");
+                closeSearchedProfileModal();
+            } catch (error) {
+                console.error(error);
+                window.showToast("فشل إرسال طلب الصداقة", "❌");
+            }
+        }
+
+        function listenToFriendRequests(uid) {
+            const q = query(collection(db, "friendRequests"), where("to", "==", uid), where("status", "==", "pending"));
+            if (activeRequestsListener) activeRequestsListener();
+
+            activeRequestsListener = onSnapshot(q, (snapshot) => {
+                const count = snapshot.size;
+                const badgeDot = document.getElementById('requestsBadgeDot');
+                if (count > 0) {
+                    badgeDot.innerText = count;
+                    badgeDot.style.display = "block";
+                } else {
+                    badgeDot.style.display = "none";
                 }
             });
-            const dot = document.getElementById('requestsBadgeDot');
-            if (dot) {
-                if (pendingCount > 0) {
-                    dot.innerText = pendingCount;
-                    dot.style.display = 'inline-block';
-                } else {
-                    dot.style.display = 'none';
-                }
-            }
         }
 
-        async function loadFriendRequestsList() {
+        window.openFriendRequestsModal = async function() {
+            document.getElementById('friendRequestsModal').classList.add('active');
             const container = document.getElementById('friendRequestsListContainer');
-            container.innerHTML = `<div class="loading">جاري جلب الطلبات... ⏳</div>`;
+            container.innerHTML = `<div class="loading">جاري جلب الطلبات الواردة... ⏳</div>`;
 
             try {
-                let docsMap = new Map();
+                const q = query(collection(db, "friendRequests"), where("to", "==", currentUser.uid), where("status", "==", "pending"));
+                const snapshot = await getDocs(q);
 
-                const q1 = query(collection(db, "friendRequests"), where("receiverId", "==", currentUser.uid), where("status", "==", "pending"));
-                const snap1 = await getDocs(q1);
-                snap1.docs.forEach(d => docsMap.set(d.id, d.data()));
-
-                if (currentUser.email) {
-                    const q2 = query(collection(db, "friendRequests"), where("receiverEmail", "==", currentUser.email), where("status", "==", "pending"));
-                    const snap2 = await getDocs(q2);
-                    snap2.docs.forEach(d => docsMap.set(d.id, d.data()));
-                }
-
-                let html = '';
-                let hasPending = false;
-
-                docsMap.forEach((req, reqId) => {
-                    hasPending = true;
-                    html += `
-                        <div class="friend-item-card">
-                            <div class="friend-info-trigger">
-                                <div class="friend-avatar-wrap"><img src="${req.senderImage || defaultMaleSvg}" alt=""></div>
-                                <span class="friend-name-text">${req.senderName} أرسل لك طلب صداقة</span>
-                            </div>
-                            <div class="friend-actions-group">
-                                <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${reqId}', '${req.senderId}')">قبول ✅</button>
-                                <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${reqId}')">رفض ❌</button>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                if (!hasPending) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
-                } else {
-                    container.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("خطأ في تحميل الطلبات:", error);
-                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">فشل تحميل الطلبات.</p>`;
-            }
-        }
-
-        window.acceptFriendRequest = async function(reqId, senderId) {
-            try {
-                await updateDoc(doc(db, "friendRequests", reqId), { status: 'accepted' });
-
-                const friendshipId = [currentUser.uid, senderId].sort().join('_');
-
-                await setDoc(doc(db, "friends", friendshipId), { 
-                    user1: currentUser.uid, 
-                    user2: senderId, 
-                    deleted: false,
-                    createdAt: serverTimestamp() 
-                });
-
-                showToast('تم قبول طلب الصداقة وأصبحتم أصدقاء! 🎉', '🎉');
-                loadFriendRequestsList();
-            } catch (error) {
-                console.error("خطأ في قبول الطلب:", error);
-            }
-        };
-
-        window.rejectFriendRequest = async function(reqId) {
-            try {
-                await updateDoc(doc(db, "friendRequests", reqId), { status: 'rejected' });
-                showToast('تم رفض طلب الصداقة.', '❌');
-                loadFriendRequestsList();
-            } catch (error) {
-                console.error("خطأ في رفض الطلب:", error);
-            }
-        };
-
-        async function loadFriendsList() {
-            const container = document.getElementById('friendsListContainer');
-            container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
-
-            try {
-                const q1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
-                const q2 = query(collection(db, "friends"), where("user2", "==", currentUser.uid));
-                
-                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-                
-                let friendsMap = new Map();
-                
-                snap1.docs.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user2, data.user2);
-                    }
-                });
-
-                snap2.docs.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user1, data.user1);
-                    }
-                });
-
-                if (friendsMap.size === 0) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
+                if (snapshot.empty) {
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 0.85rem;">لا توجد طلبات صداقة جديدة حالياً 📭</div>`;
                     return;
                 }
 
                 let html = '';
-                const friendUids = Array.from(friendsMap.keys());
-                
-                for (const friendUid of friendUids) {
-                    let friendDocSnap = await getDoc(doc(db, "students", friendUid));
-                    if (!friendDocSnap.exists()) {
-                        const qMail = query(collection(db, "students"), where("email", "==", friendUid));
-                        const mSnap = await getDocs(qMail);
-                        if (!mSnap.empty) friendDocSnap = mSnap.docs[0];
-                    }
-
-                    if (friendDocSnap && friendDocSnap.exists()) {
-                        const fInfo = friendDocSnap.data();
+                for (const docSnap of snapshot.docs) {
+                    const reqData = docSnap.data();
+                    const senderDoc = await getDoc(doc(db, "students", reqData.from));
+                    if (senderDoc.exists()) {
+                        const sender = senderDoc.data();
+                        const avatar = sender.profileImage || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/></svg>";
                         html += `
                             <div class="friend-item-card">
-                                <div class="friend-info-trigger" onclick="openComparisonModalWithFriend('${friendUid}', '${fInfo.name}')">
-                                    <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
-                                    <div>
-                                        <div class="friend-name-text">${fInfo.name}</div>
-                                        <div style="font-size:0.68rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
-                                    </div>
+                                <div class="friend-info-trigger">
+                                    <div class="friend-avatar-wrap"><img src="${avatar}"></div>
+                                    <div class="friend-name-text">${sender.name}</div>
                                 </div>
                                 <div class="friend-actions-group">
-                                    <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friendUid}', '${fInfo.name}')">محادثة 💬</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑</button>
+                                    <button class="friend-action-icon-btn btn-chat-action" onclick="acceptFriendRequest('${docSnap.id}', '${reqData.from}')">قبول ✓</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="rejectFriendRequest('${docSnap.id}')">رفض ✕</button>
                                 </div>
                             </div>
                         `;
                     }
                 }
-
-                if (!html) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
-                } else {
-                    container.innerHTML = html;
-                }
+                container.innerHTML = html;
             } catch (error) {
-                console.error("خطأ في تحميل الأصدقاء:", error);
-                container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
+                console.error(error);
+                container.innerHTML = `<div style="text-align: center; color: var(--danger-color); padding: 20px;">خطأ في تحميل الطلبات</div>`;
             }
         }
 
-        window.removeFriend = async function(friendUid) {
-            if (!confirm('هل أنت متأكد من إزالة هذا الصديق؟')) return;
+        window.closeFriendRequestsModal = () => document.getElementById('friendRequestsModal').classList.remove('active');
+
+        window.acceptFriendRequest = async function(reqId, senderUid) {
             try {
-                const friendshipId = [currentUser.uid, friendUid].sort().join('_');
-                await updateDoc(doc(db, "friends", friendshipId), { deleted: true });
-                showToast('تم إزالة الصديق بنجاح.', '🗑');
-                loadFriendsList();
+                await addDoc(collection(db, "friends"), {
+                    user1: currentUser.uid,
+                    user2: senderUid,
+                    timestamp: Timestamp.now()
+                });
+                await deleteDoc(doc(db, "friendRequests", reqId));
+                window.showToast("تم قبول طلب الصداقة بنجاح! 🤝", "🎉");
+                openFriendRequestsModal();
             } catch (error) {
-                console.error("خطأ إزالة الصديق:", error);
-                try {
-                    await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true }, { merge: true });
-                    await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true }, { merge: true });
-                    showToast('تم إزالة الصديق بنجاح.', '🗑');
-                    loadFriendsList();
-                } catch(e) {}
+                console.error(error);
+                window.showToast("حدث خطأ أثناء قبول الطلب", "❌");
             }
-        };
+        }
 
-        window.openChatWithFriend = function(friendUid, friendName) {
-            activeChatFriendId = friendUid;
-            document.getElementById('chatPartnerTitle').innerText = `محادثة مع: ${friendName} 💬`;
-            closeFriendsModal();
+        window.rejectFriendRequest = async function(reqId) {
+            try {
+                await deleteDoc(doc(db, "friendRequests", reqId));
+                window.showToast("تم رفض الطلب", "🗑");
+                openFriendRequestsModal();
+            } catch (error) {
+                console.error(error);
+                window.showToast("حدث خطأ", "❌");
+            }
+        }
+
+        window.openFriendsModal = async function() {
+            document.getElementById('friendsModal').classList.add('active');
+            const container = document.getElementById('friendsListContainer');
+            container.innerHTML = `<div class="loading">جاري تحميل قائمة الأصدقاء المحسنة... ⏳</div>`;
+
+            try {
+                // جلب الأصدقاء من خلال استعلام مزدوج لحقل user1 و user2 لضمان عدم ظهور القائمة فارغة أبداً
+                const q1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
+                const q2 = query(collection(db, "friends"), where("user2", "==", currentUser.uid));
+                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+                const friendDocs = [...snap1.docs, ...snap2.docs];
+
+                if (friendDocs.length === 0) {
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 25px; font-size: 0.85rem;">ليس لديك أصدقاء مضافين حتى الآن 👥</div>`;
+                    return;
+                }
+
+                let html = '';
+                const processedUids = new Set();
+
+                for (const fDoc of friendDocs) {
+                    const fData = fDoc.data();
+                    const friendUid = fData.user1 === currentUser.uid ? fData.user2 : fData.user1;
+                    
+                    if (processedUids.has(friendUid)) continue;
+                    processedUids.add(friendUid);
+
+                    const friendDocSnap = await getDoc(doc(db, "students", friendUid));
+                    if (friendDocSnap.exists()) {
+                        const friendInfo = friendDocSnap.data();
+                        const avatar = friendInfo.profileImage || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/></svg>";
+                        
+                        html += `
+                            <div class="friend-item-card">
+                                <div class="friend-info-trigger" onclick="openComparisonWithFriend('${friendUid}', '${friendInfo.name}')">
+                                    <div class="friend-avatar-wrap"><img src="${avatar}"></div>
+                                    <div class="friend-name-text">${friendInfo.name}</div>
+                                </div>
+                                <div class="friend-actions-group">
+                                    <button class="friend-action-icon-btn btn-chat-action" onclick="openChatModal('${friendUid}', '${friendInfo.name}')">محادثة 💬</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${fDoc.id}')">إزالة ✕</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                container.innerHTML = html;
+            } catch (error) {
+                console.error("خطأ جلب الأصدقاء:", error);
+                container.innerHTML = `<div style="text-align: center; color: var(--danger-color); padding: 20px;">خطأ في تحميل الأصدقاء</div>`;
+            }
+        }
+
+        window.closeFriendsModal = () => document.getElementById('friendsModal').classList.remove('active');
+
+        window.removeFriend = async function(friendDocId) {
+            if (!confirm("هل أنت متأكد من إزالة هذا الصديق؟")) return;
+            try {
+                await deleteDoc(doc(db, "friends", friendDocId));
+                window.showToast("تم إزالة الصديق بنجاح", "🗑");
+                openFriendsModal();
+            } catch (error) {
+                console.error(error);
+                window.showToast("فشل إزالة الصديق", "❌");
+            }
+        }
+
+        window.openChatModal = function(friendUid, friendName) {
+            currentActiveChatFriendId = friendUid;
+            document.getElementById('chatPartnerTitle').innerText = `محادثة مع: ${friendName}`;
+            document.getElementById('friendsModal').classList.remove('active');
             document.getElementById('chatModal').classList.add('active');
-            startRealtimeChat(friendUid);
-        };
+            loadChatMessages(friendUid);
+        }
 
-        function startRealtimeChat(friendUid) {
+        window.closeChatModal = function() {
+            document.getElementById('chatModal').classList.remove('active');
+            if (activeChatListener) {
+                activeChatListener();
+                activeChatListener = null;
+            }
+            currentActiveChatFriendId = null;
+        }
+
+        function loadChatMessages(friendUid) {
             const container = document.getElementById('chatMessagesContainer');
             container.innerHTML = `<div class="loading">جاري تحميل الرسائل... ⏳</div>`;
 
             const chatId = [currentUser.uid, friendUid].sort().join('_');
-            const msgsRef = collection(db, "chats", chatId, "messages");
+            const messagesRef = collection(db, "chats", chatId, "messages");
+            const q = query(messagesRef);
 
-            if (unsubscribeChat) unsubscribeChat();
+            if (activeChatListener) activeChatListener();
 
-            unsubscribeChat = onSnapshot(msgsRef, (snapshot) => {
+            activeChatListener = onSnapshot(q, (snapshot) => {
                 let html = '';
                 if (snapshot.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:0.78rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); font-size: 0.78rem; margin-top: auto; margin-bottom: auto;">لا توجد رسائل سابقة، ابدأ المحادثة الآن! 💬</div>`;
                     return;
                 }
 
+                // ترتيب الرسائل تصاعدياً حسب الوقت
                 const docs = snapshot.docs.sort((a, b) => {
-                    const t1 = a.data().createdAt?.toMillis() || 0;
-                    const t2 = b.data().createdAt?.toMillis() || 0;
+                    const t1 = a.data().timestamp ? a.data().timestamp.toMillis() : 0;
+                    const t2 = b.data().timestamp ? b.data().timestamp.toMillis() : 0;
                     return t1 - t2;
                 });
 
-                docs.forEach(doc => {
-                    const msg = doc.data();
-                    const isMine = msg.senderId === currentUser.uid;
-                    const msgClass = isMine ? 'mine' : 'other';
-                    html += `<div class="chat-msg ${msgClass}">${msg.text}</div>`;
+                docs.forEach(docSnap => {
+                    const msg = docSnap.data();
+                    const isMine = msg.sender === currentUser.uid;
+                    const msgClass = isMine ? "mine" : "other";
+                    html += `<div class="chat-msg ${msgClass}">${escapeHtml(msg.text)}</div>`;
                 });
 
                 container.innerHTML = html;
                 container.scrollTop = container.scrollHeight;
-            }, (error) => {
-                console.error("خطأ في الاستماع للدردشة:", error);
             });
         }
 
         window.sendChatMessage = async function() {
             const input = document.getElementById('chatInputText');
             const text = input.value.trim();
-            if (!text || !activeChatFriendId) return;
-
-            input.value = '';
-            const chatId = [currentUser.uid, activeChatFriendId].sort().join('_');
-            const msgsRef = collection(db, "chats", chatId, "messages");
+            if (!text || !currentActiveChatFriendId) return;
 
             try {
-                await addDoc(msgsRef, {
-                    senderId: currentUser.uid,
+                input.value = '';
+                const chatId = [currentUser.uid, currentActiveChatFriendId].sort().join('_');
+                const messagesRef = collection(db, "chats", chatId, "messages");
+                await addDoc(messagesRef, {
+                    sender: currentUser.uid,
                     text: text,
-                    createdAt: serverTimestamp()
+                    timestamp: Timestamp.now()
                 });
             } catch (error) {
-                console.error("خطأ في إرسال الرسالة:", error);
+                console.error("خطأ إرسال الرسالة:", error);
+                window.showToast("فشل إرسال الرسالة", "❌");
             }
-        };
+        }
 
-        window.openComparisonModalWithFriend = async function(friendUid, friendName) {
-            closeFriendsModal();
+        window.openComparisonWithFriend = async function(friendUid, friendName) {
+            document.getElementById('friendsModal').classList.remove('active');
             document.getElementById('comparisonModal').classList.add('active');
-            const body = document.getElementById('comparisonModalBody');
-            body.innerHTML = `<div class="loading">جاري مقارنة مستواك مع ${friendName}... 📊</div>`;
+            const modalBody = document.getElementById('comparisonModalBody');
+            modalBody.innerHTML = `<div class="loading">جاري جلب ومقارنة البيانات... 📊</div>`;
 
             try {
-                let friendDoc = await getDoc(doc(db, "students", friendUid));
-                if (!friendDoc.exists()) {
-                    const qMail = query(collection(db, "students"), where("email", "==", friendUid));
-                    const mSnap = await getDocs(qMail);
-                    if (!mSnap.empty) friendDoc = mSnap.docs[0];
-                }
-
-                if (!friendDoc.exists()) {
-                    body.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">تعذر جلب بيانات الصديق.</p>`;
+                const friendSnap = await getDoc(doc(db, "students", friendUid));
+                if (!friendSnap.exists()) {
+                    modalBody.innerHTML = `<div style="text-align: center; color: var(--danger-color);">لم يتم العثور على بيانات الصديق</div>`;
                     return;
                 }
 
-                const fData = friendDoc.data();
-                if (fData.allowComparison === false) {
-                    body.innerHTML = `<p style="text-align:center; color:var(--danger-color); padding:15px; font-size:0.82rem;">عذراً، هذا الصديق قام بإيقاف ميزة "مقارنة التقدم" 🔒.</p>`;
+                const friendData = friendSnap.data();
+                if (friendData.allowComparison === false) {
+                    modalBody.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">هذا الصديق قام بإيقاف ميزة مقارنة التقدم في إعدادات حسابه 🔒</div>`;
                     return;
                 }
 
-                const myScore = currentStudentData.totalScore || 0;
-                const friendScore = fData.totalScore || 0;
-                const diff = myScore - friendScore;
+                const myPoints = currentStudentData.points || 0;
+                const friendPoints = friendData.points || 0;
 
-                let diffText = '';
-                if (diff > 0) diffText = `أنت متقدم بـ ${diff} نقطة! 🔥`;
-                else if (diff < 0) diffText = `${friendName} متقدم بـ ${Math.abs(diff)} نقطة، شد حيلك! 💪`;
-                else diffText = `تعادل تام في النقاط والمستوى! 🤝`;
-
-                body.innerHTML = `
-                    <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:18px; text-align:center;">
+                modalBody.innerHTML = `
+                    <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 20px;">
                         <div>
-                            <img src="${currentStudentData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
-                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">أنت</div>
-                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
+                            <div style="font-weight: bold; font-size: 0.85rem; margin-bottom: 5px;">أنت (${currentStudentData.name || 'أنت'})</div>
+                            <div style="font-size: 1.2rem; color: var(--primary-color); font-weight: 800;">${myPoints} نقطة</div>
                         </div>
-                        <div style="font-weight:bold; font-size:1rem; color:var(--text-secondary);">VS</div>
+                        <div style="font-size: 1.2rem; font-weight: bold; align-self: center; color: var(--text-secondary);">VS</div>
                         <div>
-                            <img src="${fData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
-                            <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">${friendName}</div>
-                            <div style="color:var(--success-color); font-weight:bold; font-size:0.82rem;">${friendScore} ن</div>
+                            <div style="font-weight: bold; font-size: 0.85rem; margin-bottom: 5px;">${friendName}</div>
+                            <div style="font-size: 1.2rem; color: #10b981; font-weight: 800;">${friendPoints} نقطة</div>
                         </div>
                     </div>
-                    <div style="background:var(--bg-color); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.85rem; color:var(--text-main);">
-                        ${diffText}
-                    </div>
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                        ${myPoints >= friendPoints ? "أنت متفوق في النقاط حالياً، استمر في التقدم! 🏆" : "صديقك متفوق عليك حالياً، ششد حيلك واجمع نقاط أكثر! 💪"}
+                    </p>
                 `;
             } catch (error) {
-                console.error("خطأ في المقارنة:", error);
+                console.error(error);
+                modalBody.innerHTML = `<div style="text-align: center; color: var(--danger-color);">حدث خطأ أثناء المقارنة</div>`;
             }
-        };
+        }
+
+        window.closeComparisonModal = () => document.getElementById('comparisonModal').classList.remove('active');
 
         window.logoutStudent = async function() {
-            if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
-                localStorage.clear();
+            try {
                 await signOut(auth);
-                window.location.href = 'login.html';
+                window.location.href = "login.html";
+            } catch (error) {
+                console.error(error);
+                window.showToast("فشل تسجيل الخروج", "❌");
             }
-        };
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
     </script>
 </body>
 </html>
