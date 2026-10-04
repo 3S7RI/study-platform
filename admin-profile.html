@@ -219,6 +219,45 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
+        /* تصميم ورقة النوت (Sticky Note) الاحترافية */
+        .sticky-note-wrapper {
+            background: #fef08a;
+            color: #1e293b;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 10px 25px rgba(250, 204, 21, 0.15);
+            border: 1px solid #fde047;
+            position: relative;
+            margin-bottom: 14px;
+            background-image: linear-gradient(#fef08a 95%, #fde047 100%);
+        }
+        .sticky-note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.72rem;
+            color: #713f12;
+            font-weight: 700;
+            border-bottom: 1px dashed rgba(113, 63, 18, 0.2);
+            padding-bottom: 4px;
+        }
+        .sticky-note-textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #1e293b;
+            font-size: 0.9rem;
+            font-weight: 600;
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.6;
+        }
+        .sticky-note-textarea::placeholder {
+            color: rgba(30, 41, 53, 0.4);
+        }
+
         /* تصميم خيارات التوجيه بجانب بعضها بدون لخبطة */
         .target-options-group {
             display: grid;
@@ -377,19 +416,22 @@
         </div>
     </div>
 
-    <!-- نافذة الملاحظات الشخصية -->
+    <!-- نافذة الملاحظات الشخصية (على شكل ورقة نوت شيك مع وقت الحفظ) -->
     <div class="modal-overlay" id="notesModal" onclick="if(event.target===this) closeModal('notesModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>📝 مفكرة الملاحظات الشخصية</h3>
+                <h3>📝 المفكرة السحابية</h3>
                 <button class="close-modal" onclick="closeModal('notesModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
-                <div class="form-group">
-                    <label>تدوين أفكارك أو مهامك (تتزامن سحابياً)</label>
-                    <textarea id="adminNotesText" rows="6" placeholder="اكتب ملاحظاتك هنا..."></textarea>
+                <div class="sticky-note-wrapper">
+                    <div class="sticky-note-header">
+                        <span>📌 ورقة ملاحظات الأدمن</span>
+                        <span id="noteLastUpdated">آخر تحديث: --</span>
+                    </div>
+                    <textarea id="adminNotesText" class="sticky-note-textarea" placeholder="اكتب أفكارك، مهامك، أو ملاحظاتك هنا..."></textarea>
                 </div>
-                <button class="btn btn-save" onclick="saveAdminNotesToCloud()">حفظ الملاحظات في السحابة 💾</button>
+                <button class="btn btn-save" onclick="saveAdminNotesToCloud()">حفظ الملاحظة في السحابة 💾</button>
             </div>
         </div>
     </div>
@@ -772,15 +814,22 @@
             }
         };
 
+        // إدارة الملاحظات في كولكشن مستقل adminNotes مع وقت الحفظ
         window.loadAdminNotesFromCloud = async function() {
             try {
                 if (!currentAdminData || !currentAdminData.email) return;
                 const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    document.getElementById('adminNotesText').value = docSnap.data().notes || '';
+                    const data = docSnap.data();
+                    document.getElementById('adminNotesText').value = data.notes || '';
+                    if (data.updatedAt) {
+                        const timeStr = data.updatedAt.toDate ? data.updatedAt.toDate().toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
+                        document.getElementById('noteLastUpdated').innerText = `آخر تحديث: ${timeStr}`;
+                    }
                 } else {
                     document.getElementById('adminNotesText').value = '';
+                    document.getElementById('noteLastUpdated').innerText = `آخر تحديث: جديد`;
                 }
             } catch (err) {
                 console.error(err);
@@ -795,11 +844,18 @@
                     return;
                 }
                 const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
-                await setDoc(docRef, { notes: notesContent, updatedAt: serverTimestamp() }, { merge: true });
-                showToast("تم حفظ الملاحظات في السحابة بنجاح! 💾", "✅");
+                await setDoc(docRef, { 
+                    notes: notesContent, 
+                    adminEmail: currentAdminData.email,
+                    updatedAt: serverTimestamp() 
+                }, { merge: true });
+
+                const currentTimeStr = new Date().toLocaleString('ar-EG');
+                document.getElementById('noteLastUpdated').innerText = `آخر تحديث: ${currentTimeStr}`;
+                showToast("تم حفظ الملاحظة في كولكشن adminNotes بنجاح! 💾", "✅");
             } catch (err) {
                 console.error(err);
-                showToast("فشل حفظ الملاحظات.", "❌");
+                showToast("فشل حفظ الملاحظة.", "❌");
             }
         };
 
