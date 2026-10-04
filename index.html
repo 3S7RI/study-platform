@@ -499,72 +499,50 @@
             "يا رب وفّق كل طالب علم وسدد خطاه واجعل الجنة هي مآله."
         ];
 
-        // مصفوفة الـ 10 قوالب الترحيبية الدائمة للطلاب الجدد
-        const getWelcomeTemplates = (studentName) => [
-            {
-                title: `🌟 أهلاً بيك يا ${studentName} في رحلة دراسية!`,
-                message: `منورنا يا بطل في أقوى منصة تعليمية! جهز قهوتك واستعد لرحلة تفوق مفيهاش مستحيل يا ${studentName}. المنصة هنا عشان تسهل عليك كل صعب، توكل على الله وابدأ الإنجاز! 🚀`
-            },
-            {
-                title: `🔥 ${studentName} انضم لعيلة رحلة دراسية!`,
-                message: `خطوة عظيمة جداً انك بدأت معنا اليوم يا ${studentName}! منصتنا مجهزة بكل اللي تحتاجه عشان تقفل موادك وتكسر الدنيا. احنا معك خطوة بخطوة لحد قمة التميز. يلا بينا؟ 💪`
-            },
-            {
-                title: `🎯 بداية التفوق بتكتبها النهاردة يا ${studentName}!`,
-                message: `أهلاً بك يا فنان في عالم النجاح والمذاكرة الذكية. ملازمنا، فيديوهاتنا، وامتحاناتنا التفاعلية كلها مصممة خصيصاً عشان تخليك الأول يا ${studentName}. افتح قسم الملازم وابدأ فوراً! 📚`
-            },
-            {
-                title: `⚡ انطلاقة صاروخية نحو القمة يا ${studentName}!`,
-                message: `يا هلا بالناس الطموحة! دخولك المنصة دي معناه انك شخص بيفكر لقدام يا ${studentName}. استكشف الفيديوهات والشروحات الحصرية، ولو احتجت أي حاجة الإدارة في ضهرك دايماً. بالتوفيق! ✨`
-            },
-            {
-                title: `👑 مرحباً بك يا ${studentName} في قمة الإبداع الدراسي!`,
-                message: `مكانك الطبيعي هنا وسط الأوائل يا ${studentName}! منصة 'رحلة دراسية' بتقدم لك كل مفاتيح التفوق بطريقة ممتعة. اعتبر المنصة سلاحك السرّي للدرجة النهائية. استعين بربنا وابدأ! 🎯`
-            },
-            {
-                title: `💡 فكر، ذاكر، واقفل المنهج يا ${studentName}!`,
-                message: `منور منصتنا الجامدة يا ${studentName}! هنا مش هتتعلم وبس، هنا هتستمتع بكل دقيقة مذاكرة. جهز جدولك، وافتح الملازم، واصنع بطولتك الخاصة النهاردة! 🌟`
-            },
-            {
-                title: `🚀 انطلق نحو حلمك بكل قوة يا ${studentName}!`,
-                message: `أهلاً بيك يا غالي في رحلة التفوق والنجاح المضمون. كل أدوات النجاح بقت قدامك وفي إيدك، ومين عارف يا ${studentName}؟ ممكن اسمك يكون قريباً في قائمة أوائل الدفعة! شد حيلك. 💪`
-            },
-            {
-                title: `🏆 ${studentName} بدأ يخطط طريق نجاحه!`,
-                message: `ألف مبروك إنشاء الحساب وأهلاً بك في العائلة التعليمية الأقوى يا ${studentName}. المنصة مليانة مفاجآت وملازم هتخلي المادة الصعبة لعبة في إيدك. اتوكل على الله وابدأ التصفح! 📚`
-            },
-            {
-                title: `💎 أهلاً بصانع المستقبل يا ${studentName}!`,
-                message: `خطوة ذكية جداً باختيارك منصة رحلة دراسية! جهزنا لك نظام متكامل يختصر عليك الوقت ويضمن لك الفهم العميق والدرجات النهائية يا ${studentName}. استمتع بالتجربة وكسر الدنيا! ⚡`
-            },
-            {
-                title: `🔥 الحماس وصل للفل الأخير مع ${studentName}!`,
-                message: `أهلاً بك يا بطل في كوكب التفوق الدراسي. منورنا يا ${studentName}، ومستعدين ندعمك بكل قوة لحد ما تشوف حلمك قدام عينك. فتحنا لك الأبواب، ومستنيين إبداعك! 🎯`
-            }
-        ];
-
-        // دالة إنشاء وإرسال رسالة الترحيب الدائمة المحفوظة في adminNotifications
+        // دالة جلب القوالب الترحيبية من فايربيس (مستند welcomeTemplates داخل كولكشن messagestore) واختيار واحد عشوائياً
         async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
-            const templates = getWelcomeTemplates(studentName);
-            const randomIndex = Math.floor(Math.random() * templates.length);
-            const selectedTemplate = templates[randomIndex];
-
             try {
-                // استخدام معرف دائم وفريد مرتبط بإيميل الطالب لتظل محفوظة للأبد ولا تُحذف
+                let templatesList = [];
+                
+                // محاولة جلب القوالب من قاعدة البيانات سحابياً
+                const docRef = window.doc(db, "messagestore", "welcomeTemplates");
+                const docSnap = await window.getDoc(docRef);
+
+                if (docSnap.exists() && docSnap.data().templates && docSnap.data().templates.length > 0) {
+                    templatesList = docSnap.data().templates;
+                } else {
+                    // قالب احتياطي لو السحابة فيها مشكلة مؤقتة
+                    templatesList = [
+                        {
+                            title: `🌟 أهلاً بيك يا ${studentName} في رحلة دراسية!`,
+                            message: `منورنا يا بطل في أقوى منصة تعليمية! جهز قهوتك واستعد لرحلة تفوق مفيهاش مستحيل يا ${studentName}.`
+                        }
+                    ];
+                }
+
+                // اختيار قالب عشوائي من اللي جايين من فايربيس
+                const randomIndex = Math.floor(Math.random() * templatesList.length);
+                const selectedTemplate = templatesList[randomIndex];
+
+                // استبدال اسم الطالب ديناميكياً في العنوان والرسالة
+                const finalTitle = selectedTemplate.title.replace(/\${studentName}/g, studentName);
+                const finalMessage = selectedTemplate.message.replace(/\${studentName}/g, studentName);
+
+                // حفظ الإشعار الدائم في adminNotifications
                 const notifId = "welcome_" + studentEmail.replace(/[^a-zA-Z0-9]/g, "_");
                 
                 await window.setDoc(window.doc(db, "adminNotifications", notifId), {
-                    title: selectedTemplate.title,
-                    message: selectedTemplate.message,
+                    title: finalTitle,
+                    message: finalMessage,
                     target: "students",
                     recipientEmail: studentEmail,
                     sender: "إدارة المنصة 📖",
                     createdAt: window.serverTimestamp()
                 }, { merge: true });
                 
-                console.log("تم حفظ الإشعار الترحيبي الدائم بنجاح!");
+                console.log("تم جلب القالب من فايربيس وحفظ الإشعار الترحيبي بنجاح!");
             } catch (err) {
-                console.error("خطأ في حفظ الإشعار الترحيبي:", err);
+                console.error("خطأ في جلب القوالب من فايربيس:", err);
             }
         }
 
@@ -945,7 +923,7 @@
 
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
 
-                // إرسال وحفظ رسالة الترحيب العشوائية التلقائية الدائمة للطالب الجديد في adminNotifications
+                // جلب القوالب من فايربيس وإرسال رسالة الترحيب الدائمة للطالب الجديد
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, firstName);
 
                 sessionStorage.setItem('isLoggedIn', 'true');
