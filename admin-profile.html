@@ -102,7 +102,6 @@
             z-index: 5; 
         }
 
-        /* تأثيرات الإطارات والمستويات الموحدة مع الطالب */
         .rank-frame-legendary { 
             background: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4, #6366f1); 
             background-size: 300% 300%;
@@ -211,7 +210,7 @@
         
         .edit-form-modal .form-group { margin-bottom: 14px; text-align: right; }
         .edit-form-modal label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary); }
-        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"], .edit-form-modal input[type="password"], .edit-form-modal textarea, .edit-form-modal select { 
+        .edit-form-modal input[type="text"], .edit-form-modal input[type="email"], .edit-form-modal input[type="tel"], .edit-form-modal input[type="password"], .edit-form-modal textarea, .edit-form-modal select { 
             width: 100%; padding: 10px 14px; 
             border: 1px solid var(--border-color); 
             background-color: var(--input-bg); 
@@ -285,7 +284,7 @@
             <div class="modal-body edit-form-modal">
                 <div class="form-group">
                     <label>البريد الإلكتروني (للحساب المسجل)</label>
-                    <input type="email" id="editEmail" readonly style="opacity: 0.7; cursor: not-allowed;">
+                    <input type="email" id="editEmail" readonly style="opacity: 0.7; cursor: not-allowed; background: var(--input-bg);">
                 </div>
                 <div class="form-group">
                     <label>الاسم الكامل</label>
@@ -407,8 +406,6 @@
         </div>
     </div>
 
-    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -461,7 +458,7 @@
                 const q = query(collection(db, "admins"), orderBy("adminId", "desc"), limit(1));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
-                    const lastId = snap.docs[0].data().adminId; // e.g. "ADM-0001"
+                    const lastId = snap.docs[0].data().adminId; 
                     if (lastId && lastId.startsWith("ADM-")) {
                         const num = parseInt(lastId.replace("ADM-", "")) + 1;
                         return `ADM-${String(num).padStart(4, '0')}`;
@@ -486,8 +483,12 @@
             try {
                 if (sessionAdmin) currentAdminData = JSON.parse(sessionAdmin);
 
+                if (!adminEmail && currentAdminData && currentAdminData.email) {
+                    adminEmail = currentAdminData.email;
+                }
+
                 if (adminEmail && window.firebaseDb && window.doc && window.getDoc) {
-                    const docRef = window.doc(window.firebaseDb, "admins", adminEmail.toLowerCase());
+                    const docRef = window.doc(window.firebaseDb, "admins", adminEmail.toLowerCase().trim());
                     const docSnap = await window.getDoc(docRef);
                     if (docSnap.exists()) {
                         currentAdminData = docSnap.data();
@@ -497,8 +498,11 @@
                 if (currentAdminData) {
                     if (!currentAdminData.adminId) {
                         currentAdminData.adminId = await getNextAdminId();
-                        let docRef = window.doc(window.firebaseDb, "admins", (currentAdminData.email || '').toLowerCase());
-                        await window.setDoc(docRef, currentAdminData, { merge: true });
+                        let emailKey = (currentAdminData.email || adminEmail || '').toLowerCase().trim();
+                        if (emailKey) {
+                            let docRef = window.doc(window.firebaseDb, "admins", emailKey);
+                            await window.setDoc(docRef, currentAdminData, { merge: true });
+                        }
                     }
                     renderProfile(currentAdminData);
                 } else {
@@ -605,9 +609,9 @@
                 currentAdminData.profileImage = selectedNewAvatarBase64;
                 currentAdminData.avatar = selectedNewAvatarBase64;
 
-                let email = currentAdminData.email;
-                if (window.firebaseDb && window.doc) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", email.toLowerCase()), currentAdminData, { merge: true });
+                let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
+                if (window.firebaseDb && window.doc && emailKey) {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -626,10 +630,10 @@
             if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
             currentAdminData.profileImage = "";
             currentAdminData.avatar = "";
-            let email = currentAdminData.email;
+            let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (window.firebaseDb && window.doc) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", email.toLowerCase()), currentAdminData, { merge: true });
+                if (window.firebaseDb && window.doc && emailKey) {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -656,10 +660,10 @@
             currentAdminData.phone = newPhone;
             if (newPass) currentAdminData.password = newPass;
 
-            let email = currentAdminData.email;
+            let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (window.firebaseDb && window.doc) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", email.toLowerCase()), currentAdminData, { merge: true });
+                if (window.firebaseDb && window.doc && emailKey) {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -674,9 +678,9 @@
         window.deleteAccountPermanently = async function() {
             if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
             try {
-                let email = currentAdminData.email;
-                if (window.firebaseDb && window.doc) {
-                    await window.deleteDoc(window.doc(window.firebaseDb, "admins", email.toLowerCase()));
+                let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
+                if (window.firebaseDb && window.doc && emailKey) {
+                    await window.deleteDoc(window.doc(window.firebaseDb, "admins", emailKey));
                 }
                 sessionStorage.clear();
                 showToast("تم حذف حسابك نهائياً.", "⚠️");
@@ -700,7 +704,7 @@
                 await window.addDoc(window.collection(window.firebaseDb, "notifications"), {
                     title: title,
                     message: message,
-                    sender: currentAdminData.fullname || "الإدارة",
+                    sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
                     createdAt: window.serverTimestamp()
                 });
                 document.getElementById('broadcastTitle').value = '';
@@ -715,10 +719,13 @@
 
         window.loadAdminNotesFromCloud = async function() {
             try {
-                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase());
+                if (!currentAdminData || !currentAdminData.email) return;
+                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase().trim());
                 const docSnap = await window.getDoc(docRef);
                 if (docSnap.exists()) {
                     document.getElementById('adminNotesText').value = docSnap.data().notes || '';
+                } else {
+                    document.getElementById('adminNotesText').value = '';
                 }
             } catch (err) {
                 console.error(err);
@@ -728,7 +735,11 @@
         window.saveAdminNotesToCloud = async function() {
             const notesContent = document.getElementById('adminNotesText').value;
             try {
-                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase());
+                if (!currentAdminData || !currentAdminData.email) {
+                    showToast("بيانات الحساب غير متوفرة لحفظ الملاحظات.", "❌");
+                    return;
+                }
+                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase().trim());
                 await window.setDoc(docRef, { notes: notesContent, updatedAt: window.serverTimestamp() }, { merge: true });
                 showToast("تم حفظ الملاحظات في السحابة بنجاح! 💾", "✅");
             } catch (err) {
@@ -776,7 +787,7 @@
                 await window.addDoc(window.collection(window.firebaseDb, "notifications"), {
                     title: "رسالة تحفيزية من الإدارة ⚡",
                     message: msgText,
-                    sender: currentAdminData.fullname || "الإدارة",
+                    sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
                     createdAt: window.serverTimestamp()
                 });
                 closeModal('messageComposerModal');
