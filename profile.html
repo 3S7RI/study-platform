@@ -1,548 +1,501 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الملف الشخصي - رحلة دراسية</title>
+    <title>منصة رحلة دراسية - الملف الشخصي للطالب</title>
     <style>
         :root {
-            --primary-color: #6366f1;
-            --primary-hover: #4f46e5;
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --form-bg: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e1b4b, #311042);
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
             --text-main: #f8fafc;
-            --text-secondary: #94a3b8;
-            --border-color: #334155;
-            --input-bg: #0f172a;
+            --text-sub: #94a3b8;
+            --navbar-bg: rgba(15, 23, 42, 0.9);
+            --btn-bg: rgba(255, 255, 255, 0.1);
+            --btn-border: rgba(255, 255, 255, 0.15);
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             --modal-overlay-bg: rgba(15, 23, 42, 0.75);
             --success-color: #10b981;
             --danger-color: #ef4444;
         }
 
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            transition: background 0.3s, border-color 0.3s, transform 0.2s; 
+        [data-theme="light"] {
+            --bg-gradient: linear-gradient(135deg, #e0e7ff, #f3e8ff, #f1f5f9);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --card-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --navbar-bg: rgba(255, 255, 255, 0.9);
+            --btn-bg: rgba(0, 0, 0, 0.05);
+            --btn-border: rgba(0, 0, 0, 0.1);
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --modal-overlay-bg: rgba(0, 0, 0, 0.5);
         }
 
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-main); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            padding: 20px 15px; 
-            position: relative;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
 
-        .top-nav-bar {
-            width: 100%;
-            max-width: 480px;
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+        
+        .navbar { 
+            background: var(--navbar-bg); 
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 12px 18px; 
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .back-btn { 
-            background: none; 
-            border: none; 
-            color: var(--text-secondary); 
-            font-size: 0.9rem; 
-            cursor: pointer; 
-            display: inline-flex; 
             align-items: center; 
-            gap: 5px; 
-            text-decoration: none; 
-            font-weight: 600; 
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
-        .back-btn:hover { color: var(--primary-color); }
+        
+        .back-home-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
 
-        .profile-card { 
-            width: 100%; 
-            max-width: 480px; 
+        .navbar-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+        .navbar-title a { color: var(--text-main); text-decoration: none; }
+
+        .profile-container {
+            max-width: 700px;
+            margin: 30px auto;
+            padding: 0 15px;
+        }
+
+        .profile-card {
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 24px 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 22px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             margin-bottom: 25px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .profile-header { 
-            text-align: center; 
-            margin-bottom: 25px; 
-            position: relative;
-            padding-top: 10px;
-        }
-        
-        .avatar-wrapper { 
-            position: relative; 
-            width: 120px; 
-            height: 120px; 
-            margin: 0 auto 16px; 
-            border-radius: 50%; 
-            padding: 4px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            z-index: 5;
-        }
-        .avatar-wrapper img { 
-            width: 100%; 
-            height: 100%; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            background: #334155; 
-            position: relative; 
-            z-index: 5; 
         }
 
-        .rank-frame-weak { background: linear-gradient(45deg, #ef4444, #991b1b); box-shadow: 0 0 18px rgba(239, 68, 68, 0.7); }
-        .rank-frame-medium { background: linear-gradient(45deg, #f59e0b, #b45309); box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
-        .rank-frame-strong { background: linear-gradient(45deg, #eab308, #ca8a04); box-shadow: 0 0 22px rgba(234, 179, 8, 0.9); }
-        .rank-frame-very-strong { background: linear-gradient(45deg, #06b6d4, #3b82f6); box-shadow: 0 0 26px rgba(6, 182, 212, 1); }
-        .rank-frame-legendary { 
-            background: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4, #6366f1); 
-            background-size: 300% 300%;
-            box-shadow: 0 0 30px rgba(168, 85, 247, 0.9); 
-            animation: legendaryPulse 3s ease infinite; 
+        .avatar-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 15px;
+            padding: 3px;
         }
-        .rank-frame-unranked { background: var(--border-color); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
 
-        @keyframes legendaryPulse { 
-            0% { background-position: 0% 50%; box-shadow: 0 0 20px rgba(99, 102, 241, 0.8); } 
-            50% { background-position: 100% 50%; box-shadow: 0 0 35px rgba(168, 85, 247, 1); } 
-            100% { background-position: 0% 50%; box-shadow: 0 0 20px rgba(6, 182, 212, 0.8); } 
+        .avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #1e293b;
         }
 
         .upload-badge {
-            position: absolute; bottom: 2px; left: 2px; background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--card-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 0.75rem; z-index: 6;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--primary);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 0.9rem;
         }
-        .upload-badge:hover { background: var(--primary-hover); transform: scale(1.1); }
 
-        .student-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
-        
+        .student-name {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 5px;
+        }
+
         .student-id-container {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 8px;
-            background: var(--input-bg);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
-        .id-text-badge { font-size: 0.8rem; color: var(--primary-color); font-weight: 700; letter-spacing: 0.5px; }
-        .copy-id-btn { background: var(--primary-color); color: #fff; border: none; padding: 3px 8px; border-radius: 12px; font-size: 0.7rem; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
-        .copy-id-btn:hover { background: var(--primary-hover); }
+
+        .id-text-badge {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-family: monospace;
+        }
+
+        .copy-id-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
 
         .level-badge-box {
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 7px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px;
-            border: 1px solid rgba(255,255,255,0.2);
-            position: relative;
-            z-index: 5;
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: bold;
             cursor: pointer;
         }
-        .level-badge-box:hover { transform: scale(1.03); filter: brightness(1.1); }
-        .level-badge-box::after { content: " ℹ️"; font-size: 0.75rem; opacity: 0.8; }
 
-        .badge-weak { background: linear-gradient(135deg, #7f1d1d, #450a0a); color: #fca5a5; }
-        .badge-medium { background: linear-gradient(135deg, #78350f, #451a03); color: #fde68a; }
-        .badge-strong { background: linear-gradient(135deg, #854d0e, #3f2305); color: #fef08a; }
-        .badge-very-strong { background: linear-gradient(135deg, #1e3a8a, #172554); color: #bfdbfe; }
-        .badge-legendary { background: linear-gradient(135deg, #4c1d95, #311075, #1e1b4b); color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
-        .badge-unranked { background-color: #334155; color: #94a3b8; }
+        .badge-weak { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+        .badge-medium { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-strong { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-very-strong { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); }
+        .badge-legendary { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
 
         .profile-actions-bar {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            justify-content: center;
             gap: 10px;
-            margin-bottom: 20px;
-            width: 100%;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
         }
+
         .profile-action-btn {
-            background: var(--input-bg); color: #fff; padding: 11px 5px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 5px; text-align: center; white-space: nowrap;
-        }
-        .profile-action-btn:hover { background: #334155; border-color: var(--primary-color); }
-
-        .student-search-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 14px; }
-        .student-search-box h3 { font-size: 0.88rem; margin-bottom: 10px; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
-        .search-input-group { display: flex; gap: 6px; align-items: center; width: 100%; }
-        .search-input-group input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.82rem; background: var(--card-bg); color: var(--text-main); outline: none; }
-        .search-input-group input:focus { border-color: var(--primary-color); }
-        .search-input-group button { padding: 9px 14px; background: var(--primary-color); color: white; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .search-input-group button svg { width: 16px; height: 16px; fill: currentColor; }
-        .search-input-group button:hover { background: var(--primary-hover); }
-
-        .footer-rights {
-            text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 15px; border-top: 1px dashed var(--border-color); width: 100%; max-width: 480px; position: relative; z-index: 2;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-            background: var(--modal-overlay-bg); 
-            backdrop-filter: blur(10px); 
-            -webkit-backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: center; 
-            z-index: 1000; opacity: 0; visibility: hidden; 
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
-            padding: 15px; 
+        .profile-action-btn:hover { background: var(--primary); border-color: var(--primary); color: white; }
+
+        .student-search-box {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .student-search-box h3 { font-size: 0.9rem; margin-bottom: 10px; color: var(--text-main); }
+        
+        .search-input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input-group input {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-input-group button {
+            background: var(--primary);
+            border: none;
+            width: 42px;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .search-input-group button svg { width: 18px; height: 18px; fill: white; }
+
+        /* نوافذ منبثقة (Modals) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--modal-overlay-bg);
+            backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 15px;
         }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        .modal-card { 
-            background: linear-gradient(145deg, #1e293b, #0f172a); 
-            width: 100%; max-width: 420px; 
-            border-radius: 22px; 
-            border: 1px solid rgba(99, 102, 241, 0.25); 
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.1); 
-            overflow: hidden; 
-            transform: scale(0.9) translateY(10px); 
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        .modal-card {
+            background: var(--card-bg);
+            width: 100%; max-width: 440px;
+            border-radius: 22px;
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transform: scale(0.9) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
         
-        .modal-header { 
-            padding: 14px 18px; 
-            background: rgba(15, 23, 42, 0.6); 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; justify-content: space-between; align-items: center; 
+        .modal-header {
+            padding: 14px 18px;
+            background: var(--navbar-bg);
+            border-bottom: 1px solid var(--card-border);
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .modal-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .modal-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
         
-        .close-modal { 
-            background: rgba(255, 255, 255, 0.05); 
-            border: 1px solid var(--border-color); 
+        .close-modal {
+            background: var(--btn-bg); border: 1px solid var(--btn-border);
             width: 28px; height: 28px; border-radius: 50%;
-            font-size: 0.9rem; color: var(--text-secondary); 
+            font-size: 0.9rem; color: var(--text-sub);
             cursor: pointer; display: flex; align-items: center; justify-content: center;
         }
         .close-modal:hover { background: var(--danger-color); color: #fff; border-color: var(--danger-color); }
         
         .modal-body { padding: 18px; text-align: right; max-height: 75vh; overflow-y: auto; }
-        .modal-body::-webkit-scrollbar { width: 5px; }
-        .modal-body::-webkit-scrollbar-track { background: var(--bg-color); }
-        .modal-body::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        .form-group { margin-bottom: 14px; text-align: right; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-sub); margin-bottom: 5px; font-weight: bold; }
+        .form-group input {
+            width: 100%; background: var(--btn-bg); border: 1px solid var(--btn-border);
+            padding: 10px 14px; border-radius: 10px; color: var(--text-main); font-size: 0.85rem; outline: none;
+        }
+
+        .btn {
+            background: var(--primary); color: white; border: none; padding: 10px 18px;
+            border-radius: 10px; font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;
+        }
+        .btn:hover { background: var(--primary-hover); }
+
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main);
+            padding: 10px 20px; border-radius: 30px; box-shadow: var(--shadow);
+            display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: bold;
+            z-index: 3000; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
         
-        .edit-form-modal .form-group { margin-bottom: 14px; text-align: right; }
-        .edit-form-modal label { display: block; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary); letter-spacing: 0.3px; }
-        .edit-form-modal input[type="text"], .edit-form-modal input[type="tel"], .edit-form-modal input[type="email"] { 
-            width: 100%; padding: 10px 14px; 
-            border: 1px solid var(--border-color); 
-            background-color: var(--input-bg); 
-            color: var(--text-main); 
-            border-radius: 12px; outline: none; font-size: 0.85rem; 
-        }
-        .edit-form-modal input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
-        
-        .setting-custom-row { display: flex; gap: 8px; align-items: center; width: 100%; }
-        .setting-custom-btn { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; text-align: right; }
-        .setting-toggle-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-main); cursor: pointer; white-space: nowrap; }
-        .setting-toggle-box input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary-color); cursor: pointer; }
-
-        .modal-avatar-wrapper { position: relative; width: 95px; height: 95px; margin: 0 auto 14px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
-        .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
-
-        .btn { width: 100%; padding: 11px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
-        .btn:hover { background-color: var(--primary-hover); }
-        
-        .settings-danger-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 14px;
-        }
-        .btn-delete-avatar { background-color: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 9px 5px; font-size: 0.75rem; border-radius: 10px; margin-top: 0; font-weight: 600; }
-        .btn-delete-avatar:hover { background-color: rgba(239, 68, 68, 0.25); }
-        
-        .btn-delete-account { background-color: rgba(239, 68, 68, 0.2); color: #ff4d4d; border: 1px solid rgba(239, 68, 68, 0.6); padding: 9px 5px; font-size: 0.75rem; border-radius: 10px; margin-top: 0; font-weight: bold; }
-        .btn-delete-account:hover { background-color: var(--danger-color); color: #fff; }
-
-        .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.85rem; }
-        .badge-dot { position: absolute; top: -4px; right: -4px; background: var(--danger-color); color: white; font-size: 0.65rem; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
-
-        .friend-item-card { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border-color); width: 100%; }
-        .friend-item-card:hover { border-color: rgba(99, 102, 241, 0.4); }
-        .friend-info-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; text-align: right; }
-        .friend-info-trigger .friend-avatar-wrap { width: 38px; height: 38px; border-radius: 50%; padding: 2px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--primary-color); }
-        .friend-info-trigger img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-        .friend-info-trigger .friend-name-text { font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .friend-actions-group { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
-        .friend-action-icon-btn { border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: 600; color: #fff; white-space: nowrap; }
-        .btn-chat-action { background: var(--success-color); }
-        .btn-chat-action:hover { filter: brightness(1.1); }
-        .btn-ban-action { background: var(--danger-color); }
-        .btn-ban-action:hover { filter: brightness(1.1); }
-
-        .chat-box-container { height: 240px; overflow-y: auto; background: var(--bg-color); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
-        .chat-msg { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; word-break: break-word; line-height: 1.4; }
-        .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; border-bottom-left-radius: 2px; }
-        .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); border-bottom-right-radius: 2px; }
-
-        .rank-guide-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--input-bg);
-            padding: 10px 14px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-            border: 1px solid var(--border-color);
-            text-align: right;
-        }
-        .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
-        .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
-
-        #customToast {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
-            background: rgba(30, 41, 59, 0.95);
-            color: var(--text-main);
-            border: 1px solid var(--primary-color);
-            padding: 16px 26px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 20px rgba(99, 102, 241, 0.3);
-            font-size: 0.95rem;
-            font-weight: 700;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            opacity: 0;
-            visibility: hidden;
-            backdrop-filter: blur(12px);
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            text-align: center;
-            max-width: 90%;
-        }
-        #customToast.show {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-            visibility: visible;
-        }
+        .loading { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem; }
     </style>
 </head>
 <body>
+    <header class="navbar">
+        <a href="main.html" class="back-home-btn">🏠 الرئيسية</a>
+        <div class="navbar-title">الملف الشخصي</div>
+        <button onclick="logoutStudent()" class="back-home-btn" style="color:var(--danger-color); border-color:rgba(239, 68, 68, 0.3);">خروج 🚪</button>
+    </header>
 
-    <div id="customToast">
-        <span id="toastIcon" style="font-size: 1.2rem;">✨</span>
-        <span id="toastMessage">تم الحفظ بنجاح</span>
-    </div>
-
-    <div class="top-nav-bar">
-        <a href="main.html" class="back-btn"><span>←</span> الرئيسية</a>
-        <button class="back-btn" onclick="logoutStudent()" style="color: var(--danger-color);">تسجيل الخروج 🚪</button>
-    </div>
-
-    <div class="profile-card" id="profileCardMain">
-        <div id="studentProfileContent">
-            <div class="profile-header">
-                <div class="avatar-wrapper rank-frame-legendary">
-                    <img id="profileAvatarDisplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة الطالب">
-                    <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
-                </div>
-                <div class="student-name" id="profileNameDisplay">جاري التحميل...</div>
-                <div class="student-id-container">
-                    <span class="id-text-badge" id="profileIdDisplay">ID: ...</span>
-                    <button class="copy-id-btn" onclick="copyStudentId()">نسخ 📋</button>
-                </div>
-                <div>
-                    <span class="level-badge-box badge-legendary" onclick="openRankGuideModal()">جاري تحميل المستوى...</span>
-                </div>
-            </div>
-            <div class="profile-actions-bar">
-                <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ التعديل</button>
-                <button class="profile-action-btn" onclick="openFriendsModal()">👥 الأصدقاء</button>
-                <button class="profile-action-btn" onclick="openFriendRequestsModal()" style="position:relative;">
-                    📥 الطلبات
-                    <span class="badge-dot" id="requestsBadgeDot">0</span>
-                </button>
-            </div>
-            <div class="student-search-box">
-                <h3>🔍 بحث عن ملف طالب بالـ ID أو رقم الهاتف</h3>
-                <div class="search-input-group">
-                    <input type="text" id="friendIdInput" placeholder="أدخل الـ ID أو رقم الهاتف...">
-                    <button onclick="searchStudentProfile()" title="بحث عن الطالب">
-                        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                    </button>
-                </div>
-            </div>
+    <div class="profile-container">
+        <div class="profile-card" id="studentProfileContent">
+            <div class="loading">جاري جلب بيانات الملف الشخصي فوراً... ⏳</div>
         </div>
     </div>
 
-    <div class="footer-rights">
-        جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
-    </div>
-
+    <!-- نافذة تعديل البيانات -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>تعديل الملف الشخصي ⚙️</h3>
+                <h3>إعدادات وتعديل الحساب ⚙️</h3>
                 <button class="close-modal" onclick="closeSettingsModal()">✕</button>
             </div>
-            <div class="modal-body edit-form-modal" style="text-align: right;">
+            <div class="modal-body">
                 <div class="form-group">
-                    <label>البريد الإلكتروني (للحساب المسجل)</label>
-                    <input type="email" id="editEmail" readonly style="opacity: 0.7; cursor: not-allowed;">
+                    <label>البريد الإلكتروني (غير قابل للتعديل)</label>
+                    <input type="email" id="editEmail" disabled style="opacity: 0.6; cursor: not-allowed;">
                 </div>
                 <div class="form-group">
                     <label>الاسم الكامل</label>
-                    <input type="text" id="editName">
+                    <input type="text" id="editName" placeholder="أدخل اسمك الكامل">
                 </div>
                 <div class="form-group">
-                    <label>رقم هاتف الطالب</label>
-                    <input type="tel" id="editPhone">
+                    <label>رقم الهاتف</label>
+                    <input type="text" id="editPhone" placeholder="أدخل رقم هاتفك">
                 </div>
                 <div class="form-group">
-                    <label>رقم هاتف ولي الأمر</label>
-                    <input type="tel" id="editParentPhone">
+                    <label>رقم ولي الأمر</label>
+                    <input type="text" id="editParentPhone" placeholder="أدخل رقم ولي الأمر">
                 </div>
-                <div class="form-group">
-                    <label>المقارنة مع الأصدقاء</label>
-                    <div class="setting-custom-row">
-                        <div class="setting-custom-btn">
-                            <span>السماح للأصدقاء بمقارنة التقدم</span>
-                        </div>
-                        <label class="setting-toggle-box">
-                            <span>تفعيل</span>
-                            <input type="checkbox" id="editAllowComparison">
-                        </label>
-                    </div>
+                <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="editAllowComparison" style="width:18px; height:18px; cursor:pointer;">
+                    <label for="editAllowComparison" style="margin:0; cursor:pointer; color:var(--text-main);">السماح للأصدقاء بمقارنة التقدم 📊</label>
                 </div>
-                <div class="settings-danger-group">
-                    <button type="button" class="btn btn-delete-avatar" onclick="deleteProfilePicture()">🗑 حذف الصورة</button>
-                    <button type="button" class="btn btn-delete-account" onclick="deleteAccountPermanently()">⚠ حذف الحساب</button>
+                <button class="btn" onclick="saveStudentChanges()" style="margin-top:10px;">حفظ التعديلات 💾</button>
+                <div style="border-top:1px solid var(--card-border); margin-top:15px; padding-top:15px; display:flex; gap:10px;">
+                    <button class="btn" onclick="deleteProfilePicture()" style="background:var(--danger-color); font-size:0.75rem;">حذف الصورة 🗑️</button>
+                    <button class="btn" onclick="deleteAccountPermanently()" style="background:#7f1d1d; font-size:0.75rem;">حذف الحساب نهائياً ⚠️</button>
                 </div>
-                <button type="button" class="btn" onclick="saveStudentChanges()" style="margin-top: 12px;">حفظ التعديلات والخيارات 💾</button>
             </div>
         </div>
     </div>
-
+    <!-- نافذة تعديل وتغيير صورة البروفايل -->
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeAvatarModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>تعديل صورة البروفايل 🖼</h3>
+                <h3>تغيير صورة البروفايل 🖼️</h3>
                 <button class="close-modal" onclick="closeAvatarModal()">✕</button>
             </div>
-            <div class="modal-body" style="text-align: center;">
-                <div class="modal-avatar-wrapper rank-frame-legendary" id="modalAvatarFrame">
-                    <img id="modalAvatarPreview" src="" alt="معاينة الصورة">
+            <div class="modal-body" style="text-align:center;">
+                <div class="avatar-wrapper" id="modalAvatarFrame" style="margin: 0 auto 15px auto; width: 110px; height: 110px;">
+                    <img id="modalAvatarPreview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="معاينة الصورة">
                 </div>
-                <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="previewNewAvatar(event)">
-                <button type="button" class="btn" onclick="document.getElementById('avatarFileInput').click()" style="background: var(--input-bg); border: 1px solid var(--border-color);">اختر صورة جديدة من جهازك 📁</button>
-                <button type="button" class="btn" id="saveAvatarBtn" onclick="saveAvatarDirectly()" style="margin-top: 10px; background: var(--success-color);">حفظ وتحديث الصورة 💾</button>
+                <div class="form-group">
+                    <label style="text-align:center;">اختر صورة جديدة من جهازك (أقل من 700 كيلوبايت)</label>
+                    <input type="file" id="avatarFileInput" accept="image/*" onchange="previewNewAvatar(event)" style="cursor:pointer;">
+                </div>
+                <button class="btn" id="saveAvatarBtn" onclick="saveAvatarDirectly()" style="margin-top: 10px;">حفظ وتحديث الصورة 💾</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة دليل المستويات -->
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>دليل المستويات والنقاط 🏆</h3>
+                <h3>دليل مستويات الأبطال 🌟</h3>
                 <button class="close-modal" onclick="closeRankGuideModal()">✕</button>
             </div>
-            <div class="modal-body" style="text-align: right;">
-                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 14px; text-align: center; line-height: 1.4;">
-                    اجمع النقاط من خلال إكمال الدروس، حل الامتحانات، والواجبات لتتطور وترتقي بمستواك! 🚀
-                </p>
-                <div class="rank-guide-item">
-                    <span class="rank-guide-title" style="color: #fca5a5;">🔴 مبتدئ (ضعيف)</span>
-                    <span class="rank-guide-points">0 - 499 نقطة</span>
-                </div>
-                <div class="rank-guide-item">
-                    <span class="rank-guide-title" style="color: #fde68a;">🟡 متوسط</span>
-                    <span class="rank-guide-points">500 - 1499 نقطة</span>
-                </div>
-                <div class="rank-guide-item">
-                    <span class="rank-guide-title" style="color: #fef08a;">🟢 قوي</span>
-                    <span class="rank-guide-points">1500 - 2999 نقطة</span>
-                </div>
-                <div class="rank-guide-item">
-                    <span class="rank-guide-title" style="color: #bfdbfe;">🔵 قوي جداً</span>
-                    <span class="rank-guide-points">3000 - 4999 نقطة</span>
-                </div>
-                <div class="rank-guide-item">
-                    <span class="rank-guide-title" style="color: #e9d5ff;">🌟 أسطوري</span>
-                    <span class="rank-guide-points">5000+ نقطة</span>
-                </div>
+            <div class="modal-body" style="text-align:right; font-size:0.85rem; line-height:1.6;">
+                <p style="margin-bottom:10px; color:var(--text-sub);">تعتمد مستوياتك على مجموع نقاطك من الملازم والامتحانات:</p>
+                <div style="margin-bottom:8px;"><span class="level-badge-box badge-weak">مبتدئ (ضعيف)</span> : أقل من 500 نقطة</div>
+                <div style="margin-bottom:8px;"><span class="level-badge-box badge-medium">متوسط</span> : من 500 إلى 1499 نقطة</div>
+                <div style="margin-bottom:8px;"><span class="level-badge-box badge-strong">قوي</span> : من 1500 إلى 2999 نقطة</div>
+                <div style="margin-bottom:8px;"><span class="level-badge-box badge-very-strong">قوي جداً</span> : من 3000 إلى 4999 نقطة</div>
+                <div><span class="level-badge-box badge-legendary">أسطوري 🌟</span> : 5000 نقطة فأكثر</div>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="searchedProfileModal" onclick="if(event.target===this) closeSearchedProfileModal()">
+    <!-- نافذة عرض قائمة الأصدقاء -->
+    <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>الملف الشخصي للطالب 👤</h3>
-                <button class="close-modal" onclick="closeSearchedProfileModal()">✕</button>
-            </div>
-            <div class="modal-body" id="searchedProfileModalBody" style="text-align: center;">
-                <div class="loading">جاري تحميل الملف الشخصي... ⏳</div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-overlay" id="friendsModal" onclick="if(event.target===this) closeFriendsModal()">
-        <div class="modal-card" style="max-width:420px;">
-            <div class="modal-header">
-                <h3>قائمة أصدقائي 👥</h3>
+                <h3>أصدقائي على المنصة 👥</h3>
                 <button class="close-modal" onclick="closeFriendsModal()">✕</button>
             </div>
-            <div class="modal-body" style="text-align: right;">
+            <div class="modal-body">
                 <div id="friendsListContainer">
-                    <div class="loading">جاري تحميل قائمة الأصدقاء... ⏳</div>
+                    <div class="loading">جاري تحميل الأصدقاء... ⏳</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="chatPartnerTitle">الدردشة 💬</h3>
-                <button class="close-modal" onclick="closeChatModal()">✕</button>
-            </div>
-            <div class="modal-body" style="text-align: right;">
-                <div class="chat-box-container" id="chatMessagesContainer"></div>
-                <div class="search-input-group">
-                    <input type="text" id="chatInputText" placeholder="اكتب رسالتك هنا..." onkeydown="if(event.key==='Enter') sendChatMessage()">
-                    <button onclick="sendChatMessage()">إرسال 🚀</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- نافذة طلبات الصداقة الواردة -->
     <div class="modal-overlay" id="friendRequestsModal" onclick="if(event.target===this) closeFriendRequestsModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>طلبات الأصدقاء 📥</h3>
+                <h3>طلبات الصداقة الواردة 📥</h3>
                 <button class="close-modal" onclick="closeFriendRequestsModal()">✕</button>
             </div>
-            <div class="modal-body" style="text-align: right;">
+            <div class="modal-body">
                 <div id="friendRequestsListContainer">
-                    <div class="loading">جاري التحقق من الطلبات... ⏳</div>
+                    <div class="loading">جاري جلب الطلبات... ⏳</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
-        <div class="modal-card">
+    <!-- نافذة المحادثة الفورية مع صديق -->
+    <div class="modal-overlay" id="chatModal" onclick="if(event.target===this) closeChatModal()">
+        <div class="modal-card" style="max-width: 480px; height: 85vh; display: flex; flex-direction: column;">
             <div class="modal-header">
-                <h3>مقارنة المستوى والتقدم 📊</h3>
-                <button class="close-modal" onclick="closeComparisonModal()">✕</button>
+                <h3 id="chatPartnerTitle">محادثة 💬</h3>
+                <button class="close-modal" onclick="closeChatModal()">✕</button>
             </div>
-            <div class="modal-body" id="comparisonModalBody" style="text-align: right;">
-                <div class="loading">جاري جلب بيانات المقارنة... ⏳</div>
+            <div class="modal-body" id="chatMessagesContainer" style="flex: 1; overflow-y: auto; background: var(--bg-gradient); padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div class="loading">جاري تحميل الرسائل... ⏳</div>
+            </div>
+            <div style="padding: 12px; background: var(--navbar-bg); border-top: 1px solid var(--card-border); display: flex; gap: 8px;">
+                <input type="text" id="chatInputText" placeholder="اكتب رسالتك هنا..." onkeydown="if(event.key==='Enter') sendChatMessage()" style="flex:1; background:var(--card-bg); border:1px solid var(--card-border); padding:10px 14px; border-radius:10px; color:var(--text-main); font-size:0.85rem; outline:none;">
+                <button onclick="sendChatMessage()" style="background:var(--primary); border:none; padding:0 16px; border-radius:10px; color:white; font-weight:bold; cursor:pointer;">إرسال ✈️</button>
             </div>
         </div>
     </div>
+
+    <!-- نافذة مقارنة التقدم مع صديق -->
+    <div class="modal-overlay" id="comparisonModal" onclick="if(event.target===this) closeComparisonModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>مقارنة التقدم والمستوى 📊</h3>
+                <button class="close-modal" onclick="closeComparisonModal()">✕</button>
+            </div>
+            <div class="modal-body" id="comparisonModalBody">
+                <div class="loading">جاري المقارنة... 📊</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الملف الشخصي للطالب الذي تم البحث عنه -->
+    <div class="modal-overlay" id="searchedProfileModal" onclick="if(event.target===this) closeSearchedProfileModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>نتائج البحث عن الطالب 🔍</h3>
+                <button class="close-modal" onclick="closeSearchedProfileModal()">✕</button>
+            </div>
+            <div class="modal-body" id="searchedProfileModalBody">
+                <div class="loading">جاري البحث... 🔍</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="customToast">
+        <span id="toastIcon">✨</span>
+        <span id="toastMessage">تم بنجاح</span>
+    </div>
+
+    <style>
+        .friend-item-card { background: var(--btn-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .friend-info-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; }
+        .friend-avatar-wrap { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: #1e293b; flex-shrink: 0; border: 1px solid var(--primary); }
+        .friend-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .friend-name-text { font-size: 0.85rem; font-weight: bold; color: var(--text-main); }
+        .friend-actions-group { display: flex; gap: 5px; }
+        .friend-action-icon-btn { padding: 5px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: bold; border: none; cursor: pointer; }
+        .btn-chat-action { background: var(--primary); color: white; }
+        .btn-ban-action { background: rgba(239, 68, 68, 0.2); color: var(--danger-color); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-dot { background: var(--danger-color); color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; position: absolute; top: -5px; right: -5px; font-weight: bold; display: none; }
+        
+        .chat-msg { max-width: 75%; padding: 8px 12px; border-radius: 12px; font-size: 0.82rem; word-break: break-word; line-height: 1.4; }
+        .chat-msg.mine { background: var(--primary); color: white; align-self: flex-end; border-bottom-left-radius: 2px; }
+        .chat-msg.other { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main); align-self: flex-start; border-bottom-right-radius: 2px; }
+    </style>
+
+    <!-- Firebase SDK & Ultra Fast Cached Profile Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -575,9 +528,7 @@
             document.getElementById('toastMessage').innerText = message;
             document.getElementById('toastIcon').innerText = icon;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
         function getRankClass(score = 0) {
@@ -588,22 +539,25 @@
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
 
+        // --- عرض البروفايل فوراً من الكاش المحلي (لو موجود) لمنع أي تأخير ---
+        function loadProfileFromCacheInstant() {
+            const cachedData = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('student_profile_cache');
+            if (cachedData) {
+                try {
+                    currentStudentData = JSON.parse(cachedData);
+                    renderStudentProfile(currentStudentData);
+                } catch(e) {}
+            }
+        }
+        loadProfileFromCacheInstant();
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                
-                const cachedData = localStorage.getItem(`student_profile_${user.uid}`);
-                if (cachedData) {
-                    try {
-                        currentStudentData = JSON.parse(cachedData);
-                        renderStudentProfile(currentStudentData);
-                    } catch(e) {}
-                }
-
                 await fetchStudentProfileUltraFast(user.email, user.uid);
                 listenToFriendRequests(user);
             } else {
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }
         });
 
@@ -611,7 +565,7 @@
             try {
                 let docSnap = null;
                 if (emailKey) {
-                    const docRef = doc(db, "students", emailKey);
+                    const docRef = doc(db, "students", emailKey.toLowerCase().trim());
                     docSnap = await getDoc(docRef);
                 }
 
@@ -620,8 +574,8 @@
                     docSnap = await getDoc(docRef);
                 }
 
-                if ((!docSnap || !docSnap.exists()) && currentUser.email) {
-                    const qEmail = query(collection(db, "students"), where("email", "==", currentUser.email));
+                if ((!docSnap || !docSnap.exists()) && auth.currentUser && auth.currentUser.email) {
+                    const qEmail = query(collection(db, "students"), where("email", "==", auth.currentUser.email));
                     const snapEmail = await getDocs(qEmail);
                     if (!snapEmail.empty) {
                         docSnap = snapEmail.docs[0];
@@ -630,7 +584,8 @@
 
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
+                    localStorage.setItem('student_profile_cache', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 } else if (!currentStudentData) {
                     const defaultData = {
@@ -643,25 +598,15 @@
                         phone: '',
                         parentPhone: ''
                     };
-                    const newDocRef = doc(db, "students", currentUser.uid);
+                    const newDocRef = doc(db, "students", (currentUser.email || currentUser.uid).toLowerCase().trim());
                     await setDoc(newDocRef, defaultData);
                     currentStudentData = defaultData;
-                    localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
+                    localStorage.setItem('student_profile_cache', JSON.stringify(currentStudentData));
                     renderStudentProfile(currentStudentData);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
-                if (!currentStudentData) {
-                    currentStudentData = {
-                        name: currentUser.email ? currentUser.email.split('@')[0] : 'طالب',
-                        email: currentUser.email || '',
-                        studentId: currentUser.uid.substring(0, 8),
-                        totalScore: 0,
-                        profileImage: '',
-                        allowComparison: true
-                    };
-                    renderStudentProfile(currentStudentData);
-                }
             }
         }
 
@@ -679,8 +624,8 @@
                     <div class="student-name">${data.name || 'طالب متميز'}</div>
                     
                     <div class="student-id-container">
-                        <span class="id-text-badge">ID: ${data.studentId || currentUser.uid.substring(0,8)}</span>
-                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser.uid}')">نسخ 📋</button>
+                        <span class="id-text-badge">ID: ${data.studentId || currentUser?.uid.substring(0,8) || ''}</span>
+                        <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser?.uid || ''}')">نسخ 📋</button>
                     </div>
 
                     <div>
@@ -720,7 +665,7 @@
 
         window.openSettingsModal = function() {
             if (!currentStudentData) return;
-            document.getElementById('editEmail').value = currentStudentData.email || currentUser.email || '';
+            document.getElementById('editEmail').value = currentStudentData.email || currentUser?.email || '';
             document.getElementById('editName').value = currentStudentData.name || '';
             document.getElementById('editPhone').value = currentStudentData.phone || '';
             document.getElementById('editParentPhone').value = currentStudentData.parentPhone || '';
@@ -731,9 +676,7 @@
 
         window.openAvatarModal = function() {
             selectedNewAvatarBase64 = null;
-            document.getElementById('modalAvatarPreview').src = currentStudentData.profileImage || defaultMaleSvg;
-            const rankInfo = getRankClass(currentStudentData.totalScore || 0);
-            document.getElementById('modalAvatarFrame').className = `modal-avatar-wrapper ${rankInfo.frame}`;
+            document.getElementById('modalAvatarPreview').src = currentStudentData?.profileImage || defaultMaleSvg;
             document.getElementById('avatarModal').classList.add('active');
         };
         window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
@@ -774,7 +717,7 @@
             }
 
             try {
-                let docRef = doc(db, "students", currentUser.email);
+                let docRef = doc(db, "students", currentUser.email.toLowerCase().trim());
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -792,7 +735,8 @@
                 currentStudentData.parentPhone = newParentPhone;
                 currentStudentData.allowComparison = allowComparison;
 
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
+                localStorage.setItem('student_profile_cache', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
                 showToast('تم حفظ التعديلات بنجاح!', '💾');
@@ -829,7 +773,7 @@
             btn.disabled = true;
 
             try {
-                let docRef = doc(db, "students", currentUser.email);
+                let docRef = doc(db, "students", currentUser.email.toLowerCase().trim());
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -838,7 +782,8 @@
                 await updateDoc(docRef, { profileImage: selectedNewAvatarBase64 });
 
                 currentStudentData.profileImage = selectedNewAvatarBase64;
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
+                localStorage.setItem('student_profile_cache', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeAvatarModal();
                 showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
@@ -855,7 +800,7 @@
             if (!confirm('هل أنت متأكد من حذف صورة البروفايل نهائياً؟')) return;
 
             try {
-                let docRef = doc(db, "students", currentUser.email);
+                let docRef = doc(db, "students", currentUser.email.toLowerCase().trim());
                 let docSnap = await getDoc(docRef);
                 if (!docSnap.exists()) {
                     docRef = doc(db, "students", currentUser.uid);
@@ -864,10 +809,11 @@
                 await updateDoc(docRef, { profileImage: '' });
 
                 currentStudentData.profileImage = '';
-                localStorage.setItem(`student_profile_${currentUser.uid}`, JSON.stringify(currentStudentData));
+                sessionStorage.setItem('cachedStudentProfile', JSON.stringify(currentStudentData));
+                localStorage.setItem('student_profile_cache', JSON.stringify(currentStudentData));
                 renderStudentProfile(currentStudentData);
                 closeSettingsModal();
-                showToast('تم حذف صورة البروفايل بنجاح.', '🗑️');
+                showToast('تم حذف صورة البروفايل بنجاح.', '🗑️️');
             } catch (error) {
                 console.error("خطأ في حذف الصورة:", error);
                 showToast('حدث خطأ أثناء الحذف.', '❌');
@@ -878,13 +824,14 @@
             if (!confirm('⚠️ تحذير شديد: هل أنت متأكد تماماً من رغبتك في حذف حسابك نهائياً؟')) return;
 
             try {
-                try { await deleteDoc(doc(db, "students", currentUser.email)); } catch(e) {}
+                try { await deleteDoc(doc(db, "students", currentUser.email.toLowerCase().trim())); } catch(e) {}
                 try { await deleteDoc(doc(db, "students", currentUser.uid)); } catch(e) {}
 
-                localStorage.removeItem(`student_profile_${currentUser.uid}`);
+                sessionStorage.clear();
+                localStorage.clear();
                 await deleteUser(currentUser);
-                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠️️');
-                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+                showToast('تم حذف الحساب نهائياً بنجاح.', '⚠');
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
             } catch (error) {
                 console.error("خطأ في حذف الحساب:", error);
                 showToast('حدث خطأ أثناء حذف الحساب.', '❌');
@@ -937,7 +884,6 @@
                     return;
                 }
 
-                // التحقق هل هم أصدقاء بالفعل أو بينهم طلب معلق لمنع تكرار الإرسال
                 const friendshipId = [currentUser.uid, targetDocKey].sort().join('_');
                 const friendshipSnap = await getDoc(doc(db, "friends", friendshipId));
                 let isAlreadyFriend = false;
@@ -952,22 +898,22 @@
                 if (isAlreadyFriend) {
                     body.innerHTML = `
                         <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
+                            <div class="avatar-wrapper ${rankInfo.frame}" style="margin:0 auto 12px auto; width:90px; height:90px;">
                                 <img src="${avatarUrl}" alt="صورة الطالب">
                             </div>
                             <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
+                            <div style="font-size:0.75rem; color:var(--primary); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
                             <p style="color: var(--success-color); font-weight: bold; font-size: 0.85rem; margin-top: 15px;">هذا الطالب صديقك بالفعل 🤝</p>
                         </div>
                     `;
                 } else {
                     body.innerHTML = `
                         <div style="text-align:center;">
-                            <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
+                            <div class="avatar-wrapper ${rankInfo.frame}" style="margin:0 auto 12px auto; width:90px; height:90px;">
                                 <img src="${avatarUrl}" alt="صورة الطالب">
                             </div>
                             <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
-                            <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
+                            <div style="font-size:0.75rem; color:var(--primary); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
                             <div style="margin-bottom:16px;">
                                 <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
                             </div>
@@ -1074,7 +1020,7 @@
                 });
 
                 if (!hasPending) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:15px; font-size:0.82rem;">لا توجد طلبات صداقة معلقة حالياً.</p>`;
                 } else {
                     container.innerHTML = html;
                 }
@@ -1087,8 +1033,6 @@
         window.acceptFriendRequest = async function(reqId, senderId) {
             try {
                 await updateDoc(doc(db, "friendRequests", reqId), { status: 'accepted' });
-
-                // إنشاء معرف موحد للعلاقة بغض النظر عن من أرسل ومن استقبل
                 const friendshipId = [currentUser.uid, senderId].sort().join('_');
 
                 await setDoc(doc(db, "friends", friendshipId), { 
@@ -1120,30 +1064,24 @@
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
 
             try {
-                // جلب العلاقات التي يكون فيها المستخدم إما user1 أو user2
                 const q1 = query(collection(db, "friends"), where("user1", "==", currentUser.uid));
                 const q2 = query(collection(db, "friends"), where("user2", "==", currentUser.uid));
                 
                 const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-                
                 let friendsMap = new Map();
                 
                 snap1.docs.forEach(docSnap => {
                     const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user2, data.user2);
-                    }
+                    if (!data.deleted) friendsMap.set(data.user2, data.user2);
                 });
 
                 snap2.docs.forEach(docSnap => {
                     const data = docSnap.data();
-                    if (!data.deleted) {
-                        friendsMap.set(data.user1, data.user1);
-                    }
+                    if (!data.deleted) friendsMap.set(data.user1, data.user1);
                 });
 
                 if (friendsMap.size === 0) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
                     return;
                 }
 
@@ -1166,23 +1104,19 @@
                                     <div class="friend-avatar-wrap"><img src="${fInfo.profileImage || defaultMaleSvg}" alt=""></div>
                                     <div>
                                         <div class="friend-name-text">${fInfo.name}</div>
-                                        <div style="font-size:0.68rem; color:var(--text-secondary);">اضغط للمقارنة 📊</div>
+                                        <div style="font-size:0.68rem; color:var(--text-sub);">اضغط للمقارنة 📊</div>
                                     </div>
                                 </div>
                                 <div class="friend-actions-group">
                                     <button class="friend-action-icon-btn btn-chat-action" onclick="openChatWithFriend('${friendUid}', '${fInfo.name}')">محادثة 💬</button>
-                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑️️</button>
+                                    <button class="friend-action-icon-btn btn-ban-action" onclick="removeFriend('${friendUid}')">إزالة 🗑</button>
                                 </div>
                             </div>
                         `;
                     }
                 }
 
-                if (!html) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
-                } else {
-                    container.innerHTML = html;
-                }
+                container.innerHTML = html || `<p style="text-align:center; color:var(--text-sub); padding:15px; font-size:0.82rem;">ليس لديك أصدقاء مضافين حتى الآن.</p>`;
             } catch (error) {
                 console.error("خطأ في تحميل الأصدقاء:", error);
                 container.innerHTML = `<p style="color:var(--danger-color); text-align:center; font-size:0.82rem;">حدث خطأ أثناء جلب الأصدقاء.</p>`;
@@ -1197,8 +1131,6 @@
                 showToast('تم إزالة الصديق بنجاح.', '🗑');
                 loadFriendsList();
             } catch (error) {
-                console.error("خطأ إزالة الصديق:", error);
-                // لو الوثيقة مش موجودة بالمعرف الموحد، نجرب بطريقة بديلة
                 try {
                     await setDoc(doc(db, "friends", `${currentUser.uid}_${friendUid}`), { deleted: true }, { merge: true });
                     await setDoc(doc(db, "friends", `${friendUid}_${currentUser.uid}`), { deleted: true }, { merge: true });
@@ -1226,12 +1158,12 @@
             if (unsubscribeChat) unsubscribeChat();
 
             unsubscribeChat = onSnapshot(msgsRef, (snapshot) => {
-                let html = '';
                 if (snapshot.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-secondary); font-size:0.78rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); font-size:0.78rem; margin-top:20px;">لا توجد رسائل سابقة. ابدأ المحادثة الآن! 👋</p>`;
                     return;
                 }
 
+                let html = '';
                 const docs = snapshot.docs.sort((a, b) => {
                     const t1 = a.data().createdAt?.toMillis() || 0;
                     const t2 = b.data().createdAt?.toMillis() || 0;
@@ -1247,8 +1179,6 @@
 
                 container.innerHTML = html;
                 container.scrollTop = container.scrollHeight;
-            }, (error) => {
-                console.error("خطأ في الاستماع للدردشة:", error);
             });
         }
 
@@ -1309,18 +1239,18 @@
                 body.innerHTML = `
                     <div style="display:flex; justify-content:space-around; align-items:center; margin-bottom:18px; text-align:center;">
                         <div>
-                            <img src="${currentStudentData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary-color);">
+                            <img src="${currentStudentData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
                             <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">أنت</div>
-                            <div style="color:var(--primary-color); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
+                            <div style="color:var(--primary); font-weight:bold; font-size:0.82rem;">${myScore} ن</div>
                         </div>
-                        <div style="font-weight:bold; font-size:1rem; color:var(--text-secondary);">VS</div>
+                        <div style="font-weight:bold; font-size:1rem; color:var(--text-sub);">VS</div>
                         <div>
                             <img src="${fData.profileImage || defaultMaleSvg}" style="width:55px; height:55px; border-radius:50%; object-fit:cover; border:2px solid var(--success-color);">
                             <div style="font-weight:bold; font-size:0.8rem; margin-top:5px;">${friendName}</div>
                             <div style="color:var(--success-color); font-weight:bold; font-size:0.82rem;">${friendScore} ن</div>
                         </div>
                     </div>
-                    <div style="background:var(--bg-color); padding:12px; border-radius:12px; border:1px solid var(--border-color); text-align:center; font-weight:bold; font-size:0.85rem; color:var(--text-main);">
+                    <div style="background:var(--btn-bg); padding:12px; border-radius:12px; border:1px solid var(--card-border); text-align:center; font-weight:bold; font-size:0.85rem; color:var(--text-main);">
                         ${diffText}
                     </div>
                 `;
@@ -1331,9 +1261,10 @@
 
         window.logoutStudent = async function() {
             if (confirm('هل تريد تسجيل الخروج حقاً؟')) {
+                sessionStorage.clear();
                 localStorage.clear();
                 await signOut(auth);
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
             }
         };
     </script>
