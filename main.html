@@ -212,7 +212,6 @@
         }
         .card-btn:hover { background-color: var(--primary-hover); }
 
-        /* تنسيق نافذة الإشعارات الشيك والخط المرتب */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
             background: var(--modal-overlay-bg); 
@@ -259,7 +258,6 @@
         .modal-body::-webkit-scrollbar-track { background: transparent; }
         .modal-body::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
 
-        /* تصميم كارت الإشعار الفردي */
         .admin-notif-card {
             background: var(--btn-bg);
             border: 1px solid var(--card-border);
@@ -416,7 +414,7 @@
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -437,6 +435,23 @@
         let studentCreatedAtTime = 0; 
         let lastSeenNotificationTime = 0;
 
+        // --- نظام فحص انتهاء الجلسة (48 ساعة) ---
+        const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+        const sessionStartTime = sessionStorage.getItem('session_start_time');
+        
+        if (sessionStartTime) {
+            if (Date.now() - parseInt(sessionStartTime) > TWO_DAYS_MS) {
+                // انتهت صلاحية اليومين، تسجيل خروج إلزامي وتوجيه لصفحة الدخول
+                sessionStorage.clear();
+                signOut(auth).then(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        } else {
+            // إذا لم يكن وقت الجلسة موجوداً، ننشئه الآن
+            sessionStorage.setItem('session_start_time', Date.now().toString());
+        }
+
         // --- نظام الوضع الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
@@ -454,16 +469,16 @@
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
-                themeToggleBtn.textContent = '☀️️';
+                themeToggleBtn.textContent = '☀️';
             }
         });
 
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- تحميل بيانات البروفايل فوراً من الكاش المزدوج لمنع أي اختفاء ---
+        // --- تحميل بيانات البروفايل من الـ SessionStorage حصرياً لمنع الاختفاء ---
         function loadProfileFromCacheInstant() {
-            const cachedData = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('student_profile_cache');
+            const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
@@ -490,24 +505,26 @@
             if (user) {
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
                 currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
-                await fetchAndUpdateMainProfile(studentEmail, user.uid);
+                await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotifications();
             } else {
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }
         });
 
-        async function fetchAndUpdateMainProfile(emailKey, fallbackUid) {
+        async function fetchAndUpdateMainProfile(uid, emailKey) {
             try {
                 let docSnap = null;
 
-                if (emailKey) {
-                    const docRef = doc(db, "students", emailKey.toLowerCase().trim());
+                // البحث بالـ UID أولاً (وهو الأدق والأسرع)
+                if (uid) {
+                    const docRef = doc(db, "students", uid);
                     docSnap = await getDoc(docRef);
                 }
 
-                if ((!docSnap || !docSnap.exists()) && fallbackUid) {
-                    const docRef = doc(db, "students", fallbackUid);
+                // إذا لم يوجد بالـ UID، نبحث بالبريد الإلكتروني
+                if ((!docSnap || !docSnap.exists()) && emailKey) {
+                    const docRef = doc(db, "students", emailKey.toLowerCase().trim());
                     docSnap = await getDoc(docRef);
                 }
 
@@ -522,7 +539,6 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
-                    localStorage.setItem('student_profile_cache', JSON.stringify(data));
                     
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     
@@ -552,22 +568,21 @@
             lastSeenNotificationTime = Date.now();
             document.getElementById('mainNotifDot').style.display = 'none';
 
-            if (currentStudentEmailGlobal) {
+            if (currentStudentEmailGlobal && auth.currentUser) {
                 try {
-                    let docRef = doc(db, "students", currentStudentEmailGlobal);
+                    let docRef = doc(db, "students", auth.currentUser.uid);
                     let docSnap = await getDoc(docRef);
-                    if (!docSnap.exists() && auth.currentUser) {
-                        docRef = doc(db, "students", auth.currentUser.uid);
+                    if (!docSnap.exists()) {
+                        docRef = doc(db, "students", currentStudentEmailGlobal);
                     }
 
                     await setDoc(docRef, { lastSeenNotificationTime: lastSeenNotificationTime }, { merge: true });
                     
-                    let cachedData = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('student_profile_cache');
+                    let cachedData = sessionStorage.getItem('cachedStudentProfile');
                     if (cachedData) {
                         let parsed = JSON.parse(cachedData);
                         parsed.lastSeenNotificationTime = lastSeenNotificationTime;
                         sessionStorage.setItem('cachedStudentProfile', JSON.stringify(parsed));
-                        localStorage.setItem('student_profile_cache', JSON.stringify(parsed));
                     }
                 } catch (e) {
                     console.error("خطأ في حفظ وقت القراءة بالسحابة:", e);
