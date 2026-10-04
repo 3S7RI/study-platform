@@ -219,6 +219,38 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
+        /* تصميم خيارات التوجيه بجانب بعضها بدون لخبطة */
+        .target-options-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+        .target-card {
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 4px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+        }
+        .target-card input[type="radio"] {
+            accent-color: var(--primary-color);
+            cursor: pointer;
+            margin: 0;
+        }
+        .target-card:hover {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.08);
+        }
+
         .btn { width: 100%; padding: 11px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
         .btn:hover { background-color: var(--primary-hover); }
         .btn-save { background-color: var(--success-color); }
@@ -311,19 +343,36 @@
     <div class="modal-overlay" id="broadcastModal" onclick="if(event.target===this) closeModal('broadcastModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>📢 إرسال إشعار جماعي للطلاب</h3>
+                <h3>📢 إرسال إشعار جماعي</h3>
                 <button class="close-modal" onclick="closeModal('broadcastModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
+                <div class="form-group">
+                    <label>المستهدفون بالإشعار</label>
+                    <div class="target-options-group">
+                        <label class="target-card">
+                            <input type="radio" name="broadcastTarget" value="students" checked>
+                            الطلاب فقط
+                        </label>
+                        <label class="target-card">
+                            <input type="radio" name="broadcastTarget" value="admins">
+                            الإدارة فقط
+                        </label>
+                        <label class="target-card">
+                            <input type="radio" name="broadcastTarget" value="all">
+                            الطلاب والإدارة
+                        </label>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>عنوان الإشعار</label>
                     <input type="text" id="broadcastTitle" placeholder="مثال: تنبيه هام بخصوص الامتحان القادم">
                 </div>
                 <div class="form-group">
                     <label>محتوى الإشعار</label>
-                    <textarea id="broadcastMsg" rows="4" placeholder="اكتب نص الإشعار هنا ليصل لجميع الطلاب..."></textarea>
+                    <textarea id="broadcastMsg" rows="3" placeholder="اكتب نص الإشعار هنا..."></textarea>
                 </div>
-                <button class="btn btn-special" onclick="sendBroadcastNotification()">إرسال لجميع الطلاب الآن 🚀</button>
+                <button class="btn btn-special" onclick="sendBroadcastNotification()">إرسال الإشعار الآن 🚀</button>
             </div>
         </div>
     </div>
@@ -354,6 +403,23 @@
             </div>
             <div class="modal-body edit-form-modal">
                 <div class="form-group">
+                    <label>المستهدفون بالرسالة</label>
+                    <div class="target-options-group">
+                        <label class="target-card">
+                            <input type="radio" name="quickMsgTarget" value="students" checked>
+                            الطلاب فقط
+                        </label>
+                        <label class="target-card">
+                            <input type="radio" name="quickMsgTarget" value="admins">
+                            الإدارة فقط
+                        </label>
+                        <label class="target-card">
+                            <input type="radio" name="quickMsgTarget" value="all">
+                            الطلاب والإدارة
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>اختر تصنيف الرسالة من السحابة</label>
                     <select id="msgCategorySelect">
                         <option value="motivation">🔥 تحفيز وشحن معنوي</option>
@@ -363,10 +429,10 @@
                 </div>
                 <div class="form-group">
                     <label>الرسالة المولدة</label>
-                    <textarea id="generatedMsgOutput" rows="4" placeholder="اضغط زر توليد لإحضار رسالة عشوائية..."></textarea>
+                    <textarea id="generatedMsgOutput" rows="3" placeholder="اضغط زر توليد لإحضار رسالة عشوائية..."></textarea>
                 </div>
                 <button class="btn btn-special" onclick="loadQuickMessageFromCloud()">توليد رسالة جديدة 🔄</button>
-                <button class="btn btn-save" onclick="sendGeneratedMessageToAllStudents()" style="margin-top:8px;">إرسال للطلاب عبر الإشعارات 🚀</button>
+                <button class="btn btn-save" onclick="sendGeneratedMessageToAllStudents()" style="margin-top:8px;">إرسال عبر الإشعارات 🚀</button>
             </div>
         </div>
     </div>
@@ -668,7 +734,7 @@
                     await deleteDoc(doc(db, "admins", emailKey));
                 }
                 sessionStorage.clear();
-                showToast("تم حذف حسابك نهائياً.", "⚠️️");
+                showToast("تم حذف حسابك نهائياً.", "⚠");
                 setTimeout(() => { window.location.href = "login.html"; }, 1500);
             } catch (err) {
                 console.error(err);
@@ -676,9 +742,12 @@
             }
         };
 
+        // إرسال الإشعار الجماعي مع تحديد الـ target
         window.sendBroadcastNotification = async function() {
             const title = document.getElementById('broadcastTitle').value.trim();
             const message = document.getElementById('broadcastMsg').value.trim();
+            const targetRadio = document.querySelector('input[name="broadcastTarget"]:checked');
+            const targetVal = targetRadio ? targetRadio.value : "students";
 
             if (!title || !message) {
                 showToast("يرجى إدخال عنوان ومحتوى الإشعار!", "⚠️");
@@ -686,16 +755,17 @@
             }
 
             try {
-                await addDoc(collection(db, "notifications"), {
+                await addDoc(collection(db, "adminNotifications"), {
                     title: title,
                     message: message,
+                    target: targetVal,
                     sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
                     createdAt: serverTimestamp()
                 });
                 document.getElementById('broadcastTitle').value = '';
                 document.getElementById('broadcastMsg').value = '';
                 closeModal('broadcastModal');
-                showToast("تم إرسال الإشعار الجماعي لجميع الطلاب بنجاح! 🚀", "📢");
+                showToast("تم إرسال الإشعار الجماعي بنجاح إلى adminNotifications! 🚀", "📢");
             } catch (err) {
                 console.error(err);
                 showToast("فشل إرسال الإشعار.", "❌");
@@ -761,25 +831,30 @@
             }
         };
 
+        // إرسال الرسائل السريعة مع تحديد الـ target
         window.sendGeneratedMessageToAllStudents = async function() {
             const msgText = document.getElementById('generatedMsgOutput').value.trim();
+            const targetRadio = document.querySelector('input[name="quickMsgTarget"]:checked');
+            const targetVal = targetRadio ? targetRadio.value : "students";
+
             if (!msgText || msgText.startsWith("جاري") || msgText.startsWith("عذراً") || msgText.startsWith("لم يتم")) {
                 showToast("الرجاء توليد رسالة صحيحة أولاً!", "⚠️");
                 return;
             }
 
             try {
-                await addDoc(collection(db, "notifications"), {
+                await addDoc(collection(db, "adminNotifications"), {
                     title: "رسالة تحفيزية من الإدارة ⚡",
                     message: msgText,
+                    target: targetVal,
                     sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
                     createdAt: serverTimestamp()
                 });
                 closeModal('messageComposerModal');
-                showToast("تم إرسال الرسالة لجميع الطلاب عبر الإشعارات بنجاح! 🚀", "✨");
+                showToast("تم إرسال الرسالة بنجاح إلى adminNotifications! 🚀", "✨");
             } catch (err) {
                 console.error(err);
-                showToast("فشل إرسال الرسالة للطلاب.", "❌");
+                showToast("فشل إرسال الرسالة.", "❌");
             }
         };
 
