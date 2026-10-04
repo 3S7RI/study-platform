@@ -223,7 +223,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -269,39 +269,41 @@
 
         async function fetchExamsListFromCloud() {
             try {
-                const docSnap = await getDoc(doc(db, "config", "activeExam"));
-                if (docSnap.exists()) {
-                    let data = docSnap.data();
-                    // جلب قائمة الامتحانات المؤرشفة أو الامتحان الحالي
-                    availableExamsList = data.examsList || (data.currentExam ? [data.currentExam] : []);
-                    
-                    if (availableExamsList.length > 0) {
-                        renderExamsListUI(availableExamsList, data.examSubmissions || []);
-                    } else {
-                        renderNoExamMessage("لا توجد امتحانات متاحة حالياً.");
-                    }
-                } else { renderNoExamMessage("لم يتم نشر أي امتحانات بعد."); }
-            } catch (e) { renderNoExamMessage("حدث خطأ في الاتصال بالسحابة."); }
+                const querySnapshot = await getDocs(collection(db, "exams"));
+                availableExamsList = [];
+                querySnapshot.forEach((docSnap) => {
+                    availableExamsList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                if (availableExamsList.length > 0) {
+                    renderExamsListUI(availableExamsList);
+                } else {
+                    renderNoExamMessage("لا توجد امتحانات متاحة حالياً.");
+                }
+            } catch (e) {
+                console.error(e);
+                renderNoExamMessage("حدث خطأ في الاتصال بالسحابة.");
+            }
         }
 
         function renderNoExamMessage(msg) {
             document.getElementById('examContainer').innerHTML = `<div style="text-align: center; padding: 40px; background: var(--bg-card); border-radius: 16px;"><h3 style="font-size:0.95rem;">${msg}</h3></div>`;
         }
 
-        function renderExamsListUI(exams, submissions) {
+        function renderExamsListUI(exams) {
             let html = `<h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main);">قائمة الامتحانات المتاحة للإجابة 📚</h2>`;
             
             exams.forEach((exam, examIdx) => {
                 let duration = exam.settings?.duration || 30;
                 let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
+                let submissions = exam.examSubmissions || [];
                 
-                // تحقق هل الطالب امتحن هذا الامتحان من قبل
-                let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail && sub.examTitle === exam.title);
+                let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail);
                 let isBlocked = studentAlreadySubmitted && attemptsAllowed === 1;
 
                 let btnHtml = isBlocked 
                     ? `<button class="start-exam-btn disabled" disabled>تم اجتياز الامتحان بنجاح ✅</button>`
-                    : `<button class="start-exam-btn" onclick="startSpecificExam(${examIdx})">دخول الامتحان 🚀</button>`;
+                    : `<button class="start-exam-btn" onclick="startSpecificExam('${exam.id}')">دخول الامتحان 🚀</button>`;
 
                 html += `
                     <div class="exam-select-card">
@@ -321,8 +323,8 @@
             document.getElementById('examContainer').innerHTML = html;
         }
 
-        window.startSpecificExam = function(examIdx) {
-            activeSelectedExam = availableExamsList[examIdx];
+        window.startSpecificExam = function(examId) {
+            activeSelectedExam = availableExamsList.find(e => e.id === examId);
             if (!activeSelectedExam) return;
 
             document.getElementById('examHeaderTitle').textContent = activeSelectedExam.title;
@@ -478,25 +480,27 @@
                 let name = studentUser.fullname || studentUser.name || email.split('@')[0];
                 let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
 
-                const docRef = doc(db, "config", "activeExam");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    let data = docSnap.data();
-                    if (!data.examSubmissions) data.examSubmissions = [];
-                    data.examSubmissions.push({
+                const examRef = doc(db, "exams", activeSelectedExam.id);
+                const examSnap = await getDoc(examRef);
+                
+                if (examSnap.exists()) {
+                    let examData = examSnap.data();
+                    let submissions = examData.examSubmissions || [];
+                    
+                    submissions.push({
                         studentName: name, 
                         studentEmail: email, 
                         studentAvatar: avatar, 
-                        examTitle: activeSelectedExam.title,
                         score: score, 
                         totalMarks: totalMarks,
                         answers: studentAnswersRecord,
                         examQuestions: activeSelectedExam.questions,
                         date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
                     });
-                    await setDoc(docRef, data);
+
+                    await updateDoc(examRef, { examSubmissions: submissions });
                 }
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("خطأ في حفظ النتيجة:", err); }
         }
     </script>
 </body>
