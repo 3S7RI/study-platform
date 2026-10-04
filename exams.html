@@ -61,7 +61,6 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* شكل البطاقات الخارجية للامتحانات المتاحة */
         .exam-select-card { 
             background: var(--bg-card); padding: 20px; border-radius: 16px; margin-bottom: 18px; 
             box-shadow: var(--shadow); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
@@ -75,9 +74,7 @@
             border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.9rem; 
             width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); text-align: center;
         }
-        .start-exam-btn.disabled {
-            background: #475569 !important; cursor: not-allowed; opacity: 0.7; box-shadow: none;
-        }
+        .start-exam-btn.disabled { background: #475569 !important; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
 
         .exam-card { 
             background: var(--bg-card); padding: 20px; border-radius: 16px; margin-bottom: 20px; 
@@ -99,6 +96,25 @@
             background: var(--bg-main); color: var(--text-main); font-size: 0.88rem; outline: none; margin-top: 6px;
         }
 
+        /* ستايل مسجل الصوت مثل الواتساب */
+        .voice-recorder-box {
+            background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 12px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        }
+        .btn-record {
+            background: var(--danger); color: white; border: none; width: 42px; height: 42px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(239,68,68,0.3);
+        }
+        .btn-record.recording { background: #10b981; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* ستايل رفع الصور من الهاتف */
+        .upload-box {
+            border: 2px dashed var(--border-color); padding: 15px; border-radius: 10px; text-align: center;
+            background: var(--th-bg); margin-top: 8px; cursor: pointer; position: relative;
+        }
+        .upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
         .btn-submit-exam { 
             background: var(--success); color: white; border: none; padding: 12px 20px; 
             border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer; width: 100%; margin-top: 10px; 
@@ -107,6 +123,16 @@
         .result-box { 
             background: var(--bg-card); padding: 25px; border-radius: 16px; text-align: center; 
             margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display: none; border-top: 4px solid var(--success);
+        }
+
+        /* نافذة إدخال كلمة المرور للامتحان */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+            display: none; justify-content: center; align-items: center; background: rgba(15,23,42,0.85); padding: 15px;
+        }
+        .modal-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 22px; max-width: 380px; width: 100%; text-align: center;
+            box-shadow: var(--shadow);
         }
 
         /* نافذة الاحتفال بالتقفيل 100% والشهادة */
@@ -134,9 +160,23 @@
             background: #ffffff; color: #1e293b; border: 6px solid #f59e0b; border-radius: 14px; padding: 25px; max-width: 550px; width: 100%; text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody">
+
+    <!-- نافذة طلب كلمة المرور للامتحان المقفل -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-card">
+            <h3 style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 10px;">🔒 هذا الامتحان محمي بكلمة مرور</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">أدخل كلمة السر التي زودك بها المعلم لدخول الامتحان:</p>
+            <input type="password" id="examPasswordInput" placeholder="أدخل كلمة المرور هنا..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.88rem; outline: none; margin-bottom: 15px; text-align: center;">
+            <div style="display: flex; gap: 8px;">
+                <button onclick="verifyExamPassword()" style="background: var(--success); color: white; border: none; padding: 9px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; font-size: 0.85rem;">تحقق ودخول ✅</button>
+                <button onclick="closePasswordModal()" style="background: #475569; color: white; border: none; padding: 9px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem;">إلغاء</button>
+            </div>
+        </div>
+    </div>
 
     <!-- شاشة الإشعار الاحتفالي الأسطوري عند التقفيل 100% -->
     <div class="celebration-overlay" id="celebrationOverlay">
@@ -149,9 +189,6 @@
                 <p>2. ليـك شـهادة مـخـصوص يـا بـطـل😍🏆</p>
                 <p style="margin-top: 5px; font-weight: bold; color: var(--primary);">مـجـموع نـقـاط هذا الامـتـحان : <span id="totalPointsDisplay">115</span> نقطة</p>
             </div>
-            <p style="font-size: 0.78rem; color: #f59e0b; margin-bottom: 12px; font-weight: bold;">
-                الـرساله دي مـش بتـظهر لـ اۍ حـد و خـلاص دۍ بـتـظـهر للابــطـال😍🏆
-            </p>
             
             <div style="margin-bottom: 12px; text-align: right;">
                 <label style="font-size: 0.8rem; display: block; margin-bottom: 4px; color: var(--text-main); font-weight: 600;">اكتب اسمك الثلاثي للشهادة:</label>
@@ -176,7 +213,7 @@
             </p>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
                 <div style="text-align: right; font-size: 0.78rem; color: #64748b;">
-                    التاريخ: <span id="certDate">2026/10/04</span>
+                    التاريخ: <span id="certDate">2026/10/05</span>
                 </div>
                 <div style="text-align: left; font-size: 0.8rem; font-weight: bold; color: #1e3c72;">
                     مؤسس المنصة: محمد عماد (عشري) 🎓
@@ -203,6 +240,7 @@
         <div class="result-box" id="examResultBox">
             <h2 id="resultGradeText" style="margin-bottom: 8px; color: var(--primary); font-size: 1.2rem;">لقد حصلت على الدرجة</h2>
             <p id="resultPercentageText" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 12px;">النسبة: 0%</p>
+            <p id="customEndingMsg" style="font-size: 0.9rem; color: var(--success); font-weight: bold; margin-bottom: 12px;"></p>
             <p id="aiGradingNote" style="font-size: 0.8rem; color: #f59e0b; margin-bottom: 10px; display: none;">🤖 تمت مراجعة وتصحيح الأسئلة تلقائياً بواسطة بوت الذكاء الاصطناعي (AI).</p>
             <button onclick="location.reload()" style="background: var(--primary); color: white; border: none; padding: 9px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">العودة لقائمة الامتحانات 📋</button>
         </div>
@@ -241,6 +279,7 @@
 
         let availableExamsList = [];
         let activeSelectedExam = null;
+        let pendingExamIdToStart = null;
         let timerInterval = null;
         let timeLeft = 0;
         let currentStudentEmail = '';
@@ -293,17 +332,21 @@
         function renderExamsListUI(exams) {
             let html = `<h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main);">قائمة الامتحانات المتاحة للإجابة 📚</h2>`;
             
-            exams.forEach((exam, examIdx) => {
+            exams.forEach((exam) => {
                 let duration = exam.settings?.duration || 30;
                 let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
+                let maxQuota = exam.settings?.maxQuota ? parseInt(exam.settings.maxQuota) : null;
                 let submissions = exam.examSubmissions || [];
                 
                 let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail);
-                let isBlocked = studentAlreadySubmitted && attemptsAllowed === 1;
+                let quotaExceeded = maxQuota !== null && submissions.length >= maxQuota;
+
+                let isBlocked = (studentAlreadySubmitted && attemptsAllowed === 1) || quotaExceeded;
+                let statusText = quotaExceeded ? "اكتمل العدد النهائي للمتقدمين (Quota) ⛔" : "تم اجتياز الامتحان بنجاح ✅";
 
                 let btnHtml = isBlocked 
-                    ? `<button class="start-exam-btn disabled" disabled>تم اجتياز الامتحان بنجاح ✅</button>`
-                    : `<button class="start-exam-btn" onclick="startSpecificExam('${exam.id}')">دخول الامتحان 🚀</button>`;
+                    ? `<button class="start-exam-btn disabled" disabled>${statusText}</button>`
+                    : `<button class="start-exam-btn" onclick="checkExamRequirements('${exam.id}')">دخول الامتحان 🚀</button>`;
 
                 html += `
                     <div class="exam-select-card">
@@ -313,7 +356,7 @@
                                 <span>📚 المادة: ${exam.subject || 'عام'}</span>
                                 <span>👥 الفئة: ${exam.targetGroup || 'عام'}</span>
                                 <span>⏱️ المدة: ${duration} دقيقة</span>
-                                <span>❓ الأسئلة: ${(exam.questions || []).length}</span>
+                                <span>👥 المتقدمون: ${submissions.length} ${maxQuota ? '/ ' + maxQuota : ''}</span>
                             </div>
                         </div>
                         ${btnHtml}
@@ -323,16 +366,52 @@
             document.getElementById('examContainer').innerHTML = html;
         }
 
-        window.startSpecificExam = function(examId) {
+        window.checkExamRequirements = function(examId) {
+            let exam = availableExamsList.find(e => e.id === examId);
+            if (!exam) return;
+
+            pendingExamIdToStart = examId;
+
+            // التحقق مما إذا كان الامتحان مقفلاً بكلمة سر
+            if (exam.settings?.password && exam.settings.password.trim() !== '') {
+                document.getElementById('passwordModal').style.display = 'flex';
+                document.getElementById('examPasswordInput').value = '';
+            } else {
+                startSpecificExam(examId);
+            }
+        };
+
+        window.verifyExamPassword = function() {
+            let enteredPwd = document.getElementById('examPasswordInput').value.trim();
+            let exam = availableExamsList.find(e => e.id === pendingExamIdToStart);
+
+            if (exam && enteredPwd === exam.settings.password) {
+                document.getElementById('passwordModal').style.display = 'none';
+                startSpecificExam(pendingExamIdToStart);
+            } else {
+                alert('كلمة المرور غير صحيحة! حاول مرة أخرى.');
+            }
+        };
+
+        window.closePasswordModal = function() {
+            document.getElementById('passwordModal').style.display = 'none';
+        };
+
+        function startSpecificExam(examId) {
             activeSelectedExam = availableExamsList.find(e => e.id === examId);
             if (!activeSelectedExam) return;
 
             document.getElementById('examHeaderTitle').textContent = activeSelectedExam.title;
-            document.getElementById('timerDisplay').style.display = 'block';
-            timeLeft = (activeSelectedExam.settings?.duration || 30) * 60;
-            startTimer();
+            
+            // ربط المؤقت الزمني إذا كان مفعلاً
+            if (activeSelectedExam.settings?.timer !== false) {
+                document.getElementById('timerDisplay').style.display = 'block';
+                timeLeft = (activeSelectedExam.settings?.duration || 30) * 60;
+                startTimer();
+            }
+
             renderExamQuestions(activeSelectedExam.questions);
-        };
+        }
 
         function startTimer() {
             timerInterval = setInterval(() => {
@@ -345,6 +424,7 @@
 
         function renderExamQuestions(questions) {
             let html = `<div class="exam-card"><form id="examForm" onsubmit="submitExam(event)">`;
+            
             questions.forEach((q, idx) => {
                 let qType = q.type || 'mcq';
                 let marksText = q.marks ? `(${q.marks} درجات)` : '(درجة)';
@@ -370,19 +450,71 @@
                         </label>`;
                     });
                     html += `</div>`;
-                } else if (qType === 'short' || qType === 'essayImage') {
-                    html += `<input type="text" class="student-textarea" name="question_${idx}" placeholder="اكتب إجابتك هنا (بحد أقصى 10 أسطر)..." required>`;
+                } else if (qType === 'short') {
+                    html += `<input type="text" class="student-textarea" name="question_${idx}" placeholder="اكتب إجابتك القصيرة هنا (بحد أقصى 10 أسطر)..." required>`;
                 } else if (qType === 'long') {
-                    html += `<textarea class="student-textarea" name="question_${idx}" rows="4" placeholder="اكتب إجابتك المقالية المفصلة هنا (مفتوح)..." required style="resize:vertical;"></textarea>`;
+                    html += `<textarea class="student-textarea" name="question_${idx}" rows="4" placeholder="اكتب إجابتك المقالية المفصلة هنا..." required style="resize:vertical;"></textarea>`;
+                } else if (qType === 'essayImage') {
+                    html += `<div class="upload-box">
+                        <span style="font-size:0.85rem; color:var(--text-main); font-weight:bold;">📁 اضغط هنا أو ارفع صورة الإجابة من هاتفك</span>
+                        <input type="file" accept="image/*" onchange="handleImageUpload(this, ${idx})">
+                    </div>
+                    <input type="hidden" name="question_${idx}" id="imgInput_${idx}" required value="">
+                    <p id="uploadStatus_${idx}" style="font-size:0.75rem; color:var(--success); margin-top:4px; font-weight:bold;"></p>`;
                 } else if (qType === 'voice') {
-                    html += `<p style="font-size: 0.8rem; color: #38bdf8; margin-bottom:5px;">🎙️ تسجيل صوتي (فويس): متاح لك التسجيل أو كتابة التوضيح أدناه.</p>
-                             <input type="text" class="student-textarea" name="question_${idx}" placeholder="تم إرفاق التسجيل الصوتي أو النص..." required>`;
+                    html += `<div class="voice-recorder-box">
+                        <button type="button" class="btn-record" id="recBtn_${idx}" onclick="toggleVoiceRecording(${idx})">🎙️</button>
+                        <span id="recStatus_${idx}" style="font-size:0.8rem; color:var(--text-muted);">اضغط لتسجيل الفويس (مثل الواتساب)</span>
+                    </div>
+                    <input type="hidden" name="question_${idx}" id="voiceInput_${idx}" required value="">`;
                 }
                 html += `</div>`;
             });
+
             html += `<button type="submit" class="btn-submit-exam">تسليم الامتحان وعرض النتيجة 🚀</button></form></div>`;
             document.getElementById('examContainer').innerHTML = html;
         }
+
+        // معالجة رفع الصور من هاتف الطالب
+        window.handleImageUpload = function(input, qIdx) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(`imgInput_${qIdx}`).value = e.target.result;
+                    document.getElementById(`uploadStatus_${qIdx}`).textContent = `✔ تم إرفاق الصورة بنجاح: ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // محاكاة تسجيل الفويس المماثل للواتساب
+        window.toggleVoiceRecording = function(qIdx) {
+            let btn = document.getElementById(`recBtn_${qIdx}`);
+            let status = document.getElementById(`recStatus_${qIdx}`);
+            let input = document.getElementById(`voiceInput_${qIdx}`);
+
+            if (!btn.classList.contains('recording')) {
+                btn.classList.add('recording');
+                status.textContent = '🔴 جاري التسجيل الآن... (تحدث بوضوح)';
+                status.style.color = '#ef4444';
+                
+                // محاكاة انتهاء التسجيل بعد 4 ثوانٍ تلقائياً أو عند الضغط مرة أخرى
+                setTimeout(() => {
+                    if (btn.classList.contains('recording')) {
+                        btn.classList.remove('recording');
+                        status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙️ (0:04)';
+                        status.style.color = '#10b981';
+                        input.value = 'تم إرفاق تسجيل صوتي (فويس) بنجاح من الطالب.';
+                    }
+                }, 4000);
+            } else {
+                btn.classList.remove('recording');
+                status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙️';
+                status.style.color = '#10b981';
+                input.value = 'تم إرفاق تسجيل صوتي (فويس) بنجاح من الطالب.';
+            }
+        };
 
         window.submitExam = async function(e) {
             if (e) e.preventDefault();
@@ -426,6 +558,11 @@
             document.getElementById('examContainer').innerHTML = '';
             document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalMarks}`;
             document.getElementById('resultPercentageText').textContent = `النسبة المئوية: ${percentage}%`;
+            
+            // عرض رسالة نهاية الامتحان المخصصة التي حددها الأدمن
+            let customMsg = activeSelectedExam.settings?.customMsg || 'شكراً لإتمامك الامتحان بنجاح!';
+            document.getElementById('customEndingMsg').textContent = customMsg;
+
             if (useAI) document.getElementById('aiGradingNote').style.display = 'block';
             document.getElementById('examResultBox').style.display = 'block';
 
