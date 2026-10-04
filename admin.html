@@ -89,7 +89,7 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* منتصف الهيدر: اسم المنصة */
+        /* منتصف الهيدر: عنوان المنصة */
         .header-center-box {
             display: flex;
             align-items: center;
@@ -100,7 +100,7 @@
         }
         .header-center-box span { color: var(--primary); }
 
-        /* يسار الهيدر: زر الجرس وصندوق البروفايل (الاسم الأول والصورة) */
+        /* يسار الهيدر: زر الجرس الدائري وصندوق البروفايل (الاسم الأول والصورة) */
         .header-left-side {
             display: flex;
             align-items: center;
@@ -112,12 +112,16 @@
             border: 1px solid var(--border-color);
             width: 36px;
             height: 36px;
-            border-radius: 50%;
+            min-width: 36px;
+            min-height: 36px;
+            border-radius: 50% !important;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             font-size: 0.9rem;
+            padding: 0;
+            outline: none;
         }
         .notification-bell-btn:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
@@ -298,7 +302,7 @@
 </head>
 <body data-theme="dark">
     <div class="platform-container">
-        <!-- الهيدر المحدث تماماً ليطابق هيدر الطالب -->
+        <!-- الهيدر المحدث تماماً ليطابق هيدر الطالب ودقة التصميم -->
         <header class="platform-header">
             <!-- يمين الهيدر: زر الوضع (شمس / هلال) -->
             <div class="header-right-side">
@@ -310,9 +314,9 @@
                 <span>📖</span> رحلة دراسية
             </div>
 
-            <!-- يسار الهيدر: زر الجرس الدائري وصندوق بروفايل الأدمن (الاسم الأول فقط) -->
+            <!-- يسار الهيدر: زر الجرس الدائري وصندوق بروفايل الأدمن (الاسم الأول والصورة) -->
             <div class="header-left-side">
-                <button class="notification-bell-btn" id="notificationBellBtn" title="الإشعارات السحابية">🔔</button>
+                <button class="notification-bell-btn" id="notificationBellBtn" onclick="toggleNotificationsModal(true)" title="الإشعارات السحابية">🔔</button>
                 <div class="student-style-profile-box">
                     <a href="admin-profile.html" class="user-profile-link">
                         <span id="adminNameLabel">الأدمن</span>
@@ -485,7 +489,7 @@
             document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
         }
 
-        // تشغيل نافذة الإشعارات وتفعيل زر الجرس
+        // تشغيل نافذة الإشعارات وتفعيل زر الجرس عالمياً
         window.toggleNotificationsModal = function(show) {
             const modal = document.getElementById('notificationsModal');
             if (show) {
@@ -496,16 +500,11 @@
             }
         };
 
-        document.getElementById('notificationBellBtn').addEventListener('click', () => {
-            toggleNotificationsModal(true);
-        });
-
         async function loadCloudNotifications() {
             const container = document.getElementById('notificationsListContainer');
             container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">جاري جلب الإشعارات... ⏳</div>`;
 
             try {
-                // جلب المستندات بدون حظر الترتيب لتلافي أخطاء الفهارس
                 const querySnapshot = await getDocs(collection(db, "adminNotifications"));
 
                 if (querySnapshot.empty) {
@@ -518,7 +517,6 @@
                     docsList.push({ id: doc.id, ...doc.data() });
                 });
 
-                // ترتيب محلي حسب وقت الإنشاء تنازلياً لضمان عدم حدوث فشل
                 docsList.sort((a, b) => {
                     let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
                     let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
