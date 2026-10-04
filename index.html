@@ -499,19 +499,18 @@
             "يا رب وفّق كل طالب علم وسدد خطاه واجعل الجنة هي مآله."
         ];
 
-        // دالة جلب القوالب الترحيبية من فايربيس (مستند welcomeTemplates داخل كولكشن messagestore) واختيار واحد عشوائياً
+        // دالة جلب القوالب من فايربيس وإرسال رسالة الترحيب الخاصة بالطالب الجديد وحده فقط
         async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
             try {
                 let templatesList = [];
                 
-                // محاولة جلب القوالب من قاعدة البيانات سحابياً
+                // جلب القوالب من قاعدة البيانات سحابياً
                 const docRef = window.doc(db, "messagestore", "welcomeTemplates");
                 const docSnap = await window.getDoc(docRef);
 
                 if (docSnap.exists() && docSnap.data().templates && docSnap.data().templates.length > 0) {
                     templatesList = docSnap.data().templates;
                 } else {
-                    // قالب احتياطي لو السحابة فيها مشكلة مؤقتة
                     templatesList = [
                         {
                             title: `🌟 أهلاً بيك يا ${studentName} في رحلة دراسية!`,
@@ -520,29 +519,29 @@
                     ];
                 }
 
-                // اختيار قالب عشوائي من اللي جايين من فايربيس
+                // اختيار قالب عشوائي
                 const randomIndex = Math.floor(Math.random() * templatesList.length);
                 const selectedTemplate = templatesList[randomIndex];
 
-                // استبدال اسم الطالب ديناميكياً في العنوان والرسالة
+                // استبدال اسم الطالب ديناميكياً
                 const finalTitle = selectedTemplate.title.replace(/\${studentName}/g, studentName);
                 const finalMessage = selectedTemplate.message.replace(/\${studentName}/g, studentName);
 
-                // حفظ الإشعار الدائم في adminNotifications
+                // حفظ الإشعار بحيث يكون مرتبطاً بإيميل هذا الطالب فقط (target: "single" أو مخصص)
                 const notifId = "welcome_" + studentEmail.replace(/[^a-zA-Z0-9]/g, "_");
                 
                 await window.setDoc(window.doc(db, "adminNotifications", notifId), {
                     title: finalTitle,
                     message: finalMessage,
-                    target: "students",
-                    recipientEmail: studentEmail,
+                    target: "single", // جعل الإشعار فردياً وخاصاً بهذا الطالب فقط
+                    recipientEmail: studentEmail, // تسجيل إيميل الطالب المستهدف حصرياً
                     sender: "إدارة المنصة 📖",
                     createdAt: window.serverTimestamp()
                 }, { merge: true });
                 
-                console.log("تم جلب القالب من فايربيس وحفظ الإشعار الترحيبي بنجاح!");
+                console.log("تم حفظ الإشعار الترحيبي الخاص بالطالب بنجاح!");
             } catch (err) {
-                console.error("خطأ في جلب القوالب من فايربيس:", err);
+                console.error("خطأ في حفظ الإشعار الترحيبي:", err);
             }
         }
 
@@ -895,7 +894,7 @@
                 const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
                 const nextNumber = querySnapshot.size + 1;
                 const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
-                const firstName = name.split(' ')[0]; // استخراج الاسم الأول لاستخدامه في رسالة الترحيب
+                const firstName = name.split(' ')[0]; // استخراج الاسم الأول
 
                 const studentData = {
                     uid: user.uid,
@@ -923,7 +922,7 @@
 
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
 
-                // جلب القوالب من فايربيس وإرسال رسالة الترحيب الدائمة للطالب الجديد
+                // حفظ الإشعار الترحيبي للطالب الجديد حصرياً (باعتبار target: 'single')
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, firstName);
 
                 sessionStorage.setItem('isLoggedIn', 'true');
