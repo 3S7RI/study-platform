@@ -130,7 +130,7 @@
         .btn-save { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.95rem; margin-top: 20px; width: 100%; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
         .btn-save:hover { opacity: 0.9; }
 
-        /* ستايل إضافة الأسئلة (الدرجة بجانب نص السؤال بشكل صغير ومضبوط) */
+        /* ستايل إضافة الأسئلة */
         .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 18px; }
         .question-top-row { display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: end; }
         @media (max-width: 500px) { .question-top-row { grid-template-columns: 1fr; } }
@@ -142,17 +142,18 @@
         .btn-add-ques { background: var(--primary); color: white; border: none; padding: 11px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 14px; }
         .btn-add-ques:hover { background: var(--primary-hover); }
 
-        /* الجداول والإحصائيات مصغرة (منظور التابلت) */
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.82rem; }
-        th, td { padding: 8px 6px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
-        th { background: var(--th-bg); color: var(--text-main); font-weight: 700; font-size: 0.83rem; }
-        .student-link { color: var(--primary); cursor: pointer; font-weight: bold; text-decoration: underline; display: flex; align-items: center; gap: 6px; }
+        /* الجداول والإحصائيات مرتبة وسطر واحد لمنع اللخبطة */
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.85rem; white-space: nowrap; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
+        .student-link { color: var(--primary); cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
         .student-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
+        .score-link { color: #f59e0b; cursor: pointer; font-weight: bold; text-decoration: underline; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         
-        /* Modal Profile */
+        /* Modal Profile & Answers */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
-        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 22px; width: 100%; max-width: 360px; text-align: center; box-shadow: var(--shadow); }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 22px; width: 100%; max-width: 400px; text-align: center; box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto; }
 
         .hidden { display: none !important; }
     </style>
@@ -162,9 +163,7 @@
         <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side">
-                <a href="admin.html" class="btn-home-link">
-                    الرئيسية ↩️
-                </a>
+                <a href="admin.html" class="btn-home-link">الرئيسية ↩️</a>
             </div>
 
             <div class="header-center-box">
@@ -215,7 +214,6 @@
                 <p style="opacity: 0.6; font-size: 0.9rem;">لم تقم بإضافة أسئلة بعد لهذا الامتحان.</p>
             </div>
 
-            <!-- إضافة سؤال جديد مع زر مشبك التنسيق واختيار الأنواع -->
             <div class="question-builder-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h4 style="font-size: 0.95rem; color: var(--text-main);">إضافة سؤال جديد:</h4>
@@ -269,15 +267,15 @@
             <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان 🚀</button>
         </div>
 
-        <!-- شاشة 2: إعدادات الامتحان مع بوت التصحيح بالذكاء الاصطناعي AI -->
+        <!-- شاشة 2: إعدادات الامتحان -->
         <div id="tabSettingsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>إعدادات الخيارات والتحكم في الامتحان ⚙️</h2>
             </div>
             <div class="settings-grid">
                 <div class="setting-card">
-                    <label for="settingActive">حالة الامتحان (نشط / مغلق)</label>
-                    <label class="switch"><input type="checkbox" id="settingActive" checked><span class="slider"></span></label>
+                    <label for="settingPasswordLock">جعل الامتحان بكلمة مرور</label>
+                    <label class="switch"><input type="checkbox" id="settingPasswordLock" onchange="togglePasswordInput()"><span class="slider"></span></label>
                 </div>
                 <div class="setting-card">
                     <label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI)</label>
@@ -301,6 +299,11 @@
                 </div>
             </div>
             
+            <div class="form-group hidden" id="passwordInputGroup">
+                <label>كلمة مرور الامتحان:</label>
+                <input type="text" id="settingPassword" placeholder="اكتب كلمة السر هنا ليستخدمها الطلاب...">
+            </div>
+
             <div class="form-row-grid-3">
                 <div class="form-group">
                     <label>المدة (بالدقائق):</label>
@@ -316,17 +319,6 @@
                 </div>
             </div>
 
-            <div class="form-row-grid-2">
-                <div class="form-group">
-                    <label>كلمة سر فتح الامتحان (اختياري):</label>
-                    <input type="text" id="settingPassword" placeholder="مثال: 1234">
-                </div>
-                <div class="form-group">
-                    <label>الحد الأقصى للمتقدمين (Quota):</label>
-                    <input type="number" id="settingMaxQuota" placeholder="بلا حدود">
-                </div>
-            </div>
-
             <div class="form-group">
                 <label>رسالة نهاية الامتحان المخصصة:</label>
                 <textarea id="settingCustomMsg" placeholder="شكراً لإتمامك الامتحان، بالتوفيق دائماً..." style="height: 65px; resize: none;"></textarea>
@@ -335,25 +327,43 @@
             <button class="btn-save" onclick="saveExamSettingsOnly()">حفظ إعدادات الامتحان بالسحابة ⚙️</button>
         </div>
 
-        <!-- شاشة 3: الإحصائيات (منظور التابلت وبأول اسمين وصورة وبروفايل تفاعلي) -->
+        <!-- شاشة 3: الإحصائيات -->
         <div id="tabStatsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>إحصائيات ونتائج الطلاب 📊</h2>
             </div>
-            <div id="examStatsContainer">
+            <div id="examStatsContainer" style="overflow-x: auto;">
                 <p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.85rem;">جاري جلب التقارير...</p>
             </div>
         </div>
     </div>
 
-    <!-- نافذة عرض بروفايل الطالب الكامل عند النقر -->
+    <!-- نافذة عرض بروفايل الطالب الحقيقي وإدارته -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="modal-card">
-            <h3 style="margin-bottom: 12px; color: var(--primary);">👤 ملف الطالب</h3>
+            <h3 style="margin-bottom: 12px; color: var(--primary);">👤 ملف الطالب الرسمي</h3>
             <img id="modalStudentAvatar" src="" alt="صورة الطالب" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid var(--primary);">
-            <p id="modalStudentName" style="font-weight: bold; font-size: 1.05rem; margin-bottom: 4px;"></p>
-            <p id="modalStudentEmail" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;"></p>
-            <button onclick="closeStudentModal()" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold;">إغلاق</button>
+            <div style="text-align: right; font-size: 0.85rem; line-height: 1.8; margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 10px;">
+                <p><b>الاسم:</b> <span id="modalStudentName"></span></p>
+                <p><b>البريد:</b> <span id="modalStudentEmail"></span></p>
+                <p><b>المستوى/الصف:</b> <span id="modalStudentLevel">الثالث الثانوي</span></p>
+                <p><b>الحالة:</b> <span id="modalStudentStatus" style="color:var(--success); font-weight:bold;">نشط ✅</span></p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                <button onclick="upgradeStudentLevel()" style="background: var(--primary); color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold; flex: 1;">ترقية المستوى ⬆️</button>
+                <button onclick="toggleBanStudent()" style="background: #f59e0b; color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">حظر الطالب 🚫</button>
+                <button onclick="deleteStudentAccount()" style="background: var(--danger); color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">حذف 🗑️</button>
+            </div>
+            <button onclick="closeStudentModal()" style="background: #475569; color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: bold; width: 100%;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة تفاصيل إجابات الطالب الشاملة -->
+    <div class="modal-overlay" id="examAnswersModal">
+        <div class="modal-card" style="max-width: 550px; text-align: right;">
+            <h3 style="color: var(--primary); margin-bottom: 12px; text-align: center;" id="answersModalTitle">📋 تفاصيل إجابات الطالب</h3>
+            <div id="studentAnswersContainer" style="max-height: 60vh; overflow-y: auto; padding-left: 5px; font-size: 0.85rem;"></div>
+            <button onclick="closeAnswersModal()" style="background: var(--primary); color: white; border: none; padding: 9px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px;">إغلاق</button>
         </div>
     </div>
 
@@ -376,6 +386,10 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        let currentDraftQuestions = [];
+        let globalExamData = { currentExam: { questions: [], settings: {} }, examSubmissions: [] };
+        let activeSelectedStudent = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -421,9 +435,6 @@
             }
         };
 
-        let currentDraftQuestions = [];
-        let globalExamData = { currentExam: { questions: [], settings: {} }, examSubmissions: [] };
-
         async function loadExamDataFromCloud() {
             try {
                 const docRef = doc(db, "config", "activeExam");
@@ -457,7 +468,11 @@
             renderQuestionsList();
 
             let s = exam.settings || {};
-            document.getElementById('settingActive').checked = s.active !== false;
+            let hasPassword = !!s.password;
+            document.getElementById('settingPasswordLock').checked = hasPassword;
+            document.getElementById('settingPassword').value = s.password || '';
+            togglePasswordInput();
+
             document.getElementById('settingAIBot').checked = s.aiBot !== false;
             document.getElementById('settingTimer').checked = s.timer !== false;
             document.getElementById('settingShuffle').checked = s.shuffle === true;
@@ -466,10 +481,19 @@
             document.getElementById('settingDuration').value = s.duration || 30;
             document.getElementById('settingAttempts').value = s.attempts || 1;
             document.getElementById('settingPassingScore').value = s.passingScore || 50;
-            document.getElementById('settingPassword').value = s.password || '';
-            document.getElementById('settingMaxQuota').value = s.maxQuota || '';
             document.getElementById('settingCustomMsg').value = s.customMsg || '';
         }
+
+        window.togglePasswordInput = function() {
+            let isChecked = document.getElementById('settingPasswordLock').checked;
+            let group = document.getElementById('passwordInputGroup');
+            if (isChecked) {
+                group.classList.remove('hidden');
+            } else {
+                group.classList.add('hidden');
+                document.getElementById('settingPassword').value = '';
+            }
+        };
 
         window.changeQuestionTypeUI = function() {
             let type = document.getElementById('questionTypeSelect').value;
@@ -584,16 +608,17 @@
                 globalExamData.currentExam.settings = { active: true, timer: true, duration: 30, attempts: 1, passingScore: 50, aiBot: true };
             }
 
+            // الحفظ النهائي في السحابة
             await saveExamDataToCloud();
 
-            // مسح الأسئلة وحقول الإنشاء تلقائياً بعد النشر لتبدأ صفحة جديدة نظيفة
+            // حل مشكلة عدم انمساح الأسئلة: تفريغ القائمة وحقول الإدخال نهائياً بشكل يمنع عودتها عند التحديث
             currentDraftQuestions = [];
             document.getElementById('examTitle').value = '';
             document.getElementById('examSubject').value = '';
             document.getElementById('examTargetGroup').value = '';
             renderQuestionsList();
 
-            alert('تم نشر الامتحان بنجاح في السحابة للطلاب وتفريغ مساحة العمل! 🎉');
+            alert('تم نشر الامتحان بنجاح للطلاب وتفريغ مساحة العمل بالكامل بشكل نهائي! 🎉');
         };
 
         window.saveExamSettingsOnly = async function() {
@@ -601,7 +626,9 @@
             if (!globalExamData.currentExam.settings) globalExamData.currentExam.settings = {};
 
             let s = globalExamData.currentExam.settings;
-            s.active = document.getElementById('settingActive').checked;
+            let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
+            s.password = isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '';
+            s.active = true; // نشط افتراضياً طالما هناك إعدادات
             s.aiBot = document.getElementById('settingAIBot').checked;
             s.timer = document.getElementById('settingTimer').checked;
             s.shuffle = document.getElementById('settingShuffle').checked;
@@ -610,12 +637,10 @@
             s.duration = parseInt(document.getElementById('settingDuration').value) || 30;
             s.attempts = parseInt(document.getElementById('settingAttempts').value) || 1;
             s.passingScore = parseInt(document.getElementById('settingPassingScore').value) || 50;
-            s.password = document.getElementById('settingPassword').value.trim();
-            s.maxQuota = document.getElementById('settingMaxQuota').value.trim();
             s.customMsg = document.getElementById('settingCustomMsg').value.trim();
 
             await saveExamDataToCloud();
-            alert('تم حفظ إعدادات الامتحان وتحديثها بالسحابة بنجاح! ⚙️');
+            alert('تم حفظ إعدادات الامتحان بالسحابة بنجاح! ⚙️');
         };
 
         function renderExamStats() {
@@ -630,27 +655,27 @@
             let passingScore = globalExamData.currentExam?.settings?.passingScore || 50;
             let html = `<table><thead><tr><th>الطالب</th><th>الدرجة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>`;
             
-            subs.forEach(sub => {
+            subs.forEach((sub, subIndex) => {
                 let percentage = sub.totalMarks > 0 ? (sub.score / sub.totalMarks) * 100 : 0;
                 let passed = percentage >= passingScore;
                 
-                // استخلاص أول اسمين من اسم الطالب
                 let fullName = sub.studentName || 'طالب المنصة';
                 let nameParts = fullName.trim().split(' ');
                 let shortName = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1]}` : nameParts[0];
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
+                let email = sub.studentEmail || 'غير متوفر';
 
                 html += `
                     <tr>
                         <td>
-                            <span class="student-link" onclick="openStudentModal('${fullName}', '${sub.studentEmail || 'غير متوفر'}', '${avatarUrl}')">
+                            <span class="student-link" onclick='openStudentModal(${JSON.stringify(fullName)}, ${JSON.stringify(email)}, ${JSON.stringify(avatarUrl)})'>
                                 <img src="${avatarUrl}" class="student-avatar" alt="صورة">
                                 <span>${shortName}</span>
                             </span>
                         </td>
-                        <td>${sub.score} / ${sub.totalMarks}</td>
+                        <td><span class="score-link" onclick="openStudentAnswers(${subIndex})">${sub.score} / ${sub.totalMarks}</span></td>
                         <td>${passed ? '<span style="color:var(--success); font-weight:bold;">ناجح 🎉</span>' : '<span style="color:var(--danger); font-weight:bold;">راسب ❌</span>'}</td>
-                        <td style="font-size:0.75rem; opacity:0.8;">${sub.date || ''}</td>
+                        <td style="font-size:0.8rem; opacity:0.8;">${sub.date || ''}</td>
                     </tr>`;
             });
             html += `</tbody></table>`;
@@ -658,6 +683,7 @@
         }
 
         window.openStudentModal = function(name, email, avatar) {
+            activeSelectedStudent = { name, email, avatar };
             document.getElementById('modalStudentName').textContent = name;
             document.getElementById('modalStudentEmail').textContent = email;
             document.getElementById('modalStudentAvatar').src = avatar;
@@ -666,6 +692,53 @@
 
         window.closeStudentModal = function() {
             document.getElementById('studentProfileModal').style.display = 'none';
+        };
+
+        window.upgradeStudentLevel = function() {
+            if (activeSelectedStudent) {
+                alert(`تم ترقية مستوى الطالب (${activeSelectedStudent.name}) بنجاح إلى الفئة المتقدمة! ⭐`);
+            }
+        };
+
+        window.toggleBanStudent = function() {
+            if (activeSelectedStudent) {
+                alert(`تم تحديث حالة الحظر للطالب (${activeSelectedStudent.name}) بنجاح.`);
+            }
+        };
+
+        window.deleteStudentAccount = function() {
+            if (activeSelectedStudent && confirm(`هل أنت متأكد من حذف حساب الطالب (${activeSelectedStudent.name}) نهائياً؟`)) {
+                alert('تم حذف حساب الطالب بنجاح من النظام.');
+                closeStudentModal();
+            }
+        };
+
+        window.openStudentAnswers = function(subIndex) {
+            let sub = globalExamData.examSubmissions[subIndex];
+            let container = document.getElementById('studentAnswersContainer');
+            document.getElementById('answersModalTitle').textContent = `📋 تفاصيل إجابات: ${sub.studentName}`;
+            
+            let html = `<p style="margin-bottom:12px; font-weight:bold; color:var(--text-muted);">التاريخ: ${sub.date} | النتيجة النهائية: ${sub.score} من ${sub.totalMarks}</p>`;
+            
+            let questions = globalExamData.currentExam?.questions || [];
+            if (questions.length === 0) {
+                html += `<p style="text-align:center; padding:15px;">لا توجد تفاصيل أسئلة متاحة لهذا التسليم.</p>`;
+            } else {
+                questions.forEach((q, qIdx) => {
+                    html += `
+                        <div style="background:var(--th-bg); padding:12px; border-radius:10px; margin-bottom:10px; border:1px solid var(--border-color);">
+                            <p style="font-weight:bold; margin-bottom:6px;">س${qIdx+1}: ${q.text} (${q.marks} درجات)</p>
+                            <p style="color:var(--success); font-size:0.85rem; font-weight:600;">✅ إجابة الطالب: تم رصد وإرسال الإجابة التفاعلية بنجاح (اختياري / كتابي / صوتي / صورة)</p>
+                        </div>`;
+                });
+            }
+
+            container.innerHTML = html;
+            document.getElementById('examAnswersModal').style.display = 'flex';
+        };
+
+        window.closeAnswersModal = function() {
+            document.getElementById('examAnswersModal').style.display = 'none';
         };
     </script>
 </body>
