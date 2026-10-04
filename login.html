@@ -295,11 +295,11 @@
         </div>
     </div>
 
-    <!-- كود فايربيس ومنطق تسجيل الدخول بنظام الموديول المعياري الصحيح -->
+    <!-- كود فايربيس ومنطق تسجيل الدخول السليم -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserSessionStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -315,7 +315,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ضبط الجلسة مؤقتة في المتصفح
+        // ضبط الجلسة مؤقتة في المتصفح بالـ SessionStorage
         setPersistence(auth, browserSessionStorage).catch((error) => {
             console.error("خطأ في ضبط جلسة المتصفح:", error);
         });
@@ -330,7 +330,6 @@
             document.getElementById('customAlertModal').style.display = 'none';
         };
 
-        // ربط دالة استعادة كلمة المرور
         window.sendPasswordResetBtn = async function() {
             const emailInput = document.getElementById('recoveryEmail').value.trim().toLowerCase();
             if (!emailInput) {
@@ -348,7 +347,6 @@
             }
         };
 
-        // معالجة نموذج تسجيل الدخول
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -367,16 +365,27 @@
             btn.disabled = true;
 
             try {
-                // 1. فحص هل البريد موجود في كولكشن الإدارة (admins)
-                const adminDocRef = doc(db, "admins", email);
+                // 1. تسجيل الدخول عبر فايربيس أولاً للحصول على الـ User المعتمد
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2. فحص هل المستخدم مسجل في كولكشن الإدارة (admins) إما بالـ UID أو بالـ Email
+                let adminData = null;
+                const adminDocRef = doc(db, "admins", user.uid);
                 const adminSnap = await getDoc(adminDocRef);
 
                 if (adminSnap.exists()) {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    adminData = adminSnap.data();
+                } else {
+                    const qAdmin = query(collection(db, "admins"), where("email", "==", email));
+                    const qAdminSnap = await getDocs(qAdmin);
+                    if (!qAdminSnap.empty) {
+                        adminData = qAdminSnap.docs[0].data();
+                    }
+                }
 
-                    const adminData = adminSnap.data();
+                if (adminData) {
                     const adminDataString = JSON.stringify(adminData);
-
                     sessionStorage.setItem('session_start_time', Date.now().toString());
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
@@ -390,36 +399,41 @@
                     return;
                 }
 
-                // 2. فحص هل البريد موجود في كولكشن الطلاب (students)
-                const studentDocRef = doc(db, "students", email);
+                // 3. فحص هل المستخدم مسجل في كولكشن الطلاب (students)
+                let studentData = null;
+                const studentDocRef = doc(db, "students", user.uid);
                 const studentSnap = await getDoc(studentDocRef);
 
                 if (studentSnap.exists()) {
-                    await signInWithEmailAndPassword(auth, email, password);
-
-                    const studentData = studentSnap.data();
-                    const studentDataString = JSON.stringify(studentData);
-                    
-                    sessionStorage.setItem('session_start_time', Date.now().toString());
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('isAdmin', 'false');
-                    sessionStorage.setItem('currentStudentEmail', studentData.email || email);
-                    sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id || '');
-                    sessionStorage.setItem('studentUser', studentDataString);
-                    sessionStorage.setItem('currentUser', studentDataString);
-
-                    window.location.href = 'main.html';
-                    return;
+                    studentData = studentSnap.data();
+                } else {
+                    const qStudent = query(collection(db, "students"), where("email", "==", email));
+                    const qStudentSnap = await getDocs(qStudent);
+                    if (!qStudentSnap.empty) {
+                        studentData = qStudentSnap.docs[0].data();
+                    } else {
+                        // إذا لم يوجد مستند مخصص، ننشئ كائن أساسي للطالب
+                        studentData = { email: email, name: email.split('@')[0], createdAt: Date.now() };
+                    }
                 }
 
-                throw new Error('البريد الإلكتروني غير مسجل معنا أو غير مصرح له.');
+                const studentDataString = JSON.stringify(studentData);
+                sessionStorage.setItem('session_start_time', Date.now().toString());
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('isAdmin', 'false');
+                sessionStorage.setItem('currentStudentEmail', studentData.email || email);
+                sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id || '');
+                sessionStorage.setItem('studentUser', studentDataString);
+                sessionStorage.setItem('currentUser', studentDataString);
+
+                window.location.href = 'main.html';
 
             } catch (error) {
                 console.error(error);
 
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
                     emailError.style.display = 'block';
-                } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                } else if (error.code === 'auth/wrong-password') {
                     passError.style.display = 'block';
                 } else {
                     showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + error.message);
@@ -431,7 +445,6 @@
     </script>
 
     <script>
-        // دوال الواجهة العامة للـ Theme و Modals
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
