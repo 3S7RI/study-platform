@@ -330,7 +330,7 @@
         <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) toggleNotificationsModal(false)">
             <div class="modal-card">
                 <div class="modal-header">
-                    <h3>🔔 مركز الإشعارات السحابية</h3>
+                    <h3>🔔 مركز الإشعارات الإدارية</h3>
                     <button class="close-modal" onclick="toggleNotificationsModal(false)">✕</button>
                 </div>
                 <div class="modal-body" id="notificationsListContainer">
@@ -489,18 +489,18 @@
             document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
         }
 
-        // تشغيل نافذة الإشعارات وتفعيل زر الجرس عالمياً
+        // تشغيل نافذة الإشعارات وتفعيل زر الجرس للأدمن (يعرض إشعارات الإدارة والجميع والطلاب)
         window.toggleNotificationsModal = function(show) {
             const modal = document.getElementById('notificationsModal');
             if (show) {
                 modal.classList.add('active');
-                loadCloudNotifications();
+                loadAdminCloudNotifications();
             } else {
                 modal.classList.remove('active');
             }
         };
 
-        async function loadCloudNotifications() {
+        async function loadAdminCloudNotifications() {
             const container = document.getElementById('notificationsListContainer');
             container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">جاري جلب الإشعارات... ⏳</div>`;
 
@@ -517,18 +517,33 @@
                     docsList.push({ id: doc.id, ...doc.data() });
                 });
 
-                docsList.sort((a, b) => {
+                // فلترة الإشعارات لتناسب الأدمن (الإشعارات الموجهة للإدارة، للجميع، أو للطلاب)
+                let filteredList = docsList.filter(item => {
+                    let target = item.target || 'students';
+                    return target === 'admins' || target === 'all' || target === 'students';
+                });
+
+                if (filteredList.length === 0) {
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">لا توجد إشعارات مخصصة للإدارة حالياً.</div>`;
+                    return;
+                }
+
+                filteredList.sort((a, b) => {
                     let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
                     let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
                     return timeB - timeA;
                 });
 
                 let htmlContent = "";
-                docsList.slice(0, 10).forEach((data) => {
+                filteredList.slice(0, 10).forEach((data) => {
+                    let badgeText = data.target === 'admins' ? '🔒 للإدارة فقط' : (data.target === 'all' ? '🌐 للجميع' : '🎓 للطلاب');
                     htmlContent += `
                         <div class="notification-item">
-                            <h4>${data.title || "إشعار إداري"}</h4>
-                            <p>${data.message || ""}</p>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <h4 style="margin: 0;">${data.title || "إشعار إداري"}</h4>
+                                <span style="font-size: 0.65rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 2px 6px; border-radius: 6px;">${badgeText}</span>
+                            </div>
+                            <p style="margin: 0;">${data.message || ""}</p>
                             <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; text-align: left;">المرسل: ${data.sender || 'الإدارة'}</div>
                         </div>
                     `;
