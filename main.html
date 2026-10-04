@@ -300,7 +300,7 @@
             word-break: break-word;
         }
 
-        footer { text-align: center; padding: 25px; color: var(--text-sub); font-size: 0.85rem; border-top: 1px solid var(--card-border); margin-top: 40px; }
+        <footer> text-align: center; padding: 25px; color: var(--text-sub); font-size: 0.85rem; border-top: 1px solid var(--card-border); margin-top: 40px; </footer>
     </style>
 </head>
 <body id="pageBody">
@@ -433,6 +433,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let currentStudentEmailGlobal = "";
+        let studentCreatedAtTime = 0; // وقت إنشاء حساب الطالب
+
         // --- نظام الوضع الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
@@ -462,6 +465,10 @@
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
+                    currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    if (data.createdAt) {
+                        studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
+                    }
                     const studentName = data.name || data.fullName || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
@@ -477,6 +484,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
+                currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
                 await fetchAndUpdateMainProfile(studentEmail, user.uid);
                 checkUnreadNotifications();
             } else {
@@ -510,6 +518,11 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    
+                    if (data.createdAt) {
+                        studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
+                    }
 
                     const studentName = data.name || data.fullName || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
@@ -523,7 +536,7 @@
             }
         }
 
-        // --- إدارة نافذة الإشعارات وفلترة رسائل الأدمن والطلاب من adminNotifications ---
+        // --- إدارة نافذة الإشعارات وفلترة رسائل الأدمن والطلاب وتجاهل الإشعارات القديمة قبل انضمام الطالب ---
         window.openNotificationsModal = async function() {
             document.getElementById('notificationsModal').classList.add('active');
             await loadStudentCloudNotifications();
@@ -552,9 +565,24 @@
                     docsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // فلترة الإشعارات في صفحة الطالب: إظهار الموجهة للطلاب أو للجميع فقط
+                // فلترة الإشعارات للطالب الحالي:
+                // 1. استبعاد الإشعارات القديمة التي تم إنشاؤها قبل وقت تسجيل وحساب الطالب (studentCreatedAtTime)
+                // 2. التحقق من تطابق المستهدف (إما إشعار ترحيبي فردي مخصص له، أو إشعارات عامة للكل/الطلاب)
                 let filteredList = docsList.filter(item => {
                     let target = item.target || 'students';
+                    let recipient = (item.recipientEmail || '').toLowerCase().trim();
+
+                    // استخراج وقت إنشاء الإشعار بالمللي ثانية
+                    let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
+
+                    // إذا كان الإشعار أقدم من وقت تسجيل الطالب، نتجاهله فوراً
+                    if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
+                        return false;
+                    }
+
+                    if (target === 'single') {
+                        return recipient === currentStudentEmailGlobal;
+                    }
                     return target === 'students' || target === 'all';
                 });
 
@@ -565,8 +593,8 @@
 
                 // ترتيب محلي تنازلي حسب وقت الإنشاء
                 filteredList.sort((a, b) => {
-                    let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
-                    let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+                    let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (new Date(a.createdAt).getTime() || 0);
+                    let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (new Date(b.createdAt).getTime() || 0);
                     return timeB - timeA;
                 });
 
@@ -610,6 +638,16 @@
                     snap.forEach(d => docsList.push(d.data()));
                     let unreadForStudents = docsList.filter(item => {
                         let target = item.target || 'students';
+                        let recipient = (item.recipientEmail || '').toLowerCase().trim();
+                        let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
+
+                        if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
+                            return false;
+                        }
+
+                        if (target === 'single') {
+                            return recipient === currentStudentEmailGlobal;
+                        }
                         return target === 'students' || target === 'all';
                     });
                     if (unreadForStudents.length > 0) {
