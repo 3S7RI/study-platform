@@ -219,7 +219,6 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
-        /* ستايل الملاحظات اللاصقة */
         .notes-container-scroll {
             max-height: 380px;
             overflow-y: auto;
@@ -285,7 +284,6 @@
             margin-top: 12px;
         }
 
-        /* تحسين وتعديل محاذاة أزرار اختيار المستلمين لتكون منسقة وفي مستوى واحد تماماً */
         .target-options-group {
             display: flex;
             gap: 8px;
@@ -314,7 +312,7 @@
             cursor: pointer;
             margin: 0;
             position: relative;
-            top: 1px; /* ضبط دقيق للمحاذاة الرأسية مع النص */
+            top: 1px;
         }
         .target-card:has(input[type="radio"]:checked) {
             border-color: var(--primary-color);
@@ -347,22 +345,55 @@
         .modal-avatar-wrapper { position: relative; width: 95px; height: 95px; margin: 0 auto 14px; border-radius: 50%; padding: 4px; display: flex; align-items: center; justify-content: center; }
         .modal-avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
 
+        /* تعديل وحجم أصغر لتنبيهات Toast مع إمكانية السحب والاختفاء نحو الجانب */
         #customToast {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
-            background: rgba(30, 41, 59, 0.95); color: var(--text-main); border: 1px solid var(--primary-color);
-            padding: 16px 26px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-            font-size: 0.95rem; font-weight: 700; z-index: 9999; display: flex; align-items: center; gap: 12px;
-            opacity: 0; visibility: hidden; backdrop-filter: blur(12px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            text-align: center; max-width: 90%;
+            position: fixed; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%) scale(0.9);
+            background: rgba(30, 41, 59, 0.95); 
+            color: var(--text-main); 
+            border: 1px solid var(--primary-color);
+            padding: 10px 18px; 
+            border-radius: 14px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            z-index: 9999; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            opacity: 0; 
+            visibility: hidden; 
+            backdrop-filter: blur(12px); 
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease, opacity 0.2s ease;
+            text-align: center; 
+            max-width: 85%;
+            cursor: grab;
+            user-select: none;
         }
-        #customToast.show { transform: translate(-50%, -50%) scale(1); opacity: 1; visibility: visible; }
+        #customToast.show { 
+            transform: translateX(-50%) scale(1); 
+            opacity: 1; 
+            visibility: visible; 
+        }
+        #customToast.swiping-left {
+            transform: translateX(-150%) scale(0.8);
+            opacity: 0;
+        }
+        #customToast.swiping-right {
+            transform: translateX(50%) scale(0.8);
+            opacity: 0;
+        }
+
         .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
+    <!-- تم تصغير الـ Toast وإضافة دعم السحب للاختفاء نحو الجانب -->
     <div id="customToast">
-        <span id="toastIcon" style="font-size: 1.2rem;">✨</span>
+        <span id="toastIcon" style="font-size: 1rem;">✨</span>
         <span id="toastMessage">تم الحفظ بنجاح</span>
     </div>
 
@@ -452,7 +483,7 @@
         </div>
     </div>
 
-    <!-- نافذة الملاحظات الشخصية المحدثة بنظام النوتس المتعددة -->
+    <!-- نافذة الملاحظات الشخصية بدون رسالة تلقائية مقيدة -->
     <div class="modal-overlay" id="notesModal" onclick="if(event.target===this) closeModal('notesModal')">
         <div class="modal-card">
             <div class="modal-header">
@@ -461,7 +492,7 @@
             </div>
             <div class="modal-body edit-form-modal">
                 <div id="notesContainerScroll" class="notes-container-scroll">
-                    <!-- يتم حقن النوتات هنا ديناميكياً -->
+                    <!-- يتم حقن النوتات هنا ديناميكياً بدون إنشاء تلقائي مزعج -->
                 </div>
                 <div class="notes-actions-grid">
                     <button type="button" class="btn btn-special" onclick="addNewStickyNote('نوتة جديدة...')">➕ إضافة نوتة</button>
@@ -471,7 +502,7 @@
         </div>
     </div>
 
-    <!-- نافذة الرسائل السريعة -->
+    <!-- نافذة الرسائل السريعة (مصححة لخانة المتكاسلين warning) -->
     <div class="modal-overlay" id="messageComposerModal" onclick="if(event.target===this) closeModal('messageComposerModal')">
         <div class="modal-card">
             <div class="modal-header">
@@ -500,7 +531,7 @@
                     <label>اختر تصنيف الرسالة من السحابة</label>
                     <select id="msgCategorySelect">
                         <option value="motivation">🔥 تحفيز وشحن معنوي</option>
-                        <option value="warning">⚠️ تنبيه للطلاب المتكسلين</option>
+                        <option value="warning">⚠️ تنبيه للطلاب المتكاسلين</option>
                         <option value="congrats">🌟 تهنئة وتفوق</option>
                     </select>
                 </div>
@@ -549,7 +580,6 @@
         </div>
     </div>
 
-    <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -571,14 +601,32 @@
 
         let currentAdminData = null;
         let selectedNewAvatarBase64 = null;
+        let toastTimeout = null;
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
+
+        // دعم سحب إشعار الـ Toast لليمين أو اليسار ليختفي فوراً
+        const toastEl = document.getElementById('customToast');
+        let touchStartX = 0;
+        toastEl.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+        toastEl.addEventListener('touchend', e => {
+            let diffX = e.changedTouches[0].screenX - touchStartX;
+            if (diffX > 40) {
+                toastEl.classList.add('swiping-right');
+                setTimeout(() => { toastEl.classList.remove('show', 'swiping-right'); }, 200);
+            } else if (diffX < -40) {
+                toastEl.classList.add('swiping-left');
+                setTimeout(() => { toastEl.classList.remove('show', 'swiping-left'); }, 200);
+            }
+        });
 
         function showToast(message, icon = "✨") {
             const toast = document.getElementById('customToast');
             document.getElementById('toastMessage').innerText = message;
             document.getElementById('toastIcon').innerText = icon;
+            toast.classList.remove('swiping-left', 'swiping-right');
             toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
         }
 
         function initProfileFast() {
@@ -813,14 +861,14 @@
                 document.getElementById('broadcastTitle').value = '';
                 document.getElementById('broadcastMsg').value = '';
                 closeModal('broadcastModal');
-                showToast("تم إرسال الإشعار الجماعي بنجاح إلى adminNotifications! 🚀", "📢");
+                showToast("تم إرسال الإشعار بنجاح! 🚀", "📢");
             } catch (err) {
                 console.error(err);
                 showToast("فشل إرسال الإشعار.", "❌");
             }
         };
 
-        // --- نظام الملاحظات المحدث (حذف نهائي من الواجهة والسحابة) ---
+        // --- نظام الملاحظات المحدث (بدون رسالة ترحيب مزعجة عند التفريغ) ---
         const noteColorsList = ['note-color-yellow', 'note-color-pink', 'note-color-blue', 'note-color-green', 'note-color-purple'];
 
         function formatCustomDate(dateObj) {
@@ -842,7 +890,7 @@
             noteDiv.className = `sticky-note-item ${randomColor}`;
             noteDiv.innerHTML = `
                 <div class="sticky-note-header">
-                    <span>📌 ورقة ملاحظات الأدمن (${formattedTime})</span>
+                    <span>📌 ملاحظة (${formattedTime})</span>
                     <button type="button" class="delete-note-btn" onclick="deleteStickyNote(this)" title="حذف النوتة">✕</button>
                 </div>
                 <textarea class="sticky-note-textarea" placeholder="اكتب أفكارك أو مهامك هنا...">${content}</textarea>
@@ -850,14 +898,12 @@
             container.prepend(noteDiv);
         };
 
-        // دالة حذف النوتة من الواجهة والسحابة فوراً
         window.deleteStickyNote = async function(btnElement) {
             const noteItem = btnElement.closest('.sticky-note-item');
             if (noteItem) {
                 noteItem.remove();
-                // حفظ التحديث الجديد فوراً في السحابة لضمان الحذف النهائي
                 await saveAdminNotesToCloud(false);
-                showToast("تم حذف النوتة نهائياً من السحابة بنجاح!", "🗑️");
+                showToast("تم حذف النوتة نهائياً!", "🗑️");
             }
         };
 
@@ -871,16 +917,15 @@
                 const docSnap = await getDoc(docRef);
 
                 container.innerHTML = '';
-                if (docSnap.exists() && docSnap.data().notesList && docSnap.data().notesList.length > 0) {
+                if (docSnap.exists() && docSnap.data().notesList) {
                     const notesArray = docSnap.data().notesList;
                     notesArray.forEach(n => {
                         addNewStickyNote(n.text, n.time, n.color);
                     });
                 } else if (docSnap.exists() && docSnap.data().notes) {
                     addNewStickyNote(docSnap.data().notes);
-                } else {
-                    addNewStickyNote("مرحباً بك في المفكرة السحابية الخاصة بك! اكتب ملاحظاتك هنا وابدأ إنجاز مهامك 🚀");
                 }
+                // تم إزالة إنشاء نص الترحيب الإجباري لو كانت المفكرة فارغة تماماً
             } catch (err) {
                 console.error(err);
                 container.innerHTML = '<div class="loading" style="color:#ef4444;">فشل تحميل الملاحظات.</div>';
@@ -913,7 +958,7 @@
                 }, { merge: true });
 
                 if (showNotification) {
-                    showToast("تم حفظ جميع الملاحظات في كولكشن adminNotes بنجاح! 💾", "✅");
+                    showToast("تم حفظ الملاحظات بنجاح! 💾", "✅");
                     loadAdminNotesFromCloud();
                 }
             } catch (err) {
@@ -922,6 +967,7 @@
             }
         };
 
+        // --- إصلاح وتوليد رسائل الطلاب المتكاسلين (warning) ---
         window.loadQuickMessageFromCloud = async function() {
             const cat = document.getElementById('msgCategorySelect').value;
             const outputArea = document.getElementById('generatedMsgOutput');
@@ -933,7 +979,7 @@
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    const messagesList = data[cat] || data.motivation; 
+                    const messagesList = data[cat] || []; 
 
                     if (messagesList && messagesList.length > 0) {
                         const randomMsg = messagesList[Math.floor(Math.random() * messagesList.length)];
@@ -962,14 +1008,14 @@
 
             try {
                 await addDoc(collection(db, "adminNotifications"), {
-                    title: "رسالة تحفيزية من الإدارة ⚡",
+                    title: "تنبيه إداري هامة ⚡",
                     message: msgText,
                     target: targetVal,
                     sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
                     createdAt: serverTimestamp()
                 });
                 closeModal('messageComposerModal');
-                showToast("تم إرسال الرسالة بنجاح إلى adminNotifications! 🚀", "✨");
+                showToast("تم إرسال الرسالة بنجاح عبر الإشعارات! 🚀", "✨");
             } catch (err) {
                 console.error(err);
                 showToast("فشل إرسال الرسالة.", "❌");
