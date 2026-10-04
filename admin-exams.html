@@ -72,7 +72,7 @@
         .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
         .btn-tab {
             background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
-            padding: 9px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; flex: 1; min-width: 120px; text-align: center;
+            padding: 9px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; flex: 1; min-width: 120px; text-align: center; text-decoration: none; display: inline-block;
         }
         .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
 
@@ -164,99 +164,22 @@
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية ↩</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إدارة الامتحانات</span> 📊</div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إدارة الامتحانات الموحدة</span> 📊</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
+        <!-- أزرار التنقل الرئيسية المحدثة للصفحات المستقلة -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
-                <button class="btn-tab active" id="btnTabBuilder" onclick="switchTab('builder')">إنشاء امتحان 📝</button>
-                <button class="btn-tab" id="btnTabSettings" onclick="switchTab('settings')">الإعدادات ⚙️</button>
-                <button class="btn-tab" id="btnTabStats" onclick="switchTab('stats')">إحصائيات 📊</button>
+                <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
+                <a href="exam-settings.html" class="btn-tab">الإعدادات ⚙️</a>
+                <a href="exam-stats.html" class="btn-tab active">إحصائيات ونتائج 📊</a>
             </div>
         </nav>
 
-        <div id="tabBuilderContent" class="section-box">
-            <div class="section-header"><h2>إعداد وتصميم الامتحان والأسئلة 📝</h2></div>
-            <div class="form-group"><label>عنوان الامتحان العام:</label><input type="text" id="examTitle" placeholder="مثال: امتحان شامل الباب الأول كيمياء"></div>
-            <div class="form-row-grid-2">
-                <div class="form-group"><label>المادة الدراسية:</label><input type="text" id="examSubject" placeholder="كيمياء"></div>
-                <div class="form-group"><label>الفئة / الشعبة المستهدفة:</label><input type="text" id="examTargetGroup" placeholder="الصف الثالث الثانوي"></div>
-            </div>
-            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
-            <h3 style="color: var(--text-main); font-size: 1rem; margin-bottom: 10px;">الأسئلة المضافة حالياً:</h3>
-            <div id="questionsContainer"></div>
-
-            <div class="question-builder-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 id="builderFormTitle" style="font-size: 0.95rem; color: var(--text-main);">إضافة سؤال جديد:</h4>
-                    <span id="editingIndicator" class="hidden" style="font-size: 0.78rem; background: #f59e0b; color: white; padding: 2px 8px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠</span>
-                </div>
-
-                <div class="question-top-row">
-                    <div class="form-group" style="margin-top: 0;"><label>نص السؤال:</label><input type="text" id="newQText" placeholder="اكتب السؤال هنا..."></div>
-                    <div class="form-group" style="margin-top: 0;"><label>درجة السؤال:</label><input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;"></div>
-                </div>
-
-                <div class="form-group hidden" id="imageInputGroup"><label>إرفاق صورة توضيحية للسؤال (اختياري):</label><input type="file" id="newQImageFile" accept="image/*" style="padding: 6px;"></div>
-
-                <div class="form-group" id="optionsBuilderGroup">
-                    <label>الخيارات (حدد الصحيح):</label>
-                    <div id="optionsBuilderList">
-                        <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
-                        <div class="option-row"><input type="radio" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>
-                    </div>
-                    <button class="btn-add-opt" id="addOptBtn" onclick="addOptionInput()">إضافة خيار آخر ➕</button>
-                </div>
-
-                <div class="question-actions-row">
-                    <div class="question-type-wrapper">
-                        <input type="hidden" id="selectedQuestionType" value="mcq">
-                        <button type="button" class="btn-question-clip" id="clipMenuBtn" onclick="toggleClipDropdown()" title="تنسيق وشكل السؤال">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                        </button>
-                        <div class="custom-dropdown-menu" id="clipDropdownMenu">
-                            <div class="custom-dropdown-item selected" onclick="selectQuestionType('mcq', this)">🔘 اختياري (دائرة - مفرد)</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('checkbox', this)">☑️ اختياري (مربعات - متعدد)</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('tf', this)">✔️ صح وخطأ</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('short', this)">📝 نص قصير</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('long', this)">📄 نص طويل (مقال)</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('essayImage', this)">🖼️ مقالي مع رفع صورة</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('voice', this)">🎙️ تسجيل صوتي حقيقي</div>
-                        </div>
-                    </div>
-                    <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
-                </div>
-            </div>
-            <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان 🚀</button>
-        </div>
-
-        <div id="tabSettingsContent" class="section-box hidden">
-            <div class="section-header"><h2>إعدادات الخيارات والتحكم في الامتحان ⚙️</h2></div>
-            <div class="settings-grid">
-                <div class="setting-card"><label for="settingPasswordLock">جعل الامتحان بكلمة مرور</label><label class="switch"><input type="checkbox" id="settingPasswordLock" onchange="togglePasswordInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI)</label><label class="switch"><input type="checkbox" id="settingAIBot" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingTimer">تفعيل المؤقت الزمني</label><label class="switch"><input type="checkbox" id="settingTimer" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingShuffle">خلط ترتيب الأسئلة عشوائياً</label><label class="switch"><input type="checkbox" id="settingShuffle"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingInstantResult">عرض النتيجة الفورية للطالب</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingAntiCheat">منع مغادرة متصفح الامتحان</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
-            </div>
-            <div class="form-group hidden" id="passwordInputGroup"><label>كلمة مرور الامتحان:</label><input type="text" id="settingPassword" placeholder="اكتب كلمة السر هنا..."></div>
-            <div class="form-row-grid-3">
-                <div class="form-group"><label>المدة (بالدقائق):</label><input type="number" id="settingDuration" value="30"></div>
-                <div class="form-group"><label>عدد المحاولات:</label><input type="number" id="settingAttempts" value="1"></div>
-                <div class="form-group"><label>درجة النجاح (%):</label><input type="number" id="settingPassingScore" value="50"></div>
-            </div>
-            <div class="form-row-grid-2">
-                <div class="form-group"><label>الحد الأقصى للمتقدمين (Quota):</label><input type="number" id="settingMaxQuota" placeholder="بلا حدود"></div>
-                <div class="form-group"><label>رسالة نهاية الامتحان المخصصة:</label><input type="text" id="settingCustomMsg" placeholder="شكراً لإتمامك الامتحان..."></div>
-            </div>
-            <button class="btn-save" onclick="saveExamSettingsOnly()">حفظ إعدادات الامتحان بالسحابة ⚙️</button>
-        </div>
-
-        <div id="tabStatsContent" class="section-box hidden">
+        <div class="section-box">
             <div class="section-header"><h2>إحصائيات ونتائج الامتحانات 📊</h2></div>
-            <div id="examStatsContainer"><p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.85rem;">جاري جلب الامتحانات...</p></div>
+            <div id="examStatsContainer"><p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.85rem;">جاري جلب الامتحانات بسرعة عالية...</p></div>
         </div>
     </div>
 
@@ -280,15 +203,17 @@
             <h3 style="color: var(--primary); margin-bottom: 12px; text-align: center;" id="answersModalTitle">📋 معاينة إجابات الطالب والتصحيح</h3>
             <div id="studentAnswersContainer" style="font-size: 0.88rem;"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button onclick="saveManualGradingAndNotify()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">حفظ التصحيح وإرسال النتيجة للطالب 🔔</button>
+                <button onclick="saveManualGradingAndNotify()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">حفظ التصحيح وإرسال النتيجة لجرس الطالب 🔔</button>
                 <button onclick="closeAnswersModal()" style="background: #475569; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 120px;">إغلاق</button>
             </div>
         </div>
     </div>
+
+    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -304,22 +229,20 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let currentDraftQuestions = [];
         let globalExamsList = [];
         let activeSelectedStudent = null;
         let activeSelectedSubmission = null;
         let activeExamId = null;
-        let editingQuestionIndex = null;
-        let currentSelectedSettings = { active: true, timer: true, duration: 30, attempts: 1, passingScore: 50, aiBot: true };
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await loadExamsFromCloud();
+                await renderExamsStatsList();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
+        // نظام الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -333,27 +256,6 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        window.switchTab = function(tab) {
-            document.getElementById('btnTabBuilder').classList.remove('active');
-            document.getElementById('btnTabSettings').classList.remove('active');
-            document.getElementById('btnTabStats').classList.remove('active');
-            document.getElementById('tabBuilderContent').classList.add('hidden');
-            document.getElementById('tabSettingsContent').classList.add('hidden');
-            document.getElementById('tabStatsContent').classList.add('hidden');
-
-            if (tab === 'builder') {
-                document.getElementById('btnTabBuilder').classList.add('active');
-                document.getElementById('tabBuilderContent').classList.remove('hidden');
-            } else if (tab === 'settings') {
-                document.getElementById('btnTabSettings').classList.add('active');
-                document.getElementById('tabSettingsContent').classList.remove('hidden');
-            } else if (tab === 'stats') {
-                document.getElementById('btnTabStats').classList.add('active');
-                document.getElementById('tabStatsContent').classList.remove('hidden');
-                renderExamsStatsList();
-            }
-        };
-
         async function loadExamsFromCloud() {
             try {
                 const querySnapshot = await getDocs(collection(db, "exams"));
@@ -366,248 +268,10 @@
             }
         }
 
-        window.toggleClipDropdown = function() {
-            const menu = document.getElementById('clipDropdownMenu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        };
-
-        window.selectQuestionType = function(typeVal, element) {
-            document.getElementById('selectedQuestionType').value = typeVal;
-            document.querySelectorAll('.custom-dropdown-item').forEach(item => item.classList.remove('selected'));
-            element.classList.add('selected');
-            document.getElementById('clipDropdownMenu').style.display = 'none';
-            changeQuestionTypeUI();
-        };
-
-        window.addEventListener('click', function(e) {
-            if (!e.target.closest('.question-type-wrapper')) {
-                const menu = document.getElementById('clipDropdownMenu');
-                if (menu) menu.style.display = 'none';
-            }
-        });
-
-        window.changeQuestionTypeUI = function() {
-            let type = document.getElementById('selectedQuestionType').value;
-            let optGroup = document.getElementById('optionsBuilderGroup');
-            let imgGroup = document.getElementById('imageInputGroup');
-
-            if (type === 'short' || type === 'long' || type === 'voice') {
-                optGroup.classList.add('hidden');
-                imgGroup.classList.add('hidden');
-            } else if (type === 'essayImage') {
-                optGroup.classList.add('hidden');
-                imgGroup.classList.remove('hidden');
-            } else if (type === 'tf') {
-                optGroup.classList.remove('hidden');
-                imgGroup.classList.add('hidden');
-                document.getElementById('optionsBuilderList').innerHTML = `
-                    <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.9rem;">صح</span></div>
-                    <div class="option-row"><input type="radio" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.9rem;">خطأ</span></div>`;
-                document.getElementById('addOptBtn').style.display = 'none';
-            } else {
-                optGroup.classList.remove('hidden');
-                imgGroup.classList.add('hidden');
-                let inputType = (type === 'checkbox') ? 'checkbox' : 'radio';
-                document.getElementById('optionsBuilderList').innerHTML = `
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>`;
-                document.getElementById('addOptBtn').style.display = 'inline-block';
-            }
-        };
-
-        window.addOptionInput = function() {
-            const list = document.getElementById('optionsBuilderList');
-            let type = document.getElementById('selectedQuestionType').value;
-            let inputType = type === 'checkbox' ? 'checkbox' : 'radio';
-            const row = document.createElement('div');
-            row.className = 'option-row';
-            row.innerHTML = `
-                <input type="${inputType}" name="correctOpt" value="${list.children.length}" style="width: 18px; height: 18px; cursor: pointer;">
-                <input type="text" class="opt-input" placeholder="خيار إضافي">`;
-            list.appendChild(row);
-        };
-
-        window.addNewQuestionToExam = function() {
-            let qText = document.getElementById('newQText').value.trim();
-            let marks = parseFloat(document.getElementById('newQMarks').value) || 1;
-            let type = document.getElementById('selectedQuestionType').value;
-            let imageFileinput = document.getElementById('newQImageFile');
-
-            if (!qText) { alert('يرجى كتابة نص السؤال!'); return; }
-
-            let processQuestionWithImage = (imageUrl) => {
-                let options = [];
-                let correct = type === 'checkbox' ? [] : 0;
-
-                if (type === 'tf') {
-                    options = ['صح', 'خطأ'];
-                    let radios = document.querySelectorAll('input[name="correctOpt"]');
-                    radios.forEach((r, idx) => { if (r.checked) correct = idx; });
-                } else if (type !== 'short' && type !== 'long' && type !== 'voice' && type !== 'essayImage') {
-                    let optInputs = document.querySelectorAll('.opt-input');
-                    let radioOrChecks = document.querySelectorAll('input[name="correctOpt"]');
-                    optInputs.forEach((inp, idx) => {
-                        if (inp.value.trim()) {
-                            options.push(inp.value.trim());
-                            if (radioOrChecks[idx] && radioOrChecks[idx].checked) {
-                                if (type === 'checkbox') correct.push(options.length - 1);
-                                else correct = options.length - 1;
-                            }
-                        }
-                    });
-                }
-
-                let questionObj = { text: qText, marks: marks, type: type, options: options, correct: correct, imageUrl: imageUrl };
-
-                if (editingQuestionIndex !== null) {
-                    currentDraftQuestions[editingQuestionIndex] = questionObj;
-                    editingQuestionIndex = null;
-                    document.getElementById('builderFormTitle').textContent = 'إضافة سؤال جديد:';
-                    document.getElementById('editingIndicator').classList.add('hidden');
-                    document.getElementById('addOrUpdateBtn').textContent = 'إضافة السؤال للامتحان ✅';
-                } else {
-                    currentDraftQuestions.push(questionObj);
-                }
-
-                document.getElementById('newQText').value = '';
-                document.getElementById('newQImageFile').value = '';
-                document.getElementById('newQMarks').value = '1';
-                renderQuestionsList();
-            };
-
-            if (imageFileinput.files && imageFileinput.files[0]) {
-                let reader = new FileReader();
-                reader.onload = function(e) { processQuestionWithImage(e.target.result); };
-                reader.readAsDataURL(imageFileinput.files[0]);
-            } else {
-                processQuestionWithImage('');
-            }
-        };
-
-        function getTypeNameArabic(type) {
-            switch(type) {
-                case 'mcq': return 'اختياري (مفرد)';
-                case 'checkbox': return 'اختياري (مربعات)';
-                case 'tf': return 'صح وخطأ';
-                case 'short': return 'نص قصير';
-                case 'long': return 'نص طويل';
-                case 'essayImage': return 'مقالي مع رفع صورة';
-                case 'voice': return 'تسجيل صوتي';
-                default: return 'سؤال عام';
-            }
-        }
-
-        function renderQuestionsList() {
-            const container = document.getElementById('questionsContainer');
-            if (currentDraftQuestions.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
-            let html = '';
-            currentDraftQuestions.forEach((q, idx) => {
-                let typeLabel = getTypeNameArabic(q.type);
-                html += `
-                    <div style="background: var(--th-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
-                        <div onclick="editQuestion(${idx})" style="cursor: pointer; flex: 1;" title="اضغط للتعديل والمعاينة">
-                            <p style="font-weight: bold; margin-bottom: 2px;">سؤال ${idx+1}: ${q.text} <span style="font-size:0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 2px 6px; border-radius: 4px; margin-right: 6px;">(${q.marks} درجات - ${typeLabel})</span></p>
-                        </div>
-                        <button class="btn-danger" onclick="deleteDraftQuestion(${idx}, event)">حذف</button>
-                    </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        window.editQuestion = function(idx) {
-            let q = currentDraftQuestions[idx];
-            editingQuestionIndex = idx;
-            document.getElementById('newQText').value = q.text || '';
-            document.getElementById('newQMarks').value = q.marks || 1;
-            document.getElementById('selectedQuestionType').value = q.type || 'mcq';
-            changeQuestionTypeUI();
-            
-            if (q.options && q.options.length > 0 && q.type !== 'tf') {
-                let list = document.getElementById('optionsBuilderList');
-                list.innerHTML = '';
-                q.options.forEach((optText, oIdx) => {
-                    let isChecked = q.type === 'checkbox' ? (q.correct && q.correct.includes(oIdx)) : (q.correct === oIdx);
-                    let inputType = q.type === 'checkbox' ? 'checkbox' : 'radio';
-                    let row = document.createElement('div');
-                    row.className = 'option-row';
-                    row.innerHTML = `
-                        <input type="${inputType}" name="correctOpt" value="${oIdx}" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
-                        <input type="text" class="opt-input" value="${optText}">`;
-                    list.appendChild(row);
-                });
-            }
-
-            document.getElementById('builderFormTitle').textContent = `تعديل السؤال رقم ${idx + 1}:`;
-            document.getElementById('editingIndicator').classList.remove('hidden');
-            document.getElementById('addOrUpdateBtn').textContent = 'تحديث السؤال 🔄';
-            window.scrollTo({ top: 400, behavior: 'smooth' });
-        };
-
-        window.deleteDraftQuestion = function(idx, event) {
-            event.stopPropagation();
-            currentDraftQuestions.splice(idx, 1);
-            renderQuestionsList();
-        };
-
-        window.saveExamSettingsOnly = function() {
-            let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
-            currentSelectedSettings.password = isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '';
-            currentSelectedSettings.active = true;
-            currentSelectedSettings.aiBot = document.getElementById('settingAIBot').checked;
-            currentSelectedSettings.timer = document.getElementById('settingTimer').checked;
-            currentSelectedSettings.shuffle = document.getElementById('settingShuffle').checked;
-            currentSelectedSettings.instantResult = document.getElementById('settingInstantResult').checked;
-            currentSelectedSettings.antiCheat = document.getElementById('settingAntiCheat').checked;
-            currentSelectedSettings.duration = parseInt(document.getElementById('settingDuration').value) || 30;
-            currentSelectedSettings.attempts = parseInt(document.getElementById('settingAttempts').value) || 1;
-            currentSelectedSettings.passingScore = parseInt(document.getElementById('settingPassingScore').value) || 50;
-            currentSelectedSettings.maxQuota = document.getElementById('settingMaxQuota').value.trim();
-            currentSelectedSettings.customMsg = document.getElementById('settingCustomMsg').value.trim();
-            alert('تم حفظ إعدادات الامتحان بنجاح ⚙️');
-        };
-
-        window.togglePasswordInput = function() {
-            let isChecked = document.getElementById('settingPasswordLock').checked;
-            let group = document.getElementById('passwordInputGroup');
-            if (isChecked) group.classList.remove('hidden');
-            else group.classList.add('hidden');
-        };
-
-        window.saveFullExamToCloud = async function() {
-            let title = document.getElementById('examTitle').value.trim();
-            let subject = document.getElementById('examSubject').value.trim();
-            let targetGroup = document.getElementById('examTargetGroup').value.trim();
-
-            if (!title) { alert('يرجى كتابة عنوان الامتحان!'); return; }
-            if (currentDraftQuestions.length === 0) { alert('يرجى إضافة سؤال واحد على الأقل للامتحان!'); return; }
-
-            let newExamDoc = {
-                title: title, subject: subject, targetGroup: targetGroup,
-                questions: currentDraftQuestions, settings: currentSelectedSettings,
-                examSubmissions: [], createdAt: new Date().toISOString()
-            };
-
-            try {
-                await addDoc(collection(db, "exams"), newExamDoc);
-                currentDraftQuestions = [];
-                editingQuestionIndex = null;
-                document.getElementById('examTitle').value = '';
-                document.getElementById('examSubject').value = '';
-                document.getElementById('examTargetGroup').value = '';
-                renderQuestionsList();
-                alert('تم نشر الامتحان بنجاح 🚀');
-            } catch (e) {
-                console.error(e);
-                alert("حدث خطأ أثناء النشر.");
-            }
-        };
-
         async function renderExamsStatsList() {
             const container = document.getElementById('examStatsContainer');
+            container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.85rem;">جاري جلب الامتحانات...</p>';
+            
             await loadExamsFromCloud();
 
             if (globalExamsList.length === 0) {
@@ -641,7 +305,7 @@
                 try {
                     await deleteDoc(doc(db, "exams", examId));
                     alert("تم حذف الامتحان بنجاح");
-                    loadExamsFromCloud().then(() => renderExamsStatsList());
+                    renderExamsStatsList();
                 } catch (e) {
                     console.error(e);
                 }
@@ -771,6 +435,19 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
+        function getTypeNameArabic(type) {
+            switch(type) {
+                case 'mcq': return 'اختياري (مفرد)';
+                case 'checkbox': return 'اختياري (مربعات)';
+                case 'tf': return 'صح وخطأ';
+                case 'short': return 'نص قصير';
+                case 'long': return 'نص طويل';
+                case 'essayImage': return 'مقالي مع رفع صورة';
+                case 'voice': return 'تسجيل صوتي';
+                default: return 'سؤال عام';
+            }
+        }
+
         window.saveManualGradingAndNotify = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
@@ -806,7 +483,7 @@
                     const examRef = doc(db, "exams", examId);
                     await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
                     alert('تم تصحيح وإرسال النتائج لكل الطلاب بنجاح عبر الإشعارات 🔔🚀');
-                    renderExamsStatsList();
+                    renderSingleExamSubmissions(examId);
                 } catch (e) {
                     console.error(e);
                 }
