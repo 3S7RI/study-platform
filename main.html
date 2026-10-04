@@ -394,7 +394,7 @@
         </div>
     </main>
 
-    <!-- نافذة الإشعارات الشيك للأدمن -->
+    <!-- نافذة الإشعارات الشيك للطالب -->
     <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) closeNotificationsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -450,7 +450,7 @@
             } else {
                 htmlTag.setAttribute('data-theme', 'dark');
                 localStorage.setItem('theme', 'dark');
-                themeToggleBtn.textContent = '☀️️';
+                themeToggleBtn.textContent = '☀️';
             }
         });
 
@@ -523,39 +523,59 @@
             }
         }
 
-        // --- إدارة نافذة الإشعارات وعرض رسائل الأدمن مع علامة التوثيق الزرقاء ---
+        // --- إدارة نافذة الإشعارات وفلترة رسائل الأدمن والطلاب من adminNotifications ---
         window.openNotificationsModal = async function() {
             document.getElementById('notificationsModal').classList.add('active');
-            await loadAdminNotifications();
+            await loadStudentCloudNotifications();
         };
 
         window.closeNotificationsModal = function() {
             document.getElementById('notificationsModal').classList.remove('active');
         };
 
-        async function loadAdminNotifications() {
+        async function loadStudentCloudNotifications() {
             const container = document.getElementById('notificationsListContainer');
-            container.innerHTML = `<div class="loading">جاري جلب إشعارات الأدمن... ⏳</div>`;
+            container.innerHTML = `<div class="loading">جاري جلب إشعارات المنصة... ⏳</div>`;
 
             try {
-                // جلب إشعارات أو رسائل الأدمن العامة للطلاب
                 const notifRef = collection(db, "adminNotifications");
-                const q = query(notifRef, orderBy("createdAt", "desc"), limit(20));
-                const snap = await getDocs(q);
+                const snap = await getDocs(notifRef);
 
                 let html = '';
                 if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة من الأدمن حالياً. ✨</p>`;
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة حالياً. ✨</p>`;
                     return;
                 }
 
+                let docsList = [];
                 snap.forEach(docSnap => {
-                    const item = docSnap.data();
-                    const adminName = item.adminName || 'المهندس / الإدارة';
-                    const messageText = item.message || item.text || '';
-                    const timeFormatted = item.createdAt ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
+                    docsList.push({ id: docSnap.id, ...docSnap.data() });
+                });
 
-                    // أيقونة علامة التوثيق الزرقاء SVG العبقرية بجانب اسم الأدمن
+                // فلترة الإشعارات في صفحة الطالب: إظهار الموجهة للطلاب أو للجميع فقط
+                let filteredList = docsList.filter(item => {
+                    let target = item.target || 'students';
+                    return target === 'students' || target === 'all';
+                });
+
+                if (filteredList.length === 0) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات مخصصة للطلاب حالياً. ✨</p>`;
+                    return;
+                }
+
+                // ترتيب محلي تنازلي حسب وقت الإنشاء
+                filteredList.sort((a, b) => {
+                    let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+                    let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+                    return timeB - timeA;
+                });
+
+                filteredList.slice(0, 15).forEach(item => {
+                    const adminName = item.sender || item.adminName || 'الإدارة';
+                    const titleText = item.title || 'إشعار إداري';
+                    const messageText = item.message || item.text || '';
+                    const timeFormatted = item.createdAt?.toMillis ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
+
                     const verifiedSvg = `<svg class="verified-badge-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.99 15l-4.24-4.24 1.41-1.41 2.83 2.83 7.07-7.07 1.41 1.41-8.48 8.48z"/></svg>`;
 
                     html += `
@@ -567,6 +587,7 @@
                                 </div>
                                 <span class="admin-notif-time">${timeFormatted}</span>
                             </div>
+                            <h4 style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">${titleText}</h4>
                             <div class="admin-notif-text">${messageText}</div>
                         </div>
                     `;
@@ -575,9 +596,8 @@
                 container.innerHTML = html;
                 document.getElementById('mainNotifDot').style.display = 'none';
             } catch (error) {
-                console.error("خطأ في جلب إشعارات الأدمن:", error);
-                // محاولة بديلة أو رسالة افتراضية في حال لم تكن المجموعة منشأة بعد في قاعدة البيانات
-                container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة من الأدمن حالياً. ✨</p>`;
+                console.error("خطأ في جلب إشعارات الطالب:", error);
+                container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة حالياً. ✨</p>`;
             }
         }
 
@@ -586,8 +606,16 @@
                 const notifRef = collection(db, "adminNotifications");
                 const snap = await getDocs(notifRef);
                 if (!snap.empty) {
-                    document.getElementById('mainNotifDot').style.display = 'inline-block';
-                    document.getElementById('mainNotifDot').innerText = snap.size;
+                    let docsList = [];
+                    snap.forEach(d => docsList.push(d.data()));
+                    let unreadForStudents = docsList.filter(item => {
+                        let target = item.target || 'students';
+                        return target === 'students' || target === 'all';
+                    });
+                    if (unreadForStudents.length > 0) {
+                        document.getElementById('mainNotifDot').style.display = 'inline-block';
+                        document.getElementById('mainNotifDot').innerText = unreadForStudents.length;
+                    }
                 }
             } catch(e) {}
         }
