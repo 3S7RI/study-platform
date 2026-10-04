@@ -436,6 +436,11 @@
         let currentStudentEmailGlobal = "";
         let studentCreatedAtTime = 0; // وقت إنشاء حساب الطالب
 
+        // --- مفتاح التخزين المحلي لحفظ وقت آخر قراءة للإشعارات ---
+        function getLastSeenKey() {
+            return "last_seen_notif_" + (currentStudentEmailGlobal || "guest");
+        }
+
         // --- نظام الوضع الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
@@ -536,9 +541,16 @@
             }
         }
 
-        // --- إدارة نافذة الإشعارات وفلترة رسائل الأدمن والطلاب وتجاهل الإشعارات القديمة قبل انضمام الطالب ---
+        // --- إدارة نافذة الإشعارات وحفظ وقت المشاهدة لإخفاء العداد نهائياً ---
         window.openNotificationsModal = async function() {
             document.getElementById('notificationsModal').classList.add('active');
+            
+            // عند فتح نافذة الإشعارات، نقوم بتسجيل وقت القراءة الحالي في localStorage
+            localStorage.setItem(getLastSeenKey(), Date.now().toString());
+            
+            // إخفاء العداد فوراً بعد الفتح
+            document.getElementById('mainNotifDot').style.display = 'none';
+
             await loadStudentCloudNotifications();
         };
 
@@ -565,17 +577,11 @@
                     docsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // فلترة الإشعارات للطالب الحالي:
-                // 1. استبعاد الإشعارات القديمة التي تم إنشاؤها قبل وقت تسجيل وحساب الطالب (studentCreatedAtTime)
-                // 2. التحقق من تطابق المستهدف (إما إشعار ترحيبي فردي مخصص له، أو إشعارات عامة للكل/الطلاب)
                 let filteredList = docsList.filter(item => {
                     let target = item.target || 'students';
                     let recipient = (item.recipientEmail || '').toLowerCase().trim();
-
-                    // استخراج وقت إنشاء الإشعار بالمللي ثانية
                     let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
 
-                    // إذا كان الإشعار أقدم من وقت تسجيل الطالب، نتجاهله فوراً
                     if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
                         return false;
                     }
@@ -591,7 +597,6 @@
                     return;
                 }
 
-                // ترتيب محلي تنازلي حسب وقت الإنشاء
                 filteredList.sort((a, b) => {
                     let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (new Date(a.createdAt).getTime() || 0);
                     let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (new Date(b.createdAt).getTime() || 0);
@@ -622,7 +627,6 @@
                 });
 
                 container.innerHTML = html;
-                document.getElementById('mainNotifDot').style.display = 'none';
             } catch (error) {
                 console.error("خطأ في جلب إشعارات الطالب:", error);
                 container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة حالياً. ✨</p>`;
@@ -636,23 +640,34 @@
                 if (!snap.empty) {
                     let docsList = [];
                     snap.forEach(d => docsList.push(d.data()));
+
+                    // استرجاع وقت آخر مرة فتح فيها الطالب الإشعارات
+                    let lastSeen = parseInt(localStorage.getItem(getLastSeenKey()) || "0");
+
                     let unreadForStudents = docsList.filter(item => {
                         let target = item.target || 'students';
                         let recipient = (item.recipientEmail || '').toLowerCase().trim();
                         let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
 
+                        // استبعاد الإشعارات القديمة قبل تسجيل الطالب
                         if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
                             return false;
                         }
 
-                        if (target === 'single') {
-                            return recipient === currentStudentEmailGlobal;
-                        }
-                        return target === 'students' || target === 'all';
+                        // فلترة المخصص للـ single أو الكل/الطلاب
+                        let isTargetMatch = (target === 'single') ? (recipient === currentStudentEmailGlobal) : (target === 'students' || target === 'all');
+
+                        if (!isTargetMatch) return false;
+
+                        // الشرط الأساسي لإظهار العداد: أن يكون الإشعار قد تم إنشاؤه بعد آخر مرة شاف فيها الإشعارات
+                        return itemTime > lastSeen;
                     });
+
                     if (unreadForStudents.length > 0) {
                         document.getElementById('mainNotifDot').style.display = 'inline-block';
                         document.getElementById('mainNotifDot').innerText = unreadForStudents.length;
+                    } else {
+                        document.getElementById('mainNotifDot').style.display = 'none';
                     }
                 }
             } catch(e) {}
