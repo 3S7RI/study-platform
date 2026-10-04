@@ -426,21 +426,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.doc = doc;
-        window.getDoc = getDoc;
-        window.setDoc = setDoc;
-        window.deleteDoc = deleteDoc;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.query = query;
-        window.orderBy = orderBy;
-        window.limit = limit;
-        window.serverTimestamp = serverTimestamp;
-        window.updateDoc = updateDoc;
-
         let currentAdminData = null;
         let selectedNewAvatarBase64 = null;
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
@@ -487,9 +472,9 @@
                     adminEmail = currentAdminData.email;
                 }
 
-                if (adminEmail && window.firebaseDb && window.doc && window.getDoc) {
-                    const docRef = window.doc(window.firebaseDb, "admins", adminEmail.toLowerCase().trim());
-                    const docSnap = await window.getDoc(docRef);
+                if (adminEmail) {
+                    const docRef = doc(db, "admins", adminEmail.toLowerCase().trim());
+                    const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
                         currentAdminData = docSnap.data();
                     }
@@ -500,8 +485,8 @@
                         currentAdminData.adminId = await getNextAdminId();
                         let emailKey = (currentAdminData.email || adminEmail || '').toLowerCase().trim();
                         if (emailKey) {
-                            let docRef = window.doc(window.firebaseDb, "admins", emailKey);
-                            await window.setDoc(docRef, currentAdminData, { merge: true });
+                            let docRef = doc(db, "admins", emailKey);
+                            await setDoc(docRef, currentAdminData, { merge: true });
                         }
                     }
                     renderProfile(currentAdminData);
@@ -610,8 +595,8 @@
                 currentAdminData.avatar = selectedNewAvatarBase64;
 
                 let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
-                if (window.firebaseDb && window.doc && emailKey) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
+                if (emailKey) {
+                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -632,8 +617,8 @@
             currentAdminData.avatar = "";
             let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (window.firebaseDb && window.doc && emailKey) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
+                if (emailKey) {
+                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -662,8 +647,8 @@
 
             let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (window.firebaseDb && window.doc && emailKey) {
-                    await window.setDoc(window.doc(window.firebaseDb, "admins", emailKey), currentAdminData, { merge: true });
+                if (emailKey) {
+                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderProfile(currentAdminData);
@@ -679,11 +664,11 @@
             if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
             try {
                 let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
-                if (window.firebaseDb && window.doc && emailKey) {
-                    await window.deleteDoc(window.doc(window.firebaseDb, "admins", emailKey));
+                if (emailKey) {
+                    await deleteDoc(doc(db, "admins", emailKey));
                 }
                 sessionStorage.clear();
-                showToast("تم حذف حسابك نهائياً.", "⚠️");
+                showToast("تم حذف حسابك نهائياً.", "⚠️️");
                 setTimeout(() => { window.location.href = "login.html"; }, 1500);
             } catch (err) {
                 console.error(err);
@@ -701,11 +686,11 @@
             }
 
             try {
-                await window.addDoc(window.collection(window.firebaseDb, "notifications"), {
+                await addDoc(collection(db, "notifications"), {
                     title: title,
                     message: message,
                     sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
-                    createdAt: window.serverTimestamp()
+                    createdAt: serverTimestamp()
                 });
                 document.getElementById('broadcastTitle').value = '';
                 document.getElementById('broadcastMsg').value = '';
@@ -720,8 +705,8 @@
         window.loadAdminNotesFromCloud = async function() {
             try {
                 if (!currentAdminData || !currentAdminData.email) return;
-                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase().trim());
-                const docSnap = await window.getDoc(docRef);
+                const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
+                const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     document.getElementById('adminNotesText').value = docSnap.data().notes || '';
                 } else {
@@ -739,8 +724,8 @@
                     showToast("بيانات الحساب غير متوفرة لحفظ الملاحظات.", "❌");
                     return;
                 }
-                const docRef = window.doc(window.firebaseDb, "adminNotes", currentAdminData.email.toLowerCase().trim());
-                await window.setDoc(docRef, { notes: notesContent, updatedAt: window.serverTimestamp() }, { merge: true });
+                const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
+                await setDoc(docRef, { notes: notesContent, updatedAt: serverTimestamp() }, { merge: true });
                 showToast("تم حفظ الملاحظات في السحابة بنجاح! 💾", "✅");
             } catch (err) {
                 console.error(err);
@@ -754,8 +739,8 @@
             outputArea.value = "جاري جلب الرسالة من السحابة... ⏳";
 
             try {
-                const docRef = window.doc(window.firebaseDb, "messagestore", cat);
-                const docSnap = await window.getDoc(docRef);
+                const docRef = doc(db, "messagestore", cat);
+                const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -784,11 +769,11 @@
             }
 
             try {
-                await window.addDoc(window.collection(window.firebaseDb, "notifications"), {
+                await addDoc(collection(db, "notifications"), {
                     title: "رسالة تحفيزية من الإدارة ⚡",
                     message: msgText,
                     sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
-                    createdAt: window.serverTimestamp()
+                    createdAt: serverTimestamp()
                 });
                 closeModal('messageComposerModal');
                 showToast("تم إرسال الرسالة لجميع الطلاب عبر الإشعارات بنجاح! 🚀", "✨");
@@ -803,8 +788,8 @@
             questDisplay.innerText = "جاري جلب التحدي من السحابة... ⏳";
 
             try {
-                const docRef = window.doc(window.firebaseDb, "messagestore", "adminQuests");
-                const docSnap = await window.getDoc(docRef);
+                const docRef = doc(db, "messagestore", "adminQuests");
+                const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -825,10 +810,10 @@
             }
         };
 
-        function logoutAdmin() {
+        window.logoutAdmin = function() {
             sessionStorage.clear();
             window.location.href = 'login.html';
-        }
+        };
 
         initProfile();
     </script>
