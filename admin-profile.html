@@ -219,7 +219,6 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
-        /* تصميم ورقة النوت (Sticky Note) الاحترافية */
         .sticky-note-wrapper {
             background: #fef08a;
             color: #1e293b;
@@ -258,7 +257,6 @@
             color: rgba(30, 41, 53, 0.4);
         }
 
-        /* تصميم خيارات التوجيه بجانب بعضها بدون لخبطة */
         .target-options-group {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -337,7 +335,7 @@
 
     <div class="profile-card" id="profileCardMain">
         <div id="profileContent">
-            <div class="loading">جاري جلب بيانات البروفايل من السحابة... ⏳</div>
+            <div class="loading">جاري جلب وفحص بيانات السحابة والبروفايل... ⏳</div>
         </div>
     </div>
 
@@ -416,7 +414,7 @@
         </div>
     </div>
 
-    <!-- نافذة الملاحظات الشخصية (على شكل ورقة نوت شيك مع وقت الحفظ) -->
+    <!-- نافذة الملاحظات الشخصية -->
     <div class="modal-overlay" id="notesModal" onclick="if(event.target===this) closeModal('notesModal')">
         <div class="modal-card">
             <div class="modal-header">
@@ -546,6 +544,45 @@
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
+        // دالة إنشاء الهياكل والكولكشنات تلقائياً في فايربيس لو مش موجودة
+        async function ensureDatabaseCollectionsAndDefaults() {
+            try {
+                // 1. فحص وإنشاء كولكشن adminNotifications وإشعار ترحيبي افتراضي لو فاضي
+                const notifsSnap = await getDocs(collection(db, "adminNotifications"));
+                if (notifsSnap.empty) {
+                    await setDoc(doc(db, "adminNotifications", "welcome_system_msg"), {
+                        title: "🌟 أهلاً بك في منصة رحلة دراسية!",
+                        message: "منورنا يا بطل في المنصة! استعد لرحلة تفوق مفيهاش مستحيل.",
+                        target: "all",
+                        sender: "إدارة المنصة 📖",
+                        createdAt: serverTimestamp()
+                    });
+                }
+
+                // 2. فحص وإنشاء كولكشن messagestore وقوالب الرسائل والتحديات لو مش موجودة
+                const categories = ["motivation", "warning", "congrats", "adminQuests"];
+                for (const cat of categories) {
+                    const docRef = doc(db, "messagestore", cat);
+                    const docSnap = await getDoc(docRef);
+                    if (!docSnap.exists()) {
+                        let defaultData = {};
+                        if (cat === "motivation") {
+                            defaultData = { motivation: ["التوكل على الله نصف السعي، استمر في مذاكرتك ولا تتوقف!", "كل ساعة تعب تقربك خطوة نحو حلمك."] };
+                        } else if (cat === "warning") {
+                            defaultData = { warning: ["يا وحش، الكسل مش من عادتك! قوم افتح كتابك وراجع دروسك فوراً."] };
+                        } else if (cat === "congrats") {
+                            defaultData = { congrats: ["ألف مبروك التميز والانجاز العظيم، استمر في التألق!"] };
+                        } else if (cat === "adminQuests") {
+                            defaultData = { adminQuests: ["تحدي اليوم: راجع تقارير الطلاب واطمن على رفع الملازم الجديدة.", "تحدي اليوم: قم بالرد على استفسارات الطلاب في المنتدى بحماس!"] };
+                        }
+                        await setDoc(docRef, defaultData);
+                    }
+                }
+            } catch (err) {
+                console.error("خطأ في الإنشاء التلقائي للكولكشنات:", err);
+            }
+        }
+
         async function getNextAdminId() {
             try {
                 const q = query(collection(db, "admins"), orderBy("adminId", "desc"), limit(1));
@@ -574,6 +611,9 @@
             }
 
             try {
+                // تشغيل التأكد والإنشاء التلقائي للكولكشنات أولاً
+                await ensureDatabaseCollectionsAndDefaults();
+
                 if (sessionAdmin) currentAdminData = JSON.parse(sessionAdmin);
 
                 if (!adminEmail && currentAdminData && currentAdminData.email) {
@@ -784,7 +824,6 @@
             }
         };
 
-        // إرسال الإشعار الجماعي مع تحديد الـ target
         window.sendBroadcastNotification = async function() {
             const title = document.getElementById('broadcastTitle').value.trim();
             const message = document.getElementById('broadcastMsg').value.trim();
@@ -814,7 +853,6 @@
             }
         };
 
-        // إدارة الملاحظات في كولكشن مستقل adminNotes مع وقت الحفظ
         window.loadAdminNotesFromCloud = async function() {
             try {
                 if (!currentAdminData || !currentAdminData.email) return;
@@ -887,7 +925,6 @@
             }
         };
 
-        // إرسال الرسائل السريعة مع تحديد الـ target
         window.sendGeneratedMessageToAllStudents = async function() {
             const msgText = document.getElementById('generatedMsgOutput').value.trim();
             const targetRadio = document.querySelector('input[name="quickMsgTarget"]:checked');
