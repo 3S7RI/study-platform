@@ -14,17 +14,13 @@
             --primary: #6366f1;
             --primary-hover: #4f46e5;
             --accent-notes: #0284c7;
-            --accent-notes-hover: #0369a1;
             --accent-videos: #ef4444;
-            --accent-videos-hover: #dc2626;
             --accent-exams: #8b5cf6;
-            --accent-exams-hover: #7c3aed;
             --accent-forum: #10b981;
-            --accent-forum-hover: #059669;
             --accent-users: #f59e0b;
-            --accent-users-hover: #d97706;
             --hover-bg: rgba(99, 102, 241, 0.08);
             --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --modal-overlay-bg: rgba(15, 23, 42, 0.75);
         }
 
         [data-theme="light"] {
@@ -35,16 +31,6 @@
             --border-color: #e2e8f0;
             --primary: #4f46e5;
             --primary-hover: #4338ca;
-            --accent-notes: #0284c7;
-            --accent-notes-hover: #0369a1;
-            --accent-videos: #dc2626;
-            --accent-videos-hover: #b91c1c;
-            --accent-exams: #7c3aed;
-            --accent-exams-hover: #6d28d9;
-            --accent-forum: #059669;
-            --accent-forum-hover: #047857;
-            --accent-users: #d97706;
-            --accent-users-hover: #b45309;
             --hover-bg: rgba(79, 70, 229, 0.05);
             --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
         }
@@ -54,6 +40,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
         body {
@@ -61,7 +48,6 @@
             color: var(--text-main);
             padding: 20px;
             min-height: 100vh;
-            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .platform-container {
@@ -69,7 +55,7 @@
             margin: 0 auto;
         }
 
-        /* هيدر المنصة: البروفايل محشور ومتحرك لأقصى اليمين تماماً، العنوان مصغر جداً، وزر الوضع عبارة عن إيموجي شمس وهلال */
+        /* هيدر المنصة مطابق تماماً لصفحة الطالب القياسية */
         .platform-header {
             display: flex;
             justify-content: space-between;
@@ -86,7 +72,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-right: 0;
         }
 
         .student-style-profile-box {
@@ -114,21 +99,23 @@
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--primary);
+            background: #334155;
         }
 
         .notification-bell-btn {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-color);
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 0.75rem;
-            transition: all 0.2s ease;
+            font-size: 0.85rem;
+            position: relative;
         }
+        .notification-bell-btn:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
         .header-title-box {
             display: flex;
@@ -149,7 +136,6 @@
             align-items: center;
         }
 
-        /* زر الوضع: إيموجي شمس وهلال فقط بدون نصوص */
         .btn-theme-toggle {
             background-color: rgba(255, 255, 255, 0.04);
             color: var(--text-main);
@@ -162,13 +148,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
         }
-
-        .btn-theme-toggle:hover {
-            background-color: var(--hover-bg);
-            border-color: var(--primary);
-        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
         /* شبكة البطاقات الرئيسية */
         .platform-grid {
@@ -200,9 +181,7 @@
         .platform-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            right: 0;
-            left: 0;
+            top: 0; right: 0; left: 0;
             height: 5px;
             width: 100%;
         }
@@ -266,20 +245,71 @@
         .platform-card.exams .card-action-btn { background-color: var(--accent-exams); }
         .platform-card.forum .card-action-btn { background-color: var(--accent-forum); }
         .platform-card.users .card-action-btn { background-color: var(--accent-users); }
+
+        /* نافذة الإشعارات المنبثقة (Modal) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: var(--modal-overlay-bg);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 15px;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-card {
+            background: var(--bg-card);
+            width: 100%; max-width: 450px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        
+        .modal-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
+        
+        .close-modal {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            width: 28px; height: 28px; border-radius: 50%;
+            font-size: 0.85rem; color: var(--text-muted);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .close-modal:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+        
+        .modal-body { padding: 18px; max-height: 65vh; overflow-y: auto; text-align: right; }
+        .notification-item {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        .notification-item h4 { font-size: 0.88rem; color: var(--primary); margin-bottom: 4px; }
+        .notification-item p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
     </style>
 </head>
 <body data-theme="dark">
     <div class="platform-container">
-        <!-- الهيدر الأساسي المحدث بدقة -->
+        <!-- الهيدر الأساسي المحدث -->
         <header class="platform-header">
             <div class="header-right-side">
                 <div class="student-style-profile-box">
                     <a href="admin-profile.html" class="user-profile-link">
-                        <img src="" alt="صورة الأدمن" class="brand-avatar" id="headerAdminAvatar" onerror="this.src='https://via.placeholder.com/50?text=Admin'">
-                        <span id="adminNameLabel">عشري</span>
+                        <img src="" alt="صورة الأدمن" class="brand-avatar" id="headerAdminAvatar">
+                        <span id="adminNameLabel">جاري التحميل...</span>
                     </a>
                 </div>
-                <button class="notification-bell-btn" title="الإشعارات">🔔</button>
+                <button class="notification-bell-btn" id="notificationBellBtn" title="الإشعارات السحابية">🔔</button>
             </div>
 
             <div class="header-title-box">
@@ -287,9 +317,22 @@
             </div>
 
             <div class="header-left-side">
-                <button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">🌙</button>
+                <button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button>
             </div>
         </header>
+
+        <!-- نافذة الإشعارات المنبثقة -->
+        <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) toggleNotificationsModal(false)">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>🔔 مركز الإشعارات السحابية</h3>
+                    <button class="close-modal" onclick="toggleNotificationsModal(false)">✕</button>
+                </div>
+                <div class="modal-body" id="notificationsListContainer">
+                    <div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.85rem;">جاري جلب الإشعارات... ⏳</div>
+                </div>
+            </div>
+        </div>
 
         <!-- شبكة البطاقات -->
         <div class="platform-grid">
@@ -355,8 +398,27 @@
         </footer>
     </div>
 
-    <script>
-        // إعدادات الوضع المظلم والفاتح بإيموجي الشمس والهلال فقط
+    <!-- استيراد مكتبات Firebase SDK للعمل سحابياً -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
+
+        // إعدادات الوضع المظلم والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -375,18 +437,99 @@
             themeToggleBtn.textContent = themeName === 'dark' ? '☀️' : '🌙';
         }
 
-        // تهيئة البيانات عند فتح الصفحة
-        window.addEventListener('DOMContentLoaded', () => {
-            let adminProfile = JSON.parse(localStorage.getItem('admin_profile_data')) || { name: 'عشري', avatar: '' };
-            if (adminProfile.name) document.getElementById('adminNameLabel').textContent = adminProfile.name;
-            if (adminProfile.avatar) document.getElementById('headerAdminAvatar').src = adminProfile.avatar;
+        // جلب بيانات البروفايل وصورة الأدمن مباشرة من الـ Session / Firebase
+        async function initAdminHeader() {
+            let sessionAdmin = sessionStorage.getItem('adminUser') || sessionStorage.getItem('currentUser');
+            let adminEmail = sessionStorage.getItem('adminEmail');
+            let adminNameEl = document.getElementById('adminNameLabel');
+            let adminAvatarEl = document.getElementById('headerAdminAvatar');
 
+            let adminData = null;
+            if (sessionAdmin) {
+                try { adminData = JSON.parse(sessionAdmin); } catch(e){}
+            }
+
+            if (!adminEmail && adminData && adminData.email) {
+                adminEmail = adminData.email;
+            }
+
+            if (adminEmail) {
+                try {
+                    const docRef = doc(db, "admins", adminEmail.toLowerCase().trim());
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        adminData = docSnap.data();
+                    }
+                } catch(e) {
+                    console.error("خطأ جلب بيانات الأدمن:", e);
+                }
+            }
+
+            if (adminData) {
+                let name = adminData.fullname || adminData.name || "عشري";
+                let avatar = adminData.profileImage || adminData.avatar || defaultAvatarSvg;
+                adminNameEl.textContent = name;
+                adminAvatarEl.src = avatar;
+            } else {
+                adminNameEl.textContent = "عشري";
+                adminAvatarEl.src = defaultAvatarSvg;
+            }
+
+            // تحديث العدادات من الـ LocalStorage أو افتراضي
             document.getElementById('totalFilesCount').textContent = (JSON.parse(localStorage.getItem('admin_files')) || []).length;
             document.getElementById('totalExamsCount').textContent = (JSON.parse(localStorage.getItem('admin_exams')) || []).length;
             document.getElementById('totalVideosCount').textContent = (JSON.parse(localStorage.getItem('admin_videos')) || []).length;
             document.getElementById('totalForumCount').textContent = (JSON.parse(localStorage.getItem('admin_forum')) || []).length;
             document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
+        }
+
+        // تشغيل نافذة الإشعارات وتفعيل زر الجرس
+        window.toggleNotificationsModal = function(show) {
+            const modal = document.getElementById('notificationsModal');
+            if (show) {
+                modal.classList.add('active');
+                loadCloudNotifications();
+            } else {
+                modal.classList.remove('active');
+            }
+        };
+
+        document.getElementById('notificationBellBtn').addEventListener('click', () => {
+            toggleNotificationsModal(true);
         });
+
+        async function loadCloudNotifications() {
+            const container = document.getElementById('notificationsListContainer');
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">جاري جلب الإشعارات... ⏳</div>`;
+
+            try {
+                const q = query(collection(db, "adminNotifications"), orderBy("createdAt", "desc"), limit(10));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">لا توجد إشعارات سحابية حالياً.</div>`;
+                    return;
+                }
+
+                let htmlContent = "";
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    htmlContent += `
+                        <div class="notification-item">
+                            <h4>${data.title || "إشعار إداري"}</h4>
+                            <p>${data.message || ""}</p>
+                            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 6px; text-align: left;">المرسل: ${data.sender || 'الإدارة'}</div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = htmlContent;
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 15px; font-size: 0.8rem;">فشل تحميل الإشعارات من السحابة.</div>`;
+            }
+        }
+
+        initAdminHeader();
     </script>
 </body>
 </html>
