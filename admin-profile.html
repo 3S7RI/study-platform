@@ -219,7 +219,7 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
-        /* ستايل الملاحظات اللاصقة المحدث */
+        /* ستايل الملاحظات اللاصقة */
         .notes-container-scroll {
             max-height: 380px;
             overflow-y: auto;
@@ -233,7 +233,6 @@
             margin-bottom: 12px;
             border: 1px solid rgba(0,0,0,0.1);
         }
-        /* ألوان الستيك نوت المتنوعة */
         .note-color-yellow { background: #fef08a; color: #1e293b; border-color: #fde047; }
         .note-color-pink { background: #fbcfe8; color: #831843; border-color: #f472b6; }
         .note-color-blue { background: #bae6fd; color: #0369a1; border-color: #38bdf8; }
@@ -286,7 +285,7 @@
             margin-top: 12px;
         }
 
-        /* تحسين شكل أزرار اختيار المستلمين (الإشعارات والرسائل السريعة) لتكون أنيقة ومضغوطة */
+        /* تحسين وتعديل محاذاة أزرار اختيار المستلمين لتكون منسقة وفي مستوى واحد تماماً */
         .target-options-group {
             display: flex;
             gap: 8px;
@@ -297,22 +296,25 @@
             background: var(--input-bg);
             border: 1.5px solid var(--border-color);
             border-radius: 10px;
-            padding: 8px 6px;
+            padding: 10px 8px;
             text-align: center;
             cursor: pointer;
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             user-select: none;
             color: var(--text-secondary);
+            vertical-align: middle;
         }
         .target-card input[type="radio"] {
             accent-color: var(--primary-color);
             cursor: pointer;
             margin: 0;
+            position: relative;
+            top: 1px; /* ضبط دقيق للمحاذاة الرأسية مع النص */
         }
         .target-card:has(input[type="radio"]:checked) {
             border-color: var(--primary-color);
@@ -425,15 +427,15 @@
                     <div class="target-options-group">
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="students" checked>
-                            الطلاب
+                            <span>الطلاب</span>
                         </label>
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="admins">
-                            الإدارة
+                            <span>الإدارة</span>
                         </label>
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="all">
-                            الكل
+                            <span>الكل</span>
                         </label>
                     </div>
                 </div>
@@ -482,15 +484,15 @@
                     <div class="target-options-group">
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="students" checked>
-                            الطلاب
+                            <span>الطلاب</span>
                         </label>
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="admins">
-                            الإدارة
+                            <span>الإدارة</span>
                         </label>
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="all">
-                            الكل
+                            <span>الكل</span>
                         </label>
                     </div>
                 </div>
@@ -579,7 +581,6 @@
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // التحميل الفوري من الجلسة المحلية للقضاء التام على أي تأخير
         function initProfileFast() {
             const container = document.getElementById('profileContent');
             let sessionAdmin = sessionStorage.getItem('adminUser') || sessionStorage.getItem('currentUser');
@@ -595,7 +596,6 @@
                 renderProfile(currentAdminData);
             }
 
-            // فحص السحابة في الخلفية بصمت لتحديث البيانات
             backgroundSyncCloudProfile(adminEmail || (currentAdminData ? currentAdminData.email : ''));
         }
 
@@ -683,7 +683,7 @@
             const file = event.target.files[0];
             if (file) {
                 if (file.size > 700 * 1024) {
-                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️️');
+                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️');
                     return;
                 }
                 const reader = new FileReader();
@@ -783,7 +783,7 @@
                     await deleteDoc(doc(db, "admins", emailKey));
                 }
                 sessionStorage.clear();
-                showToast("تم حذف حسابك نهائياً.", "⚠");
+                showToast("تم حذف حسابك نهائياً.", "⚠️");
                 setTimeout(() => { window.location.href = "login.html"; }, 1500);
             } catch (err) {
                 console.error(err);
@@ -820,7 +820,7 @@
             }
         };
 
-        // إدارة الملاحظات المتعددة (Sticky Notes) وتنسيق الوقت بدون ثواني
+        // --- نظام الملاحظات المحدث (حذف نهائي من الواجهة والسحابة) ---
         const noteColorsList = ['note-color-yellow', 'note-color-pink', 'note-color-blue', 'note-color-green', 'note-color-purple'];
 
         function formatCustomDate(dateObj) {
@@ -843,11 +843,22 @@
             noteDiv.innerHTML = `
                 <div class="sticky-note-header">
                     <span>📌 ورقة ملاحظات الأدمن (${formattedTime})</span>
-                    <button type="button" class="delete-note-btn" onclick="this.closest('.sticky-note-item').remove()" title="حذف النوتة">✕</button>
+                    <button type="button" class="delete-note-btn" onclick="deleteStickyNote(this)" title="حذف النوتة">✕</button>
                 </div>
                 <textarea class="sticky-note-textarea" placeholder="اكتب أفكارك أو مهامك هنا...">${content}</textarea>
             `;
             container.prepend(noteDiv);
+        };
+
+        // دالة حذف النوتة من الواجهة والسحابة فوراً
+        window.deleteStickyNote = async function(btnElement) {
+            const noteItem = btnElement.closest('.sticky-note-item');
+            if (noteItem) {
+                noteItem.remove();
+                // حفظ التحديث الجديد فوراً في السحابة لضمان الحذف النهائي
+                await saveAdminNotesToCloud(false);
+                showToast("تم حذف النوتة نهائياً من السحابة بنجاح!", "🗑️");
+            }
         };
 
         window.loadAdminNotesFromCloud = async function() {
@@ -866,7 +877,6 @@
                         addNewStickyNote(n.text, n.time, n.color);
                     });
                 } else if (docSnap.exists() && docSnap.data().notes) {
-                    // توافق مع النظام القديم لو كان النص عبارة عن نوتة واحدة
                     addNewStickyNote(docSnap.data().notes);
                 } else {
                     addNewStickyNote("مرحباً بك في المفكرة السحابية الخاصة بك! اكتب ملاحظاتك هنا وابدأ إنجاز مهامك 🚀");
@@ -877,14 +887,13 @@
             }
         };
 
-        window.saveAdminNotesToCloud = async function() {
+        window.saveAdminNotesToCloud = async function(showNotification = true) {
             const noteItems = document.querySelectorAll('.sticky-note-item');
             let notesListToSave = [];
 
             noteItems.forEach(item => {
                 const text = item.querySelector('.sticky-note-textarea').value.trim();
                 const colorClass = Array.from(item.classList).find(c => c.startsWith('note-color-')) || 'note-color-yellow';
-                // استخراج الوقت الحالي بدون ثواني
                 const currentTimeStr = formatCustomDate(new Date());
                 if (text) {
                     notesListToSave.push({ text: text, time: currentTimeStr, color: colorClass });
@@ -893,7 +902,7 @@
 
             try {
                 if (!currentAdminData || !currentAdminData.email) {
-                    showToast("بيانات الحساب غير متوفرة لحفظ الملاحظات.", "❌");
+                    if(showNotification) showToast("بيانات الحساب غير متوفرة لحفظ الملاحظات.", "❌");
                     return;
                 }
                 const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
@@ -903,11 +912,13 @@
                     updatedAt: serverTimestamp() 
                 }, { merge: true });
 
-                showToast("تم حفظ جميع الملاحظات في كولكشن adminNotes بنجاح! 💾", "✅");
-                loadAdminNotesFromCloud();
+                if (showNotification) {
+                    showToast("تم حفظ جميع الملاحظات في كولكشن adminNotes بنجاح! 💾", "✅");
+                    loadAdminNotesFromCloud();
+                }
             } catch (err) {
                 console.error(err);
-                showToast("فشل حفظ الملاحظات.", "❌");
+                if(showNotification) showToast("فشل حفظ الملاحظات.", "❌");
             }
         };
 
@@ -997,7 +1008,6 @@
             window.location.href = 'login.html';
         };
 
-        // بدء التشغيل السريع
         initProfileFast();
     </script>
 </body>
