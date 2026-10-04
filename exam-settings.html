@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - إعدادات الامتحانات</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --hover-bg: rgba(99, 102, 241, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --th-bg: rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
+            --hover-bg: rgba(79, 70, 229, 0.05);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            --th-bg: rgba(0, 0, 0, 0.02);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+        }
+
+        .header-right-side { display: flex; align-items: center; }
+        .btn-home-link {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.85rem;
+        }
+        .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .header-center-box { display: flex; align-items: center; justify-content: center; }
+        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 1rem; font-weight: 700; color: var(--text-main); }
+        
+        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .btn-theme-toggle {
+            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        /* شريط التنقل المستقل بين صفحات الامتحانات الثلاثة */
+        .admin-nav-bar {
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .btn-tab {
+            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
+            padding: 9px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; flex: 1; min-width: 120px; text-align: center; text-decoration: none; display: inline-block;
+        }
+        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .section-box {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: var(--text-main); font-size: 1.15rem; font-weight: 700; }
+
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .setting-card { background: var(--th-bg); padding: 12px 15px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .setting-card label { font-size: 0.85rem; font-weight: 500; cursor: pointer; color: var(--text-main); }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .form-group { margin-top: 15px; text-align: right; }
+        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-muted); font-weight: 600; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none;
+        }
+        
+        .form-row-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .form-row-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (max-width: 768px) { .form-row-grid-3, .form-row-grid-2 { grid-template-columns: 1fr; } }
+
+        .btn-save { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.95rem; margin-top: 20px; width: 100%; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header class="platform-header">
+            <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية ↩</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إعدادات الامتحانات</span> ⚙️</div></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
+        </header>
+
+        <!-- أزرار التنقل المستقلة بين صفحات الامتحانات الثلاثة -->
+        <nav class="admin-nav-bar">
+            <div class="admin-tabs-group">
+                <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
+                <a href="exam-settings.html" class="btn-tab active">الإعدادات ⚙️</a>
+                <a href="exam-stats.html" class="btn-tab">إحصائيات 📊</a>
+            </div>
+        </nav>
+
+        <div class="section-box">
+            <div class="section-header"><h2>اختر الامتحان لتعديل إعداداته ⚙️</h2></div>
+            <div class="form-group">
+                <label>اختر الامتحان:</label>
+                <select id="examSelectDropdown" onchange="loadSelectedExamSettings()">
+                    <option value="">جاري تحميل الامتحانات...</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section-box" id="settingsFormBox">
+            <div class="section-header"><h2>تحكم في خيارات وشروط الامتحان المختار 🛠️</h2></div>
+            <div class="settings-grid">
+                <div class="setting-card"><label for="settingPasswordLock">جعل الامتحان بكلمة مرور</label><label class="switch"><input type="checkbox" id="settingPasswordLock" onchange="togglePasswordInput()"><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI)</label><label class="switch"><input type="checkbox" id="settingAIBot" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingTimer">تفعيل المؤقت الزمني</label><label class="switch"><input type="checkbox" id="settingTimer" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingShuffle">خلط ترتيب الأسئلة عشوائياً</label><label class="switch"><input type="checkbox" id="settingShuffle"><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingInstantResult">عرض النتيجة الفورية للطالب</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingAntiCheat">منع مغادرة متصفح الامتحان</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
+            </div>
+            <div class="form-group hidden" id="passwordInputGroup"><label>كلمة مرور الامتحان:</label><input type="text" id="settingPassword" placeholder="اكتب كلمة السر هنا..."></div>
+            <div class="form-row-grid-3">
+                <div class="form-group"><label>المدة (بالدقائق):</label><input type="number" id="settingDuration" value="30"></div>
+                <div class="form-group"><label>عدد المحاولات:</label><input type="number" id="settingAttempts" value="1"></div>
+                <div class="form-group"><label>درجة النجاح (%):</label><input type="number" id="settingPassingScore" value="50"></div>
+            </div>
+            <div class="form-row-grid-2">
+                <div class="form-group"><label>الحد الأقصى للمتقدمين (Quota):</label><input type="number" id="settingMaxQuota" placeholder="بلا حدود"></div>
+                <div class="form-group"><label>رسالة نهاية الامتحان المخصصة:</label><input type="text" id="settingCustomMsg" placeholder="شكراً لإتمامك الامتحان..."></div>
+            </div>
+            <button class="btn-save" onclick="saveExamSettingsToCloud()">حفظ إعدادات الامتحان بالسحابة ⚙️</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let cachedExamsList = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await fetchExamsDropdown();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // نظام الوضع الداكن والفاتح
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const bodyElement = document.body;
+        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
+        bodyElement.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', () => {
+            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            bodyElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('platform_theme', nextTheme);
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
+        });
+
+        async function fetchExamsDropdown() {
+            const dropdown = document.getElementById('examSelectDropdown');
+            try {
+                const querySnapshot = await getDocs(collection(db, "exams"));
+                cachedExamsList = [];
+                let optionsHtml = `<option value="">-- اختر امتحان من القائمة --</option>`;
+                
+                querySnapshot.forEach((docSnap) => {
+                    let examData = docSnap.data();
+                    cachedExamsList.push({ id: docSnap.id, ...examData });
+                    optionsHtml += `<option value="${docSnap.id}">${examData.title || 'امتحان بدون عنوان'} (${examData.subject || 'عام'})</option>`;
+                });
+
+                dropdown.innerHTML = optionsHtml;
+            } catch (err) {
+                console.error("خطأ في جلب الامتحانات:", err);
+                dropdown.innerHTML = `<option value="">خطأ في تحميل الامتحانات</option>`;
+            }
+        }
+
+        window.loadSelectedExamSettings = function() {
+            let selectedId = document.getElementById('examSelectDropdown').value;
+            if (!selectedId) return;
+
+            let exam = cachedExamsList.find(e => e.id === selectedId);
+            if (!exam) return;
+
+            let s = exam.settings || {};
+            document.getElementById('settingPasswordLock').checked = !!s.password;
+            document.getElementById('settingPassword').value = s.password || '';
+            togglePasswordInput();
+
+            document.getElementById('settingAIBot').checked = s.aiBot !== false;
+            document.getElementById('settingTimer').checked = s.timer !== false;
+            document.getElementById('settingShuffle').checked = !!s.shuffle;
+            document.getElementById('settingInstantResult').checked = s.instantResult !== false;
+            document.getElementById('settingAntiCheat').checked = !!s.antiCheat;
+
+            document.getElementById('settingDuration').value = s.duration || 30;
+            document.getElementById('settingAttempts').value = s.attempts || 1;
+            document.getElementById('settingPassingScore').value = s.passingScore || 50;
+            document.getElementById('settingMaxQuota').value = s.maxQuota || '';
+            document.getElementById('settingCustomMsg').value = s.customMsg || '';
+        };
+
+        window.togglePasswordInput = function() {
+            let isChecked = document.getElementById('settingPasswordLock').checked;
+            let group = document.getElementById('passwordInputGroup');
+            if (isChecked) group.classList.remove('hidden');
+            else group.classList.add('hidden');
+        };
+
+        window.saveExamSettingsToCloud = async function() {
+            let selectedId = document.getElementById('examSelectDropdown').value;
+            if (!selectedId) { alert('يرجى اختيار امتحان أولاً!'); return; }
+
+            let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
+            let newSettings = {
+                active: true,
+                password: isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '',
+                aiBot: document.getElementById('settingAIBot').checked,
+                timer: document.getElementById('settingTimer').checked,
+                shuffle: document.getElementById('settingShuffle').checked,
+                instantResult: document.getElementById('settingInstantResult').checked,
+                antiCheat: document.getElementById('settingAntiCheat').checked,
+                duration: parseInt(document.getElementById('settingDuration').value) || 30,
+                attempts: parseInt(document.getElementById('settingAttempts').value) || 1,
+                passingScore: parseInt(document.getElementById('settingPassingScore').value) || 50,
+                maxQuota: document.getElementById('settingMaxQuota').value.trim(),
+                customMsg: document.getElementById('settingCustomMsg').value.trim()
+            };
+
+            try {
+                const examRef = doc(db, "exams", selectedId);
+                await updateDoc(examRef, { settings: newSettings });
+                alert('تم حفظ إعدادات الامتحان بنجاح وتحديثها في فايربيس ⚙️🚀');
+            } catch (e) {
+                console.error(e);
+                alert("حدث خطأ أثناء حفظ الإعدادات.");
+            }
+        };
+    </script>
+</body>
+</html>
