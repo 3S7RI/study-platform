@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, getDocs, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -31,6 +31,11 @@
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.collection = collection;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.limit = limit;
     </script>
 
     <style>
@@ -399,6 +404,23 @@
             });
         }
 
+        async function getNextAdminId() {
+            try {
+                const q = query(collection(window.firebaseDb, "admins"), orderBy("adminId", "desc"), limit(1));
+                const snap = await window.getDocs(q);
+                if (!snap.empty) {
+                    const lastId = snap.docs[0].data().adminId; 
+                    if (lastId && lastId.startsWith("ADM-")) {
+                        const num = parseInt(lastId.replace("ADM-", "")) + 1;
+                        return `ADM-${String(num).padStart(4, '0')}`;
+                    }
+                }
+                return "ADM-0001";
+            } catch (e) {
+                return "ADM-0001";
+            }
+        }
+
         function startCooldown(duration) {
             const sendBtn = document.getElementById('sendOtpBtn');
             let timer = duration;
@@ -416,7 +438,6 @@
             }, 1000);
         }
 
-        // إرسال كود التحقق (OTP) بعد التحقق من عدم وجود الإيميل مسبقاً في جدول admins
         document.getElementById('sendOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('adminEmail').value.trim().toLowerCase();
             const nameInput = document.getElementById('adminName').value.trim();
@@ -438,7 +459,6 @@
             sendBtn.disabled = true;
 
             try {
-                // فحص ما إذا كان البريد موجوداً مسبقاً في جدول admins في Firestore
                 const adminDocRef = window.doc(window.firebaseDb, "admins", emailInput);
                 const adminDocSnap = await window.getDoc(adminDocRef);
 
@@ -545,7 +565,6 @@
             }
         });
 
-        // معالجة نموذج التسجيل وإنشاء الحساب في فايربيس أوتوماتيك
         document.getElementById('adminRegisterForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -595,7 +614,6 @@
             submitBtn.innerText = "جاري إنشاء الحساب في السحابة...";
 
             try {
-                // الفحص مرة أخرى قبل الإنشاء لضمان الأمان التام
                 const adminDocRef = window.doc(window.firebaseDb, "admins", email);
                 const adminDocSnap = await window.getDoc(adminDocRef);
                 if (adminDocSnap.exists()) {
@@ -609,7 +627,10 @@
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
                 const user = userCredential.user;
 
-                // 2. معالجة الصورة وتحويلها لـ Base64 لتجنب التعليق ومشاكل Storage
+                // 2. توليد الـ adminId التسلسلي التصاعدي (ADM-0001, ADM-0002, ...)
+                const assignedAdminId = await getNextAdminId();
+
+                // 3. معالجة الصورة وتحويلها لـ Base64
                 let avatarBase64 = "";
                 if (avatarFile) {
                     try {
@@ -619,9 +640,9 @@
                     }
                 }
 
-                // 3. تخزين بيانات الأدمن أوتوماتيك في جدول admins بـ Firestore
+                // 4. تخزين بيانات الأدمن أوتوماتيك في جدول admins بـ Firestore
                 const adminData = {
-                    adminId: user.uid,
+                    adminId: assignedAdminId,
                     uid: user.uid,
                     avatar: avatarBase64,
                     profileImage: avatarBase64,
@@ -638,12 +659,11 @@
 
                 await window.setDoc(window.doc(window.firebaseDb, "admins", email), adminData);
 
-                // تخزين جلسة الإدارة في المتصفح بنفس طريقة الطالب والانتقال لصفحة الترحيب
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'true');
                 sessionStorage.setItem('adminRole', 'admin');
                 sessionStorage.setItem('adminEmail', email);
-                sessionStorage.setItem('currentAdminId', user.uid);
+                sessionStorage.setItem('currentAdminId', assignedAdminId);
                 sessionStorage.setItem('adminUser', JSON.stringify(adminData));
                 sessionStorage.setItem('currentUser', JSON.stringify(adminData));
 
