@@ -219,26 +219,36 @@
         }
         .edit-form-modal input:focus, .edit-form-modal textarea:focus, .edit-form-modal select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
-        .sticky-note-wrapper {
-            background: #fef08a;
-            color: #1e293b;
-            border-radius: 14px;
-            padding: 16px;
-            box-shadow: 0 10px 25px rgba(250, 204, 21, 0.15);
-            border: 1px solid #fde047;
-            position: relative;
-            margin-bottom: 14px;
-            background-image: linear-gradient(#fef08a 95%, #fde047 100%);
+        /* ستايل الملاحظات اللاصقة المحدث */
+        .notes-container-scroll {
+            max-height: 380px;
+            overflow-y: auto;
+            padding-left: 4px;
         }
+        .sticky-note-item {
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            position: relative;
+            margin-bottom: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        /* ألوان الستيك نوت المتنوعة */
+        .note-color-yellow { background: #fef08a; color: #1e293b; border-color: #fde047; }
+        .note-color-pink { background: #fbcfe8; color: #831843; border-color: #f472b6; }
+        .note-color-blue { background: #bae6fd; color: #0369a1; border-color: #38bdf8; }
+        .note-color-green { background: #bbf7d0; color: #166534; border-color: #4ade80; }
+        .note-color-purple { background: #e9d5ff; color: #581c87; border-color: #c084fc; }
+
         .sticky-note-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-            font-size: 0.72rem;
-            color: #713f12;
+            margin-bottom: 6px;
+            font-size: 0.68rem;
             font-weight: 700;
-            border-bottom: 1px dashed rgba(113, 63, 18, 0.2);
+            opacity: 0.85;
+            border-bottom: 1px dashed rgba(0,0,0,0.15);
             padding-bottom: 4px;
         }
         .sticky-note-textarea {
@@ -246,46 +256,72 @@
             background: transparent;
             border: none;
             outline: none;
-            color: #1e293b;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 600;
             resize: vertical;
-            min-height: 120px;
-            line-height: 1.6;
+            min-height: 80px;
+            line-height: 1.5;
+            color: inherit;
         }
-        .sticky-note-textarea::placeholder {
-            color: rgba(30, 41, 53, 0.4);
+        .delete-note-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: none;
+            color: #b91c1c;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .delete-note-btn:hover { background: #ef4444; color: #fff; }
+
+        .notes-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
         }
 
+        /* تحسين شكل أزرار اختيار المستلمين (الإشعارات والرسائل السريعة) لتكون أنيقة ومضغوطة */
         .target-options-group {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            display: flex;
+            gap: 8px;
             margin-bottom: 14px;
         }
         .target-card {
+            flex: 1;
             background: var(--input-bg);
-            border: 1px solid var(--border-color);
+            border: 1.5px solid var(--border-color);
             border-radius: 10px;
-            padding: 8px 4px;
+            padding: 8px 6px;
             text-align: center;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 600;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
+            gap: 6px;
             user-select: none;
+            color: var(--text-secondary);
         }
         .target-card input[type="radio"] {
             accent-color: var(--primary-color);
             cursor: pointer;
             margin: 0;
         }
+        .target-card:has(input[type="radio"]:checked) {
+            border-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+        }
         .target-card:hover {
             border-color: var(--primary-color);
-            background: rgba(99, 102, 241, 0.08);
         }
 
         .btn { width: 100%; padding: 11px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; background-color: var(--primary-color); color: white; margin-top: 5px; }
@@ -389,15 +425,15 @@
                     <div class="target-options-group">
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="students" checked>
-                            الطلاب فقط
+                            الطلاب
                         </label>
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="admins">
-                            الإدارة فقط
+                            الإدارة
                         </label>
                         <label class="target-card">
                             <input type="radio" name="broadcastTarget" value="all">
-                            الطلاب والإدارة
+                            الكل
                         </label>
                     </div>
                 </div>
@@ -414,7 +450,7 @@
         </div>
     </div>
 
-    <!-- نافذة الملاحظات الشخصية -->
+    <!-- نافذة الملاحظات الشخصية المحدثة بنظام النوتس المتعددة -->
     <div class="modal-overlay" id="notesModal" onclick="if(event.target===this) closeModal('notesModal')">
         <div class="modal-card">
             <div class="modal-header">
@@ -422,14 +458,13 @@
                 <button class="close-modal" onclick="closeModal('notesModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
-                <div class="sticky-note-wrapper">
-                    <div class="sticky-note-header">
-                        <span>📌 ورقة ملاحظات الأدمن</span>
-                        <span id="noteLastUpdated">آخر تحديث: --</span>
-                    </div>
-                    <textarea id="adminNotesText" class="sticky-note-textarea" placeholder="اكتب أفكارك، مهامك، أو ملاحظاتك هنا..."></textarea>
+                <div id="notesContainerScroll" class="notes-container-scroll">
+                    <!-- يتم حقن النوتات هنا ديناميكياً -->
                 </div>
-                <button class="btn btn-save" onclick="saveAdminNotesToCloud()">حفظ الملاحظة في السحابة 💾</button>
+                <div class="notes-actions-grid">
+                    <button type="button" class="btn btn-special" onclick="addNewStickyNote('نوتة جديدة...')">➕ إضافة نوتة</button>
+                    <button type="button" class="btn btn-save" onclick="saveAdminNotesToCloud()">حفظ الملاحظات 💾</button>
+                </div>
             </div>
         </div>
     </div>
@@ -447,15 +482,15 @@
                     <div class="target-options-group">
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="students" checked>
-                            الطلاب فقط
+                            الطلاب
                         </label>
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="admins">
-                            الإدارة فقط
+                            الإدارة
                         </label>
                         <label class="target-card">
                             <input type="radio" name="quickMsgTarget" value="all">
-                            الطلاب والإدارة
+                            الكل
                         </label>
                     </div>
                 </div>
@@ -516,7 +551,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -544,63 +579,8 @@
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // دالة إنشاء الهياكل والكولكشنات تلقائياً في فايربيس لو مش موجودة
-        async function ensureDatabaseCollectionsAndDefaults() {
-            try {
-                // 1. فحص وإنشاء كولكشن adminNotifications وإشعار ترحيبي افتراضي لو فاضي
-                const notifsSnap = await getDocs(collection(db, "adminNotifications"));
-                if (notifsSnap.empty) {
-                    await setDoc(doc(db, "adminNotifications", "welcome_system_msg"), {
-                        title: "🌟 أهلاً بك في منصة رحلة دراسية!",
-                        message: "منورنا يا بطل في المنصة! استعد لرحلة تفوق مفيهاش مستحيل.",
-                        target: "all",
-                        sender: "إدارة المنصة 📖",
-                        createdAt: serverTimestamp()
-                    });
-                }
-
-                // 2. فحص وإنشاء كولكشن messagestore وقوالب الرسائل والتحديات لو مش موجودة
-                const categories = ["motivation", "warning", "congrats", "adminQuests"];
-                for (const cat of categories) {
-                    const docRef = doc(db, "messagestore", cat);
-                    const docSnap = await getDoc(docRef);
-                    if (!docSnap.exists()) {
-                        let defaultData = {};
-                        if (cat === "motivation") {
-                            defaultData = { motivation: ["التوكل على الله نصف السعي، استمر في مذاكرتك ولا تتوقف!", "كل ساعة تعب تقربك خطوة نحو حلمك."] };
-                        } else if (cat === "warning") {
-                            defaultData = { warning: ["يا وحش، الكسل مش من عادتك! قوم افتح كتابك وراجع دروسك فوراً."] };
-                        } else if (cat === "congrats") {
-                            defaultData = { congrats: ["ألف مبروك التميز والانجاز العظيم، استمر في التألق!"] };
-                        } else if (cat === "adminQuests") {
-                            defaultData = { adminQuests: ["تحدي اليوم: راجع تقارير الطلاب واطمن على رفع الملازم الجديدة.", "تحدي اليوم: قم بالرد على استفسارات الطلاب في المنتدى بحماس!"] };
-                        }
-                        await setDoc(docRef, defaultData);
-                    }
-                }
-            } catch (err) {
-                console.error("خطأ في الإنشاء التلقائي للكولكشنات:", err);
-            }
-        }
-
-        async function getNextAdminId() {
-            try {
-                const q = query(collection(db, "admins"), orderBy("adminId", "desc"), limit(1));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    const lastId = snap.docs[0].data().adminId; 
-                    if (lastId && lastId.startsWith("ADM-")) {
-                        const num = parseInt(lastId.replace("ADM-", "")) + 1;
-                        return `ADM-${String(num).padStart(4, '0')}`;
-                    }
-                }
-                return "ADM-0001";
-            } catch (e) {
-                return "ADM-0001";
-            }
-        }
-
-        async function initProfile() {
+        // التحميل الفوري من الجلسة المحلية للقضاء التام على أي تأخير
+        function initProfileFast() {
             const container = document.getElementById('profileContent');
             let sessionAdmin = sessionStorage.getItem('adminUser') || sessionStorage.getItem('currentUser');
             let adminEmail = sessionStorage.getItem('adminEmail');
@@ -610,40 +590,27 @@
                 return;
             }
 
+            if (sessionAdmin) {
+                currentAdminData = JSON.parse(sessionAdmin);
+                renderProfile(currentAdminData);
+            }
+
+            // فحص السحابة في الخلفية بصمت لتحديث البيانات
+            backgroundSyncCloudProfile(adminEmail || (currentAdminData ? currentAdminData.email : ''));
+        }
+
+        async function backgroundSyncCloudProfile(emailKey) {
+            if (!emailKey) return;
             try {
-                // تشغيل التأكد والإنشاء التلقائي للكولكشنات أولاً
-                await ensureDatabaseCollectionsAndDefaults();
-
-                if (sessionAdmin) currentAdminData = JSON.parse(sessionAdmin);
-
-                if (!adminEmail && currentAdminData && currentAdminData.email) {
-                    adminEmail = currentAdminData.email;
-                }
-
-                if (adminEmail) {
-                    const docRef = doc(db, "admins", adminEmail.toLowerCase().trim());
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        currentAdminData = docSnap.data();
-                    }
-                }
-
-                if (currentAdminData) {
-                    if (!currentAdminData.adminId) {
-                        currentAdminData.adminId = await getNextAdminId();
-                        let emailKey = (currentAdminData.email || adminEmail || '').toLowerCase().trim();
-                        if (emailKey) {
-                            let docRef = doc(db, "admins", emailKey);
-                            await setDoc(docRef, currentAdminData, { merge: true });
-                        }
-                    }
+                const docRef = doc(db, "admins", emailKey.toLowerCase().trim());
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    currentAdminData = docSnap.data();
+                    sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                     renderProfile(currentAdminData);
-                } else {
-                    container.innerHTML = `<div class="loading" style="color: #ef4444;">عذراً، لم يتم العثور على بيانات الحساب!</div>`;
                 }
             } catch (err) {
-                console.error(err);
-                container.innerHTML = `<div class="loading" style="color: #ef4444;">حدث خطأ أثناء تحميل البيانات.</div>`;
+                console.error("خطأ المزامنة الخلفية:", err);
             }
         }
 
@@ -716,7 +683,7 @@
             const file = event.target.files[0];
             if (file) {
                 if (file.size > 700 * 1024) {
-                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️');
+                    showToast('حجم الصورة كبير جداً (أقصى حد 700 كيلوبايت)', '⚠️️');
                     return;
                 }
                 const reader = new FileReader();
@@ -853,29 +820,77 @@
             }
         };
 
+        // إدارة الملاحظات المتعددة (Sticky Notes) وتنسيق الوقت بدون ثواني
+        const noteColorsList = ['note-color-yellow', 'note-color-pink', 'note-color-blue', 'note-color-green', 'note-color-purple'];
+
+        function formatCustomDate(dateObj) {
+            const d = dateObj || new Date();
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes} - ${day}/${month}/${year}`;
+        }
+
+        window.addNewStickyNote = function(content = "", timeStr = null, colorClass = null) {
+            const container = document.getElementById('notesContainerScroll');
+            const randomColor = colorClass || noteColorsList[Math.floor(Math.random() * noteColorsList.length)];
+            const formattedTime = timeStr || formatCustomDate(new Date());
+
+            const noteDiv = document.createElement('div');
+            noteDiv.className = `sticky-note-item ${randomColor}`;
+            noteDiv.innerHTML = `
+                <div class="sticky-note-header">
+                    <span>📌 ورقة ملاحظات الأدمن (${formattedTime})</span>
+                    <button type="button" class="delete-note-btn" onclick="this.closest('.sticky-note-item').remove()" title="حذف النوتة">✕</button>
+                </div>
+                <textarea class="sticky-note-textarea" placeholder="اكتب أفكارك أو مهامك هنا...">${content}</textarea>
+            `;
+            container.prepend(noteDiv);
+        };
+
         window.loadAdminNotesFromCloud = async function() {
+            const container = document.getElementById('notesContainerScroll');
+            container.innerHTML = '<div class="loading">جاري تحميل الملاحظات... ⏳</div>';
+
             try {
                 if (!currentAdminData || !currentAdminData.email) return;
                 const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
                 const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    document.getElementById('adminNotesText').value = data.notes || '';
-                    if (data.updatedAt) {
-                        const timeStr = data.updatedAt.toDate ? data.updatedAt.toDate().toLocaleString('ar-EG') : new Date().toLocaleString('ar-EG');
-                        document.getElementById('noteLastUpdated').innerText = `آخر تحديث: ${timeStr}`;
-                    }
+
+                container.innerHTML = '';
+                if (docSnap.exists() && docSnap.data().notesList && docSnap.data().notesList.length > 0) {
+                    const notesArray = docSnap.data().notesList;
+                    notesArray.forEach(n => {
+                        addNewStickyNote(n.text, n.time, n.color);
+                    });
+                } else if (docSnap.exists() && docSnap.data().notes) {
+                    // توافق مع النظام القديم لو كان النص عبارة عن نوتة واحدة
+                    addNewStickyNote(docSnap.data().notes);
                 } else {
-                    document.getElementById('adminNotesText').value = '';
-                    document.getElementById('noteLastUpdated').innerText = `آخر تحديث: جديد`;
+                    addNewStickyNote("مرحباً بك في المفكرة السحابية الخاصة بك! اكتب ملاحظاتك هنا وابدأ إنجاز مهامك 🚀");
                 }
             } catch (err) {
                 console.error(err);
+                container.innerHTML = '<div class="loading" style="color:#ef4444;">فشل تحميل الملاحظات.</div>';
             }
         };
 
         window.saveAdminNotesToCloud = async function() {
-            const notesContent = document.getElementById('adminNotesText').value;
+            const noteItems = document.querySelectorAll('.sticky-note-item');
+            let notesListToSave = [];
+
+            noteItems.forEach(item => {
+                const text = item.querySelector('.sticky-note-textarea').value.trim();
+                const colorClass = Array.from(item.classList).find(c => c.startsWith('note-color-')) || 'note-color-yellow';
+                // استخراج الوقت الحالي بدون ثواني
+                const currentTimeStr = formatCustomDate(new Date());
+                if (text) {
+                    notesListToSave.push({ text: text, time: currentTimeStr, color: colorClass });
+                }
+            });
+
             try {
                 if (!currentAdminData || !currentAdminData.email) {
                     showToast("بيانات الحساب غير متوفرة لحفظ الملاحظات.", "❌");
@@ -883,17 +898,16 @@
                 }
                 const docRef = doc(db, "adminNotes", currentAdminData.email.toLowerCase().trim());
                 await setDoc(docRef, { 
-                    notes: notesContent, 
+                    notesList: notesListToSave, 
                     adminEmail: currentAdminData.email,
                     updatedAt: serverTimestamp() 
                 }, { merge: true });
 
-                const currentTimeStr = new Date().toLocaleString('ar-EG');
-                document.getElementById('noteLastUpdated').innerText = `آخر تحديث: ${currentTimeStr}`;
-                showToast("تم حفظ الملاحظة في كولكشن adminNotes بنجاح! 💾", "✅");
+                showToast("تم حفظ جميع الملاحظات في كولكشن adminNotes بنجاح! 💾", "✅");
+                loadAdminNotesFromCloud();
             } catch (err) {
                 console.error(err);
-                showToast("فشل حفظ الملاحظة.", "❌");
+                showToast("فشل حفظ الملاحظات.", "❌");
             }
         };
 
@@ -983,7 +997,8 @@
             window.location.href = 'login.html';
         };
 
-        initProfile();
+        // بدء التشغيل السريع
+        initProfileFast();
     </script>
 </body>
 </html>
