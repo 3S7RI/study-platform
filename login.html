@@ -8,7 +8,7 @@
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, setPersistence, browserSessionStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // 🚀 إعدادات Firebase الحقيقية لمشروعك
@@ -25,11 +25,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
-        // ضبط بقاء الجلسة في الـ SessionStorage حصرياً
-        setPersistence(auth, browserSessionStorage).catch((error) => {
-            console.error("خطأ في ضبط جلسة المتصفح:", error);
-        });
 
         window.firebaseAuth = auth;
         window.firebaseDb = db;
@@ -406,6 +401,9 @@
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            // 🧹 تنظيف الـ Session السابق لمنع تداخل أو تخزين بيانات وهمية قديمة
+            sessionStorage.clear();
+
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const emailError = document.getElementById('emailError');
@@ -430,8 +428,7 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // تسجيل وقت الجلسة الجديدة (تجديد الـ 48 ساعة)
-                    sessionStorage.setItem('session_start_time', Date.now().toString());
+                    // تخزين تفاصيل الأدمن الحقيقي فقط
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminRole', adminData.role || 'admin');
@@ -454,8 +451,6 @@
                     const studentData = studentSnap.data();
                     const studentDataString = JSON.stringify(studentData);
                     
-                    // تسجيل وقت الجلسة الجديدة (تجديد الـ 48 ساعة)
-                    sessionStorage.setItem('session_start_time', Date.now().toString());
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'false');
                     sessionStorage.setItem('currentStudentEmail', studentData.email || email);
@@ -467,6 +462,7 @@
                     return;
                 }
 
+                // إذا لم يوجد في الاثنين في قاعدة البيانات
                 throw new Error('البريد الإلكتروني غير مسجل معنا أو غير مصرح له.');
 
             } catch (error) {
