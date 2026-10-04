@@ -417,7 +417,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -434,12 +434,8 @@
         const db = getFirestore(app);
 
         let currentStudentEmailGlobal = "";
-        let studentCreatedAtTime = 0; // وقت إنشاء حساب الطالب
-
-        // --- مفتاح التخزين المحلي لحفظ وقت آخر قراءة للإشعارات ---
-        function getLastSeenKey() {
-            return "last_seen_notif_" + (currentStudentEmailGlobal || "guest");
-        }
+        let studentCreatedAtTime = 0; 
+        let lastSeenNotificationTime = 0; // وقت آخر قراءة مخزن في السحابة
 
         // --- نظام الوضع الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -473,6 +469,9 @@
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
+                    }
+                    if (data.lastSeenNotificationTime) {
+                        lastSeenNotificationTime = data.lastSeenNotificationTime;
                     }
                     const studentName = data.name || data.fullName || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
@@ -528,6 +527,9 @@
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
                     }
+                    if (data.lastSeenNotificationTime) {
+                        lastSeenNotificationTime = data.lastSeenNotificationTime;
+                    }
 
                     const studentName = data.name || data.fullName || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
@@ -541,15 +543,30 @@
             }
         }
 
-        // --- إدارة نافذة الإشعارات وحفظ وقت المشاهدة لإخفاء العداد نهائياً ---
+        // --- إدارة نافذة الإشعارات وحفظ وقت القراءة في السحابة فوراً ---
         window.openNotificationsModal = async function() {
             document.getElementById('notificationsModal').classList.add('active');
             
-            // عند فتح نافذة الإشعارات، نقوم بتسجيل وقت القراءة الحالي في localStorage
-            localStorage.setItem(getLastSeenKey(), Date.now().toString());
-            
-            // إخفاء العداد فوراً بعد الفتح
+            // تحديث وقت آخر قراءة محلياً وفي السحابة (Firestore) لضمان عدم عودة العداد أبداً
+            lastSeenNotificationTime = Date.now();
             document.getElementById('mainNotifDot').style.display = 'none';
+
+            if (currentStudentEmailGlobal) {
+                try {
+                    const studentRef = doc(db, "students", currentStudentEmailGlobal);
+                    await setDoc(studentRef, { lastSeenNotificationTime: lastSeenNotificationTime }, { merge: true });
+                    
+                    // تحديث الكاش المحلي أيضاً
+                    let cachedData = sessionStorage.getItem('cachedStudentProfile');
+                    if (cachedData) {
+                        let parsed = JSON.parse(cachedData);
+                        parsed.lastSeenNotificationTime = lastSeenNotificationTime;
+                        sessionStorage.setItem('cachedStudentProfile', JSON.stringify(parsed));
+                    }
+                } catch (e) {
+                    console.error("خطأ في حفظ وقت القراءة بالسحابة:", e);
+                }
+            }
 
             await loadStudentCloudNotifications();
         };
@@ -641,26 +658,21 @@
                     let docsList = [];
                     snap.forEach(d => docsList.push(d.data()));
 
-                    // استرجاع وقت آخر مرة فتح فيها الطالب الإشعارات
-                    let lastSeen = parseInt(localStorage.getItem(getLastSeenKey()) || "0");
-
                     let unreadForStudents = docsList.filter(item => {
                         let target = item.target || 'students';
                         let recipient = (item.recipientEmail || '').toLowerCase().trim();
                         let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
 
-                        // استبعاد الإشعارات القديمة قبل تسجيل الطالب
                         if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
                             return false;
                         }
 
-                        // فلترة المخصص للـ single أو الكل/الطلاب
                         let isTargetMatch = (target === 'single') ? (recipient === currentStudentEmailGlobal) : (target === 'students' || target === 'all');
 
                         if (!isTargetMatch) return false;
 
-                        // الشرط الأساسي لإظهار العداد: أن يكون الإشعار قد تم إنشاؤه بعد آخر مرة شاف فيها الإشعارات
-                        return itemTime > lastSeen;
+                        // مقارنة وقت إنشاء الإشعار بوقت آخر قراءة مسجل في سحابة الطالب
+                        return itemTime > lastSeenNotificationTime;
                     });
 
                     if (unreadForStudents.length > 0) {
