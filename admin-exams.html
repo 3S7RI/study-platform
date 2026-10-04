@@ -198,7 +198,7 @@
                     <div class="form-group" style="margin-top: 0;"><label>درجة السؤال:</label><input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;"></div>
                 </div>
 
-                <div class="form-group hidden" id="imageInputGroup"><label>رابط الصورة المرفقة أو التقاطها (اختياري):</label><input type="text" id="newQImage" placeholder="https://example.com/image.jpg"></div>
+                <div class="form-group hidden" id="imageInputGroup"><label>إرفاق صورة توضيحية للسؤال (اختياري):</label><input type="file" id="newQImageFile" accept="image/*" style="padding: 6px;"></div>
 
                 <div class="form-group" id="optionsBuilderGroup">
                     <label>الخيارات (حدد الصحيح):</label>
@@ -221,8 +221,8 @@
                             <div class="custom-dropdown-item" onclick="selectQuestionType('tf', this)">✔️ صح وخطأ</div>
                             <div class="custom-dropdown-item" onclick="selectQuestionType('short', this)">📝 نص قصير</div>
                             <div class="custom-dropdown-item" onclick="selectQuestionType('long', this)">📄 نص طويل (مقال)</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('essayImage', this)">🖼️ مقالي مع صورة</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('voice', this)">🎙️ تسجيل صوتي</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('essayImage', this)">🖼️ مقالي مع رفع صورة</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('voice', this)">🎙️ تسجيل صوتي حقيقي</div>
                         </div>
                     </div>
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
@@ -277,15 +277,18 @@
 
     <div class="modal-overlay" id="examAnswersModal">
         <div class="modal-card" style="max-width: 650px; width: 100%; text-align: right; background: var(--bg-card); padding: 22px; border-radius: 16px; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border-color);">
-            <h3 style="color: var(--primary); margin-bottom: 12px; text-align: center;" id="answersModalTitle">📋 معاينة إجابات الطالب</h3>
+            <h3 style="color: var(--primary); margin-bottom: 12px; text-align: center;" id="answersModalTitle">📋 معاينة إجابات الطالب والتصحيح</h3>
             <div id="studentAnswersContainer" style="font-size: 0.88rem;"></div>
-            <button onclick="closeAnswersModal()" style="background: var(--primary); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px;">إغلاق النافذة</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="saveManualGradingAndNotify()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;">حفظ التصحيح وإرسال النتيجة للطالب 🔔</button>
+                <button onclick="closeAnswersModal()" style="background: #475569; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 120px;">إغلاق</button>
+            </div>
         </div>
     </div>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -304,6 +307,8 @@
         let currentDraftQuestions = [];
         let globalExamsList = [];
         let activeSelectedStudent = null;
+        let activeSelectedSubmission = null;
+        let activeExamId = null;
         let editingQuestionIndex = null;
         let currentSelectedSettings = { active: true, timer: true, duration: 30, attempts: 1, passingScore: 50, aiBot: true };
 
@@ -426,56 +431,57 @@
             let qText = document.getElementById('newQText').value.trim();
             let marks = parseFloat(document.getElementById('newQMarks').value) || 1;
             let type = document.getElementById('selectedQuestionType').value;
-            let imageUrl = document.getElementById('newQImage').value.trim();
+            let imageFileinput = document.getElementById('newQImageFile');
 
             if (!qText) { alert('يرجى كتابة نص السؤال!'); return; }
 
-            let options = [];
-            let correct = type === 'checkbox' ? [] : 0;
+            let processQuestionWithImage = (imageUrl) => {
+                let options = [];
+                let correct = type === 'checkbox' ? [] : 0;
 
-            if (type === 'tf') {
-                options = ['صح', 'خطأ'];
-                let radios = document.querySelectorAll('input[name="correctOpt"]');
-                radios.forEach((r, idx) => { if (r.checked) correct = idx; });
-            } else if (type !== 'short' && type !== 'long' && type !== 'voice' && type !== 'essayImage') {
-                let optInputs = document.querySelectorAll('.opt-input');
-                let radioOrChecks = document.querySelectorAll('input[name="correctOpt"]');
-                optInputs.forEach((inp, idx) => {
-                    if (inp.value.trim()) {
-                        options.push(inp.value.trim());
-                        if (radioOrChecks[idx] && radioOrChecks[idx].checked) {
-                            if (type === 'checkbox') correct.push(options.length - 1);
-                            else correct = options.length - 1;
+                if (type === 'tf') {
+                    options = ['صح', 'خطأ'];
+                    let radios = document.querySelectorAll('input[name="correctOpt"]');
+                    radios.forEach((r, idx) => { if (r.checked) correct = idx; });
+                } else if (type !== 'short' && type !== 'long' && type !== 'voice' && type !== 'essayImage') {
+                    let optInputs = document.querySelectorAll('.opt-input');
+                    let radioOrChecks = document.querySelectorAll('input[name="correctOpt"]');
+                    optInputs.forEach((inp, idx) => {
+                        if (inp.value.trim()) {
+                            options.push(inp.value.trim());
+                            if (radioOrChecks[idx] && radioOrChecks[idx].checked) {
+                                if (type === 'checkbox') correct.push(options.length - 1);
+                                else correct = options.length - 1;
+                            }
                         }
-                    }
-                });
-            }
+                    });
+                }
 
-            let questionObj = { text: qText, marks: marks, type: type, options: options, correct: correct, imageUrl: imageUrl };
+                let questionObj = { text: qText, marks: marks, type: type, options: options, correct: correct, imageUrl: imageUrl };
 
-            if (editingQuestionIndex !== null) {
-                currentDraftQuestions[editingQuestionIndex] = questionObj;
-                editingQuestionIndex = null;
-                document.getElementById('builderFormTitle').textContent = 'إضافة سؤال جديد:';
-                document.getElementById('editingIndicator').classList.add('hidden');
-                document.getElementById('addOrUpdateBtn').textContent = 'إضافة السؤال للامتحان ✅';
+                if (editingQuestionIndex !== null) {
+                    currentDraftQuestions[editingQuestionIndex] = questionObj;
+                    editingQuestionIndex = null;
+                    document.getElementById('builderFormTitle').textContent = 'إضافة سؤال جديد:';
+                    document.getElementById('editingIndicator').classList.add('hidden');
+                    document.getElementById('addOrUpdateBtn').textContent = 'إضافة السؤال للامتحان ✅';
+                } else {
+                    currentDraftQuestions.push(questionObj);
+                }
+
+                document.getElementById('newQText').value = '';
+                document.getElementById('newQImageFile').value = '';
+                document.getElementById('newQMarks').value = '1';
+                renderQuestionsList();
+            };
+
+            if (imageFileinput.files && imageFileinput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) { processQuestionWithImage(e.target.result); };
+                reader.readAsDataURL(imageFileinput.files[0]);
             } else {
-                currentDraftQuestions.push(questionObj);
+                processQuestionWithImage('');
             }
-
-            document.getElementById('newQText').value = '';
-            document.getElementById('newQImage').value = '';
-            document.getElementById('newQMarks').value = '1';
-            
-            let typeSelect = document.getElementById('selectedQuestionType').value;
-            if (typeSelect !== 'short' && typeSelect !== 'long' && typeSelect !== 'voice' && typeSelect !== 'essayImage' && typeSelect !== 'tf') {
-                let inputType = (typeSelect === 'checkbox') ? 'checkbox' : 'radio';
-                document.getElementById('optionsBuilderList').innerHTML = `
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>`;
-            }
-
-            renderQuestionsList();
         };
 
         function getTypeNameArabic(type) {
@@ -485,7 +491,7 @@
                 case 'tf': return 'صح وخطأ';
                 case 'short': return 'نص قصير';
                 case 'long': return 'نص طويل';
-                case 'essayImage': return 'مقالي مع صورة';
+                case 'essayImage': return 'مقالي مع رفع صورة';
                 case 'voice': return 'تسجيل صوتي';
                 default: return 'سؤال عام';
             }
@@ -518,7 +524,6 @@
             document.getElementById('newQText').value = q.text || '';
             document.getElementById('newQMarks').value = q.marks || 1;
             document.getElementById('selectedQuestionType').value = q.type || 'mcq';
-            document.getElementById('newQImage').value = q.imageUrl || '';
             changeQuestionTypeUI();
             
             if (q.options && q.options.length > 0 && q.type !== 'tf') {
@@ -594,7 +599,7 @@
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
                 renderQuestionsList();
-                alert('تم نشر الامتحان بنجاح');
+                alert('تم نشر الامتحان بنجاح 🚀');
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء النشر.");
@@ -622,7 +627,8 @@
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button onclick="renderSingleExamSubmissions('${exam.id}')" style="background: var(--primary); color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold;">النتائج 📊</button>
-                            <button onclick="deleteExamFromCloud('${exam.id}')" class="btn-danger">حذف الامتحان 🗑️</button>
+                            <button onclick="gradeAllSubmissionsForExam('${exam.id}')" style="background: #0ea5e9; color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold;">تصحيح جماعي وإرسال 🔔</button>
+                            <button onclick="deleteExamFromCloud('${exam.id}')" class="btn-danger">حذف 🗑️</button>
                         </div>
                     </div>`;
             });
@@ -643,6 +649,7 @@
         };
 
         window.renderSingleExamSubmissions = function(examId) {
+            activeExamId = examId;
             let exam = globalExamsList.find(e => e.id === examId);
             if (!exam) return;
 
@@ -662,12 +669,13 @@
             let passingScore = exam.settings?.passingScore || 50;
             html += `<div style="overflow-x: auto;"><table><thead><tr><th>الطالب</th><th>الدرجة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>`;
             
-            subs.forEach((sub) => {
+            subs.forEach((sub, subIdx) => {
                 let percentage = sub.totalMarks > 0 ? (sub.score / sub.totalMarks) * 100 : 0;
                 let passed = percentage >= passingScore;
                 let fullName = sub.studentName || 'طالب المنصة';
                 let email = sub.studentEmail || 'غير متوفر';
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
+                let isPublished = sub.published !== false;
 
                 html += `
                     <tr>
@@ -677,7 +685,7 @@
                                 <span>${fullName}</span>
                             </span>
                         </td>
-                        <td><span class="score-link" onclick='openStudentExamView(${JSON.stringify(sub)}, ${JSON.stringify(exam)})'>${sub.score} / ${sub.totalMarks}</span></td>
+                        <td><span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks} ${!isPublished ? '<span style="color:#f59e0b;">(بانتظار الاعتماد)</span>' : ''}</span></td>
                         <td>${passed ? '<span style="color:var(--success); font-weight:bold;">ناجح 🎉</span>' : '<span style="color:var(--danger); font-weight:bold;">راسب ❌</span>'}</td>
                         <td style="font-size:0.8rem; opacity:0.8;">${sub.date || ''}</td>
                     </tr>`;
@@ -686,13 +694,19 @@
             container.innerHTML = html;
         };
 
-        window.openStudentExamView = function(sub, exam) {
+        window.openStudentExamView = function(examId, subIdx) {
+            activeExamId = examId;
+            let exam = globalExamsList.find(e => e.id === examId);
+            if (!exam) return;
+            let sub = exam.examSubmissions[subIdx];
+            activeSelectedSubmission = { examId, subIdx, sub };
+
             let container = document.getElementById('studentAnswersContainer');
             document.getElementById('answersModalTitle').textContent = `📋 معاينة إجابات الطالب: ${sub.studentName}`;
             
             let questions = exam.questions || [];
             let studentAnswers = sub.answers || {};
-            let html = `<p style="margin-bottom:15px; font-weight:bold; color:var(--text-muted); background:var(--th-bg); padding:10px; border-radius:8px;">الامتحان: ${exam.title} | مجموع الدرجات: ${sub.score} من ${sub.totalMarks}</p>`;
+            let html = `<p style="margin-bottom:15px; font-weight:bold; color:var(--text-muted); background:var(--th-bg); padding:10px; border-radius:8px;">الامتحان: ${exam.title} | مجموع الدرجات: <input type="number" id="manualTotalScore" value="${sub.score}" style="width:70px; display:inline-block; padding:4px; text-align:center;"> من ${sub.totalMarks}</p>`;
 
             questions.forEach((q, qIdx) => {
                 let qType = q.type || 'mcq';
@@ -729,6 +743,22 @@
                         </div>`;
                     });
                     html += `</div>`;
+                } else if (qType === 'essayImage') {
+                    html += `<div style="margin-top:8px;">`;
+                    if (studentAns && studentAns.startsWith('data:image')) {
+                        html += `<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px;">صورة إجابة الطالب المرفوعة:</p><img src="${studentAns}" style="max-width:100%; max-height:250px; border-radius:8px; border:1px solid var(--border-color); display:block;">`;
+                    } else {
+                        html += `<p style="color:var(--danger);">لم يرفع الطالب صورة أو الملف غير متاح.</p>`;
+                    }
+                    html += `</div>`;
+                } else if (qType === 'voice') {
+                    html += `<div style="margin-top:8px;">`;
+                    if (studentAns && studentAns.startsWith('data:audio')) {
+                        html += `<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px;">التسجيل الصوتي للطالب:</p><audio controls src="${studentAns}" style="width:100%;"></audio>`;
+                    } else {
+                        html += `<p style="color:var(--danger);">لا يوجد تسجيل صوتي صحيح مرفق.</p>`;
+                    }
+                    html += `</div>`;
                 } else {
                     html += `<div style="margin-top:8px; padding:10px; background:var(--bg-main); border-radius:6px; border:1px solid var(--border-color);">
                         <span style="font-weight:bold; color:var(--primary);">✍️ إجابة الطالب:</span> <span style="color:var(--text-main);">${studentAns}</span>
@@ -739,6 +769,48 @@
 
             container.innerHTML = html;
             document.getElementById('examAnswersModal').style.display = 'flex';
+        };
+
+        window.saveManualGradingAndNotify = async function() {
+            if (!activeSelectedSubmission) return;
+            let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
+            let { examId, subIdx } = activeSelectedSubmission;
+            let exam = globalExamsList.find(e => e.id === examId);
+            if (!exam) return;
+
+            exam.examSubmissions[subIdx].score = newScore;
+            exam.examSubmissions[subIdx].published = true;
+
+            try {
+                const examRef = doc(db, "exams", examId);
+                await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
+                alert('تم حفظ التصحيح وإرسال النتيجة للطالب بنجاح عبر نظام الإشعارات 🔔🎉');
+                closeAnswersModal();
+                renderSingleExamSubmissions(examId);
+            } catch (e) {
+                console.error(e);
+                alert("حدث خطأ أثناء حفظ التصحيح.");
+            }
+        };
+
+        window.gradeAllSubmissionsForExam = async function(examId) {
+            let exam = globalExamsList.find(e => e.id === examId);
+            if (!exam || !exam.examSubmissions || exam.examSubmissions.length === 0) {
+                alert('لا توجد تسليمات لتصحيحها في هذا الامتحان.');
+                return;
+            }
+
+            if (confirm("هل تريد اعتماد وتصحيح وإرسال النتائج لجميع الطلاب المتقدمين دفعة واحدة؟")) {
+                exam.examSubmissions.forEach(sub => { sub.published = true; });
+                try {
+                    const examRef = doc(db, "exams", examId);
+                    await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
+                    alert('تم تصحيح وإرسال النتائج لجميع الطلاب بنجاح عبر الإشعارات 🔔🚀');
+                    renderExamsStatsList();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
         };
 
         window.closeAnswersModal = function() {
