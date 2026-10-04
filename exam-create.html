@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - إنشاء امتحان جديد</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --hover-bg: rgba(99, 102, 241, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --th-bg: rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
+            --hover-bg: rgba(79, 70, 229, 0.05);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            --th-bg: rgba(0, 0, 0, 0.02);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+        }
+
+        .header-right-side { display: flex; align-items: center; }
+        .btn-home-link {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.85rem;
+        }
+        .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .header-center-box { display: flex; align-items: center; justify-content: center; }
+        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 1rem; font-weight: 700; color: var(--text-main); }
+        
+        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .btn-theme-toggle {
+            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        /* شريط التنقل الجديد بين صفحات الامتحانات الثلاثة */
+        .admin-nav-bar {
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .btn-tab {
+            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
+            padding: 9px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.9rem; flex: 1; min-width: 120px; text-align: center; text-decoration: none; display: inline-block;
+        }
+        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .section-box {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: var(--text-main); font-size: 1.15rem; font-weight: 700; }
+
+        .form-group { margin-top: 15px; text-align: right; }
+        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-muted); font-weight: 600; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none;
+        }
+        
+        .form-row-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (max-width: 768px) { .form-row-grid-2 { grid-template-columns: 1fr; } }
+
+        .btn-save { background: var(--success); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.95rem; margin-top: 20px; width: 100%; }
+
+        .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-top: 18px; }
+        .question-top-row { display: grid; grid-template-columns: 1fr 130px; gap: 12px; align-items: end; }
+        @media (max-width: 500px) { .question-top-row { grid-template-columns: 1fr; } }
+
+        .option-row { display: flex; gap: 10px; margin-top: 8px; align-items: center; }
+        .option-row input[type="text"] { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); }
+        
+        .btn-add-opt { background: #0ea5e9; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; margin-top: 8px; }
+        
+        .question-actions-row { display: flex; gap: 10px; margin-top: 14px; align-items: center; }
+        .btn-add-ques { background: var(--primary); color: white; border: none; padding: 11px; border-radius: 10px; font-weight: bold; cursor: pointer; flex: 1; text-align: center; }
+
+        .question-type-wrapper { position: relative; display: inline-block; }
+        .btn-question-clip {
+            background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
+            width: 44px; height: 44px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        
+        .custom-dropdown-menu {
+            position: absolute; right: 0; bottom: 52px; background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; box-shadow: var(--shadow); width: 220px; z-index: 100; display: none; overflow: hidden; padding: 6px;
+        }
+        .custom-dropdown-item {
+            padding: 9px 12px; font-size: 0.85rem; color: var(--text-main); border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; font-weight: 500;
+        }
+        .custom-dropdown-item:hover { background: var(--hover-bg); color: var(--primary); }
+        .custom-dropdown-item.selected { background: rgba(99, 102, 241, 0.2); color: var(--primary); font-weight: bold; }
+
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header class="platform-header">
+            <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية ↩</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إنشاء امتحان جديد</span> 📝</div></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
+        </header>
+
+        <!-- أزرار التنقل المستقلة بين صفحات إدارة الامتحانات -->
+        <nav class="admin-nav-bar">
+            <div class="admin-tabs-group">
+                <a href="exam-create.html" class="btn-tab active">إنشاء امتحان 📝</a>
+                <a href="exam-settings.html" class="btn-tab">الإعدادات ⚙️</a>
+                <a href="exam-stats.html" class="btn-tab">إحصائيات 📊</a>
+            </div>
+        </nav>
+
+        <div class="section-box">
+            <div class="section-header"><h2>إعداد وتصميم الامتحان والأسئلة 📝</h2></div>
+            <div class="form-group"><label>عنوان الامتحان العام:</label><input type="text" id="examTitle" placeholder="مثال: امتحان شامل الباب الأول كيمياء"></div>
+            <div class="form-row-grid-2">
+                <div class="form-group"><label>المادة الدراسية:</label><input type="text" id="examSubject" placeholder="كيمياء"></div>
+                <div class="form-group"><label>الفئة / الشعبة المستهدفة:</label><input type="text" id="examTargetGroup" placeholder="الصف الثالث الثانوي"></div>
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+            <h3 style="color: var(--text-main); font-size: 1rem; margin-bottom: 10px;">الأسئلة المضافة حالياً:</h3>
+            <div id="questionsContainer"></div>
+
+            <div class="question-builder-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 id="builderFormTitle" style="font-size: 0.95rem; color: var(--text-main);">إضافة سؤال جديد:</h4>
+                    <span id="editingIndicator" class="hidden" style="font-size: 0.78rem; background: #f59e0b; color: white; padding: 2px 8px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠</span>
+                </div>
+
+                <div class="question-top-row">
+                    <div class="form-group" style="margin-top: 0;"><label>نص السؤال:</label><input type="text" id="newQText" placeholder="اكتب السؤال هنا..."></div>
+                    <div class="form-group" style="margin-top: 0;"><label>درجة السؤال:</label><input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;"></div>
+                </div>
+
+                <div class="form-group hidden" id="imageInputGroup"><label>إرفاق صورة توضيحية للسؤال (اختياري):</label><input type="file" id="newQImageFile" accept="image/*" style="padding: 6px;"></div>
+
+                <div class="form-group" id="optionsBuilderGroup">
+                    <label>الخيارات (حدد الصحيح):</label>
+                    <div id="optionsBuilderList">
+                        <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
+                        <div class="option-row"><input type="radio" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>
+                    </div>
+                    <button class="btn-add-opt" id="addOptBtn" onclick="addOptionInput()">إضافة خيار آخر ➕</button>
+                </div>
+
+                <div class="question-actions-row">
+                    <div class="question-type-wrapper">
+                        <input type="hidden" id="selectedQuestionType" value="mcq">
+                        <button type="button" class="btn-question-clip" id="clipMenuBtn" onclick="toggleClipDropdown()" title="تنسيق وشكل السؤال">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        </button>
+                        <div class="custom-dropdown-menu" id="clipDropdownMenu">
+                            <div class="custom-dropdown-item selected" onclick="selectQuestionType('mcq', this)">🔘 اختياري (دائرة - مفرد)</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('checkbox', this)">☑️ اختياري (مربعات - متعدد)</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('tf', this)">✔️ صح وخطأ</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('short', this)">📝 نص قصير</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('long', this)">📄 نص طويل (مقال)</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('essayImage', this)">🖼️ مقالي مع رفع صورة</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('voice', this)">🎙️ تسجيل صوتي حقيقي</div>
+                        </div>
+                    </div>
+                    <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
+                </div>
+            </div>
+            <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان بالسحابة 🚀</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentDraftQuestions = [];
+        let editingQuestionIndex = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // نظام الوضع الداكن والفاتح
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const bodyElement = document.body;
+        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
+        bodyElement.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', () => {
+            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            bodyElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('platform_theme', nextTheme);
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
+        });
+
+        window.toggleClipDropdown = function() {
+            const menu = document.getElementById('clipDropdownMenu');
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.selectQuestionType = function(typeVal, element) {
+            document.getElementById('selectedQuestionType').value = typeVal;
+            document.querySelectorAll('.custom-dropdown-item').forEach(item => item.classList.remove('selected'));
+            element.classList.add('selected');
+            document.getElementById('clipDropdownMenu').style.display = 'none';
+            changeQuestionTypeUI();
+        };
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.question-type-wrapper')) {
+                const menu = document.getElementById('clipDropdownMenu');
+                if (menu) menu.style.display = 'none';
+            }
+        });
+
+        window.changeQuestionTypeUI = function() {
+            let type = document.getElementById('selectedQuestionType').value;
+            let optGroup = document.getElementById('optionsBuilderGroup');
+            let imgGroup = document.getElementById('imageInputGroup');
+
+            if (type === 'short' || type === 'long' || type === 'voice') {
+                optGroup.classList.add('hidden');
+                imgGroup.classList.add('hidden');
+            } else if (type === 'essayImage') {
+                optGroup.classList.add('hidden');
+                imgGroup.classList.remove('hidden');
+            } else if (type === 'tf') {
+                optGroup.classList.remove('hidden');
+                imgGroup.classList.add('hidden');
+                document.getElementById('optionsBuilderList').innerHTML = `
+                    <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.9rem;">صح</span></div>
+                    <div class="option-row"><input type="radio" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.9rem;">خطأ</span></div>`;
+                document.getElementById('addOptBtn').style.display = 'none';
+            } else {
+                optGroup.classList.remove('hidden');
+                imgGroup.classList.add('hidden');
+                let inputType = (type === 'checkbox') ? 'checkbox' : 'radio';
+                document.getElementById('optionsBuilderList').innerHTML = `
+                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="0" checked style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
+                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="1" style="width: 18px; height: 18px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>`;
+                document.getElementById('addOptBtn').style.display = 'inline-block';
+            }
+        };
+
+        window.addOptionInput = function() {
+            const list = document.getElementById('optionsBuilderList');
+            let type = document.getElementById('selectedQuestionType').value;
+            let inputType = type === 'checkbox' ? 'checkbox' : 'radio';
+            const row = document.createElement('div');
+            row.className = 'option-row';
+            row.innerHTML = `
+                <input type="${inputType}" name="correctOpt" value="${list.children.length}" style="width: 18px; height: 18px; cursor: pointer;">
+                <input type="text" class="opt-input" placeholder="خيار إضافي">`;
+            list.appendChild(row);
+        };
+
+        window.addNewQuestionToExam = function() {
+            let qText = document.getElementById('newQText').value.trim();
+            let marks = parseFloat(document.getElementById('newQMarks').value) || 1;
+            let type = document.getElementById('selectedQuestionType').value;
+            let imageFileinput = document.getElementById('newQImageFile');
+
+            if (!qText) { alert('يرجى كتابة نص السؤال!'); return; }
+
+            let processQuestionWithImage = (imageUrl) => {
+                let options = [];
+                let correct = type === 'checkbox' ? [] : 0;
+
+                if (type === 'tf') {
+                    options = ['صح', 'خطأ'];
+                    let radios = document.querySelectorAll('input[name="correctOpt"]');
+                    radios.forEach((r, idx) => { if (r.checked) correct = idx; });
+                } else if (type !== 'short' && type !== 'long' && type !== 'voice' && type !== 'essayImage') {
+                    let optInputs = document.querySelectorAll('.opt-input');
+                    let radioOrChecks = document.querySelectorAll('input[name="correctOpt"]');
+                    optInputs.forEach((inp, idx) => {
+                        if (inp.value.trim()) {
+                            options.push(inp.value.trim());
+                            if (radioOrChecks[idx] && radioOrChecks[idx].checked) {
+                                if (type === 'checkbox') correct.push(options.length - 1);
+                                else correct = options.length - 1;
+                            }
+                        }
+                    });
+                }
+
+                let questionObj = { text: qText, marks: marks, type: type, options: options, correct: correct, imageUrl: imageUrl };
+
+                if (editingQuestionIndex !== null) {
+                    currentDraftQuestions[editingQuestionIndex] = questionObj;
+                    editingQuestionIndex = null;
+                    document.getElementById('builderFormTitle').textContent = 'إضافة سؤال جديد:';
+                    document.getElementById('editingIndicator').classList.add('hidden');
+                    document.getElementById('addOrUpdateBtn').textContent = 'إضافة السؤال للامتحان ✅';
+                } else {
+                    currentDraftQuestions.push(questionObj);
+                }
+
+                document.getElementById('newQText').value = '';
+                document.getElementById('newQImageFile').value = '';
+                document.getElementById('newQMarks').value = '1';
+                renderQuestionsList();
+            };
+
+            if (imageFileinput.files && imageFileinput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function(e) { processQuestionWithImage(e.target.result); };
+                reader.readAsDataURL(imageFileinput.files[0]);
+            } else {
+                processQuestionWithImage('');
+            }
+        };
+
+        function getTypeNameArabic(type) {
+            switch(type) {
+                case 'mcq': return 'اختياري (مفرد)';
+                case 'checkbox': return 'اختياري (مربعات)';
+                case 'tf': return 'صح وخطأ';
+                case 'short': return 'نص قصير';
+                case 'long': return 'نص طويل';
+                case 'essayImage': return 'مقالي مع رفع صورة';
+                case 'voice': return 'تسجيل صوتي';
+                default: return 'سؤال عام';
+            }
+        }
+
+        function renderQuestionsList() {
+            const container = document.getElementById('questionsContainer');
+            if (currentDraftQuestions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            currentDraftQuestions.forEach((q, idx) => {
+                let typeLabel = getTypeNameArabic(q.type);
+                html += `
+                    <div style="background: var(--th-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <div onclick="editQuestion(${idx})" style="cursor: pointer; flex: 1;" title="اضغط للتعديل والمعاينة">
+                            <p style="font-weight: bold; margin-bottom: 2px;">سؤال ${idx+1}: ${q.text} <span style="font-size:0.75rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 2px 6px; border-radius: 4px; margin-right: 6px;">(${q.marks} درجات - ${typeLabel})</span></p>
+                        </div>
+                        <button class="btn-danger" onclick="deleteDraftQuestion(${idx}, event)">حذف</button>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        window.editQuestion = function(idx) {
+            let q = currentDraftQuestions[idx];
+            editingQuestionIndex = idx;
+            document.getElementById('newQText').value = q.text || '';
+            document.getElementById('newQMarks').value = q.marks || 1;
+            document.getElementById('selectedQuestionType').value = q.type || 'mcq';
+            changeQuestionTypeUI();
+            
+            if (q.options && q.options.length > 0 && q.type !== 'tf') {
+                let list = document.getElementById('optionsBuilderList');
+                list.innerHTML = '';
+                q.options.forEach((optText, oIdx) => {
+                    let isChecked = q.type === 'checkbox' ? (q.correct && q.correct.includes(oIdx)) : (q.correct === oIdx);
+                    let inputType = q.type === 'checkbox' ? 'checkbox' : 'radio';
+                    let row = document.createElement('div');
+                    row.className = 'option-row';
+                    row.innerHTML = `
+                        <input type="${inputType}" name="correctOpt" value="${oIdx}" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
+                        <input type="text" class="opt-input" value="${optText}">`;
+                    list.appendChild(row);
+                });
+            }
+
+            document.getElementById('builderFormTitle').textContent = `تعديل السؤال رقم ${idx + 1}:`;
+            document.getElementById('editingIndicator').classList.remove('hidden');
+            document.getElementById('addOrUpdateBtn').textContent = 'تحديث السؤال 🔄';
+            window.scrollTo({ top: 400, behavior: 'smooth' });
+        };
+
+        window.deleteDraftQuestion = function(idx, event) {
+            event.stopPropagation();
+            currentDraftQuestions.splice(idx, 1);
+            renderQuestionsList();
+        };
+
+        window.saveFullExamToCloud = async function() {
+            let title = document.getElementById('examTitle').value.trim();
+            let subject = document.getElementById('examSubject').value.trim();
+            let targetGroup = document.getElementById('examTargetGroup').value.trim();
+
+            if (!title) { alert('يرجى كتابة عنوان الامتحان!'); return; }
+            if (currentDraftQuestions.length === 0) { alert('يرجى إضافة سؤال واحد على الأقل للامتحان!'); return; }
+
+            // الإعدادات الافتراضية المبدئية لحين تعديلها من صفحة الإعدادات
+            let defaultSettings = {
+                active: true, timer: true, duration: 30, attempts: 1, passingScore: 50,
+                aiBot: true, shuffle: false, instantResult: true, antiCheat: false, password: '', maxQuota: '', customMsg: ''
+            };
+
+            let newExamDoc = {
+                title: title, subject: subject, targetGroup: targetGroup,
+                questions: currentDraftQuestions, settings: defaultSettings,
+                examSubmissions: [], createdAt: new Date().toISOString()
+            };
+
+            try {
+                await addDoc(collection(db, "exams"), newExamDoc);
+                currentDraftQuestions = [];
+                editingQuestionIndex = null;
+                document.getElementById('examTitle').value = '';
+                document.getElementById('examSubject').value = '';
+                document.getElementById('examTargetGroup').value = '';
+                renderQuestionsList();
+                alert('تم نشر الامتحان بنجاح في كولكشن (exams) في فايربيس 🚀');
+            } catch (e) {
+                console.error(e);
+                alert("حدث خطأ أثناء النشر.");
+            }
+        };
+    </script>
+</body>
+</html>
