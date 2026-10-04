@@ -392,11 +392,11 @@
         </div>
     </main>
 
-    <!-- نافذة الإشعارات الشيك للطالب -->
+    <!-- نافذة الإشعارات الشيك للطالب (تستقبل إشعارات المنصة ودرجات الامتحانات المصححة) -->
     <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) closeNotificationsModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>إشعارات المنصة والأدمن 🔔</h3>
+                <h3>إشعارات المنصة ونتائج الامتحانات 🔔</h3>
                 <button class="close-modal" onclick="closeNotificationsModal()">✕</button>
             </div>
             <div class="modal-body">
@@ -410,7 +410,6 @@
     <footer>
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة محمد عماد محمد (عشري) © 2026 - منصة رحلة دراسية
     </footer>
-
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -432,6 +431,7 @@
         const db = getFirestore(app);
 
         let currentStudentEmailGlobal = "";
+        let currentStudentNameGlobal = "";
         let studentCreatedAtTime = 0; 
         let lastSeenNotificationTime = 0;
 
@@ -441,14 +441,12 @@
         
         if (sessionStartTime) {
             if (Date.now() - parseInt(sessionStartTime) > TWO_DAYS_MS) {
-                // انتهت صلاحية اليومين، تسجيل خروج إلزامي وتوجيه لصفحة الدخول
                 sessionStorage.clear();
                 signOut(auth).then(() => {
                     window.location.href = 'login.html';
                 });
             }
         } else {
-            // إذا لم يكن وقت الجلسة موجوداً، ننشئه الآن
             sessionStorage.setItem('session_start_time', Date.now().toString());
         }
 
@@ -476,20 +474,20 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // --- تحميل بيانات البروفايل من الـ SessionStorage حصرياً لمنع الاختفاء ---
         function loadProfileFromCacheInstant() {
             const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    currentStudentNameGlobal = data.name || data.fullName || '';
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
                     }
                     if (data.lastSeenNotificationTime) {
                         lastSeenNotificationTime = data.lastSeenNotificationTime;
                     }
-                    const studentName = data.name || data.fullName || 'بطل';
+                    const studentName = currentStudentNameGlobal || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
                     document.getElementById('navStudentName').innerText = firstName;
@@ -506,7 +504,7 @@
                 const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
                 currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
-                checkUnreadNotifications();
+                checkUnreadNotificationsAndExamGrades();
             } else {
                 window.location.href = 'login.html';
             }
@@ -516,13 +514,11 @@
             try {
                 let docSnap = null;
 
-                // البحث بالـ UID أولاً (وهو الأدق والأسرع)
                 if (uid) {
                     const docRef = doc(db, "students", uid);
                     docSnap = await getDoc(docRef);
                 }
 
-                // إذا لم يوجد بالـ UID، نبحث بالبريد الإلكتروني
                 if ((!docSnap || !docSnap.exists()) && emailKey) {
                     const docRef = doc(db, "students", emailKey.toLowerCase().trim());
                     docSnap = await getDoc(docRef);
@@ -541,6 +537,7 @@
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
                     
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    currentStudentNameGlobal = data.name || data.fullName || '';
                     
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
@@ -549,7 +546,7 @@
                         lastSeenNotificationTime = data.lastSeenNotificationTime;
                     }
 
-                    const studentName = data.name || data.fullName || 'بطل';
+                    const studentName = currentStudentNameGlobal || 'بطل';
                     let firstName = studentName.trim().split(' ')[0];
                     
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
@@ -561,7 +558,7 @@
             }
         }
 
-        // --- إدارة نافذة الإشعارات وحفظ وقت القراءة في السحابة فوراً ---
+        // --- إدارة نافذة الإشعارات وحفظ وقت القراءة في السحابة ---
         window.openNotificationsModal = async function() {
             document.getElementById('notificationsModal').classList.add('active');
             
@@ -589,118 +586,160 @@
                 }
             }
 
-            await loadStudentCloudNotifications();
+            await loadStudentCloudNotificationsAndGrades();
         };
 
         window.closeNotificationsModal = function() {
             document.getElementById('notificationsModal').classList.remove('active');
         };
 
-        async function loadStudentCloudNotifications() {
+        // --- دمج إشعارات المنصة العادية مع درجات الامتحانات المصححة ---
+        async function loadStudentCloudNotificationsAndGrades() {
             const container = document.getElementById('notificationsListContainer');
-            container.innerHTML = `<div class="loading">جاري جلب إشعارات المنصة... ⏳</div>`;
+            container.innerHTML = `<div class="loading">جاري جلب إشعاراتك ودرجات الامتحانات... ⏳</div>`;
 
             try {
+                let combinedNotifications = [];
+
+                // 1. جلب إشعارات الإدارة العامة
                 const notifRef = collection(db, "adminNotifications");
                 const snap = await getDocs(notifRef);
+                snap.forEach(docSnap => {
+                    const item = docSnap.id;
+                    const data = docSnap.data();
+                    let target = data.target || 'students';
+                    let recipient = (data.recipientEmail || '').toLowerCase().trim();
+                    let itemTime = data.createdAt?.toMillis ? data.createdAt.toMillis() : (new Date(data.createdAt).getTime() || 0);
+
+                    if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) return;
+
+                    let isMatch = (target === 'single') ? (recipient === currentStudentEmailGlobal) : (target === 'students' || target === 'all');
+                    if (isMatch) {
+                        combinedNotifications.push({
+                            type: 'admin',
+                            time: itemTime,
+                            title: data.title || 'إشعار إداري',
+                            message: data.message || data.text || '',
+                            sender: data.sender || data.adminName || 'الإدارة'
+                        });
+                    }
+                });
+
+                // 2. جلب درجات الامتحانات التي صححها المعلم وتم نشرها للطالب
+                const examsRef = collection(db, "exams");
+                const examsSnap = await getDocs(examsRef);
+                examsSnap.forEach(examDoc => {
+                    const examData = examDoc.data();
+                    const examTitle = examData.title || 'امتحان إلكتروني';
+                    const submissions = examData.examSubmissions || [];
+
+                    submissions.forEach(sub => {
+                        const subEmail = (sub.studentEmail || '').toLowerCase().trim();
+                        const subName = (sub.studentName || '').toLowerCase().trim();
+                        const myEmail = currentStudentEmailGlobal.toLowerCase().trim();
+                        const myName = currentStudentNameGlobal.toLowerCase().trim();
+
+                        // التحقق هل هذا التسليم يخص الطالب الحالي وتم نشره (published: true)
+                        const isThisStudent = (myEmail && subEmail === myEmail) || (myName && subName === myName);
+                        const isPublished = sub.published === true;
+
+                        if (isThisStudent && isPublished) {
+                            let subTime = sub.date ? new Date(sub.date).getTime() : Date.now();
+                            combinedNotifications.push({
+                                type: 'exam_grade',
+                                time: subTime,
+                                title: `نتيجة امتحان: ${examTitle}`,
+                                message: `مبروك! تم تصحيح امتحانك بواسطة المعلم وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯`,
+                                sender: 'نظام التصحيح الأكاديمي'
+                            });
+                        }
+                    });
+                });
+
+                if (combinedNotifications.length === 0) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات أو نتائج جديدة حالياً. ✨</p>`;
+                    return;
+                }
+
+                // ترتيب الإشعارات تنازلياً حسب الأحدث
+                combinedNotifications.sort((a, b) => b.time - a.time);
 
                 let html = '';
-                if (snap.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة حالياً. ✨</p>`;
-                    return;
-                }
-
-                let docsList = [];
-                snap.forEach(docSnap => {
-                    docsList.push({ id: docSnap.id, ...docSnap.data() });
-                });
-
-                let filteredList = docsList.filter(item => {
-                    let target = item.target || 'students';
-                    let recipient = (item.recipientEmail || '').toLowerCase().trim();
-                    let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
-
-                    if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
-                        return false;
-                    }
-
-                    if (target === 'single') {
-                        return recipient === currentStudentEmailGlobal;
-                    }
-                    return target === 'students' || target === 'all';
-                });
-
-                if (filteredList.length === 0) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات مخصصة للطلاب حالياً. ✨</p>`;
-                    return;
-                }
-
-                filteredList.sort((a, b) => {
-                    let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (new Date(a.createdAt).getTime() || 0);
-                    let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (new Date(b.createdAt).getTime() || 0);
-                    return timeB - timeA;
-                });
-
-                filteredList.slice(0, 15).forEach(item => {
-                    const adminName = item.sender || item.adminName || 'الإدارة';
-                    const titleText = item.title || 'إشعار إداري';
-                    const messageText = item.message || item.text || '';
-                    const timeFormatted = item.createdAt?.toMillis ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
-
+                combinedNotifications.slice(0, 20).forEach(item => {
+                    const timeFormatted = item.time ? new Date(item.time).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
                     const verifiedSvg = `<svg class="verified-badge-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.99 15l-4.24-4.24 1.41-1.41 2.83 2.83 7.07-7.07 1.41 1.41-8.48 8.48z"/></svg>`;
 
                     html += `
-                        <div class="admin-notif-card">
+                        <div class="admin-notif-card" style="${item.type === 'exam_grade' ? 'border-color: var(--success-color); background: rgba(16, 185, 129, 0.05);' : ''}">
                             <div class="admin-notif-header">
                                 <div class="admin-info-badge">
-                                    <span>${adminName}</span>
+                                    <span>${item.sender}</span>
                                     ${verifiedSvg}
                                 </div>
                                 <span class="admin-notif-time">${timeFormatted}</span>
                             </div>
-                            <h4 style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">${titleText}</h4>
-                            <div class="admin-notif-text">${messageText}</div>
+                            <h4 style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px;">${item.title}</h4>
+                            <div class="admin-notif-text">${item.message}</div>
                         </div>
                     `;
                 });
 
                 container.innerHTML = html;
             } catch (error) {
-                console.error("خطأ في جلب إشعارات الطالب:", error);
+                console.error("خطأ في جلب إشعارات ونتائج الطالب:", error);
                 container.innerHTML = `<p style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.82rem;">لا توجد إشعارات جديدة حالياً. ✨</p>`;
             }
         }
 
-        async function checkUnreadNotifications() {
+        // --- فحص وجود إشعارات أو نتائج غير مقروءة لعرض النقطة الحمراء ---
+        async function checkUnreadNotificationsAndExamGrades() {
             try {
+                let unreadCount = 0;
+
+                // فحص إشعارات الإدارة
                 const notifRef = collection(db, "adminNotifications");
                 const snap = await getDocs(notifRef);
-                if (!snap.empty) {
-                    let docsList = [];
-                    snap.forEach(d => docsList.push(d.data()));
+                snap.forEach(d => {
+                    const data = d.data();
+                    let target = data.target || 'students';
+                    let recipient = (data.recipientEmail || '').toLowerCase().trim();
+                    let itemTime = data.createdAt?.toMillis ? data.createdAt.toMillis() : (new Date(data.createdAt).getTime() || 0);
 
-                    let unreadForStudents = docsList.filter(item => {
-                        let target = item.target || 'students';
-                        let recipient = (item.recipientEmail || '').toLowerCase().trim();
-                        let itemTime = item.createdAt?.toMillis ? item.createdAt.toMillis() : (new Date(item.createdAt).getTime() || 0);
-
-                        if (studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime) {
-                            return false;
+                    if (!(studentCreatedAtTime > 0 && itemTime > 0 && itemTime < studentCreatedAtTime)) {
+                        let isMatch = (target === 'single') ? (recipient === currentStudentEmailGlobal) : (target === 'students' || target === 'all');
+                        if (isMatch && itemTime > lastSeenNotificationTime) {
+                            unreadCount++;
                         }
-
-                        let isTargetMatch = (target === 'single') ? (recipient === currentStudentEmailGlobal) : (target === 'students' || target === 'all');
-
-                        if (!isTargetMatch) return false;
-
-                        return itemTime > lastSeenNotificationTime;
-                    });
-
-                    if (unreadForStudents.length > 0) {
-                        document.getElementById('mainNotifDot').style.display = 'inline-block';
-                        document.getElementById('mainNotifDot').innerText = unreadForStudents.length;
-                    } else {
-                        document.getElementById('mainNotifDot').style.display = 'none';
                     }
+                });
+
+                // فحص نتائج الامتحانات الجديدة
+                const examsRef = collection(db, "exams");
+                const examsSnap = await getDocs(examsRef);
+                examsSnap.forEach(examDoc => {
+                    const examData = examDoc.data();
+                    const submissions = examData.examSubmissions || [];
+                    submissions.forEach(sub => {
+                        const subEmail = (sub.studentEmail || '').toLowerCase().trim();
+                        const subName = (sub.studentName || '').toLowerCase().trim();
+                        const myEmail = currentStudentEmailGlobal.toLowerCase().trim();
+                        const myName = currentStudentNameGlobal.toLowerCase().trim();
+
+                        const isThisStudent = (myEmail && subEmail === myEmail) || (myName && subName === myName);
+                        if (isThisStudent && sub.published === true) {
+                            let subTime = sub.date ? new Date(sub.date).getTime() : Date.now();
+                            if (subTime > lastSeenNotificationTime) {
+                                unreadCount++;
+                            }
+                        }
+                    });
+                });
+
+                if (unreadCount > 0) {
+                    document.getElementById('mainNotifDot').style.display = 'inline-block';
+                    document.getElementById('mainNotifDot').innerText = unreadCount;
+                } else {
+                    document.getElementById('mainNotifDot').style.display = 'none';
                 }
             } catch(e) {}
         }
