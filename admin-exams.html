@@ -627,7 +627,7 @@
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button onclick="renderSingleExamSubmissions('${exam.id}')" style="background: var(--primary); color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold;">النتائج 📊</button>
-                            <button onclick="gradeAllSubmissionsForExam('${exam.id}')" style="background: #0ea5e9; color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold;">تصحيح جماعي وإرسال 🔔</button>
+                            <button onclick="gradeAllSubmissionsForExam('${exam.id}')" style="background: #0ea5e9; color: white; border: none; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold;">تصحيح وإرسال الكل 🔔</button>
                             <button onclick="deleteExamFromCloud('${exam.id}')" class="btn-danger">حذف 🗑️</button>
                         </div>
                     </div>`;
@@ -675,7 +675,7 @@
                 let fullName = sub.studentName || 'طالب المنصة';
                 let email = sub.studentEmail || 'غير متوفر';
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
-                let isPublished = sub.published !== false;
+                let isPublished = sub.published === true;
 
                 html += `
                     <tr>
@@ -685,7 +685,7 @@
                                 <span>${fullName}</span>
                             </span>
                         </td>
-                        <td><span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks} ${!isPublished ? '<span style="color:#f59e0b;">(بانتظار الاعتماد)</span>' : ''}</span></td>
+                        <td><span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks} ${!isPublished ? '<span style="color:#f59e0b;">(بانتظار الاعتماد)</span>' : '<span style="color:var(--success);">(تم الإرسال 🔔)</span>'}</span></td>
                         <td>${passed ? '<span style="color:var(--success); font-weight:bold;">ناجح 🎉</span>' : '<span style="color:var(--danger); font-weight:bold;">راسب ❌</span>'}</td>
                         <td style="font-size:0.8rem; opacity:0.8;">${sub.date || ''}</td>
                     </tr>`;
@@ -784,7 +784,7 @@
             try {
                 const examRef = doc(db, "exams", examId);
                 await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
-                alert('تم حفظ التصحيح وإرسال النتيجة للطالب بنجاح عبر نظام الإشعارات 🔔🎉');
+                alert('تم حفظ التصحيح وإرسال النتيجة للطالب بنجاح على جرس الإشعارات الخاص به 🔔🎉');
                 closeAnswersModal();
                 renderSingleExamSubmissions(examId);
             } catch (e) {
@@ -800,12 +800,12 @@
                 return;
             }
 
-            if (confirm("هل تريد اعتماد وتصحيح وإرسال النتائج لجميع الطلاب المتقدمين دفعة واحدة؟")) {
+            if (confirm("هل تريد اعتماد وتصحيح وإرسال النتائج لكل الطلاب المتقدمين لهذا الامتحان على جرس إشعاراتهم؟")) {
                 exam.examSubmissions.forEach(sub => { sub.published = true; });
                 try {
                     const examRef = doc(db, "exams", examId);
                     await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
-                    alert('تم تصحيح وإرسال النتائج لجميع الطلاب بنجاح عبر الإشعارات 🔔🚀');
+                    alert('تم تصحيح وإرسال النتائج لكل الطلاب بنجاح عبر الإشعارات 🔔🚀');
                     renderExamsStatsList();
                 } catch (e) {
                     console.error(e);
