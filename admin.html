@@ -55,7 +55,6 @@
             margin: 0 auto;
         }
 
-        /* هيدر المنصة بالترتيب الجديد والمطلوب بدقة */
         .platform-header {
             display: flex;
             justify-content: space-between;
@@ -68,7 +67,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* أقصى اليمين: زر بروفايل الأدمن */
         .header-right-side {
             display: flex;
             align-items: center;
@@ -102,7 +100,6 @@
             background: #334155;
         }
 
-        /* المنتصف: زر الإشعارات (الجرس) */
         .header-center-box {
             display: flex;
             align-items: center;
@@ -127,7 +124,6 @@
         }
         .notification-bell-btn:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* أقصى اليسار: زر الوضع (شمس/هلال) وبجواره كلمة رحلة دراسية */
         .header-left-side {
             display: flex;
             align-items: center;
@@ -159,7 +155,6 @@
         }
         .platform-title-box span { font-size: 1.1rem; }
 
-        /* شبكة البطاقات الرئيسية */
         .platform-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -254,7 +249,6 @@
         .platform-card.forum .card-action-btn { background-color: var(--accent-forum); }
         .platform-card.users .card-action-btn { background-color: var(--accent-users); }
 
-        /* نافذة الإشعارات المنبثقة (Modal) */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: var(--modal-overlay-bg);
@@ -308,9 +302,7 @@
 </head>
 <body data-theme="dark">
     <div class="platform-container">
-        <!-- الهيدر المحدث بالترتيب المطلوب بدقة -->
         <header class="platform-header">
-            <!-- أقصى اليمين: بروفايل الأدمن -->
             <div class="header-right-side">
                 <div class="student-style-profile-box">
                     <a href="admin-profile.html" class="user-profile-link">
@@ -320,12 +312,10 @@
                 </div>
             </div>
 
-            <!-- المنتصف: زر الجرس للإشعارات -->
             <div class="header-center-box">
                 <button class="notification-bell-btn" id="notificationBellBtn" onclick="toggleNotificationsModal(true)" title="الإشعارات السحابية">🔔</button>
             </div>
 
-            <!-- أقصى اليسار: زر الثيم وبجواره كلمة رحلة دراسية -->
             <div class="header-left-side">
                 <div class="platform-title-box">
                     <span>رحلة دراسية</span> 📖
@@ -334,7 +324,6 @@
             </div>
         </header>
 
-        <!-- نافذة الإشعارات المنبثقة -->
         <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) toggleNotificationsModal(false)">
             <div class="modal-card">
                 <div class="modal-header">
@@ -347,7 +336,6 @@
             </div>
         </div>
 
-        <!-- شبكة البطاقات -->
         <div class="platform-grid">
             <div class="platform-card notes">
                 <div>
@@ -405,16 +393,15 @@
             </div>
         </div>
 
-        <!-- تذييل الصفحة -->
         <footer style="text-align: center; margin-top: 40px; font-size: 0.85rem; color: var(--text-muted); padding: 20px 0; border-top: 1px solid var(--border-color);">
             جميع الحقوق محفوظة للمهندس ومؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - منصة رحلة دراسية
         </footer>
     </div>
 
-    <!-- استيراد مكتبات Firebase SDK للعمل سحابياً -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -427,11 +414,35 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // --- نظام فحص انتهاء جلسة الأدمن (48 ساعة) ---
+        const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+        const sessionStartTime = sessionStorage.getItem('session_start_time');
+        
+        if (sessionStartTime) {
+            if (Date.now() - parseInt(sessionStartTime) > TWO_DAYS_MS) {
+                sessionStorage.clear();
+                signOut(auth).then(() => {
+                    window.location.href = 'login.html';
+                });
+            }
+        } else {
+            sessionStorage.setItem('session_start_time', Date.now().toString());
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                let adminEmail = sessionStorage.getItem('adminEmail') || user.email;
+                await initAdminHeader(user.uid, adminEmail);
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
 
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
-        // إعدادات الوضع المظلم والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -450,37 +461,40 @@
             themeToggleBtn.textContent = themeName === 'dark' ? '☀️' : '🌙';
         }
 
-        // جلب بيانات البروفايل وصورة وفيرست نام للأدمن
-        async function initAdminHeader() {
-            let sessionAdmin = sessionStorage.getItem('adminUser') || sessionStorage.getItem('currentUser');
-            let adminEmail = sessionStorage.getItem('adminEmail');
+        async function initAdminHeader(uid, emailKey) {
             let adminNameEl = document.getElementById('adminNameLabel');
             let adminAvatarEl = document.getElementById('headerAdminAvatar');
 
             let adminData = null;
-            if (sessionAdmin) {
-                try { adminData = JSON.parse(sessionAdmin); } catch(e){}
-            }
-
-            if (!adminEmail && adminData && adminData.email) {
-                adminEmail = adminData.email;
-            }
-
-            if (adminEmail) {
-                try {
-                    const docRef = doc(db, "admins", adminEmail.toLowerCase().trim());
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        adminData = docSnap.data();
-                    }
-                } catch(e) {
-                    console.error("خطأ جلب بيانات الأدمن:", e);
+            try {
+                let docSnap = null;
+                if (uid) {
+                    const docRef = doc(db, "admins", uid);
+                    docSnap = await getDoc(docRef);
                 }
+                if ((!docSnap || !docSnap.exists()) && emailKey) {
+                    const docRef = doc(db, "admins", emailKey.toLowerCase().trim());
+                    docSnap = await getDoc(docRef);
+                }
+                if ((!docSnap || !docSnap.exists()) && auth.currentUser && auth.currentUser.email) {
+                    const qEmail = query(collection(db, "admins"), where("email", "==", auth.currentUser.email));
+                    const snapEmail = await getDocs(qEmail);
+                    if (!snapEmail.empty) {
+                        docSnap = snapEmail.docs[0];
+                    }
+                }
+
+                if (docSnap && docSnap.exists()) {
+                    adminData = docSnap.data();
+                    sessionStorage.setItem('adminUser', JSON.stringify(adminData));
+                }
+            } catch(e) {
+                console.error("خطأ جلب بيانات الأدمن:", e);
             }
 
             if (adminData) {
                 let fullName = adminData.fullname || adminData.name || "عشري";
-                let firstName = fullName.trim().split(" ")[0]; // استخراج الاسم الأول فقط
+                let firstName = fullName.trim().split(" ")[0];
                 let avatar = adminData.profileImage || adminData.avatar || defaultAvatarSvg;
                 adminNameEl.textContent = firstName;
                 adminAvatarEl.src = avatar;
@@ -489,7 +503,6 @@
                 adminAvatarEl.src = defaultAvatarSvg;
             }
 
-            // تحديث العدادات
             document.getElementById('totalFilesCount').textContent = (JSON.parse(localStorage.getItem('admin_files')) || []).length;
             document.getElementById('totalExamsCount').textContent = (JSON.parse(localStorage.getItem('admin_exams')) || []).length;
             document.getElementById('totalVideosCount').textContent = (JSON.parse(localStorage.getItem('admin_videos')) || []).length;
@@ -497,7 +510,6 @@
             document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
         }
 
-        // تشغيل نافذة الإشعارات وتفعيل زر الجرس للأدمن
         window.toggleNotificationsModal = function(show) {
             const modal = document.getElementById('notificationsModal');
             if (show) {
@@ -561,8 +573,6 @@
                 container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 15px; font-size: 0.8rem;">فشل تحميل الإشعارات من السحابة.</div>`;
             }
         }
-
-        initAdminHeader();
     </script>
 </body>
 </html>
