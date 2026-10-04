@@ -365,23 +365,32 @@
             btn.disabled = true;
 
             try {
-                // 1. تسجيل الدخول عبر فايربيس أولاً للحصول على الـ User المعتمد
+                // 1. تسجيل الدخول عبر فايربيس أولاً
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // 2. فحص هل المستخدم مسجل في كولكشن الإدارة (admins) إما بالـ UID أو بالـ Email
+                // 2. التحقق مما إذا كان البريد تابعاً للإدارة (admins)
                 let adminData = null;
-                const adminDocRef = doc(db, "admins", user.uid);
-                const adminSnap = await getDoc(adminDocRef);
-
-                if (adminSnap.exists()) {
-                    adminData = adminSnap.data();
-                } else {
-                    const qAdmin = query(collection(db, "admins"), where("email", "==", email));
-                    const qAdminSnap = await getDocs(qAdmin);
-                    if (!qAdminSnap.empty) {
-                        adminData = qAdminSnap.docs[0].data();
+                try {
+                    const adminDocRef = doc(db, "admins", user.uid);
+                    const adminSnap = await getDoc(adminDocRef);
+                    if (adminSnap.exists()) {
+                        adminData = adminSnap.data();
+                    } else {
+                        const adminDocEmailRef = doc(db, "admins", email);
+                        const adminEmailSnap = await getDoc(adminDocEmailRef);
+                        if (adminEmailSnap.exists()) {
+                            adminData = adminEmailSnap.data();
+                        } else {
+                            const qAdmin = query(collection(db, "admins"), where("email", "==", email));
+                            const qAdminSnap = await getDocs(qAdmin);
+                            if (!qAdminSnap.empty) {
+                                adminData = qAdminSnap.docs[0].data();
+                            }
+                        }
                     }
+                } catch(err) {
+                    console.log("ليس أدمن أو جاري فحصه كطالب");
                 }
 
                 if (adminData) {
@@ -389,9 +398,7 @@
                     sessionStorage.setItem('session_start_time', Date.now().toString());
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
-                    sessionStorage.setItem('adminRole', adminData.role || 'admin');
                     sessionStorage.setItem('adminEmail', adminData.email || email);
-                    sessionStorage.setItem('currentAdminId', adminData.adminId || '');
                     sessionStorage.setItem('adminUser', adminDataString);
                     sessionStorage.setItem('currentUser', adminDataString);
 
@@ -399,22 +406,28 @@
                     return;
                 }
 
-                // 3. فحص هل المستخدم مسجل في كولكشن الطلاب (students)
-                let studentData = null;
-                const studentDocRef = doc(db, "students", user.uid);
-                const studentSnap = await getDoc(studentDocRef);
-
-                if (studentSnap.exists()) {
-                    studentData = studentSnap.data();
-                } else {
-                    const qStudent = query(collection(db, "students"), where("email", "==", email));
-                    const qStudentSnap = await getDocs(qStudent);
-                    if (!qStudentSnap.empty) {
-                        studentData = qStudentSnap.docs[0].data();
+                // 3. إذا لم يكن أدمن، يتم التعامل معه كطالب (students) بشكل مباشر وآمن
+                let studentData = { email: email, name: email.split('@')[0], createdAt: Date.now() };
+                try {
+                    const studentDocRef = doc(db, "students", user.uid);
+                    const studentSnap = await getDoc(studentDocRef);
+                    if (studentSnap.exists()) {
+                        studentData = studentSnap.data();
                     } else {
-                        // إذا لم يوجد مستند مخصص، ننشئ كائن أساسي للطالب
-                        studentData = { email: email, name: email.split('@')[0], createdAt: Date.now() };
+                        const studentEmailRef = doc(db, "students", email);
+                        const studentEmailSnap = await getDoc(studentEmailRef);
+                        if (studentEmailSnap.exists()) {
+                            studentData = studentEmailSnap.data();
+                        } else {
+                            const qStudent = query(collection(db, "students"), where("email", "==", email));
+                            const qStudentSnap = await getDocs(qStudent);
+                            if (!qStudentSnap.empty) {
+                                studentData = qStudentSnap.docs[0].data();
+                            }
+                        }
                     }
+                } catch(err) {
+                    console.log("استخدام بيانات الطالب الافتراضية");
                 }
 
                 const studentDataString = JSON.stringify(studentData);
@@ -422,7 +435,6 @@
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', studentData.email || email);
-                sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id || '');
                 sessionStorage.setItem('studentUser', studentDataString);
                 sessionStorage.setItem('currentUser', studentDataString);
 
@@ -431,10 +443,9 @@
             } catch (error) {
                 console.error(error);
 
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
-                    emailError.style.display = 'block';
-                } else if (error.code === 'auth/wrong-password') {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                     passError.style.display = 'block';
+                    passError.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
                 } else {
                     showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + error.message);
                 }
