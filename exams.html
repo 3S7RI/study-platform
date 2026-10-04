@@ -61,7 +61,7 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* شكل البطاقة الخارجية للإمتحان (مضغوط، كريتف، وشيك جداً) */
+        /* شكل البطاقات الخارجية للامتحانات المتاحة */
         .exam-select-card { 
             background: var(--bg-card); padding: 20px; border-radius: 16px; margin-bottom: 18px; 
             box-shadow: var(--shadow); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
@@ -219,6 +219,7 @@
         </div>
     </div>
 
+    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -238,7 +239,8 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let activeExamData = null;
+        let availableExamsList = [];
+        let activeSelectedExam = null;
         let timerInterval = null;
         let timeLeft = 0;
         let currentStudentEmail = '';
@@ -259,27 +261,22 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentStudentEmail = user.email || 'طالب المنصة';
-                await fetchActiveExamFromCloud();
+                await fetchExamsListFromCloud();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        async function fetchActiveExamFromCloud() {
+        async function fetchExamsListFromCloud() {
             try {
                 const docSnap = await getDoc(doc(db, "config", "activeExam"));
                 if (docSnap.exists()) {
                     let data = docSnap.data();
-                    activeExamData = data.currentExam;
-                    if (activeExamData && activeExamData.settings && activeExamData.settings.active === false) {
-                        renderNoExamMessage("الامتحان الحالي مغلق مؤقتاً من قِبل الإدارة.");
-                        return;
-                    }
-                    if (activeExamData && activeExamData.questions && activeExamData.questions.length > 0) {
-                        // التحقق مما إذا كان الطالب قد امتحن مسبقاً
-                        let submissions = data.examSubmissions || [];
-                        let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail);
-                        renderExamSelectionCard(activeExamData, studentAlreadySubmitted);
+                    // جلب قائمة الامتحانات المؤرشفة أو الامتحان الحالي
+                    availableExamsList = data.examsList || (data.currentExam ? [data.currentExam] : []);
+                    
+                    if (availableExamsList.length > 0) {
+                        renderExamsListUI(availableExamsList, data.examSubmissions || []);
                     } else {
                         renderNoExamMessage("لا توجد امتحانات متاحة حالياً.");
                     }
@@ -291,42 +288,48 @@
             document.getElementById('examContainer').innerHTML = `<div style="text-align: center; padding: 40px; background: var(--bg-card); border-radius: 16px;"><h3 style="font-size:0.95rem;">${msg}</h3></div>`;
         }
 
-        function renderExamSelectionCard(exam, alreadySubmitted) {
-            let duration = exam.settings?.duration || 30;
-            let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
-            let isBlocked = alreadySubmitted && attemptsAllowed === 1;
+        function renderExamsListUI(exams, submissions) {
+            let html = `<h2 style="font-size: 1.1rem; margin-bottom: 15px; color: var(--text-main);">قائمة الامتحانات المتاحة للإجابة 📚</h2>`;
+            
+            exams.forEach((exam, examIdx) => {
+                let duration = exam.settings?.duration || 30;
+                let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
+                
+                // تحقق هل الطالب امتحن هذا الامتحان من قبل
+                let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail && sub.examTitle === exam.title);
+                let isBlocked = studentAlreadySubmitted && attemptsAllowed === 1;
 
-            let btnHtml = isBlocked 
-                ? `<button class="start-exam-btn disabled" disabled>تم الامتحان بنجاح ✅</button>`
-                : `<button class="start-exam-btn" onclick="startExam()">دخول الامتحان 🚀</button>`;
+                let btnHtml = isBlocked 
+                    ? `<button class="start-exam-btn disabled" disabled>تم اجتياز الامتحان بنجاح ✅</button>`
+                    : `<button class="start-exam-btn" onclick="startSpecificExam(${examIdx})">دخول الامتحان 🚀</button>`;
 
-            document.getElementById('examContainer').innerHTML = `
-                <div class="exam-select-card">
-                    <div>
-                        <h3>🎯 ${exam.title || 'امتحان المنصة'}</h3>
-                        <div class="exam-meta-row" style="margin-top:6px;">
-                            <span>📚 المادة: ${exam.subject || 'عام'}</span>
-                            <span>⏱️ المدة: ${duration} دقيقة</span>
-                            <span>❓ الأسئلة: ${(exam.questions || []).length}</span>
+                html += `
+                    <div class="exam-select-card">
+                        <div>
+                            <h3>🎯 ${exam.title || 'امتحان بدون عنوان'}</h3>
+                            <div class="exam-meta-row" style="margin-top:6px;">
+                                <span>📚 المادة: ${exam.subject || 'عام'}</span>
+                                <span>👥 الفئة: ${exam.targetGroup || 'عام'}</span>
+                                <span>⏱️ المدة: ${duration} دقيقة</span>
+                                <span>❓ الأسئلة: ${(exam.questions || []).length}</span>
+                            </div>
                         </div>
-                    </div>
-                    ${btnHtml}
-                </div>`;
+                        ${btnHtml}
+                    </div>`;
+            });
+
+            document.getElementById('examContainer').innerHTML = html;
         }
 
-        window.startExam = function() {
-            if (!activeExamData) return;
-            
-            // فحص إضافي أخير قبل البدء
-            let submissions = activeExamData.examSubmissions || [];
-            let attemptsAllowed = parseInt(activeExamData.settings?.attempts) || 1;
-            // جلب البيانات مجدداً للتأكد من المحاولات من السحابة لو أمكن
-            
-            document.getElementById('examHeaderTitle').textContent = activeExamData.title;
+        window.startSpecificExam = function(examIdx) {
+            activeSelectedExam = availableExamsList[examIdx];
+            if (!activeSelectedExam) return;
+
+            document.getElementById('examHeaderTitle').textContent = activeSelectedExam.title;
             document.getElementById('timerDisplay').style.display = 'block';
-            timeLeft = (activeExamData.settings?.duration || 30) * 60;
+            timeLeft = (activeSelectedExam.settings?.duration || 30) * 60;
             startTimer();
-            renderExamQuestions(activeExamData.questions);
+            renderExamQuestions(activeSelectedExam.questions);
         };
 
         function startTimer() {
@@ -341,7 +344,7 @@
         function renderExamQuestions(questions) {
             let html = `<div class="exam-card"><form id="examForm" onsubmit="submitExam(event)">`;
             questions.forEach((q, idx) => {
-                let qType = q.type || 'mcq'; // دعم افتراضي للأسئلة القديمة لتجنب أي undefined
+                let qType = q.type || 'mcq';
                 let marksText = q.marks ? `(${q.marks} درجات)` : '(درجة)';
                 
                 html += `<div class="question-box" id="qBox-${idx}">
@@ -352,7 +355,7 @@
                 if (qType === 'mcq' || qType === 'tf') {
                     html += `<div class="options-list">`;
                     (q.options || ['صح', 'خطأ']).forEach((opt, oIdx) => {
-                        html += `<label class="option-label" id="label-${idx}-${oIdx}">
+                        html += `<label class="option-label">
                             <input type="radio" name="question_${idx}" value="${oIdx}" required style="width:15px; height:15px;"> <span>${opt}</span>
                         </label>`;
                     });
@@ -366,12 +369,12 @@
                     });
                     html += `</div>`;
                 } else if (qType === 'short' || qType === 'essayImage') {
-                    html += `<input type="text" class="student-textarea" name="question_${idx}" placeholder="اكتب إجابتك هنا..." required>`;
+                    html += `<input type="text" class="student-textarea" name="question_${idx}" placeholder="اكتب إجابتك هنا (بحد أقصى 10 أسطر)..." required>`;
                 } else if (qType === 'long') {
-                    html += `<textarea class="student-textarea" name="question_${idx}" rows="3" placeholder="اكتب إجابتك المقالية هنا..." required style="resize:none;"></textarea>`;
+                    html += `<textarea class="student-textarea" name="question_${idx}" rows="4" placeholder="اكتب إجابتك المقالية المفصلة هنا (مفتوح)..." required style="resize:vertical;"></textarea>`;
                 } else if (qType === 'voice') {
-                    html += `<p style="font-size: 0.8rem; color: #38bdf8; margin-bottom:5px;">🎙️ سؤال صوتي: اضغط لتسجيل الإجابة أو كتابتها أدناه.</p>
-                             <input type="text" class="student-textarea" name="question_${idx}" placeholder="تم إرفاق التسجيل الصوتي..." required>`;
+                    html += `<p style="font-size: 0.8rem; color: #38bdf8; margin-bottom:5px;">🎙️ تسجيل صوتي (فويس): متاح لك التسجيل أو كتابة التوضيح أدناه.</p>
+                             <input type="text" class="student-textarea" name="question_${idx}" placeholder="تم إرفاق التسجيل الصوتي أو النص..." required>`;
                 }
                 html += `</div>`;
             });
@@ -383,9 +386,10 @@
             if (e) e.preventDefault();
             if (timerInterval) clearInterval(timerInterval);
 
-            let questions = activeExamData.questions;
+            let questions = activeSelectedExam.questions;
             let score = 0, totalMarks = 0;
-            let useAI = activeExamData.settings?.aiBot !== false;
+            let useAI = activeSelectedExam.settings?.aiBot !== false;
+            let studentAnswersRecord = {};
 
             questions.forEach((q, idx) => {
                 let qMarks = parseInt(q.marks) || 1;
@@ -394,14 +398,27 @@
 
                 if (qType === 'mcq' || qType === 'tf') {
                     let sel = document.querySelector(`input[name="question_${idx}"]:checked`);
-                    if (sel && parseInt(sel.value) === q.correct) { score += qMarks; }
-                } else if (qType === 'short' || qType === 'long' || qType === 'essayImage' || qType === 'voice' || qType === 'checkbox') {
+                    if (sel) {
+                        let val = parseInt(sel.value);
+                        studentAnswersRecord[idx] = q.options ? q.options[val] : val;
+                        if (val === q.correct) { score += qMarks; }
+                    } else {
+                        studentAnswersRecord[idx] = 'لم يُجب';
+                    }
+                } else if (qType === 'checkbox') {
+                    let sels = document.querySelectorAll(`input[name="question_${idx}"]:checked`);
+                    let checkedVals = Array.from(sels).map(el => parseInt(el.value));
+                    studentAnswersRecord[idx] = checkedVals.map(v => q.options[v]).join(', ');
+                    if (useAI) { score += qMarks; }
+                } else {
+                    let txtInput = document.querySelector(`[name="question_${idx}"]`);
+                    let txtVal = txtInput ? txtInput.value.trim() : '';
+                    studentAnswersRecord[idx] = txtVal || 'لم يُجب';
                     if (useAI) { score += qMarks; }
                 }
             });
 
-            currentTotalScoreEarned = score + 15; // إضافة 15 نقطة إضافية عند التقفيل
-
+            currentTotalScoreEarned = score + 15;
             let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
 
             document.getElementById('examContainer').innerHTML = '';
@@ -412,7 +429,7 @@
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            await saveStudentResultToCloud(score, totalMarks);
+            await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord);
 
             if (percentage === 100) {
                 document.getElementById('totalPointsDisplay').textContent = currentTotalScoreEarned;
@@ -454,7 +471,7 @@
             alert('تم تجهيز شهادتك التقديرية بنجاح! جاري حفظها على جهازك 📜📥');
         };
 
-        async function saveStudentResultToCloud(score, totalMarks) {
+        async function saveStudentResultToCloud(score, totalMarks, studentAnswersRecord) {
             try {
                 let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
                 let email = currentStudentEmail;
@@ -467,7 +484,14 @@
                     let data = docSnap.data();
                     if (!data.examSubmissions) data.examSubmissions = [];
                     data.examSubmissions.push({
-                        studentName: name, studentEmail: email, studentAvatar: avatar, score: score, totalMarks: totalMarks,
+                        studentName: name, 
+                        studentEmail: email, 
+                        studentAvatar: avatar, 
+                        examTitle: activeSelectedExam.title,
+                        score: score, 
+                        totalMarks: totalMarks,
+                        answers: studentAnswersRecord,
+                        examQuestions: activeSelectedExam.questions,
                         date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
                     });
                     await setDoc(docRef, data);
