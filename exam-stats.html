@@ -114,7 +114,6 @@
         }
         .profile-avatar-box img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         
-        /* شريط التحميل بعدد الطلاب */
         .progress-bar-container { width: 100%; background: var(--bg-main); border-radius: 10px; height: 10px; overflow: hidden; border: 1px solid var(--border-color); margin: 15px 0 8px 0; }
         .progress-bar-fill { width: 0%; height: 100%; background: var(--success); transition: width 0.15s ease-out; }
         
@@ -138,7 +137,6 @@
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- أزرار التنقل المستقلة بين صفحات الامتحانات -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
@@ -153,7 +151,7 @@
         </div>
     </div>
 
-    <!-- نافذة تأكيد مخصصة بخط صغير وثيم المنصة -->
+    <!-- نافذة تأكيد مخصصة -->
     <div class="modal-overlay" id="customConfirmModal">
         <div class="custom-confirm-card">
             <h3 id="confirmModalText" style="color: var(--text-main); font-size: 0.88rem; margin-bottom: 15px; font-weight: 600;">هل تريد توزيع درجات الامتحان الان؟</h3>
@@ -164,7 +162,7 @@
         </div>
     </div>
 
-    <!-- نافذة شاشة التحميل التفاعلية بعدد الطلاب -->
+    <!-- نافذة التحميل التفاعلية -->
     <div class="modal-overlay" id="loaderModal">
         <div class="loader-modal-card" id="loaderCardContent">
             <div id="loadingActiveState">
@@ -213,7 +211,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -246,7 +244,6 @@
             }
         });
 
-        // نظام الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -299,9 +296,6 @@
                             </div>
                             <button onclick="deleteExamFromCloud('${exam.id}')" class="btn-danger">حذف</button>
                         </div>
-                        <div class="exam-card-actions">
-                            <button onclick="promptGradeAll('${exam.id}')" style="background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">تصحيح وإرسال الكل 🔔</button>
-                        </div>
                         <button onclick="renderSingleExamSubmissions('${exam.id}')" class="btn-full-width">النتائج 📊</button>
                     </div>`;
             });
@@ -351,7 +345,6 @@
             });
         };
 
-        // دالة شاشة التحميل التفاعلية بعدد الطلاب الحقيقيين
         function runInteractiveLoader(totalStudents, onCompleteTask) {
             const loaderModal = document.getElementById('loaderModal');
             const activeState = document.getElementById('loadingActiveState');
@@ -405,8 +398,12 @@
             const container = document.getElementById('examStatsContainer');
             let subs = exam.examSubmissions || [];
 
+            // تم إزالة السهم تماماً وإضافة شكل مميز لزر العودة
             let html = `
-                <button onclick="renderExamsStatsList()" style="background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold; margin-bottom: 10px;">← العودة لقائمة الامتحانات</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <button onclick="renderExamsStatsList()" style="background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">📁 العودة لقائمة الإحصائيات</button>
+                    <button onclick="promptGradeAll('${examId}')" style="background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">تصحيح وإرسال الكل 🔔</button>
+                </div>
                 <h3 style="font-size: 0.95rem; color: var(--primary); margin-bottom: 8px;">نتائج امتحان: ${exam.title}</h3>`;
 
             if (subs.length === 0) {
