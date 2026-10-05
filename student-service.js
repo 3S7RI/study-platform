@@ -9,30 +9,34 @@ export async function findStudentDocument(db, identifier) {
     const cleanId = String(identifier).toLowerCase().trim();
 
     try {
-        // 1. البحث المباشر بواسطة البريد الإلكتروني (المستند الأساسي عادة)
+        // 1. البحث المباشر بواسطة البريد الإلكتروني في مجموعة students
         let docRef = doc(db, "students", cleanId);
         let docSnap = await getDoc(docRef);
-        if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data() };
+        if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'students' };
 
-        // 2. البحث بواسطة حقل email
+        // 2. البحث بواسطة حقل email في students
         let q = query(collection(db, "students"), where("email", "==", cleanId));
         let snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data() };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
-        // 3. البحث بواسطة studentId (المعرف الخاص بالمنصة)
+        // 3. البحث بواسطة studentId في students
         q = query(collection(db, "students"), where("studentId", "==", identifier));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data() };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
-        // 4. البحث بواسطة uid (Firebase Auth UID)
+        // 4. البحث بواسطة uid في students
         q = query(collection(db, "students"), where("uid", "==", identifier));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data() };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
-        // 5. البحث الاحتياطي في مجموعة users لو موجودة
+        // 5. البحث في مجموعة users الأساسية (التي تستخدمها باقي المنصة والامتحانات)
+        let userDocRef = doc(db, "users", identifier);
+        let userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) return { id: userDocSnap.id, ref: userDocRef, data: userDocSnap.data(), collectionName: 'users' };
+
         q = query(collection(db, "users"), where("email", "==", cleanId));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data() };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
 
         return null;
     } catch (e) {
@@ -42,7 +46,7 @@ export async function findStudentDocument(db, identifier) {
 }
 
 /**
- * تحديث وإضافة نقاط للطالب وتحديث مستواه فوراً (مع حساب نظام المستويات والدرجات)
+ * تحديث وإضافة نقاط للطالب وتحديث مستواه فوراً (مع مزامنة totalScore و points في كولكشن users و students)
  */
 export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
     if (!studentIdentifier || !pointsToAdd || pointsToAdd <= 0) return false;
@@ -54,12 +58,13 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
             return false;
         }
 
-        const currentScore = studentObj.data.totalScore || 0;
+        const currentScore = studentObj.data.totalScore || studentObj.data.points || 0;
         const newTotalScore = currentScore + pointsToAdd;
 
-        // تحديث النقاط في الكولكشن
+        // تحديث النقاط في الوثيقة الموجبة (سواء students أو users) لتشمل totalScore و points معاً
         await updateDoc(studentObj.ref, {
             totalScore: newTotalScore,
+            points: increment(pointsToAdd),
             lastUpdated: new Date().toISOString()
         });
 
