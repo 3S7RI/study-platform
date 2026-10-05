@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - الامتحانات التفاعلية</title>
+    <!-- مكتبة تحويل الشهادة إلى صورة PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -100,7 +102,6 @@
             background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none; margin-top: 6px;
         }
 
-        /* مسجل الصوت الاحترافي (الريكورد مثل الواتساب) */
         .voice-recorder-box {
             background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px;
             padding: 10px 14px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -112,7 +113,6 @@
         .btn-record.recording { background: var(--success); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        /* ستايل رفع الصور من الهاتف */
         .upload-box {
             border: 2px dashed var(--border-color); padding: 12px; border-radius: 8px; text-align: center;
             background: var(--th-bg); margin-top: 8px; cursor: pointer; position: relative;
@@ -130,7 +130,10 @@
             margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display: none; border-top: 4px solid var(--success);
         }
 
-        /* نوافذ التنبيه والشهادات */
+        /* نافذة تكبير الصور (Lightbox) */
+        .lightbox-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 10000; padding: 15px; }
+        .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
+
         .modal-overlay, .celebration-overlay, .certificate-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
             display: none; justify-content: center; align-items: center; background: rgba(15,23,42,0.85); padding: 15px; overflow-y: auto;
@@ -149,14 +152,23 @@
             100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
         }
 
+        /* قوالب الشهادات الـ 10 الفاخرة (5 ولاد + 5 بنات) */
         .certificate-box {
-            background: #ffffff; color: #1e293b; border: 5px solid #f59e0b; border-radius: 14px; padding: 22px; max-width: 520px; width: 100%; text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5); position: relative;
+            border-radius: 16px; padding: 25px; max-width: 560px; width: 100%; text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; margin: auto;
         }
         .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody">
+
+    <!-- نافذة تكبير الصور المرفوعة من الأدمن -->
+    <div class="lightbox-overlay" id="lightboxModal" onclick="this.style.display='none'">
+        <div style="position: relative;" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('lightboxModal').style.display='none'" style="position: absolute; top: -15px; left: -15px; background: var(--danger); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+            <img id="lightboxImg" src="" alt="صورة مكبرة">
+        </div>
+    </div>
 
     <!-- نافذة طلب كلمة المرور للامتحان المقفل -->
     <div class="modal-overlay" id="passwordModal">
@@ -178,14 +190,20 @@
                 مـبـروك يـا اسـطوره!! قـفلت الإمـتحـان و جـبـت 100% 🏆
             </h2>
             <div style="text-align: right; background: var(--th-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; line-height: 1.6; border: 1px solid var(--border-color);">
-                <p>1. تـم إضـافة 15 نـقطه اضافـية لـنقاط الامـتحـان ✨</p>
-                <p>2. ليـك شـهادة مـخـصوص يـا بـطـل 😍🏆</p>
-                <p style="margin-top: 4px; font-weight: bold; color: var(--primary);">مـجـموع نـقـاط هذا الامـتـحان : <span id="totalPointsDisplay">115</span> نقطة</p>
+                <p>1. تـم إضـافة 15 نـقطه (5 درجات الأساسية + 10 نقاط تقفيل) لـحسابك ✨</p>
+                <p>2. لـيك شـهادة تـقـدير فـاخرة مـخـصوص يـا بـطـل 😍🏆</p>
+                <p style="margin-top: 4px; font-weight: bold; color: var(--primary);">مـجـموع نـقـاط هذا الامـتـحان : <span id="totalPointsDisplay">15</span> نقطة مضافة 🚀</p>
             </div>
             
             <div style="margin-bottom: 10px; text-align: right;">
                 <label style="font-size: 0.78rem; display: block; margin-bottom: 4px; color: var(--text-main); font-weight: 600;">اكتب اسمك الثلاثي للشهادة:</label>
-                <input type="text" id="certStudentNameInput" placeholder="مثال: محمد أحمد علي" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;">
+                <input type="text" id="certStudentNameInput" placeholder="مثال: محمد أحمد / مريم أحمد" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;">
+                
+                <label style="font-size: 0.78rem; display: block; margin-top: 8px; margin-bottom: 4px; color: var(--text-main); font-weight: 600;">اختر نوع الشهادة (لتحديد القالب المناسب):</label>
+                <select id="certGenderSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;">
+                    <option value="boy">👦 طالب (قوالب الأبطال)</option>
+                    <option value="girl">👧 طالبة (قوالب الأميرات)</option>
+                </select>
             </div>
 
             <button onclick="openCertificatePreview()" style="background: var(--primary); color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.82rem;">
@@ -194,28 +212,30 @@
         </div>
     </div>
 
-    <!-- شاشة عرض شهادة التقدير -->
+    <!-- شاشة عرض شهادة التقدير الفاخرة -->
     <div class="certificate-modal" id="certificateModal">
-        <div class="certificate-box" id="certificateContent">
-            <h1 style="color: #1e3c72; font-size: 1.4rem; margin-bottom: 4px; font-family: serif;">شهادة تقدير وتفوق</h1>
-            <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 12px;">منصة رحلة دراسية التعليمية</p>
-            <p style="font-size: 0.88rem; color: #334155; margin-bottom: 6px;">تمنح هذه الشهادة بكل فخر واعتزاز إلى البطل:</p>
-            <h2 id="finalCertName" style="color: #4f46e5; font-size: 1.25rem; margin-bottom: 10px; border-bottom: 2px dashed #cbd5e1; display: inline-block; padding-bottom: 3px;">اسم الطالب</h2>
-            <p style="font-size: 0.82rem; color: #475569; line-height: 1.5; margin-bottom: 15px;">
-                لتفوقه الماهر وحصوله على العلامة الكاملة <b>(100%)</b> في الامتحانات التفاعلية للمنصة، متمنين له دوام التقدم والنجاح.
-            </p>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                <div style="text-align: right; font-size: 0.75rem; color: #64748b;">
-                    التاريخ: <span id="certDate">2026/10/05</span>
-                </div>
-                <div style="text-align: left; font-size: 0.78rem; font-weight: bold; color: #1e3c72;">
-                    مؤسس المنصة: محمد عماد (عشري) 🎓
+        <div style="display: flex; flex-direction: column; align-items: center; max-width: 600px; width: 100%;">
+            <div class="certificate-box" id="certificateContent">
+                <h1 id="certTitle" style="font-size: 1.5rem; margin-bottom: 4px; font-family: serif;">شهادة تفوق وتميز</h1>
+                <p id="certSubtitle" style="font-size: 0.8rem; margin-bottom: 15px;">منصة رحلة دراسية التعليمية</p>
+                <p id="certToText" style="font-size: 0.88rem; margin-bottom: 6px;">تمنح هذه الشهادة بكل فخر واعتزاز إلى:</p>
+                <h2 id="finalCertName" style="font-size: 1.3rem; margin-bottom: 12px; display: inline-block; padding-bottom: 3px;">اسم الطالب</h2>
+                <p id="certBodyText" style="font-size: 0.82rem; line-height: 1.5; margin-bottom: 20px;">
+                    لتفوقه الماهر وحصوله على العلامة الكاملة <b>(100%)</b> في الامتحانات التفاعلية للمنصة، متمنين له دوام التقدم والنجاح.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 12px;">
+                    <div id="certDateText" style="text-align: right; font-size: 0.75rem;">
+                        التاريخ: <span id="certDate">2026/10/05</span>
+                    </div>
+                    <div id="certSignText" style="text-align: left; font-size: 0.78rem; font-weight: bold;">
+                        مؤسس المنصة: محمد عماد (عشري) 🎓
+                    </div>
                 </div>
             </div>
             
-            <div style="margin-top: 15px; display: flex; gap: 8px;">
-                <button onclick="downloadCertificate()" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 0.8rem;">تحميل الشهادة 📥</button>
-                <button onclick="closeCertificateModal()" style="background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 90px;">إغلاق</button>
+            <div style="margin-top: 15px; display: flex; gap: 10px; width: 100%; max-width: 560px;">
+                <button onclick="downloadCertificateImage()" style="background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; font-size: 0.85rem;">تحميل الشهادة PNG 📥</button>
+                <button onclick="closeCertificateModal()" style="background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; width: 100px;">إغلاق</button>
             </div>
         </div>
     </div>
@@ -224,8 +244,7 @@
         <header class="platform-header">
             <div class="header-right-side">
                 <a href="main.html" class="btn-home-link">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                    <span>الرئيسية</span>
+                    🏠 <span>الرئيسية</span>
                 </a>
                 <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
             </div>
@@ -256,7 +275,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -278,9 +297,8 @@
         let timerInterval = null;
         let timeLeft = 0;
         let currentStudentEmail = '';
-        let currentTotalScoreEarned = 0;
+        let currentStudentUid = '';
 
-        // متغيرات مسجل الصوت الحقيقي (MediaRecorder)
         let mediaRecordersMap = {};
         let audioChunksMap = {};
 
@@ -299,6 +317,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentStudentEmail = user.email || 'طالب المنصة';
+                currentStudentUid = user.uid;
                 await fetchExamsListFromCloud();
             } else {
                 window.location.href = 'login.html';
@@ -429,7 +448,9 @@
                 html += `<div class="question-box" id="qBox-${idx}">
                     <h3>س${idx + 1}: ${q.text} <span style="font-size:0.7rem; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 6px; border-radius:4px;">${marksText}</span></h3>`;
                 
-                if (q.imageUrl) html += `<img src="${q.imageUrl}" style="max-width:100%; max-height:150px; border-radius:6px; margin-bottom:8px; display:block;">`;
+                if (q.imageUrl) {
+                    html += `<img src="${q.imageUrl}" onclick="openLightbox('${q.imageUrl}')" style="max-width:100%; max-height:160px; border-radius:8px; margin-bottom:8px; display:block; cursor:pointer; border:1px solid var(--border-color);" title="اضغط لتكبير الصورة">`;
+                }
 
                 if (qType === 'mcq' || qType === 'tf') {
                     html += `<div class="options-list">`;
@@ -476,6 +497,11 @@
             document.getElementById('examContainer').innerHTML = html;
         }
 
+        window.openLightbox = function(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxModal').style.display = 'flex';
+        };
+
         window.handleImageUpload = function(input, qIdx) {
             if (input.files && input.files[0]) {
                 let file = input.files[0];
@@ -488,7 +514,6 @@
             }
         };
 
-        // دالة التسجيل الصوتي الحقيقي (MediaRecorder) مع إمكانية التوقف والاستكمال
         window.toggleRealVoiceRecording = async function(qIdx) {
             let btn = document.getElementById(`recBtn_${qIdx}`);
             let status = document.getElementById(`recStatus_${qIdx}`);
@@ -514,14 +539,14 @@
 
                         let reader = new FileReader();
                         reader.onloadend = function() {
-                            voiceInput.value = reader.result; // Base64 لتخزينه في السحابة
+                            voiceInput.value = reader.result;
                         };
                         reader.readAsDataURL(audioBlob);
                     };
 
                     recorder.start();
                     btn.classList.add('recording');
-                    status.textContent = '🔴 جاري التسجيل الحقيقي الآن... (تحدث بوضوح)';
+                    status.textContent = '🔴 جاري التسجيل الحقيقي الآن...';
                     status.style.color = '#ef4444';
                 } catch (err) {
                     alert('عذراً، يرجى السماح للمتصفح بالوصول إلى الميكروفون لتسجيل الصوت.');
@@ -532,7 +557,7 @@
                 if (recorder.state === 'recording') {
                     recorder.stop();
                     btn.classList.remove('recording');
-                    status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙️';
+                    status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙️️';
                     status.style.color = '#10b981';
                 }
             }
@@ -579,8 +604,13 @@
                 }
             });
 
-            currentTotalScoreEarned = score + 15;
             let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
+            
+            // حساب النقاط الجديدة: 5 درجات أساسية + 10 نقاط إضافية عند التقفيل الكامل (100%)
+            let earnedPoints = 5;
+            if (percentage === 100) {
+                earnedPoints += 10; // الإجمالي 15 نقطة
+            }
 
             document.getElementById('examContainer').innerHTML = '';
             document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalMarks}`;
@@ -594,10 +624,10 @@
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord);
+            await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
 
             if (percentage === 100) {
-                document.getElementById('totalPointsDisplay').textContent = currentTotalScoreEarned;
+                document.getElementById('totalPointsDisplay').textContent = earnedPoints;
                 triggerCelebrationEffect();
             }
         };
@@ -618,10 +648,44 @@
             }
         }
 
+        // قوالب الشهادات الـ 10 الفاخرة (5 ولاد + 5 بنات)
+        const boyCertTemplates = [
+            { bg: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)", border: "#f59e0b", titleColor: "#fcd34d", textColor: "#f8fafc", nameColor: "#60a5fa" },
+            { bg: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", border: "#10b981", titleColor: "#34d399", textColor: "#f8fafc", nameColor: "#38bdf8" },
+            { bg: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", border: "#facc15", titleColor: "#fde047", textColor: "#e2e8f0", nameColor: "#c084fc" },
+            { bg: "linear-gradient(135deg, #065f46 0%, #047857 100%)", border: "#fbbf24", titleColor: "#fef08a", textColor: "#ecfdf5", nameColor: "#34d399" },
+            { bg: "linear-gradient(135deg, #7c2d12 0%, #9a3412 100%)", border: "#fde047", titleColor: "#fef08a", textColor: "#fff7ed", nameColor: "#fb923c" }
+        ];
+
+        const girlCertTemplates = [
+            { bg: "linear-gradient(135deg, #831843 0%, #9d174d 100%)", border: "#f472b6", titleColor: "#fbcfe8", textColor: "#fdf2f8", nameColor: "#f472b6" },
+            { bg: "linear-gradient(135deg, #581c87 0%, #6b21a8 100%)", border: "#c084fc", titleColor: "#e9d5ff", textColor: "#f3e8ff", nameColor: "#d8b4fe" },
+            { bg: "linear-gradient(135deg, #134e4a 0%, #115e59 100%)", border: "#2dd4bf", titleColor: "#99f6e4", textColor: "#f0fdfa", nameColor: "#5eead4" },
+            { bg: "linear-gradient(135deg, #881337 0%, #9f1239 100%)", border: "#fda4af", titleColor: "#ffe4e6", textColor: "#fff1f2", nameColor: "#fb7185" },
+            { bg: "linear-gradient(135deg, #3b0764 0%, #581c87 100%)", border: "#f43f5e", titleColor: "#fecdd3", textColor: "#faf5ff", nameColor: "#f472b6" }
+        ];
+
         window.openCertificatePreview = function() {
             let nameInput = document.getElementById('certStudentNameInput').value.trim();
+            let gender = document.getElementById('certGenderSelect').value;
             if (!nameInput) { alert('يرجى كتابة اسمك الثلاثي أولاً للحصول على الشهادة!'); return; }
             
+            // اختيار قالب عشوائي من ضمن الـ 5 المخصصين للولد أو البنت
+            let templates = gender === 'boy' ? boyCertTemplates : girlCertTemplates;
+            let randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+            let certBox = document.getElementById('certificateContent');
+            certBox.style.background = randomTemplate.bg;
+            certBox.style.border = `6px solid ${randomTemplate.border}`;
+            
+            document.getElementById('certTitle').style.color = randomTemplate.titleColor;
+            document.getElementById('certSubtitle').style.color = randomTemplate.textColor;
+            document.getElementById('certToText').style.color = randomTemplate.textColor;
+            document.getElementById('finalCertName').style.color = randomTemplate.nameColor;
+            document.getElementById('certBodyText').style.color = randomTemplate.textColor;
+            document.getElementById('certDateText').style.color = randomTemplate.textColor;
+            document.getElementById('certSignText').style.color = randomTemplate.titleColor;
+
             document.getElementById('finalCertName').textContent = nameInput;
             document.getElementById('certDate').textContent = new Date().toLocaleDateString('ar-EG');
             document.getElementById('celebrationOverlay').style.display = 'none';
@@ -632,17 +696,25 @@
             document.getElementById('certificateModal').style.display = 'none';
         };
 
-        window.downloadCertificate = function() {
-            alert('تم تجهيز شهادتك التقديرية بنجاح! جاري حفظها على جهازك 📜📥');
+        // دالة تحميل الشهادة الحقيقية بصيغة صورة PNG فوراً
+        window.downloadCertificateImage = function() {
+            let certElement = document.getElementById('certificateContent');
+            html2canvas(certElement, { scale: 2, useCORS: true }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'شهادة_تقدير_منصة_رحلة_دراسية.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         };
 
-        async function saveStudentResultToCloud(score, totalMarks, studentAnswersRecord) {
+        async function saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints) {
             try {
                 let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
                 let email = currentStudentEmail;
                 let name = studentUser.fullname || studentUser.name || email.split('@')[0];
                 let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
 
+                // حفظ النتيجة في امتحان المعلم
                 const examRef = doc(db, "exams", activeSelectedExam.id);
                 const examSnap = await getDoc(examRef);
                 
@@ -663,7 +735,17 @@
 
                     await updateDoc(examRef, { examSubmissions: submissions });
                 }
-            } catch (err) { console.error("خطأ في حفظ النتيجة:", err); }
+
+                // إضافة النقاط إلى حساب الطالب في كولكشن المستخدمين (Firestore)
+                if (currentStudentUid) {
+                    const studentDocRef = doc(db, "users", currentStudentUid);
+                    await updateDoc(studentDocRef, {
+                        points: increment(earnedPoints)
+                    }).catch(async () => {
+                        // لو مستخدم بدون وثيقة مخصصة بالـ UID، يمكن تحديثه بالبريد الإلكتروني إن وجد
+                    });
+                }
+            } catch (err) { console.error("خطأ في حفظ النتيجة والنقاط:", err); }
         }
     </script>
 </body>
