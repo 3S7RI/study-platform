@@ -102,17 +102,20 @@
         .question-text-wrapper textarea {
             resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4;
         }
-        .question-meta-wrapper { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
+        .question-meta-wrapper { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
 
-        /* خانة الدرجة المربعة الشكل */
+        /* خانة الدرجة المربعة الشكل بجانب السؤال */
         .square-mark-input {
-            width: 38px !important;
-            height: 38px !important;
+            width: 42px !important;
+            height: 42px !important;
             padding: 0 !important;
             text-align: center;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             border-radius: 8px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
         }
 
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
@@ -129,21 +132,18 @@
             width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
 
-        /* زر الكاميرا الحقيقي المخصص لرفع صورة السؤال */
-        .btn-camera-upload {
-            background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid var(--border-color);
-            width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-            transition: all 0.2s;
-        }
-        .btn-camera-upload:hover { background: rgba(14, 165, 233, 0.3); border-color: #0ea5e9; transform: scale(1.05); }
-
         .custom-file-upload-box {
             display: flex; align-items: center; justify-content: space-between;
             background: var(--bg-main); border: 1px dashed var(--primary); border-radius: 10px;
-            padding: 10px 14px; cursor: pointer; transition: all 0.2s; margin-top: 6px;
+            padding: 10px 14px; cursor: pointer; transition: all 0.2s; margin-top: 6px; gap: 10px;
         }
         .custom-file-upload-box:hover { background: var(--hover-bg); border-color: var(--success); }
-        .file-upload-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .file-upload-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        /* معاينة الصورة المرفقة تحت السؤال */
+        .image-preview-thumbnail {
+            width: 45px; height: 45px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color); display: none; flex-shrink: 0; cursor: pointer;
+        }
         
         .custom-dropdown-menu {
             position: absolute; right: 0; bottom: 46px; background: var(--bg-card); border: 1px solid var(--border-color);
@@ -158,6 +158,10 @@
 
         .btn-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
+
+        /* مودال تكبير الصور المصغرة */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        #imageLightboxModal img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
     </style>
 </head>
 <body data-theme="dark">
@@ -193,19 +197,13 @@
                     <span id="editingIndicator" class="hidden" style="font-size: 0.75rem; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠️</span>
                 </div>
 
-                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه زر الكاميرا وتحته خانة الدرجة المربعة -->
+                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه مباشرة خانة الدرجة المربعة -->
                 <div class="question-top-row">
                     <div class="form-group question-text-wrapper" style="margin-top: 0;">
                         <label>نص السؤال:</label>
                         <textarea id="newQText" placeholder="اكتب السؤال هنا (تكبر الخانة تلقائياً مع الكتابة)..." oninput="autoGrowTextarea(this)"></textarea>
                     </div>
                     <div class="question-meta-wrapper">
-                        <button type="button" class="btn-camera-upload" onclick="document.getElementById('newQImageFile').click()" title="تصوير أو رفع صورة للسؤال">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                <circle cx="12" cy="13" r="4"></circle>
-                            </svg>
-                        </button>
                         <div class="form-group" style="margin-top: 0;">
                             <label style="text-align: center; font-size: 0.72rem;">الدرجة</label>
                             <input type="number" id="newQMarks" value="1" min="0.5" step="0.5" class="square-mark-input">
@@ -213,7 +211,7 @@
                     </div>
                 </div>
 
-                <!-- خانة رفع الصورة الحقيقية (تظهر مباشرة تحت نص السؤال بفضل الترتيب هنا) -->
+                <!-- خانة رفع الصورة الحقيقية (تحت نص السؤال) مع معاينة حية للملف المرفوع -->
                 <div class="form-group" id="imageInputGroup">
                     <label>إرفاق صورة توضيحية للسؤال (اختياري):</label>
                     <input type="file" id="newQImageFile" accept="image/*" class="hidden" onchange="updateImageFileName(this)">
@@ -222,7 +220,8 @@
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                             اضغط لاختيار صورة توضيحية للسؤال...
                         </span>
-                        <span style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold;">استعراض 📁</span>
+                        <img id="imagePreviewThumb" class="image-preview-thumbnail" alt="معاينة" onclick="event.stopPropagation(); openLightbox(this.src)" title="اضغط لتكبير الصورة">
+                        <span style="background: var(--primary); color: white; padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; flex-shrink: 0;">استعراض 📁</span>
                     </div>
                 </div>
 
@@ -261,6 +260,14 @@
                 </div>
             </div>
             <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان بالسحابة 🚀</button>
+        </div>
+    </div>
+
+    <!-- نافذة تكبير الصور (Lightbox) -->
+    <div class="modal-overlay" id="imageLightboxModal" onclick="this.style.display='none'">
+        <div style="position: relative;" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('imageLightboxModal').style.display='none'" style="position: absolute; top: -15px; left: -15px; background: var(--danger); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+            <img id="lightboxImg" src="" alt="صورة مكبرة">
         </div>
     </div>
 
@@ -306,19 +313,33 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        // دالة تمدد خانة نص السؤال تلقائياً مع الكتابة
         window.autoGrowTextarea = function(element) {
             element.style.height = 'auto';
             element.style.height = (element.scrollHeight) + 'px';
         };
 
+        // دالة لعرض المعاينة الحية (Thumbnail) للصورة المرفقة
         window.updateImageFileName = function(input) {
             const display = document.getElementById('imageFileNameDisplay');
+            const thumb = document.getElementById('imagePreviewThumb');
             if (input.files && input.files[0]) {
-                display.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> تم اختيار: ${input.files[0].name}`;
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    thumb.src = e.target.result;
+                    thumb.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+                display.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> تم إرفاق: ${input.files[0].name}`;
             } else {
+                thumb.style.display = 'none';
+                thumb.src = '';
                 display.innerHTML = `اضغط لاختيار صورة توضيحية للسؤال...`;
             }
+        };
+
+        window.openLightbox = function(imgSrc) {
+            document.getElementById('lightboxImg').src = imgSrc;
+            document.getElementById('imageLightboxModal').style.display = 'flex';
         };
 
         window.toggleClipDropdown = function() {
@@ -447,6 +468,8 @@
                 document.getElementById('newQImageFile').value = '';
                 document.getElementById('newModelAnswer').value = '';
                 document.getElementById('newQMarks').value = '1';
+                document.getElementById('imagePreviewThumb').style.display = 'none';
+                document.getElementById('imagePreviewThumb').src = '';
                 document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> اضغط لاختيار صورة توضيحية للسؤال...`;
                 
                 document.getElementById('selectedQuestionType').value = 'mcq';
@@ -457,7 +480,6 @@
                 renderQuestionsList();
             };
 
-            // معالجة ورفع الصورة الحقيقية وتحويلها لـ Base64 لضمان تخزينها بقاعدة البيانات
             if (imageFileinput.files && imageFileinput.files[0]) {
                 let reader = new FileReader();
                 reader.onload = function(e) { processQuestionWithImage(e.target.result); };
@@ -513,9 +535,14 @@
             document.getElementById('selectedQuestionType').value = q.type || 'mcq';
             changeQuestionTypeUI();
             
+            const thumb = document.getElementById('imagePreviewThumb');
             if (q.imageUrl) {
+                thumb.src = q.imageUrl;
+                thumb.style.display = 'block';
                 document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> توجد صورة مرفقة للسؤال`;
             } else {
+                thumb.style.display = 'none';
+                thumb.src = '';
                 document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> اضغط لاختيار صورة توضيحية للسؤال...`;
             }
 
