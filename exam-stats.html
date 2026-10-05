@@ -175,6 +175,30 @@
             display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto; animation: scaleUp 0.4s ease-out forwards;
         }
         .hidden { display: none !important; }
+        
+        /* تنسيق عصري لخانة الدرجة المتناسقة مع ثيم المنصة */
+        .grading-top-bar {
+            background: var(--th-bg); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: 600;
+        }
+        .grading-input-box {
+            background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 6px 12px; border-radius: 8px; width: 70px; text-align: center; font-weight: bold; font-size: 0.9rem;
+            outline: none; transition: border-color 0.2s;
+        }
+        .grading-input-box:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
+
+        /* أزرار صح وخطأ SVG العصرية */
+        .grade-action-btns { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+        .btn-svg-grade {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 8px;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; font-weight: bold; transition: all 0.2s;
+        }
+        .btn-svg-grade.success:hover { background: rgba(16, 185, 129, 0.2); border-color: var(--success); color: var(--success); }
+        .btn-svg-grade.danger:hover { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); color: var(--danger); }
+
+        /* مودال تكبير الصور */
+        #imageLightboxModal img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
     </style>
 </head>
 <body data-theme="dark">
@@ -182,7 +206,7 @@
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إحصائيات ونتائج الامتحانات</span> 📊</div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️️</button></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
         <nav class="admin-nav-bar">
@@ -300,14 +324,23 @@
         </div>
     </div>
 
+    <!-- نافذة معاينة الإجابات -->
     <div class="modal-overlay" id="examAnswersModal">
-        <div class="modal-card" style="max-width: 650px; width: 100%; text-align: right; background: var(--bg-card); padding: 18px; border-radius: 14px; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border-color);">
-            <h3 style="color: var(--primary); margin-bottom: 10px; text-align: center; font-size: 1rem;" id="answersModalTitle">📋 معاينة إجابات الطالب والتصحيح</h3>
+        <div class="modal-card" style="max-width: 680px; width: 100%; text-align: right; background: var(--bg-card); padding: 18px; border-radius: 16px; max-height: 85vh; overflow-y: auto; border: 1px solid var(--border-color);">
+            <h3 style="color: var(--primary); margin-bottom: 12px; text-align: center; font-size: 1rem;" id="answersModalTitle">📋 معاينة إجابات الطالب والتصحيح</h3>
             <div id="studentAnswersContainer" style="font-size: 0.82rem;"></div>
-            <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button onclick="promptSaveGrading()" style="background: var(--success); color: white; border: none; padding: 9px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; font-size: 0.8rem;">حفظ التصحيح وإرسال النتيجة لجرس الطالب 🔔</button>
-                <button onclick="closeAnswersModal()" style="background: #475569; color: white; border: none; padding: 9px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100px; font-size: 0.8rem;">إغلاق</button>
+            <div style="display: flex; gap: 8px; margin-top: 15px;">
+                <button onclick="promptSaveGrading()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: bold; flex: 1; font-size: 0.82rem;">حفظ التصحيح وإرسال النتيجة لجرس الطالب 🔔</button>
+                <button onclick="closeAnswersModal()" style="background: #475569; color: white; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100px; font-size: 0.82rem;">إغلاق</button>
             </div>
+        </div>
+    </div>
+
+    <!-- نافذة تكبير الصور (Lightbox) -->
+    <div class="modal-overlay" id="imageLightboxModal" onclick="this.style.display='none'">
+        <div style="position: relative;" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('imageLightboxModal').style.display='none'" style="position: absolute; top: -15px; left: -15px; background: var(--danger); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+            <img id="lightboxImg" src="" alt="صورة مكبرة">
         </div>
     </div>
 
@@ -551,6 +584,19 @@
             container.innerHTML = html;
         };
 
+        // دالة تكبير الصورة عبر الـ Lightbox
+        window.openLightbox = function(imgSrc) {
+            document.getElementById('lightboxImg').src = imgSrc;
+            document.getElementById('imageLightboxModal').style.display = 'flex';
+        };
+
+        // إضافة درجة سؤال فردي (مساعدة لتحديث المجموع تلقائياً)
+        window.addQuestionScore = function(marks) {
+            let input = document.getElementById('manualTotalScore');
+            let current = parseFloat(input.value) || 0;
+            input.value = Math.max(0, current + marks);
+        };
+
         window.openStudentExamView = async function(examId, subIdx) {
             activeExamId = examId;
             let exams = await loadExamsFromCloud();
@@ -564,21 +610,46 @@
             
             let questions = exam.questions || [];
             let studentAnswers = sub.answers || {};
-            let html = `<p style="margin-bottom:12px; font-weight:bold; color:var(--text-muted); background:var(--th-bg); padding:8px; border-radius:6px; font-size:0.8rem;">الامتحان: ${exam.title} | مجموع الدرجات: <input type="number" id="manualTotalScore" value="${sub.score}" style="width:60px; display:inline-block; padding:3px; text-align:center; font-size:0.8rem;"> من ${sub.totalMarks}</p>`;
+            
+            // شريط علوي أنيق ومتناسق مع ثيم المنصة لتعديل مجموع الدرجات
+            let html = `
+                <div class="grading-top-bar">
+                    <span>الامتحان: <strong>${exam.title}</strong></span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span>إجمالي الدرجة:</span>
+                        <input type="number" id="manualTotalScore" value="${sub.score}" class="grading-input-box">
+                        <span>من ${sub.totalMarks}</span>
+                    </div>
+                </div>`;
 
             questions.forEach((q, qIdx) => {
                 let qType = q.type || 'mcq';
                 let studentAns = studentAnswers[qIdx] !== undefined ? studentAnswers[qIdx] : 'لم يُجب';
+                let qMarks = q.marks || 1;
                 
-                html += `<div style="background:var(--th-bg); padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border-color); text-align:right;">
-                    <p style="font-weight:bold; margin-bottom:6px; color:var(--text-main); font-size:0.82rem;">س${qIdx+1}: ${q.text} <span style="font-size:0.7rem; color:var(--primary);">(${q.marks} درجات)</span></p>`;
+                // أيقونات SVG للصح والخطأ بجانب كل سؤال
+                let gradeActionSvg = `
+                    <div class="grade-action-btns">
+                        <button type="button" class="btn-svg-grade success" onclick="addQuestionScore(${qMarks})" title="منح درجات السؤال كاملة">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> صح (+${qMarks})
+                        </button>
+                        <button type="button" class="btn-svg-grade danger" onclick="addQuestionScore(-${qMarks})" title="خصم درجة السؤال">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> خطأ
+                        </button>
+                    </div>`;
+
+                html += `<div style="background:var(--th-bg); padding:12px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border-color); text-align:right;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                        <p style="font-weight:bold; color:var(--text-main); font-size:0.85rem;">س${qIdx+1}: ${q.text} <span style="font-size:0.72rem; color:var(--primary);">(${qMarks} درجات)</span></p>
+                        ${gradeActionSvg}
+                    </div>`;
 
                 if (q.imageUrl) {
-                    html += `<img src="${q.imageUrl}" style="max-width:100%; max-height:120px; border-radius:6px; margin-bottom:6px; display:block;">`;
+                    html += `<img src="${q.imageUrl}" style="max-width:100%; max-height:120px; border-radius:6px; margin-bottom:6px; display:block; cursor:pointer;" onclick="openLightbox('${q.imageUrl}')">`;
                 }
 
                 if (qType === 'mcq' || qType === 'tf' || qType === 'checkbox') {
-                    html += `<div style="display:flex; flex-direction:column; gap:4px; margin-top:4px;">`;
+                    html += `<div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">`;
                     (q.options || ['صح', 'خطأ']).forEach((opt, oIdx) => {
                         let isCorrectOpt = Array.isArray(q.correct) ? q.correct.includes(oIdx) : (q.correct === oIdx);
                         let isStudentChoice = Array.isArray(studentAns) ? studentAns.includes(oIdx) || studentAns.includes(opt) : (studentAns === opt || studentAns === oIdx);
@@ -604,17 +675,19 @@
                 } else if (qType === 'essayImage') {
                     html += `<div style="margin-top:6px;">`;
                     if (studentAns && studentAns.startsWith('data:image')) {
-                        html += `<p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:3px;">صورة إجابة الطالب:</p><img src="${studentAns}" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid var(--border-color); display:block;">`;
+                        html += `<p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">صورة إجابة الطالب (اضغط للتكبير 🔍):</p>
+                                 <img src="${studentAns}" style="max-width:140px; max-height:140px; border-radius:8px; border:1px solid var(--border-color); display:block; cursor:pointer; transition:transform 0.2s;" onclick="openLightbox('${studentAns}')" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">`;
                     } else {
                         html += `<p style="color:var(--danger); font-size:0.78rem;">لم يرفع الطالب صورة.</p>`;
                     }
                     html += `</div>`;
                 } else if (qType === 'voice') {
                     html += `<div style="margin-top:6px;">`;
-                    if (studentAns && studentAns.startsWith('data:audio')) {
-                        html += `<p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:3px;">التسجيل الصوتي:</p><audio controls src="${studentAns}" style="width:100%; height:32px;"></audio>`;
+                    if (studentAns && (studentAns.startsWith('data:audio') || studentAns.startsWith('blob:') || studentAns.startsWith('http'))) {
+                        html += `<p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">التسجيل الصوتي للطالب:</p>
+                                 <audio controls src="${studentAns}" style="width:100%; height:36px; border-radius:8px; background:var(--bg-main);"></audio>`;
                     } else {
-                        html += `<p style="color:var(--danger); font-size:0.78rem;">لا يوجد تسجيل صوتي.</p>`;
+                        html += `<p style="color:var(--danger); font-size:0.78rem;">لا يوجد تسجيل صوتي أو التسجيل غير متاح.</p>`;
                     }
                     html += `</div>`;
                 } else {
@@ -629,7 +702,7 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
-        // حفظ التصحيح وتحديث نقاط الطالب فوراً في كولكشن الطلاب عبر خدمة البحث الموحد
+        // حفظ التصحيح وتحديث نقاط الطالب فوراً
         window.saveManualGradingAndNotify = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
