@@ -83,11 +83,11 @@
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.82rem; white-space: nowrap; }
-        th, td { padding: 9px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.82rem; }
+        th, td { padding: 11px 10px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
         th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
-        .student-link { color: var(--primary); cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
-        .student-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
+        .student-link { color: var(--primary); cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; }
+        .student-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0; }
         .score-link { color: #f59e0b; cursor: pointer; font-weight: bold; text-decoration: underline; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         
@@ -97,9 +97,6 @@
         .exam-card-top {
             display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px;
         }
-        .exam-card-actions {
-            display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-        }
         .btn-full-width {
             width: 100%; background: var(--primary); color: white; border: none; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: bold; text-align: center; margin-top: 10px;
         }
@@ -107,13 +104,25 @@
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
         .profile-modal-card, .custom-confirm-card, .loader-modal-card {
-            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: var(--shadow);
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; text-align: center; box-shadow: var(--shadow);
         }
-        .profile-avatar-box {
-            width: 75px; height: 75px; border-radius: 50%; margin: 0 auto 10px; padding: 3px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center;
-        }
-        .profile-avatar-box img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         
+        /* إطار البروفايل الموحد للطالب والأدمن */
+        .unified-avatar-frame {
+            position: relative; width: 85px; height: 85px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center;
+        }
+        .unified-avatar-frame img {
+            width: 78px; height: 78px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); position: relative; z-index: 2; background: #1e293b;
+        }
+        .unified-level-badge {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; font-size: 0.75rem; font-weight: bold; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); border: 1px solid rgba(255,255,255,0.15);
+        }
+        .unified-info-box {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px; text-align: right; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
+        }
+        .unified-info-row { display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
+        .unified-info-label { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; }
+
         .progress-bar-container { width: 100%; background: var(--bg-main); border-radius: 10px; height: 10px; overflow: hidden; border: 1px solid var(--border-color); margin: 15px 0 8px 0; }
         .progress-bar-fill { width: 0%; height: 100%; background: var(--success); transition: width 0.15s ease-out; }
         
@@ -185,18 +194,31 @@
         </div>
     </div>
 
+    <!-- نافذة بروفايل الطالب الموحدة -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="profile-modal-card">
-            <div class="profile-avatar-box"><img id="modalStudentAvatar" src="" alt="صورة الطالب"></div>
-            <h3 id="modalStudentName" style="color: var(--text-main); font-size: 0.95rem; margin-bottom: 4px;">اسم الطالب</h3>
-            <p id="modalStudentEmail" style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 10px;"></p>
-            <div style="background: rgba(99,102,241,0.1); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 15px; font-size: 0.75rem; font-weight: bold; color: var(--primary); display: inline-block; margin-bottom: 12px;">👑 طالب مميز • نشط</div>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
-                <button onclick="upgradeStudentLevel()" style="background: var(--primary); color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: bold; flex: 1;">ترقية ⬆️</button>
-                <button onclick="toggleBanStudent()" style="background: #f59e0b; color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">حظر 🚫</button>
-                <button onclick="deleteStudentAccount()" style="background: var(--danger); color: white; border: none; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: bold;">حذف 🗑️</button>
+            <div class="unified-avatar-frame">
+                <img id="modalStudentAvatar" src="" alt="صورة الطالب">
             </div>
-            <button onclick="closeStudentModal()" style="background: #475569; color: white; border: none; padding: 7px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%;">إغلاق</button>
+            <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1rem; margin-bottom: 6px; font-weight: 700;">اسم الطالب</h3>
+            <div class="unified-level-badge">👑 طالب مميز • نشط</div>
+            
+            <div class="unified-info-box">
+                <div class="unified-info-row">
+                    <span class="unified-info-label">البريد الإلكتروني:</span>
+                    <span id="modalStudentEmail" style="word-break: break-all; direction: ltr; font-size: 0.78rem;">email@example.com</span>
+                </div>
+                <div class="unified-info-row">
+                    <span class="unified-info-label">معرف الطالب (ID):</span>
+                    <span id="modalStudentId" style="font-family: monospace; font-size: 0.78rem; color: var(--primary);">---</span>
+                </div>
+                <div class="unified-info-row">
+                    <span class="unified-info-label">رقم الهاتف:</span>
+                    <span id="modalStudentPhone" style="font-size: 0.78rem;">غير متوفر</span>
+                </div>
+            </div>
+
+            <button onclick="closeStudentModal()" style="background: #475569; color: white; border: none; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%;">إغلاق</button>
         </div>
     </div>
 
@@ -232,7 +254,6 @@
         const db = getFirestore(app);
 
         let globalExamsList = [];
-        let activeSelectedStudent = null;
         let activeSelectedSubmission = null;
         let activeExamId = null;
 
@@ -272,7 +293,7 @@
             }
         }
 
-        async function renderExamsStatsList() {
+        window.renderExamsStatsList = async function() {
             const container = document.getElementById('examStatsContainer');
             container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 15px; font-size: 0.8rem;">جاري جلب الامتحانات...</p>';
             
@@ -301,7 +322,7 @@
             });
 
             container.innerHTML = html;
-        }
+        };
 
         window.deleteExamFromCloud = async function(examId) {
             showCustomConfirm("هل تريد حذف هذا الامتحان نهائياً؟", async () => {
@@ -398,7 +419,7 @@
             const container = document.getElementById('examStatsContainer');
             let subs = exam.examSubmissions || [];
 
-            // تم تعديل زر العودة ليكون "العودة لقائمة الإحصائيات 📋" وفي أقصى اليسار زر "تصحيح وإرسال الكل 🔔" والأيموجي من اليسار
+            // زر العودة ينفذ renderExamsStatsList() تماماً كأنه زر الإحصائيات الأساسي
             let html = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                     <button onclick="renderExamsStatsList()" style="background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">العودة لقائمة الإحصائيات 📋</button>
@@ -421,17 +442,27 @@
                 let fullName = sub.studentName || 'طالب المنصة';
                 let email = sub.studentEmail || 'غير متوفر';
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
+                let studentId = sub.studentId || sub.uid || 'غير متوفر';
+                let studentPhone = sub.studentPhone || sub.phone || 'غير متوفر';
                 let isPublished = sub.published === true;
+
+                // تم ترتيب وتنسيق الدرجة بحيث لا تكون لازقة في حالة النشر وجعلها في سطر منفصل ومنظم
+                let publishBadge = !isPublished 
+                    ? `<div style="color:#f59e0b; font-size:0.72rem; margin-top:3px;">بانتظار الاعتماد</div>` 
+                    : `<div style="color:var(--success); font-size:0.72rem; margin-top:3px;">تم الإرسال 🔔</div>`;
 
                 html += `
                     <tr>
                         <td>
-                            <span class="student-link" onclick='openStudentModal(${JSON.stringify(fullName)}, ${JSON.stringify(email)}, ${JSON.stringify(avatarUrl)})'>
+                            <span class="student-link" onclick='openStudentModal(${JSON.stringify(fullName)}, ${JSON.stringify(email)}, ${JSON.stringify(avatarUrl)}, ${JSON.stringify(studentId)}, ${JSON.stringify(studentPhone)})'>
                                 <img src="${avatarUrl}" class="student-avatar" alt="صورة">
                                 <span>${fullName}</span>
                             </span>
                         </td>
-                        <td><span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks} ${!isPublished ? '<span style="color:#f59e0b;">(بانتظار الاعتماد)</span>' : '<span style="color:var(--success);">(تم الإرسال 🔔)</span>'}</span></td>
+                        <td>
+                            <span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks}</span>
+                            ${publishBadge}
+                        </td>
                         <td>${passed ? '<span style="color:var(--success); font-weight:bold;">ناجح 🎉</span>' : '<span style="color:var(--danger); font-weight:bold;">راسب ❌</span>'}</td>
                         <td style="font-size:0.75rem; opacity:0.8;">${sub.date || ''}</td>
                     </tr>`;
@@ -562,21 +593,18 @@
             document.getElementById('examAnswersModal').style.display = 'none';
         };
 
-        window.openStudentModal = function(name, email, avatar) {
-            activeSelectedStudent = { name, email, avatar };
-            document.getElementById('modalStudentName').textContent = name;
-            document.getElementById('modalStudentEmail').textContent = email;
-            document.getElementById('modalStudentAvatar').src = avatar;
+        window.openStudentModal = function(name, email, avatar, studentId, phone) {
+            document.getElementById('modalStudentName').textContent = name || 'طالب المنصة';
+            document.getElementById('modalStudentEmail').textContent = email || 'غير متوفر';
+            document.getElementById('modalStudentAvatar').src = avatar || 'https://www.w3schools.com/howto/img_avatar.png';
+            document.getElementById('modalStudentId').textContent = studentId || 'غير متوفر';
+            document.getElementById('modalStudentPhone').textContent = phone || 'غير متوفر';
             document.getElementById('studentProfileModal').style.display = 'flex';
         };
 
         window.closeStudentModal = function() {
             document.getElementById('studentProfileModal').style.display = 'none';
         };
-
-        window.upgradeStudentLevel = function() { };
-        window.toggleBanStudent = function() { };
-        window.deleteStudentAccount = function() { closeStudentModal(); };
     </script>
 </body>
 </html>
