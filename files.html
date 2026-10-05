@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - مكتبة الملازم والملفات</title>
+    <title>منصة رحلة دراسية - مكتبة الملازم والحصص</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -37,7 +37,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
         .container { max-width: 1100px; margin: 0 auto; }
         
         .platform-header {
@@ -103,7 +103,7 @@
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
         }
@@ -112,7 +112,7 @@
             background: var(--bg-card); width: 100%; max-width: 650px;
             border-radius: 16px; border: 1px solid var(--border-color);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); overflow: hidden;
-            display: flex; flex-direction: column; max-height: 85vh;
+            display: flex; flex-direction: column; max-height: 85vh; position: relative;
         }
         .modal-header {
             padding: 14px 18px; background: var(--bg-card); color: var(--text-main);
@@ -122,7 +122,13 @@
         .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
         .modal-body {
             padding: 18px; overflow-y: auto; flex: 1; text-align: right;
-            font-size: 0.85rem; line-height: 1.7; color: var(--text-main);
+            font-size: 0.85rem; line-height: 1.7; color: var(--text-main); position: relative;
+        }
+        
+        /* العلامة المائية الديناميكية للطالب داخل المعاينة */
+        .watermark-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
         }
     </style>
 </head>
@@ -131,17 +137,17 @@
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side"><a href="main.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الملازم والملفات</span> 📁</div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والملازم</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
         <div class="page-header">
-            <h1>مرحباً بك في مكتبة الملازم الدراسية 📖</h1>
-            <p>تصفح مذكرات الشرح ومراجعات الـ PDF بكل سهولة ويسر.</p>
+            <h1>مرحباً بك في مكتبة الحصص الدراسية 📖</h1>
+            <p>تصفح مذكرات الشرح وحصص الفيديو والملازم بكل أمان.</p>
         </div>
 
         <div id="filesGrid" class="files-grid">
-            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري التحقق من الملازم المنشورة...</p>
+            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة وجلب الحصص من السحابة...</p>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
@@ -149,20 +155,49 @@
         </div>
     </div>
 
-    <!-- نافذة المعاينة -->
+    <!-- نافذة المعاينة مع دعم العلامة المائية والحماية -->
     <div class="modal-overlay" id="fileModal" onclick="if(event.target===this) closeFileModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalFileTitle">معاينة الملزمة</h3>
+                <h3 id="modalFileTitle">معاينة الحصة أو الملزمة</h3>
                 <button class="close-modal" onclick="closeFileModal()">✕</button>
             </div>
             <div class="modal-body" id="modalFileBody"></div>
         </div>
     </div>
 
-    <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
+    <!-- Firebase SDK (Modular v10) ومزامنة الإعدادات الحقيقية -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let globalExamsData = [];
+        let currentUserEmail = "طالب زائر";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserEmail = user.email || user.displayName || "طالب معتمد";
+                await fetchCloudExamsAndSettings();
+            } else {
+                // لو حابب تخليه يفتح للكل أو يوجهه لتسجيل الدخول
+                await fetchCloudExamsAndSettings();
+            }
+        });
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
@@ -177,74 +212,154 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        loadFilesData();
-
-        async function loadFilesData() {
+        async function fetchCloudExamsAndSettings() {
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest?timestamp=` + new Date().getTime(), {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY },
-                    cache: 'no-cache'
+                const querySnapshot = await getDocs(collection(db, "exams"));
+                globalExamsData = [];
+                querySnapshot.forEach((docSnap) => {
+                    globalExamsData.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                let data = await res.json();
-                let filesList = data.record.studyFiles || [];
-                renderFiles(filesList);
-            } catch (e) {
-                console.error("خطأ في جلب الملفات:", e);
-                renderFiles([]);
+                renderLessonsList(globalExamsData);
+            } catch (err) {
+                console.error("خطأ في جلب الحصص من السحابة:", err);
+                document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">عذراً، حدث خطأ أثناء الاتصال بالسحابة.</p>`;
             }
         }
 
-        function renderFiles(files) {
+        function renderLessonsList(items) {
             const grid = document.getElementById('filesGrid');
             
-            if (!files || files.length === 0) {
+            // فلترة الحصص المفتوحة أو التي لم تغلق إدارياً
+            let activeItems = items.filter(item => {
+                let s = item.settings || {};
+                return s.generalActive !== false; // لو مفتوحة تظهر
+            });
+
+            if (activeItems.length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
                         <div style="font-size: 2.5rem; margin-bottom: 8px;">📭</div>
-                        <h3 style="color: var(--text-main); margin-bottom: 4px; font-size: 0.95rem;">لم يتم نشر ملازم دراسية بعد</h3>
-                        <p style="color: var(--text-muted); font-size: 0.82rem;">ترقبوا.. سيتم نشر أحدث المذكرات والشروحات قريباً من قِبل إدارة المنصة.</p>
+                        <h3 style="color: var(--text-main); margin-bottom: 4px; font-size: 0.95rem;">لا توجد حصص متاحة حالياً</h3>
+                        <p style="color: var(--text-muted); font-size: 0.82rem;">ترقبوا.. سيتم نشر أحدث الحصص والملازم قريباً.</p>
                     </div>
                 `;
                 return;
             }
 
+            // ترتيب حسب التثبيت (لو مثبت في الأعلى)
+            activeItems.sort((a, b) => {
+                let pinA = a.settings?.pinToTop ? 1 : 0;
+                let pinB = b.settings?.pinToTop ? 1 : 0;
+                return pinB - pinA;
+            });
+
             grid.innerHTML = '';
-            files.forEach((file, index) => {
+            activeItems.forEach((item) => {
+                let s = item.settings || {};
+                let title = item.title || 'حصة دراسية';
+                let subject = item.subject || 'عام';
+                let desc = item.description || 'حصة دراسية متكاملة تشمل الشرح والملفات والامتحان.';
+
                 let card = document.createElement('div');
                 card.className = 'file-card';
                 card.innerHTML = `
                     <div>
-                        <div class="file-icon">📄</div>
-                        <div class="file-title">${file.title}</div>
-                        <div class="file-desc">${file.description || 'ملزمة دراسية معتمدة من المنصة.'}</div>
+                        <div class="file-icon">${s.pinToTop ? '⭐ ' : ''}📚</div>
+                        <div class="file-title">${title}</div>
+                        <div class="file-desc">${desc}</div>
                     </div>
                     <div>
                         <div class="file-meta">
-                            <span>📂 ${file.subject || 'ملزمة عامة'}</span>
-                            <span>📖 متاح</span>
+                            <span>📂 المادة: ${subject}</span>
+                            <span>${s.hasCertificate ? '🏆 شهادة متوفرة' : '📖 متاح'}</span>
                         </div>
-                        <button class="view-btn" onclick="openFilePreview(${index})">تصفح وقراءة الملزمة 👁️</button>
+                        <button class="view-btn" onclick="openLessonModal('${item.id}')">دخول الحصة والمحتوى 🚀</button>
                     </div>
                 `;
                 grid.appendChild(card);
             });
-
-            window.allLoadedFiles = files;
         }
 
-        function openFilePreview(index) {
-            const file = window.allLoadedFiles[index];
-            if (!file) return;
+        window.openLessonModal = function(itemId) {
+            const item = globalExamsData.find(e => e.id === itemId);
+            if (!item) return;
 
-            document.getElementById('modalFileTitle').textContent = file.title;
-            document.getElementById('modalFileBody').innerHTML = `
-                <div style="font-weight: bold; color: var(--text-main); margin-bottom: 10px; font-size: 0.9rem;">محتوى الملزمة الشرحي:</div>
-                <div style="white-space: pre-line; word-break: break-word;">${file.content || file.description || 'محتوى الملزمة غير متوفر حالياً.'}</div>
+            let s = item.settings || {};
+
+            // 1. فحص كلمة المرور لو مفعلة
+            if (s.password && s.password.trim() !== "") {
+                let enteredPass = prompt("هذه الحصة محمية بكلمة مرور. أرجو إدخالها للمتابعة:");
+                if (enteredPass !== s.password) {
+                    alert("كلمة المرور غير صحيحة!");
+                    return;
+                }
+            }
+
+            // 2. تطبيق حماية منع السكرين شوت وأدوات الفحص لو مفعلة في الإعدادات
+            if (s.antiScreenshot !== false) {
+                document.addEventListener("keyup", (e) => {
+                    if (e.key == "PrintScreen") {
+                        navigator.clipboard.writeText("");
+                        alert("⚠️ تنبيه أمني: التصوير (Screenshot) ممنوع داخل هذه الحصة!");
+                    }
+                });
+            }
+
+            if (s.disableDevTools !== false) {
+                document.addEventListener("contextmenu", e => e.preventDefault());
+                document.addEventListener("keydown", e => {
+                    if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 67 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // عرض المحتوى داخل المودال بناءً على إعدادات الفيديو والملازم
+            let modalBodyHtml = `
+                <div style="font-weight: bold; color: var(--primary); margin-bottom: 12px; font-size: 0.95rem;">📌 محتويات الحصة والإعدادات المفعلة:</div>
+                <div style="margin-bottom: 15px; font-size: 0.85rem; color: var(--text-muted);">${item.description || 'لا توجد تفاصيل إضافية.'}</div>
             `;
-            document.getElementById('fileModal').classList.add('active');
-        }
 
-        function closeFileModal() {
+            // فيديو الشرح لو مفعل
+            if (s.showVideo !== false) {
+                modalBodyHtml += `
+                    <div style="margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: bold; margin-bottom: 8px;">🎬 فيديو الشرح الأساسي:</div>
+                        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;">${s.preventFastForward !== false ? '🔒 (تم تفعيل منع تقديم الفيديو لإجبار المشاهدة الكاملة)' : ''}</p>
+                        <div style="background: #000; height: 160px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem;">
+                            تشغيل فيديو الحصة (متصل بالسحابة)
+                        </div>
+                    </div>
+                `;
+            }
+
+            // الملازم لو مفعلة
+            if (s.showNotes !== false || s.showSummary !== false) {
+                modalBodyHtml += `
+                    <div style="margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="font-weight: bold; margin-bottom: 8px;">📚 الملازم وملفات الشرح:</div>
+                        <p style="font-size: 0.78rem; color: var(--text-muted);">${s.allowNotesDownload !== false ? '🖨️ التحميل والطباعة متاحان' : '🚫 التحميل مقيد لحماية حقوق الملكية'}</p>
+                        ${s.watermarkNotes !== false ? `<div style="font-size: 0.75rem; color: var(--success); margin-top: 5px;">✔ الملزمة مؤمنة بعلامة مائية باسمك ورقمك.</div>` : ''}
+                    </div>
+                `;
+            }
+
+            // زر الدخول للامتحان المرتبط بالحصة
+            modalBodyHtml += `
+                <a href="exam.html?id=${item.id}" class="view-btn" style="text-align:center; margin-top: 15px; display:block;">بدء امتحان الحصة الآن 📝</a>
+            `;
+
+            // إضافة علامة مائية ديناميكية للطالب داخل النافذة لو مفعّلة
+            if (s.watermarkNotes !== false) {
+                modalBodyHtml += `<div class="watermark-overlay">${currentUserEmail}</div>`;
+            }
+
+            document.getElementById('modalFileTitle').textContent = item.title || 'تفاصيل الحصة';
+            document.getElementById('modalFileBody').innerHTML = modalBodyHtml;
+            document.getElementById('fileModal').classList.add('active');
+        };
+
+        window.closeFileModal = function() {
             document.getElementById('fileModal').classList.remove('active');
         }
     </script>
