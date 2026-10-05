@@ -64,7 +64,6 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* شريط التنقل المستقل بين صفحات الامتحانات الثلاثة */
         .admin-nav-bar {
             display: flex; justify-content: center; align-items: center;
             background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
@@ -97,8 +96,11 @@
         .btn-save { background: var(--success); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin-top: 15px; width: 100%; }
 
         .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-top: 15px; }
-        .question-top-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: end; }
-        @media (max-width: 500px) { .question-top-row { grid-template-columns: 1fr; } }
+        
+        /* تعديل صف نص السؤال ليضم خانة الدرجات وزر الكاميرا SVG من أقصى اليسار */
+        .question-top-row { display: flex; gap: 10px; align-items: flex-end; }
+        .question-text-wrapper { flex: 1; }
+        .question-meta-wrapper { display: flex; gap: 6px; align-items: flex-end; flex-shrink: 0; }
 
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
         .option-row input[type="text"] { flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; }
@@ -113,6 +115,23 @@
             background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
             width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
+
+        /* زر الكاميرا الشكلي الوهمي المخصص لرفع صورة السؤال */
+        .btn-camera-upload {
+            background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .btn-camera-upload:hover { background: rgba(14, 165, 233, 0.3); border-color: #0ea5e9; transform: scale(1.05); }
+
+        /* زر رفع صورة إجابة الطالب الوهمي الأنيق */
+        .custom-file-upload-box {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg-main); border: 1px dashed var(--primary); border-radius: 10px;
+            padding: 10px 14px; cursor: pointer; transition: all 0.2s; margin-top: 6px;
+        }
+        .custom-file-upload-box:hover { background: var(--hover-bg); border-color: var(--success); }
+        .file-upload-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
         
         .custom-dropdown-menu {
             position: absolute; right: 0; bottom: 46px; background: var(--bg-card); border: 1px solid var(--border-color);
@@ -137,7 +156,6 @@
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- أزرار التنقل المستقلة بين صفحات إدارة الامتحانات -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="exam-create.html" class="btn-tab active">إنشاء امتحان 📝</a>
@@ -163,12 +181,40 @@
                     <span id="editingIndicator" class="hidden" style="font-size: 0.75rem; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠️</span>
                 </div>
 
+                <!-- نص السؤال بجانب خانة الدرجات وزر الكاميرا SVG من أقصى اليسار -->
                 <div class="question-top-row">
-                    <div class="form-group" style="margin-top: 0;"><label>نص السؤال:</label><input type="text" id="newQText" placeholder="اكتب السؤال هنا..."></div>
-                    <div class="form-group" style="margin-top: 0;"><label>درجة السؤال:</label><input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;"></div>
+                    <div class="form-group question-text-wrapper" style="margin-top: 0;">
+                        <label>نص السؤال:</label>
+                        <input type="text" id="newQText" placeholder="اكتب السؤال هنا...">
+                    </div>
+                    <div class="question-meta-wrapper">
+                        <div class="form-group" style="margin-top: 0; width: 85px;">
+                            <label>الدرجة:</label>
+                            <input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;">
+                        </div>
+                        <div>
+                            <button type="button" class="btn-camera-upload" onclick="document.getElementById('newQImageFile').click()" title="تصوير أو رفع صورة للسؤال">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group hidden" id="imageInputGroup"><label>إرفاق صورة توضيحية للسؤال (اختياري):</label><input type="file" id="newQImageFile" accept="image/*" style="padding: 5px;"></div>
+                <!-- زر رفع صورة السؤال المخفي والذي يتحكم به زر الكاميرا -->
+                <div class="form-group hidden" id="imageInputGroup">
+                    <label>إرفاق صورة توضيحية للسؤال (اختياري):</label>
+                    <input type="file" id="newQImageFile" accept="image/*" class="hidden" onchange="updateImageFileName(this)">
+                    <div class="custom-file-upload-box" onclick="document.getElementById('newQImageFile').click()">
+                        <span class="file-upload-text" id="imageFileNameDisplay">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            اضغط لاختيار صورة توضيحية للسؤال...
+                        </span>
+                        <span style="background: var(--primary); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold;">استعراض 📁</span>
+                    </div>
+                </div>
 
                 <!-- خانة الإجابة النموذجية للنص القصير أو الطويل لأجل الـ AI -->
                 <div class="form-group hidden" id="modelAnswerGroup">
@@ -193,7 +239,7 @@
                         </button>
                         <div class="custom-dropdown-menu" id="clipDropdownMenu">
                             <div class="custom-dropdown-item selected" onclick="selectQuestionType('mcq', this)">🔘 اختياري (مفرد)</div>
-                            <div class="custom-dropdown-item" onclick="selectQuestionType('checkbox', this)">☑️️ اختياري (متعدد)</div>
+                            <div class="custom-dropdown-item" onclick="selectQuestionType('checkbox', this)">☑ اختياري (متعدد)</div>
                             <div class="custom-dropdown-item" onclick="selectQuestionType('tf', this)">✔️ صح وخطأ</div>
                             <div class="custom-dropdown-item" onclick="selectQuestionType('short', this)">📝 نص قصير (5 أسطر)</div>
                             <div class="custom-dropdown-item" onclick="selectQuestionType('long', this)">📄 نص طويل (مقال)</div>
@@ -237,7 +283,6 @@
             }
         });
 
-        // نظام الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -250,6 +295,15 @@
             localStorage.setItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
+
+        window.updateImageFileName = function(input) {
+            const display = document.getElementById('imageFileNameDisplay');
+            if (input.files && input.files[0]) {
+                display.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> تم اختيار: ${input.files[0].name}`;
+            } else {
+                display.innerHTML = `اضغط لاختيار صورة توضيحية للسؤال...`;
+            }
+        };
 
         window.toggleClipDropdown = function() {
             const menu = document.getElementById('clipDropdownMenu');
@@ -279,12 +333,12 @@
 
             if (type === 'short' || type === 'long') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.add('hidden');
+                imgGroup.classList.remove('hidden'); // إظهار خانة الصورة الوهمية لجميع الأنماط إذا احتجاها الأدمن
                 modelAnswerGroup.classList.remove('hidden');
                 document.getElementById('modelAnswerLabel').textContent = type === 'short' ? 'الإجابة النموذجية للنص القصير (بحد أقصى 5 أسطر للطالب):' : 'الإجابة النموذجية للنص الطويل (مقال):';
             } else if (type === 'voice') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.add('hidden');
+                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
             } else if (type === 'essayImage') {
                 optGroup.classList.add('hidden');
@@ -293,7 +347,7 @@
                 document.getElementById('modelAnswerLabel').textContent = 'الإجابة النموذجية لصورة المقال (AI):';
             } else if (type === 'tf') {
                 optGroup.classList.remove('hidden');
-                imgGroup.classList.add('hidden');
+                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
                 document.getElementById('optionsBuilderList').innerHTML = `
                     <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.85rem;">صح</span></div>
@@ -301,7 +355,7 @@
                 document.getElementById('addOptBtn').style.display = 'none';
             } else {
                 optGroup.classList.remove('hidden');
-                imgGroup.classList.add('hidden');
+                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
                 let inputType = (type === 'checkbox') ? 'checkbox' : 'radio';
                 document.getElementById('optionsBuilderList').innerHTML = `
@@ -341,7 +395,7 @@
                     let radios = document.querySelectorAll('input[name="correctOpt"]');
                     radios.forEach((r, idx) => { if (r.checked) correct = idx; });
                 } else if (type === 'short' || type === 'long' || type === 'essayImage') {
-                    correct = modelAnswer; // تخزين الإجابة النموذجية للـ AI
+                    correct = modelAnswer;
                 } else if (type !== 'voice') {
                     let optInputs = document.querySelectorAll('.opt-input');
                     let radioOrChecks = document.querySelectorAll('input[name="correctOpt"]');
@@ -363,7 +417,7 @@
                     options: options, 
                     correct: correct, 
                     imageUrl: imageUrl,
-                    maxLines: type === 'short' ? 5 : null // تحديد حد أقصى 5 أسطر للنص القصير
+                    maxLines: type === 'short' ? 5 : null
                 };
 
                 if (editingQuestionIndex !== null) {
@@ -376,13 +430,12 @@
                     currentDraftQuestions.push(questionObj);
                 }
 
-                // تصفير وتفريغ الحقول بالكامل تمهيداً للسؤال التالي
                 document.getElementById('newQText').value = '';
                 document.getElementById('newQImageFile').value = '';
                 document.getElementById('newModelAnswer').value = '';
                 document.getElementById('newQMarks').value = '1';
+                document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> اضغط لاختيار صورة توضيحية للسؤال...`;
                 
-                // إعادة تعيين واجهة نوع السؤال الافتراضي (MCQ) والتصفير
                 document.getElementById('selectedQuestionType').value = 'mcq';
                 document.querySelectorAll('.custom-dropdown-item').forEach(item => item.classList.remove('selected'));
                 document.querySelector('.custom-dropdown-item').classList.add('selected');
@@ -442,6 +495,10 @@
             document.getElementById('selectedQuestionType').value = q.type || 'mcq';
             changeQuestionTypeUI();
             
+            if (q.imageUrl) {
+                document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> توجد صورة مرفقة للسؤال`;
+            }
+
             if (q.type === 'short' || q.type === 'long' || q.type === 'essayImage') {
                 document.getElementById('newModelAnswer').value = q.correct || '';
             } else if (q.options && q.options.length > 0 && q.type !== 'tf') {
@@ -498,7 +555,7 @@
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
                 renderQuestionsList();
-                alert('تم نشر الامتحان بنجاح في كولكشن (exams) في فايربيس 🚀');
+                alert('تم نشر الامتحان بنجاح في كولكشن (exams) في فايربيز 🚀');
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء النشر.");
