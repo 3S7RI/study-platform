@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - إعدادات الامتحانات</title>
+    <title>منصة رحلة دراسية - الامتحانات التفاعلية</title>
+    <!-- مكتبة تحويل الشهادة إلى صورة PNG -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -35,18 +37,19 @@
             --th-bg: rgba(0, 0, 0, 0.02);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
-        .container { max-width: 1100px; margin: 0 auto; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; position: relative; }
+        .container { max-width: 850px; margin: 0 auto; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
             background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
             margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+            flex-wrap: wrap; gap: 10px;
         }
 
-        .header-right-side { display: flex; align-items: center; }
+        .header-right-side { display: flex; align-items: center; gap: 10px; }
         .btn-home-link {
             display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
             padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
@@ -54,150 +57,225 @@
         }
         .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
 
-        .header-center-box { display: flex; align-items: center; justify-content: center; }
-        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
-        
-        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .timer-box { background: var(--th-bg); border: 1px solid var(--border-color); padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.82rem; color: var(--primary); }
+        .platform-title-box { font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
         .btn-theme-toggle {
             background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
-            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center;
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        .admin-nav-bar {
-            display: flex; justify-content: center; align-items: center;
-            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
-            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        .exam-select-card { 
+            background: var(--bg-card); padding: 20px; border-radius: 16px; margin-bottom: 15px; 
+            box-shadow: var(--shadow); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            text-align: right; display: flex; flex-direction: column; gap: 10px;
         }
-        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
-        .btn-tab {
-            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
-            padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1; min-width: 120px; text-align: center; text-decoration: none; display: inline-block;
-        }
-        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
-
-        .section-box {
-            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
-            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
-        }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
-
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .setting-card { background: var(--th-bg); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .setting-card label { font-size: 0.8rem; font-weight: 500; cursor: pointer; color: var(--text-main); }
+        .exam-select-card h3 { font-size: 1.05rem; color: var(--text-main); font-weight: 700; }
+        .exam-meta-row { display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-muted); }
         
-        .switch { position: relative; display: inline-block; width: 38px; height: 20px; flex-shrink: 0; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: 0.2s; }
-        input:checked + .slider { background-color: var(--success); }
-        input:checked + .slider:before { transform: translateX(18px); }
+        .start-exam-btn { 
+            background: var(--primary); color: white; border: none; padding: 10px 18px; 
+            border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.85rem; 
+            width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); text-align: center;
+        }
+        .start-exam-btn:hover { background: var(--primary-hover); }
+        .start-exam-btn.disabled { background: #475569 !important; cursor: not-allowed; opacity: 0.7; box-shadow: none; }
 
-        .form-group { margin-top: 12px; text-align: right; }
-        .form-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
+        .exam-card { 
+            background: var(--bg-card); padding: 20px; border-radius: 16px; margin-bottom: 20px; 
+            box-shadow: var(--shadow); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        }
+        .question-box { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); text-align: right; }
+        .question-box h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--text-main); line-height: 1.5; }
         
-        .form-group select {
-            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer;
+        .options-list { display: flex; flex-direction: column; gap: 8px; }
+        .option-label { 
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; 
+            border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; 
+            background: var(--th-bg); font-size: 0.85rem; color: var(--text-main);
+        }
+        .option-label:hover { background: var(--hover-bg); border-color: var(--primary); }
+        
+        .student-textarea {
+            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none; margin-top: 6px;
         }
 
-        .form-group input, .form-group textarea {
-            width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;
+        .voice-recorder-box {
+            background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 10px;
+            padding: 10px 14px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
         }
-        
-        .form-row-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .form-row-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        @media (max-width: 768px) { .form-row-grid-3, .form-row-grid-2 { grid-template-columns: 1fr; } }
+        .btn-record {
+            background: var(--danger); color: white; border: none; width: 38px; height: 38px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; box-shadow: 0 4px 10px rgba(239,68,68,0.3);
+        }
+        .btn-record.recording { background: var(--success); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-        .btn-save { background: var(--success); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin-top: 15px; width: 100%; }
-        .btn-save:hover { opacity: 0.9; }
+        .upload-box {
+            border: 2px dashed var(--border-color); padding: 12px; border-radius: 8px; text-align: center;
+            background: var(--th-bg); margin-top: 8px; cursor: pointer; position: relative;
+        }
+        .upload-box input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+        .btn-submit-exam { 
+            background: var(--success); color: white; border: none; padding: 11px 18px; 
+            border-radius: 10px; font-weight: bold; font-size: 0.88rem; cursor: pointer; width: 100%; margin-top: 10px; 
+        }
+        .btn-submit-exam:hover { opacity: 0.9; }
+
+        .result-box { 
+            background: var(--bg-card); padding: 22px; border-radius: 16px; text-align: center; 
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); display: none; border-top: 4px solid var(--success);
+        }
+
+        /* نافذة تكبير الصور (Lightbox) */
+        .lightbox-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 10000; padding: 15px; }
+        .lightbox-overlay img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
+
+        .modal-overlay, .celebration-overlay, .certificate-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;
+            display: none; justify-content: center; align-items: center; background: rgba(15,23,42,0.85); padding: 15px; overflow-y: auto;
+        }
+        .modal-card, .celebration-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; max-width: 380px; width: 100%; text-align: center;
+            box-shadow: var(--shadow);
+        }
+        .celebration-card { border: 2px solid var(--success); max-width: 420px; box-shadow: 0 15px 35px rgba(16,185,129,0.3); }
+
+        .confetti {
+            position: absolute; width: 8px; height: 8px; background: #f59e0b; animation: fall 3s linear infinite; pointer-events: none;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-30px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        .certificate-box {
+            border-radius: 16px; padding: 25px; max-width: 560px; width: 100%; text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; margin: auto;
+        }
         .hidden { display: none !important; }
     </style>
 </head>
-<body data-theme="dark">
-    <div class="container">
-        <header class="platform-header">
-            <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إعدادات الامتحانات</span> ⚙️</div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
-        </header>
+<body id="pageBody">
 
-        <nav class="admin-nav-bar">
-            <div class="admin-tabs-group">
-                <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
-                <a href="exam-settings.html" class="btn-tab active">الإعدادات ⚙️</a>
-                <a href="exam-stats.html" class="btn-tab">إحصائيات 📊</a>
-            </div>
-        </nav>
+    <!-- نافذة رسالة التنبيه قبل بدء الامتحان -->
+    <div class="modal-overlay" id="welcomeMsgModal">
+        <div class="modal-card" style="max-width: 480px; text-align: right;">
+            <h3 style="color: var(--primary); font-size: 1.05rem; margin-bottom: 10px; text-align: center;">🔔 تنبيه هـام قبل دخول الامتحان</h3>
+            <div id="welcomeMsgTextContent" style="font-size: 0.82rem; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <button onclick="confirmStartExamAfterWelcome()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.85rem;">فهمت التعليمات، ابدأ الامتحان الآن 🚀</button>
+        </div>
+    </div>
 
-        <div class="section-box">
-            <div class="section-header"><h2>اختر الامتحان لتعديل إعداداته ⚙️</h2></div>
-            <div class="form-group" style="margin-top: 0;">
-                <label>اختر الامتحان:</label>
-                <select id="examSelectDropdown" onchange="loadSelectedExamSettings()">
-                    <option value="">جاري تحميل الامتحانات...</option>
-                </select>
+    <!-- نافذة تكبير الصور المرفوعة من الأدمن -->
+    <div class="lightbox-overlay" id="lightboxModal" onclick="this.style.display='none'">
+        <div style="position: relative;" onclick="event.stopPropagation()">
+            <button onclick="document.getElementById('lightboxModal').style.display='none'" style="position: absolute; top: -15px; left: -15px; background: var(--danger); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
+            <img id="lightboxImg" src="" alt="صورة مكبرة">
+        </div>
+    </div>
+
+    <!-- نافذة طلب كلمة المرور للامتحان المقفل -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-card">
+            <h3 style="color: var(--text-main); font-size: 0.98rem; margin-bottom: 8px;">🔒 هذا الامتحان محمي بكلمة مرور</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">أدخل كلمة السر التي زودك بها المعلم لدخول الامتحان:</p>
+            <input type="password" id="examPasswordInput" placeholder="أدخل كلمة المرور هنا..." style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none; margin-bottom: 12px; text-align: center;">
+            <div style="display: flex; gap: 8px;">
+                <button onclick="verifyExamPassword()" style="background: var(--success); color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; flex: 1; font-size: 0.8rem;">تحقق ودخول ✅</button>
+                <button onclick="closePasswordModal()" style="background: #475569; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; width: 90px;">إلغاء</button>
             </div>
         </div>
+    </div>
 
-        <div class="section-box" id="settingsFormBox">
-            <div class="section-header"><h2>تحكم في خيارات وشروط الامتحان المختار 🛠️</h2></div>
-            <div class="settings-grid">
-                <div class="setting-card"><label for="settingPasswordLock">جعل الامتحان بكلمة مرور</label><label class="switch"><input type="checkbox" id="settingPasswordLock" onchange="togglePasswordInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI)</label><label class="switch"><input type="checkbox" id="settingAIBot" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingTimer">تفعيل المؤقت الزمني</label><label class="switch"><input type="checkbox" id="settingTimer" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingShuffle">خلط ترتيب الأسئلة عشوائياً</label><label class="switch"><input type="checkbox" id="settingShuffle"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingInstantResult">عرض النتيجة الفورية للطالب</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingFullScreen">جعل الامتحان وضع ملء الشاشة 🖥️ (إخفاء المتصفح والكل)</label><label class="switch"><input type="checkbox" id="settingFullScreen"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingAntiCheat">منع مغادرة الصفحة وعمل Refresh 🛡️ (تسليم تلقائي عند الهروب)</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingWelcomeToggle">تفعيل رسالة التنبيه قبل الامتحان 🔔</label><label class="switch"><input type="checkbox" id="settingWelcomeToggle" checked onchange="toggleWelcomeInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingEndMsgToggle">تفعيل رسالة نهاية الامتحان 🏁</label><label class="switch"><input type="checkbox" id="settingEndMsgToggle" checked onchange="toggleEndMsgInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingFullMarkCongrats">تفعيل تهنئة النتيجة الكاملة (+10 نقاط) 🎉</label><label class="switch"><input type="checkbox" id="settingFullMarkCongrats" checked><span class="slider"></span></label></div>
+    <!-- شاشة الاحتفال بالتقفيل 100% -->
+    <div class="celebration-overlay" id="celebrationOverlay">
+        <div class="celebration-card">
+            <h2 style="color: var(--success); font-size: 1.05rem; margin-bottom: 10px; line-height: 1.5;">
+                مـبـروك يـا اسـطوره!! قـفلت الإمـتحـان و جـبـت 100% 🏆
+            </h2>
+            <div style="text-align: right; background: var(--th-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; line-height: 1.6; border: 1px solid var(--border-color);">
+                <p>1. تـم إضـافة 15 نـقطه (5 درجات الأساسية + 10 نقاط تقفيل) لـحسابك ✨</p>
+                <p>2. لـيك شـهادة تـقـدير فـاخرة مـخـصوص يـا بـطـل 😍🏆</p>
+                <p style="margin-top: 4px; font-weight: bold; color: var(--primary);">مـجـموع نـقـاط هذا الامـتـحان : <span id="totalPointsDisplay">15</span> نقطة مضافة 🚀</p>
             </div>
             
-            <div class="form-group hidden" id="passwordInputGroup"><label>كلمة مرور الامتحان:</label><input type="text" id="settingPassword" placeholder="اكتب كلمة السر هنا..."></div>
+            <div style="margin-bottom: 10px; text-align: right;">
+                <label style="font-size: 0.78rem; display: block; margin-bottom: 4px; color: var(--text-main); font-weight: 600;">اكتب اسمك الثلاثي للشهادة:</label>
+                <input type="text" id="certStudentNameInput" placeholder="مثال: محمد أحمد / مريم أحمد" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;">
+                
+                <label style="font-size: 0.78rem; display: block; margin-top: 8px; margin-bottom: 4px; color: var(--text-main); font-weight: 600;">اختر نوع الشهادة (لتحديد القالب المناسب):</label>
+                <select id="certGenderSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;">
+                    <option value="boy">👦 طالب (قوالب الأبطال)</option>
+                    <option value="girl">👧 طالبة (قوالب الأميرات)</option>
+                </select>
+            </div>
+
+            <button onclick="openCertificatePreview()" style="background: var(--primary); color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.82rem;">
+                الحصول علي الشهاده 📜
+            </button>
+        </div>
+    </div>
+
+    <!-- شاشة عرض شهادة التقدير الفاخرة -->
+    <div class="certificate-modal" id="certificateModal">
+        <div style="display: flex; flex-direction: column; align-items: center; max-width: 600px; width: 100%;">
+            <div class="certificate-box" id="certificateContent">
+                <h1 id="certTitle" style="font-size: 1.5rem; margin-bottom: 4px; font-family: serif;">شهادة تفوق وتميز</h1>
+                <p id="certSubtitle" style="font-size: 0.8rem; margin-bottom: 15px;">منصة رحلة دراسية التعليمية</p>
+                <p id="certToText" style="font-size: 0.88rem; margin-bottom: 6px;">تمنح هذه الشهادة بكل فخر واعتزاز إلى:</p>
+                <h2 id="finalCertName" style="font-size: 1.3rem; margin-bottom: 12px; display: inline-block; padding-bottom: 3px;">اسم الطالب</h2>
+                <p id="certBodyText" style="font-size: 0.82rem; line-height: 1.5; margin-bottom: 20px;">
+                    لتفوقه الماهر وحصوله على العلامة الكاملة <b>(100%)</b> في الامتحانات التفاعلية للمنصة، متمنين له دوام التقدم والنجاح.
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 12px;">
+                    <div id="certDateText" style="text-align: right; font-size: 0.75rem;">
+                        التاريخ: <span id="certDate">2026/10/05</span>
+                    </div>
+                    <div id="certSignText" style="text-align: left; font-size: 0.78rem; font-weight: bold;">
+                        مؤسس المنصة: محمد عماد (عشري) 🎓
+                    </div>
+                </div>
+            </div>
             
-            <div class="form-group" id="welcomeMsgGroup">
-                <label>نص رسالة التنبيه قبل دخول الامتحان:</label>
-                <textarea id="settingWelcomeMsg" rows="6">تـنـبـيه قـبل دخـول الإمـتـحـان🫰🏻🤍
-
-1.الشاشه هتبقا في الـوضـع الـكامل يـعـنـۍ مـش هـتـعـرف تـخـرج مـن الإمـتـحـان إلا لـما تـخـلص خـالص و تـسـلم الإمـتـحـان
-
-2.لـو عـمـلـت تـحـديـث للـصـفـحة او خـرجـت مـن الـمـنـصة و دخـلـت تـانـۍ الإمـتـحـان هـيـتـسلم تـلقـائۍ حـتـا لـو مـحـلـتش حـاجـه
-
-3.تـاكـد مـن اجـاباتـك قـبـل تـسـلـيم الإمـتـحـان لـتـجـنب الأخـطاء
-
-بـس كـده حـل بـتـركـيز و مـتـنساش ادعـيـة الإمـتـحـان و مـتـنساش تـصـلـۍ عـلـۍ الـنـبـۍ (لـو مـسـيحۍ كـلـنا اخـوات و كـل مـن لـيه نـبـۍ يـصلـۍ عـلـيه) مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق🫰🏻🤍</textarea>
+            <div style="margin-top: 15px; display: flex; gap: 10px; width: 100%; max-width: 560px;">
+                <button onclick="downloadCertificateImage()" style="background: #10b981; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; font-size: 0.85rem;">تحميل الشهادة PNG 📥</button>
+                <button onclick="closeCertificateModal()" style="background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; width: 100px;">إغلاق</button>
             </div>
+        </div>
+    </div>
 
-            <div class="form-group" id="endMsgGroup">
-                <label>نص رسالة نهاية الامتحان (تنسيق تلقائي سطر جديد بعد كل زوج أيموجي):</label>
-                <textarea id="settingCustomMsg" rows="6">عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍
-
-انـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀
-
-مـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀
-
-و مـتـنساش مـحدش بـيحاول و بـيجـيب صـفر👀🤍
-
-(ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) 
-
-الـمهم فـا الاهـم مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق 🫰🏻👀🤍</textarea>
+    <div class="container">
+        <header class="platform-header">
+            <div class="header-right-side">
+                <a href="main.html" class="btn-home-link" id="homeLinkBtn">
+                    🏠 <span>الرئيسية</span>
+                </a>
+                <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
             </div>
+            <div class="platform-title-box"><span id="examHeaderTitle">قائمة الامتحانات</span> 📝</div>
+            <button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button>
+        </header>
 
-            <div class="form-row-grid-3">
-                <div class="form-group"><label>المدة (بالدقائق):</label><input type="number" id="settingDuration" value="30"></div>
-                <div class="form-group"><label>عدد المحاولات:</label><input type="number" id="settingAttempts" value="1"></div>
-                <div class="form-group"><label>درجة النجاح (%):</label><input type="number" id="settingPassingScore" value="50"></div>
-            </div>
-            
-            <div class="form-group">
-                <label>الحد الأقصى للمتقدمين (Quota):</label><input type="number" id="settingMaxQuota" placeholder="بلا حدود">
-            </div>
+        <div class="result-box" id="examResultBox">
+            <h2 id="resultGradeText" style="margin-bottom: 6px; color: var(--primary); font-size: 1.1rem;">لقد حصلت على الدرجة</h2>
+            <p id="resultPercentageText" style="font-size: 1rem; font-weight: bold; margin-bottom: 10px;">النسبة: 0%</p>
+            <p id="customEndingMsg" style="font-size: 0.85rem; color: var(--success); font-weight: bold; margin-bottom: 10px; white-space: pre-wrap;"></p>
+            <p id="aiGradingNote" style="font-size: 0.78rem; color: #f59e0b; margin-bottom: 8px; display: none;">🤖 تمت مراجعة وتصحيح الأسئلة تلقائياً بواسطة بوت الذكاء الاصطناعي (AI).</p>
+            <button onclick="location.reload()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.82rem;">العودة لقائمة الامتحانات 📋</button>
+        </div>
 
-            <button class="btn-save" onclick="saveExamSettingsToCloud()">حفظ إعدادات الامتحان بالسحابة ⚙️</button>
+        <div id="examContainer">
+            <div style="text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color);">
+                <h3 style="color: var(--text-main); font-size: 0.88rem;">جاري جلب الامتحانات من السحابة...</h3>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--text-muted);">
+            منصة رحلة دراسية التعليمية © 2026
         </div>
     </div>
 
@@ -205,7 +283,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -221,194 +299,524 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let globalExamsList = [];
+        let availableExamsList = [];
+        let activeSelectedExam = null;
+        let pendingExamIdToStart = null;
+        let timerInterval = null;
+        let timeLeft = 0;
+        let currentStudentEmail = '';
+        let currentStudentUid = '';
 
-        // النصوص الافتراضية للرسائل
-        const DEFAULT_WELCOME_TEXT = `تـنـبـيه قـبل دخـول الإمـتـحـان🫰🏻🤍
+        let mediaRecordersMap = {};
+        let audioChunksMap = {};
+        let isExamActiveNow = false;
 
-1.الشاشه هتبقا في الـوضـع الـكامل يـعـنـۍ مـش هـتـعـرف تـخـرج مـن الإمـتـحـان إلا لـما تـخـلص خـالص و تـسـلم الإمـتـحـان
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 
-2.لـو عـمـلـت تـحـديـث للـصـفـحة او خـرجـت مـن الـمـنـصة و دخـلـت تـانـۍ الإمـتـحـان هـيـتـسلم تـلقـائۍ حـتـا لـو مـحـلـتش حـاجـه
-
-3.تـاكـد مـن اجـاباتـك قـبـل تـسـلـيم الإمـتـحـان لـتـجـنب الأخـطاء
-
-بـس كـده حـل بـتـركـيز و مـتـنساش ادعـيـة الإمـتـحـان و مـتـنساش تـصـلـۍ عـلـۍ الـنـبـۍ (لـو مـسـيحۍ كـلـنا اخـوات و كـل مـن لـيه نـبـۍ يـصلـۍ عـلـيه) مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق🫰🏻🤍`;
-
-        const DEFAULT_END_TEXT = `عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍
-
-انـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀
-
-مـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀
-
-و مـتـنساش مـحدش بـيحاول و بـيجـيب صـفر👀🤍
-
-(ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) 
-
-الـمهم فـا الاهـم مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق 🫰🏻👀🤍`;
+        themeToggleBtn.addEventListener('click', () => {
+            let next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', next);
+            localStorage.setItem('platform_theme', next);
+            themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+        });
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await fetchExamsDropdown();
+                currentStudentEmail = user.email || 'طالب المنصة';
+                currentStudentUid = user.uid;
+                await fetchExamsListFromCloud();
             } else {
                 window.location.href = 'login.html';
             }
         });
 
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const bodyElement = document.body;
-        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
-        bodyElement.setAttribute('data-theme', savedTheme);
-        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-
-        themeToggleBtn.addEventListener('click', () => {
-            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            bodyElement.setAttribute('data-theme', nextTheme);
-            localStorage.setItem('platform_theme', nextTheme);
-            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
-        });
-
-        async function fetchExamsDropdown(forceRefresh = false) {
-            const dropdown = document.getElementById('examSelectDropdown');
-            if (globalExamsList.length > 0 && !forceRefresh) {
-                populateDropdown(globalExamsList);
-                return;
-            }
-
+        async function fetchExamsListFromCloud() {
             try {
                 const querySnapshot = await getDocs(collection(db, "exams"));
-                globalExamsList = [];
+                availableExamsList = [];
                 querySnapshot.forEach((docSnap) => {
-                    globalExamsList.push({ id: docSnap.id, ...docSnap.data() });
+                    availableExamsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                populateDropdown(globalExamsList);
-            } catch (err) {
-                console.error("خطأ في جلب الامتحانات:", err);
-                dropdown.innerHTML = `<option value="">خطأ في تحميل الامتحانات</option>`;
-            }
-        }
 
-        function populateDropdown(exams) {
-            const dropdown = document.getElementById('examSelectDropdown');
-            let optionsHtml = `<option value="">-- اختر امتحان من القائمة --</option>`;
-            exams.forEach((exam) => {
-                optionsHtml += `<option value="${exam.id}">${exam.title || 'امتحان بدون عنوان'} (${exam.subject || 'عام'})</option>`;
-            });
-            dropdown.innerHTML = optionsHtml;
-        }
-
-        window.loadSelectedExamSettings = function() {
-            let selectedId = document.getElementById('examSelectDropdown').value;
-            if (!selectedId) return;
-
-            let exam = globalExamsList.find(e => e.id === selectedId);
-            if (!exam) return;
-
-            let s = exam.settings || {};
-            document.getElementById('settingPasswordLock').checked = !!s.password;
-            document.getElementById('settingPassword').value = s.password || '';
-            togglePasswordInput();
-
-            document.getElementById('settingAIBot').checked = s.aiBot !== false;
-            document.getElementById('settingTimer').checked = s.timer !== false;
-            document.getElementById('settingShuffle').checked = !!s.shuffle;
-            document.getElementById('settingInstantResult').checked = s.instantResult !== false;
-            
-            document.getElementById('settingFullScreen').checked = !!s.fullScreen;
-            document.getElementById('settingAntiCheat').checked = !!s.antiCheat;
-
-            document.getElementById('settingFullMarkCongrats').checked = s.fullMarkCongrats !== false;
-
-            let welcomeToggle = s.welcomeToggle !== false;
-            document.getElementById('settingWelcomeToggle').checked = welcomeToggle;
-            toggleWelcomeInput();
-            document.getElementById('settingWelcomeMsg').value = (s.welcomeMsg !== undefined && s.welcomeMsg.trim() !== '') ? s.welcomeMsg : DEFAULT_WELCOME_TEXT;
-
-            let endMsgToggle = s.endMsgToggle !== false;
-            document.getElementById('settingEndMsgToggle').checked = endMsgToggle;
-            toggleEndMsgInput();
-            document.getElementById('settingCustomMsg').value = (s.customMsg !== undefined && s.customMsg.trim() !== '') ? s.customMsg : DEFAULT_END_TEXT;
-
-            document.getElementById('settingDuration').value = s.duration || 30;
-            document.getElementById('settingAttempts').value = s.attempts || 1;
-            document.getElementById('settingPassingScore').value = s.passingScore || 50;
-            document.getElementById('settingMaxQuota').value = s.maxQuota || '';
-        };
-
-        window.togglePasswordInput = function() {
-            let isChecked = document.getElementById('settingPasswordLock').checked;
-            let group = document.getElementById('passwordInputGroup');
-            if (isChecked) group.classList.remove('hidden');
-            else group.classList.add('hidden');
-        };
-
-        window.toggleWelcomeInput = function() {
-            let isChecked = document.getElementById('settingWelcomeToggle').checked;
-            let group = document.getElementById('welcomeMsgGroup');
-            if (isChecked) group.classList.remove('hidden');
-            else group.classList.add('hidden');
-        };
-
-        window.toggleEndMsgInput = function() {
-            let isChecked = document.getElementById('settingEndMsgToggle').checked;
-            let group = document.getElementById('endMsgGroup');
-            if (isChecked) group.classList.remove('hidden');
-            else group.classList.add('hidden');
-        };
-
-        // دالة مساعدة لتنسيق النصوص وإجبار سطر جديد بعد كل زوج إيموجي إذا تطلب الأمر
-        function formatEmojisWithNewLine(text) {
-            if (!text) return DEFAULT_END_TEXT;
-            // يمكننا مطابقة الرموز التعبيرية والتأكد من ترتيب الفواصل السطرية
-            return text.trim();
-        }
-
-        window.saveExamSettingsToCloud = async function() {
-            let selectedId = document.getElementById('examSelectDropdown').value;
-            if (!selectedId) { alert('يرجى اختيار امتحان أولاً!'); return; }
-
-            let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
-            
-            let rawWelcome = document.getElementById('settingWelcomeMsg').value.trim();
-            let rawEndMsg = document.getElementById('settingCustomMsg').value.trim();
-
-            let finalWelcomeMsg = rawWelcome === '' ? DEFAULT_WELCOME_TEXT : rawWelcome;
-            let finalEndMsg = rawEndMsg === '' ? DEFAULT_END_TEXT : formatEmojisWithNewLine(rawEndMsg);
-
-            let newSettings = {
-                active: true,
-                password: isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '',
-                aiBot: document.getElementById('settingAIBot').checked,
-                timer: document.getElementById('settingTimer').checked,
-                shuffle: document.getElementById('settingShuffle').checked,
-                instantResult: document.getElementById('settingInstantResult').checked,
-                fullScreen: document.getElementById('settingFullScreen').checked,
-                antiCheat: document.getElementById('settingAntiCheat').checked,
-                fullMarkCongrats: document.getElementById('settingFullMarkCongrats').checked,
-                welcomeToggle: document.getElementById('settingWelcomeToggle').checked,
-                welcomeMsg: finalWelcomeMsg,
-                endMsgToggle: document.getElementById('settingEndMsgToggle').checked,
-                customMsg: finalEndMsg,
-                duration: parseInt(document.getElementById('settingDuration').value) || 30,
-                attempts: parseInt(document.getElementById('settingAttempts').value) || 1,
-                passingScore: parseInt(document.getElementById('settingPassingScore').value) || 50,
-                maxQuota: document.getElementById('settingMaxQuota').value.trim()
-            };
-
-            try {
-                const examRef = doc(db, "exams", selectedId);
-                await updateDoc(examRef, { settings: newSettings });
-                
-                let examIndex = globalExamsList.findIndex(e => e.id === selectedId);
-                if (examIndex !== -1) {
-                    globalExamsList[examIndex].settings = newSettings;
+                if (availableExamsList.length > 0) {
+                    renderExamsListUI(availableExamsList);
+                } else {
+                    renderNoExamMessage("لا توجد امتحانات متاحة حالياً.");
                 }
-
-                alert('تم حفظ وتفعيل إعدادات الامتحان بنجاح في فايربيز ⚙️🚀');
             } catch (e) {
                 console.error(e);
-                alert("حدث خطأ أثناء حفظ الإعدادات.");
+                renderNoExamMessage("حدث خطأ في الاتصال بالسحابة.");
+            }
+        }
+
+        function renderNoExamMessage(msg) {
+            document.getElementById('examContainer').innerHTML = `<div style="text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px;"><h3 style="font-size:0.88rem;">${msg}</h3></div>`;
+        }
+
+        function renderExamsListUI(exams) {
+            let html = `<h2 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main);">قائمة الامتحانات المتاحة للإجابة 📚</h2>`;
+            
+            exams.forEach((exam) => {
+                let duration = exam.settings?.duration || 30;
+                let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
+                let maxQuota = exam.settings?.maxQuota ? parseInt(exam.settings.maxQuota) : null;
+                let submissions = exam.examSubmissions || [];
+                
+                // عدد محاولات الطالب الحالية
+                let studentSubmissionsCount = submissions.filter(sub => sub.studentEmail === currentStudentEmail).length;
+                let studentAttemptsExceeded = studentSubmissionsCount >= attemptsAllowed;
+                
+                // حساب إجمالي الطلاب الممتحنين الفريدين للـ Quota
+                let totalUniqueStudentsCount = new Set(submissions.map(sub => sub.studentEmail)).size;
+                let quotaExceeded = maxQuota !== null && totalUniqueStudentsCount >= maxQuota && studentSubmissionsCount === 0;
+
+                let isBlocked = studentAttemptsExceeded || quotaExceeded;
+                let statusText = quotaExceeded ? "اكتمل العدد النهائي للمتقدمين (Quota) ⛔" : "استنفدت عدد المحاولات المتاحة ✅";
+
+                let btnHtml = isBlocked 
+                    ? `<button class="start-exam-btn disabled" disabled>${statusText}</button>`
+                    : `<button class="start-exam-btn" onclick="checkExamRequirements('${exam.id}')">دخول الامتحان 🚀</button>`;
+
+                html += `
+                    <div class="exam-select-card">
+                        <div>
+                            <h3>🎯 ${exam.title || 'امتحان بدون عنوان'}</h3>
+                            <div class="exam-meta-row" style="margin-top:5px;">
+                                <span>📚 المادة: ${exam.subject || 'عام'}</span>
+                                <span>👥 الفئة: ${exam.targetGroup || 'عام'}</span>
+                                <span>⏱️ المدة: ${duration} دقيقة</span>
+                                <span>🔄 محاولاتك: ${studentSubmissionsCount} / ${attemptsAllowed}</span>
+                            </div>
+                        </div>
+                        ${btnHtml}
+                    </div>`;
+            });
+
+            document.getElementById('examContainer').innerHTML = html;
+        }
+
+        window.checkExamRequirements = function(examId) {
+            let exam = availableExamsList.find(e => e.id === examId);
+            if (!exam) return;
+
+            pendingExamIdToStart = examId;
+
+            // التحقق من تفعيل رسالة الترحيب
+            let welcomeToggle = exam.settings?.welcomeToggle !== false;
+            let welcomeMsg = exam.settings?.welcomeMsg || '';
+
+            if (welcomeToggle && welcomeMsg.trim() !== '') {
+                document.getElementById('welcomeMsgTextContent').textContent = welcomeMsg;
+                document.getElementById('welcomeMsgModal').style.display = 'flex';
+            } else {
+                proceedAfterWelcome(exam);
             }
         };
+
+        window.confirmStartExamAfterWelcome = function() {
+            document.getElementById('welcomeMsgModal').style.display = 'none';
+            let exam = availableExamsList.find(e => e.id === pendingExamIdToStart);
+            if (exam) proceedAfterWelcome(exam);
+        };
+
+        function proceedAfterWelcome(exam) {
+            if (exam.settings?.password && exam.settings.password.trim() !== '') {
+                document.getElementById('passwordModal').style.display = 'flex';
+                document.getElementById('examPasswordInput').value = '';
+            } else {
+                startSpecificExam(pendingExamIdToStart);
+            }
+        }
+
+        window.verifyExamPassword = function() {
+            let enteredPwd = document.getElementById('examPasswordInput').value.trim();
+            let exam = availableExamsList.find(e => e.id === pendingExamIdToStart);
+
+            if (exam && enteredPwd === exam.settings.password) {
+                document.getElementById('passwordModal').style.display = 'none';
+                startSpecificExam(pendingExamIdToStart);
+            } else {
+                alert('كلمة المرور غير صحيحة! حاول مرة أخرى.');
+            }
+        };
+
+        window.closePasswordModal = function() {
+            document.getElementById('passwordModal').style.display = 'none';
+        };
+
+        function startSpecificExam(examId) {
+            activeSelectedExam = availableExamsList.find(e => e.id === examId);
+            if (!activeSelectedExam) return;
+
+            isExamActiveNow = true;
+            document.getElementById('examHeaderTitle').textContent = activeSelectedExam.title;
+
+            // وضع ملء الشاشة الحقيقي إذا كان مفعلاً
+            if (activeSelectedExam.settings?.fullScreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                document.getElementById('homeLinkBtn').style.display = 'none';
+            }
+
+            // منع الهروب والريفريش الحقيقي (Anti-Cheat) وتسليم الامتحان تلقائياً عند المغادرة
+            if (activeSelectedExam.settings?.antiCheat) {
+                window.onbeforeunload = function(e) {
+                    if (isExamActiveNow) {
+                        submitExamDueToCheat();
+                        e.returnValue = 'تم رصد مغادرة الامتحان! سيتم تسليمه تلقائياً.';
+                    }
+                };
+            }
+            
+            if (activeSelectedExam.settings?.timer !== false) {
+                document.getElementById('timerDisplay').style.display = 'block';
+                timeLeft = (activeSelectedExam.settings?.duration || 30) * 60;
+                startTimer();
+            }
+
+            renderExamQuestions(activeSelectedExam.questions);
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(null); return; }
+                let m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                document.getElementById('timerDisplay').textContent = `⏳ الوقت: ${m}:${s < 10 ? '0' : ''}${s}`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        async function submitExamDueToCheat() {
+            if (!isExamActiveNow) return;
+            isExamActiveNow = false;
+            await saveStudentResultToCloud(0, 100, { note: 'تم تسليم الامتحان تلقائياً بسبب تحديث أو مغادرة الصفحة (Anti-Cheat)' }, 0);
+        }
+
+        function renderExamQuestions(questions) {
+            // خلط الأسئلة عشوائياً إذا كان الإعداد مفعلاً
+            let questionsToRender = [...questions];
+            if (activeSelectedExam.settings?.shuffle) {
+                questionsToRender.sort(() => Math.random() - 0.5);
+            }
+
+            let html = `<div class="exam-card"><form id="examForm" onsubmit="submitExam(event)">`;
+            
+            questionsToRender.forEach((q, idx) => {
+                let qType = q.type || 'mcq';
+                let marksText = q.marks ? `(${q.marks} درجات)` : '(درجة)';
+                
+                html += `<div class="question-box" id="qBox-${idx}">
+                    <h3>س${idx + 1}: ${q.text} <span style="font-size:0.7rem; background:rgba(99,102,241,0.15); color:var(--primary); padding:2px 6px; border-radius:4px;">${marksText}</span></h3>`;
+                
+                if (q.imageUrl) {
+                    html += `<img src="${q.imageUrl}" onclick="openLightbox('${q.imageUrl}')" style="max-width:100%; max-height:160px; border-radius:8px; margin-bottom:8px; display:block; cursor:pointer; border:1px solid var(--border-color);" title="اضغط لتكبير الصورة">`;
+                }
+
+                if (qType === 'mcq' || qType === 'tf') {
+                    html += `<div class="options-list">`;
+                    (q.options || ['صح', 'خطأ']).forEach((opt, oIdx) => {
+                        html += `<label class="option-label">
+                            <input type="radio" name="question_${idx}" value="${oIdx}" required style="width:14px; height:14px;"> <span>${opt}</span>
+                        </label>`;
+                    });
+                    html += `</div>`;
+                } else if (qType === 'checkbox') {
+                    html += `<div class="options-list">`;
+                    (q.options || []).forEach((opt, oIdx) => {
+                        html += `<label class="option-label">
+                            <input type="checkbox" name="question_${idx}" value="${oIdx}" style="width:14px; height:14px;"> <span>${opt}</span>
+                        </label>`;
+                    });
+                    html += `</div>`;
+                } else if (qType === 'short') {
+                    html += `<input type="text" class="student-textarea" name="question_${idx}" placeholder="اكتب إجابتك القصيرة هنا..." required>`;
+                } else if (qType === 'long') {
+                    html += `<textarea class="student-textarea" name="question_${idx}" rows="3" placeholder="اكتب إجابتك المقالية المفصلة هنا..." required style="resize:vertical;"></textarea>`;
+                } else if (qType === 'essayImage') {
+                    html += `<div class="upload-box">
+                        <span style="font-size:0.8rem; color:var(--text-main); font-weight:bold;">📁 اضغط هنا أو ارفع صورة الإجابة من هاتفك</span>
+                        <input type="file" accept="image/*" onchange="handleImageUpload(this, ${idx})">
+                    </div>
+                    <input type="hidden" name="question_${idx}" id="imgInput_${idx}" required value="">
+                    <p id="uploadStatus_${idx}" style="font-size:0.72rem; color:var(--success); margin-top:4px; font-weight:bold;"></p>`;
+                } else if (qType === 'voice') {
+                    html += `<div class="voice-recorder-box">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn-record" id="recBtn_${idx}" onclick="toggleRealVoiceRecording(${idx})" title="بدء / إيقاف التسجيل">🎙️</button>
+                            <span id="recStatus_${idx}" style="font-size:0.78rem; color:var(--text-muted);">اضغط لتسجيل الفويس الحقيقي</span>
+                        </div>
+                        <audio id="audioPlayback_${idx}" controls class="hidden" style="height:30px; max-width:220px;"></audio>
+                    </div>
+                    <input type="hidden" name="question_${idx}" id="voiceInput_${idx}" required value="">
+                    <input type="text" class="student-textarea" name="question_note_${idx}" placeholder="اكتب ملاحظة أو توضيحاً بجانب الفويس (اختياري)..." style="margin-top:6px;">`;
+                }
+                html += `</div>`;
+            });
+
+            html += `<button type="submit" class="btn-submit-exam">تسليم الامتحان وعرض النتيجة 🚀</button></form></div>`;
+            document.getElementById('examContainer').innerHTML = html;
+        }
+
+        window.openLightbox = function(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxModal').style.display = 'flex';
+        };
+
+        window.handleImageUpload = function(input, qIdx) {
+            if (input.files && input.files[0]) {
+                let file = input.files[0];
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(`imgInput_${qIdx}`).value = e.target.result;
+                    document.getElementById(`uploadStatus_${qIdx}`).textContent = `✔ تم إرفاق الصورة بنجاح: ${file.name}`;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.toggleRealVoiceRecording = async function(qIdx) {
+            let btn = document.getElementById(`recBtn_${qIdx}`);
+            let status = document.getElementById(`recStatus_${qIdx}`);
+            let audioPlayer = document.getElementById(`audioPlayback_${qIdx}`);
+            let voiceInput = document.getElementById(`voiceInput_${qIdx}`);
+
+            if (!mediaRecordersMap[qIdx] || mediaRecordersMap[qIdx].state === 'inactive') {
+                try {
+                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioChunksMap[qIdx] = [];
+                    let recorder = new MediaRecorder(stream);
+                    mediaRecordersMap[qIdx] = recorder;
+
+                    recorder.ondataavailable = event => {
+                        if (event.data.size > 0) audioChunksMap[qIdx].push(event.data);
+                    };
+
+                    recorder.onstop = () => {
+                        let audioBlob = new Blob(audioChunksMap[qIdx], { type: 'audio/webm' });
+                        let audioUrl = URL.createObjectURL(audioBlob);
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.classList.remove('hidden');
+
+                        let reader = new FileReader();
+                        reader.onloadend = function() {
+                            voiceInput.value = reader.result;
+                        };
+                        reader.readAsDataURL(audioBlob);
+                    };
+
+                    recorder.start();
+                    btn.classList.add('recording');
+                    status.textContent = '🔴 جاري التسجيل الحقيقي الآن...';
+                    status.style.color = '#ef4444';
+                } catch (err) {
+                    alert('عذراً، يرجى السماح للمتصفح بالوصول إلى الميكروفون لتسجيل الصوت.');
+                    console.error(err);
+                }
+            } else {
+                let recorder = mediaRecordersMap[qIdx];
+                if (recorder.state === 'recording') {
+                    recorder.stop();
+                    btn.classList.remove('recording');
+                    status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙';
+                    status.style.color = '#10b981';
+                }
+            }
+        };
+
+        window.submitExam = async function(e) {
+            if (e) e.preventDefault();
+            isExamActiveNow = false;
+            if (timerInterval) clearInterval(timerInterval);
+
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+
+            let questions = activeSelectedExam.questions;
+            let score = 0, totalMarks = 0;
+            let useAI = activeSelectedExam.settings?.aiBot !== false;
+            let studentAnswersRecord = {};
+
+            questions.forEach((q, idx) => {
+                let qMarks = parseInt(q.marks) || 1;
+                totalMarks += qMarks;
+                let qType = q.type || 'mcq';
+
+                if (qType === 'mcq' || qType === 'tf') {
+                    let sel = document.querySelector(`input[name="question_${idx}"]:checked`);
+                    if (sel) {
+                        let val = parseInt(sel.value);
+                        studentAnswersRecord[idx] = q.options ? q.options[val] : val;
+                        if (val === q.correct) { score += qMarks; }
+                    } else {
+                        studentAnswersRecord[idx] = 'لم يُجب';
+                    }
+                } else if (qType === 'checkbox') {
+                    let sels = document.querySelectorAll(`input[name="question_${idx}"]:checked`);
+                    let checkedVals = Array.from(sels).map(el => parseInt(el.value));
+                    studentAnswersRecord[idx] = checkedVals.map(v => q.options[v]).join(', ');
+                    if (useAI) { score += qMarks; }
+                } else if (qType === 'voice') {
+                    let voiceVal = document.getElementById(`voiceInput_${idx}`).value;
+                    let noteVal = document.querySelector(`[name="question_note_${idx}"]`).value.trim();
+                    studentAnswersRecord[idx] = voiceVal ? (voiceVal + (noteVal ? ` (ملاحظة: ${noteVal})` : '')) : 'لم يُسجل صوت';
+                    if (useAI) { score += qMarks; }
+                } else {
+                    let txtInput = document.querySelector(`[name="question_${idx}"]`);
+                    let txtVal = txtInput ? txtInput.value.trim() : '';
+                    studentAnswersRecord[idx] = txtVal || 'لم يُجب';
+                    if (useAI) { score += qMarks; }
+                }
+            });
+
+            let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
+            
+            let earnedPoints = 5;
+            let fullMarkCongratsEnabled = activeSelectedExam.settings?.fullMarkCongrats !== false;
+            if (percentage === 100 && fullMarkCongratsEnabled) {
+                earnedPoints += 10; // الإجمالي 15 نقطة عند التقفيل الكامل
+            }
+
+            document.getElementById('examContainer').innerHTML = '';
+            
+            // التحقق من تفعيل عرض النتيجة الفورية
+            let instantResultEnabled = activeSelectedExam.settings?.instantResult !== false;
+            if (instantResultEnabled) {
+                document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalMarks}`;
+                document.getElementById('resultPercentageText').textContent = `النسبة المئوية: ${percentage}%`;
+            } else {
+                document.getElementById('resultGradeText').textContent = `تم تسليم الامتحان بنجاح 📋`;
+                document.getElementById('resultPercentageText').textContent = `سيتم مراجعة إجاباتك وإعلان النتيجة قريباً من قبل المعلم.`;
+            }
+            
+            // جلب رسالة النهاية من إعدادات المعلم
+            let endMsgToggle = activeSelectedExam.settings?.endMsgToggle !== false;
+            let customEndingText = activeSelectedExam.settings?.customMsg || 'عاش يا بطل انا شاكر لجهودك..';
+            document.getElementById('customEndingMsg').textContent = endMsgToggle ? customEndingText : '';
+
+            if (useAI && instantResultEnabled) document.getElementById('aiGradingNote').style.display = 'block';
+            document.getElementById('examResultBox').style.display = 'block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
+
+            if (percentage === 100 && fullMarkCongratsEnabled && instantResultEnabled) {
+                document.getElementById('totalPointsDisplay').textContent = earnedPoints;
+                triggerCelebrationEffect();
+            }
+        };
+
+        function triggerCelebrationEffect() {
+            const overlay = document.getElementById('celebrationOverlay');
+            overlay.style.display = 'flex';
+
+            for (let i = 0; i < 35; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = -10 + 'px';
+                conf.style.background = ['#10b981', '#6366f1', '#f59e0b', '#ec4899'][Math.floor(Math.random() * 4)];
+                conf.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 4000);
+            }
+        }
+
+        const boyCertTemplates = [
+            { bg: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)", border: "#f59e0b", titleColor: "#fcd34d", textColor: "#f8fafc", nameColor: "#60a5fa" },
+            { bg: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", border: "#10b981", titleColor: "#34d399", textColor: "#f8fafc", nameColor: "#38bdf8" },
+            { bg: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", border: "#facc15", titleColor: "#fde047", textColor: "#e2e8f0", nameColor: "#c084fc" },
+            { bg: "linear-gradient(135deg, #065f46 0%, #047857 100%)", border: "#fbbf24", titleColor: "#fef08a", textColor: "#ecfdf5", nameColor: "#34d399" },
+            { bg: "linear-gradient(135deg, #7c2d12 0%, #9a3412 100%)", border: "#fde047", titleColor: "#fef08a", textColor: "#fff7ed", nameColor: "#fb923c" }
+        ];
+
+        const girlCertTemplates = [
+            { bg: "linear-gradient(135deg, #831843 0%, #9d174d 100%)", border: "#f472b6", titleColor: "#fbcfe8", textColor: "#fdf2f8", nameColor: "#f472b6" },
+            { bg: "linear-gradient(135deg, #581c87 0%, #6b21a8 100%)", border: "#c084fc", titleColor: "#e9d5ff", textColor: "#f3e8ff", nameColor: "#d8b4fe" },
+            { bg: "linear-gradient(135deg, #134e4a 0%, #115e59 100%)", border: "#2dd4bf", titleColor: "#99f6e4", textColor: "#f0fdfa", nameColor: "#5eead4" },
+            { bg: "linear-gradient(135deg, #881337 0%, #9f1239 100%)", border: "#fda4af", titleColor: "#ffe4e6", textColor: "#fff1f2", nameColor: "#fb7185" },
+            { bg: "linear-gradient(135deg, #3b0764 0%, #581c87 100%)", border: "#f43f5e", titleColor: "#fecdd3", textColor: "#faf5ff", nameColor: "#f472b6" }
+        ];
+
+        window.openCertificatePreview = function() {
+            let nameInput = document.getElementById('certStudentNameInput').value.trim();
+            let gender = document.getElementById('certGenderSelect').value;
+            if (!nameInput) { alert('يرجى كتابة اسمك الثلاثي أولاً للحصول على الشهادة!'); return; }
+            
+            let templates = gender === 'boy' ? boyCertTemplates : girlCertTemplates;
+            let randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+            let certBox = document.getElementById('certificateContent');
+            certBox.style.background = randomTemplate.bg;
+            certBox.style.border = `6px solid ${randomTemplate.border}`;
+            
+            document.getElementById('certTitle').style.color = randomTemplate.titleColor;
+            document.getElementById('certSubtitle').style.color = randomTemplate.textColor;
+            document.getElementById('certToText').style.color = randomTemplate.textColor;
+            document.getElementById('finalCertName').style.color = randomTemplate.nameColor;
+            document.getElementById('certBodyText').style.color = randomTemplate.textColor;
+            document.getElementById('certDateText').style.color = randomTemplate.textColor;
+            document.getElementById('certSignText').style.color = randomTemplate.titleColor;
+
+            document.getElementById('finalCertName').textContent = nameInput;
+            document.getElementById('certDate').textContent = new Date().toLocaleDateString('ar-EG');
+            document.getElementById('celebrationOverlay').style.display = 'none';
+            document.getElementById('certificateModal').style.display = 'flex';
+        };
+
+        window.closeCertificateModal = function() {
+            document.getElementById('certificateModal').style.display = 'none';
+        };
+
+        window.downloadCertificateImage = function() {
+            let certElement = document.getElementById('certificateContent');
+            html2canvas(certElement, { scale: 2, useCORS: true }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'شهادة_تقدير_منصة_رحلة_دراسية.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        };
+
+        async function saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints) {
+            try {
+                let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
+                let email = currentStudentEmail;
+                let name = studentUser.fullname || studentUser.name || email.split('@')[0];
+                let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
+
+                const examRef = doc(db, "exams", activeSelectedExam.id);
+                const examSnap = await getDoc(examRef);
+                
+                if (examSnap.exists()) {
+                    let examData = examSnap.data();
+                    let submissions = examData.examSubmissions || [];
+                    
+                    submissions.push({
+                        studentName: name, 
+                        studentEmail: email, 
+                        studentAvatar: avatar, 
+                        score: score, 
+                        totalMarks: totalMarks,
+                        answers: studentAnswersRecord,
+                        examQuestions: activeSelectedExam.questions,
+                        date: new Date().toLocaleDateString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+                    });
+
+                    await updateDoc(examRef, { examSubmissions: submissions });
+                }
+
+                if (currentStudentUid && earnedPoints > 0) {
+                    const studentDocRef = doc(db, "users", currentStudentUid);
+                    await updateDoc(studentDocRef, {
+                        points: increment(earnedPoints)
+                    }).catch(() => {});
+                }
+            } catch (err) { console.error("خطأ في حفظ النتيجة والنقاط:", err); }
+        }
     </script>
 </body>
 </html>
