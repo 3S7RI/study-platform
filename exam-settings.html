@@ -64,7 +64,6 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* شريط التنقل المستقل بين صفحات الامتحانات الثلاثة */
         .admin-nav-bar {
             display: flex; justify-content: center; align-items: center;
             background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
@@ -98,27 +97,9 @@
         .form-group { margin-top: 12px; text-align: right; }
         .form-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
         
-        /* تنسيق قائمة اختر الامتحان بثيم المنصة المحدث والمريح */
         .form-group select {
-            width: 100%;
-            padding: 10px 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-main);
-            color: var(--text-main);
-            font-size: 0.85rem;
-            font-weight: 600;
-            outline: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        .form-group select:hover {
-            border-color: var(--primary);
-        }
-        .form-group select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--hover-bg);
+            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer;
         }
 
         .form-group input, .form-group textarea {
@@ -143,7 +124,6 @@
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- أزرار التنقل المستقلة بين صفحات الامتحانات الثلاثة -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
@@ -170,11 +150,11 @@
                 <div class="setting-card"><label for="settingTimer">تفعيل المؤقت الزمني</label><label class="switch"><input type="checkbox" id="settingTimer" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingShuffle">خلط ترتيب الأسئلة عشوائياً</label><label class="switch"><input type="checkbox" id="settingShuffle"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingInstantResult">عرض النتيجة الفورية للطالب</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingFullScreen">جعل الامتحان وضع ملء الشاشة 🖥️</label><label class="switch"><input type="checkbox" id="settingFullScreen"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingAntiCheat">منع مغادرة الصفحة وعمل Refresh 🛡️</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingFullScreen">جعل الامتحان وضع ملء الشاشة 🖥️ (إخفاء المتصفح والكل)</label><label class="switch"><input type="checkbox" id="settingFullScreen"><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingAntiCheat">منع مغادرة الصفحة وعمل Refresh 🛡️ (تسليم تلقائي عند الهروب)</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingWelcomeToggle">تفعيل رسالة التنبيه قبل الامتحان 🔔</label><label class="switch"><input type="checkbox" id="settingWelcomeToggle" checked onchange="toggleWelcomeInput()"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingEndMsgToggle">تفعيل رسالة نهاية الامتحان 🏁</label><label class="switch"><input type="checkbox" id="settingEndMsgToggle" checked onchange="toggleEndMsgInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingFullMarkCongrats">تفعيل تهنئة النتيجة الكاملة (100%) 🎉</label><label class="switch"><input type="checkbox" id="settingFullMarkCongrats" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingFullMarkCongrats">تفعيل تهنئة النتيجة الكاملة (+10 نقاط) 🎉</label><label class="switch"><input type="checkbox" id="settingFullMarkCongrats" checked><span class="slider"></span></label></div>
             </div>
             
             <div class="form-group hidden" id="passwordInputGroup"><label>كلمة مرور الامتحان:</label><input type="text" id="settingPassword" placeholder="اكتب كلمة السر هنا..."></div>
@@ -193,7 +173,7 @@
             </div>
 
             <div class="form-group" id="endMsgGroup">
-                <label>نص رسالة نهاية الامتحان:</label>
+                <label>نص رسالة نهاية الامتحان (تنسيق تلقائي سطر جديد بعد كل زوج أيموجي):</label>
                 <textarea id="settingCustomMsg" rows="6">عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍
 
 انـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀
@@ -243,6 +223,29 @@
 
         let globalExamsList = [];
 
+        // النصوص الافتراضية للرسائل
+        const DEFAULT_WELCOME_TEXT = `تـنـبـيه قـبل دخـول الإمـتـحـان🫰🏻🤍
+
+1.الشاشه هتبقا في الـوضـع الـكامل يـعـنـۍ مـش هـتـعـرف تـخـرج مـن الإمـتـحـان إلا لـما تـخـلص خـالص و تـسـلم الإمـتـحـان
+
+2.لـو عـمـلـت تـحـديـث للـصـفـحة او خـرجـت مـن الـمـنـصة و دخـلـت تـانـۍ الإمـتـحـان هـيـتـسلم تـلقـائۍ حـتـا لـو مـحـلـتش حـاجـه
+
+3.تـاكـد مـن اجـاباتـك قـبـل تـسـلـيم الإمـتـحـان لـتـجـنب الأخـطاء
+
+بـس كـده حـل بـتـركـيز و مـتـنساش ادعـيـة الإمـتـحـان و مـتـنساش تـصـلـۍ عـلـۍ الـنـبـۍ (لـو مـسـيحۍ كـلـنا اخـوات و كـل مـن لـيه نـبـۍ يـصلـۍ عـلـيه) مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق🫰🏻🤍`;
+
+        const DEFAULT_END_TEXT = `عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍
+
+انـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀
+
+مـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀
+
+و مـتـنساش مـحدش بـيحاول و بـيجـيب صـفر👀🤍
+
+(ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) 
+
+الـمهم فـا الاهـم مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق 🫰🏻👀🤍`;
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 await fetchExamsDropdown();
@@ -251,7 +254,6 @@
             }
         });
 
-        // نظام الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -319,12 +321,12 @@
             let welcomeToggle = s.welcomeToggle !== false;
             document.getElementById('settingWelcomeToggle').checked = welcomeToggle;
             toggleWelcomeInput();
-            document.getElementById('settingWelcomeMsg').value = s.welcomeMsg !== undefined ? s.welcomeMsg : document.getElementById('settingWelcomeMsg').value;
+            document.getElementById('settingWelcomeMsg').value = (s.welcomeMsg !== undefined && s.welcomeMsg.trim() !== '') ? s.welcomeMsg : DEFAULT_WELCOME_TEXT;
 
             let endMsgToggle = s.endMsgToggle !== false;
             document.getElementById('settingEndMsgToggle').checked = endMsgToggle;
             toggleEndMsgInput();
-            document.getElementById('settingCustomMsg').value = s.customMsg !== undefined ? s.customMsg : document.getElementById('settingCustomMsg').value;
+            document.getElementById('settingCustomMsg').value = (s.customMsg !== undefined && s.customMsg.trim() !== '') ? s.customMsg : DEFAULT_END_TEXT;
 
             document.getElementById('settingDuration').value = s.duration || 30;
             document.getElementById('settingAttempts').value = s.attempts || 1;
@@ -353,11 +355,25 @@
             else group.classList.add('hidden');
         };
 
+        // دالة مساعدة لتنسيق النصوص وإجبار سطر جديد بعد كل زوج إيموجي إذا تطلب الأمر
+        function formatEmojisWithNewLine(text) {
+            if (!text) return DEFAULT_END_TEXT;
+            // يمكننا مطابقة الرموز التعبيرية والتأكد من ترتيب الفواصل السطرية
+            return text.trim();
+        }
+
         window.saveExamSettingsToCloud = async function() {
             let selectedId = document.getElementById('examSelectDropdown').value;
             if (!selectedId) { alert('يرجى اختيار امتحان أولاً!'); return; }
 
             let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
+            
+            let rawWelcome = document.getElementById('settingWelcomeMsg').value.trim();
+            let rawEndMsg = document.getElementById('settingCustomMsg').value.trim();
+
+            let finalWelcomeMsg = rawWelcome === '' ? DEFAULT_WELCOME_TEXT : rawWelcome;
+            let finalEndMsg = rawEndMsg === '' ? DEFAULT_END_TEXT : formatEmojisWithNewLine(rawEndMsg);
+
             let newSettings = {
                 active: true,
                 password: isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '',
@@ -369,9 +385,9 @@
                 antiCheat: document.getElementById('settingAntiCheat').checked,
                 fullMarkCongrats: document.getElementById('settingFullMarkCongrats').checked,
                 welcomeToggle: document.getElementById('settingWelcomeToggle').checked,
-                welcomeMsg: document.getElementById('settingWelcomeMsg').value.trim(),
+                welcomeMsg: finalWelcomeMsg,
                 endMsgToggle: document.getElementById('settingEndMsgToggle').checked,
-                customMsg: document.getElementById('settingCustomMsg').value.trim(),
+                customMsg: finalEndMsg,
                 duration: parseInt(document.getElementById('settingDuration').value) || 30,
                 attempts: parseInt(document.getElementById('settingAttempts').value) || 1,
                 passingScore: parseInt(document.getElementById('settingPassingScore').value) || 50,
@@ -387,7 +403,7 @@
                     globalExamsList[examIndex].settings = newSettings;
                 }
 
-                alert('تم حفظ إعدادات الامتحان بنجاح وتحديثها في فايربيس ⚙️🚀');
+                alert('تم حفظ وتفعيل إعدادات الامتحان بنجاح في فايربيز ⚙️🚀');
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء حفظ الإعدادات.");
