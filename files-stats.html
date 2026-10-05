@@ -83,12 +83,17 @@
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
 
-        .form-group { margin-top: 14px; text-align: right; }
-        .form-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
-        .form-group select {
-            width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; outline: none;
+        /* شبكة عرض الحصص المتاحة لإحصائياتها */
+        .lessons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+        .lesson-card-item {
+            background: var(--th-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
         }
+        .btn-stats-view {
+            background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 8px;
+            font-weight: bold; cursor: pointer; font-size: 0.82rem; width: 100%; text-align: center; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+        .btn-stats-view:hover { background: var(--primary-hover); }
 
         table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; font-size: 0.8rem; white-space: nowrap; }
         th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
@@ -114,18 +119,20 @@
             </div>
         </nav>
 
+        <!-- قائمة الحصص المنشورة كصفحة وبطاقات ظاهرة وليست قائمة منسدلة -->
         <div class="section-box">
-            <div class="section-header"><h2>اختر الحصة لمتابعة تفاعل الطلاب وإنجازهم 📈</h2></div>
-            <div class="form-group" style="margin-top:0;">
-                <label>اختر الحصة الدراسية:</label>
-                <select id="selectLessonStatsDropdown" onchange="loadLessonStatsData()">
-                    <option value="">-- اختر الحصة لعرض إحصائيات الطلاب --</option>
-                </select>
+            <div class="section-header"><h2>قائمة الحصص المتاحة لمتابعة تفاعل الطلاب 📈</h2></div>
+            <div id="lessonsCardsContainer" class="lessons-grid">
+                <p style="text-align: center; opacity: 0.7; padding: 15px; font-size: 0.82rem; grid-column: 1 / -1;">جاري جلب الحصص...</p>
             </div>
         </div>
 
+        <!-- جدول تفاعل الطلاب للحصة المحددة -->
         <div class="section-box hidden" id="statsTableContainerBox">
-            <div class="section-header"><h2 id="statsTableTitle">تقرير تفاعل الطلاب للحصة</h2></div>
+            <div class="section-header">
+                <h2 id="statsTableTitle">تقرير تفاعل الطلاب للحصة</h2>
+                <button onclick="document.getElementById('statsTableContainerBox').classList.add('hidden')" style="background:var(--danger); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">إغلاق التقرير ✕</button>
+            </div>
             <div style="overflow-x: auto;">
                 <table id="lessonStatsTable">
                     <thead>
@@ -170,7 +177,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await fetchDropdownAndStudents();
+                await fetchLessonsAndStudents();
             } else {
                 window.location.href = 'login.html';
             }
@@ -189,22 +196,36 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        async function fetchDropdownAndStudents() {
+        async function fetchLessonsAndStudents() {
             try {
-                // جلب الحصص
+                // جلب الحصص وعرضها كبطاقات في الصفحة
                 const lessonsSnap = await getDocs(collection(db, "lessons"));
                 globalLessonsList = [];
-                const select = document.getElementById('selectLessonStatsDropdown');
-                let html = '<option value="">-- اختر الحصة لعرض إحصائيات الطلاب --</option>';
+                const container = document.getElementById('lessonsCardsContainer');
                 
                 lessonsSnap.forEach((docSnap) => {
-                    let les = docSnap.data();
-                    globalLessonsList.push({ id: docSnap.id, ...les });
-                    html += `<option value="${docSnap.id}">🎬 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'}</option>`;
+                    globalLessonsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                select.innerHTML = html;
 
-                // جلب الطلاب المسجلين
+                if (globalLessonsList.length === 0) {
+                    container.innerHTML = `<p style="text-align: center; opacity: 0.7; padding: 15px; font-size: 0.82rem; grid-column: 1 / -1;">لا توجد حصص منشورة حتى الآن.</p>`;
+                    return;
+                }
+
+                let html = "";
+                globalLessonsList.forEach((les) => {
+                    html += `
+                        <div class="lesson-card-item">
+                            <div>
+                                <h3 style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 4px;">🎬 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'}</h3>
+                                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">المادة: ${les.subject || 'عام'} | الصف: ${les.targetGroup || 'عام'}</p>
+                            </div>
+                            <button class="btn-stats-view" onclick="loadLessonStatsData('${les.id}')">عرض تقرير الطلاب 📊</button>
+                        </div>`;
+                });
+                container.innerHTML = html;
+
+                // جلب الطلاب المسجلين مسبقاً
                 const studentsSnap = await getDocs(collection(db, "users"));
                 globalStudentsList = [];
                 studentsSnap.forEach((docSnap) => {
@@ -215,25 +236,18 @@
             }
         }
 
-        window.loadLessonStatsData = function() {
-            let lessonId = document.getElementById('selectLessonStatsDropdown').value;
+        window.loadLessonStatsData = function(lessonId) {
             let boxContainer = document.getElementById('statsTableContainerBox');
-            
-            if (!lessonId) {
-                boxContainer.classList.add('hidden');
-                return;
-            }
-
             let lesson = globalLessonsList.find(l => l.id === lessonId);
             if (!lesson) return;
 
             document.getElementById('statsTableTitle').textContent = `تقرير تفاعل الطلاب لحصة: ${lesson.title}`;
-            
             const tbody = document.getElementById('lessonStatsTableBody');
             
             if (globalStudentsList.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px;">لا توجد بيانات طلاب مسجلين حالياً.</td></tr>`;
                 boxContainer.classList.remove('hidden');
+                boxContainer.scrollIntoView({ behavior: 'smooth' });
                 return;
             }
 
@@ -242,7 +256,6 @@
                 let name = student.name || 'طالب المنصة';
                 let avatar = student.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 
-                // محاكاة أو قراءة سجل تفاعل الطالب مع الحصة من قاعدة البيانات
                 let activity = (student.lessonsActivity || {})[lessonId] || { studyNotes: false, video: false, summary: false, examScore: null };
 
                 let studyBadge = activity.studyNotes ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ الشرح</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
@@ -262,6 +275,7 @@
 
             tbody.innerHTML = html;
             boxContainer.classList.remove('hidden');
+            boxContainer.scrollIntoView({ behavior: 'smooth' });
         };
     </script>
 </body>
