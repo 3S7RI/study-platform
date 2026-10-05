@@ -152,7 +152,6 @@
             100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
         }
 
-        /* قوالب الشهادات الـ 10 الفاخرة (5 ولاد + 5 بنات) */
         .certificate-box {
             border-radius: 16px; padding: 25px; max-width: 560px; width: 100%; text-align: center;
             box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; margin: auto;
@@ -161,6 +160,15 @@
     </style>
 </head>
 <body id="pageBody">
+
+    <!-- نافذة رسالة التنبيه قبل بدء الامتحان -->
+    <div class="modal-overlay" id="welcomeMsgModal">
+        <div class="modal-card" style="max-width: 460px; text-align: right;">
+            <h3 style="color: var(--primary); font-size: 1.05rem; margin-bottom: 10px; text-align: center;">🔔 تنبيه هـام قبل دخول الامتحان</h3>
+            <div id="welcomeMsgTextContent" style="font-size: 0.82rem; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); max-height: 250px; overflow-y: auto; margin-bottom: 15px;"></div>
+            <button onclick="confirmStartExamAfterWelcome()" style="background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 0.85rem;">فهمت التعليمات، ابدأ الامتحان الآن 🚀</button>
+        </div>
+    </div>
 
     <!-- نافذة تكبير الصور المرفوعة من الأدمن -->
     <div class="lightbox-overlay" id="lightboxModal" onclick="this.style.display='none'">
@@ -243,7 +251,7 @@
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side">
-                <a href="main.html" class="btn-home-link">
+                <a href="main.html" class="btn-home-link" id="homeLinkBtn">
                     🏠 <span>الرئيسية</span>
                 </a>
                 <div class="timer-box" id="timerDisplay" style="display: none;">⏳ الوقت: --:--</div>
@@ -301,6 +309,7 @@
 
         let mediaRecordersMap = {};
         let audioChunksMap = {};
+        let isExamActiveNow = false;
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -311,7 +320,7 @@
             let next = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             document.body.setAttribute('data-theme', next);
             localStorage.setItem('platform_theme', next);
-            themeToggleBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+            themeToggleBtn.textContent = next === 'dark' ? '☀️️' : '🌙';
         });
 
         onAuthStateChanged(auth, async (user) => {
@@ -352,15 +361,20 @@
             
             exams.forEach((exam) => {
                 let duration = exam.settings?.duration || 30;
-                let attemptsAllowed = parseInt(exam.settings?.attempts) || 1;
+                let attemptsAllowed = parseInt(exam.settings?.attempts) || 1; // الافتراضي مرة واحدة
                 let maxQuota = exam.settings?.maxQuota ? parseInt(exam.settings.maxQuota) : null;
                 let submissions = exam.examSubmissions || [];
                 
-                let studentAlreadySubmitted = submissions.some(sub => sub.studentEmail === currentStudentEmail);
-                let quotaExceeded = maxQuota !== null && submissions.length >= maxQuota;
+                // حساب عدد مرات تقدم هذا الطالب تحديداً
+                let studentSubmissionsCount = submissions.filter(sub => sub.studentEmail === currentStudentEmail).length;
+                let studentAttemptsExceeded = studentSubmissionsCount >= attemptsAllowed;
+                
+                // حساب عدد المتقدمين الإجمالي مقارنة بالـ Quota
+                let totalUniqueStudentsCount = new Set(submissions.map(sub => sub.studentEmail)).size;
+                let quotaExceeded = maxQuota !== null && totalUniqueStudentsCount >= maxQuota && studentSubmissionsCount === 0;
 
-                let isBlocked = (studentAlreadySubmitted && attemptsAllowed === 1) || quotaExceeded;
-                let statusText = quotaExceeded ? "اكتمل العدد النهائي للمتقدمين (Quota) ⛔" : "تم اجتياز الامتحان بنجاح ✅";
+                let isBlocked = studentAttemptsExceeded || quotaExceeded;
+                let statusText = quotaExceeded ? "اكتمل العدد النهائي للمتقدمين (Quota) ⛔" : "استنفدت عدد المحاولات المتاحة ✅";
 
                 let btnHtml = isBlocked 
                     ? `<button class="start-exam-btn disabled" disabled>${statusText}</button>`
@@ -374,7 +388,7 @@
                                 <span>📚 المادة: ${exam.subject || 'عام'}</span>
                                 <span>👥 الفئة: ${exam.targetGroup || 'عام'}</span>
                                 <span>⏱️ المدة: ${duration} دقيقة</span>
-                                <span>👥 المتقدمون: ${submissions.length} ${maxQuota ? '/ ' + maxQuota : ''}</span>
+                                <span>🔄 محاولاتك: ${studentSubmissionsCount} / ${attemptsAllowed}</span>
                             </div>
                         </div>
                         ${btnHtml}
@@ -390,13 +404,32 @@
 
             pendingExamIdToStart = examId;
 
+            // التحقق من تفعيل رسالة الترحيب قبل الدخول
+            let welcomeToggle = exam.settings?.welcomeToggle !== false;
+            let welcomeMsg = exam.settings?.welcomeMsg || 'تنبيه هام قبل دخول الامتحان...';
+
+            if (welcomeToggle && welcomeMsg.trim() !== '') {
+                document.getElementById('welcomeMsgTextContent').textContent = welcomeMsg;
+                document.getElementById('welcomeMsgModal').style.display = 'flex';
+            } else {
+                proceedAfterWelcome(exam);
+            }
+        };
+
+        window.confirmStartExamAfterWelcome = function() {
+            document.getElementById('welcomeMsgModal').style.display = 'none';
+            let exam = availableExamsList.find(e => e.id === pendingExamIdToStart);
+            if (exam) proceedAfterWelcome(exam);
+        };
+
+        function proceedAfterWelcome(exam) {
             if (exam.settings?.password && exam.settings.password.trim() !== '') {
                 document.getElementById('passwordModal').style.display = 'flex';
                 document.getElementById('examPasswordInput').value = '';
             } else {
-                startSpecificExam(examId);
+                startSpecificExam(pendingExamIdToStart);
             }
-        };
+        }
 
         window.verifyExamPassword = function() {
             let enteredPwd = document.getElementById('examPasswordInput').value.trim();
@@ -418,7 +451,24 @@
             activeSelectedExam = availableExamsList.find(e => e.id === examId);
             if (!activeSelectedExam) return;
 
+            isExamActiveNow = true;
             document.getElementById('examHeaderTitle').textContent = activeSelectedExam.title;
+
+            // تفعيل وضع ملء الشاشة الحقيقي إذا كان مفعلاً في إعدادات المعلم
+            if (activeSelectedExam.settings?.fullScreen) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+                document.getElementById('homeLinkBtn').style.display = 'none'; // إخفاء زر الرئيسية
+            }
+
+            // تفعيل منع المغادرة والريفريش الحقيقي (Anti-Cheat)
+            if (activeSelectedExam.settings?.antiCheat) {
+                window.onbeforeunload = function(e) {
+                    if (isExamActiveNow) {
+                        submitExamDueToCheat();
+                        e.returnValue = 'تم رصد محاولة مغادرة أو تحديث للصفحة! سيتم تسليم الامتحان تلقائياً.';
+                    }
+                };
+            }
             
             if (activeSelectedExam.settings?.timer !== false) {
                 document.getElementById('timerDisplay').style.display = 'block';
@@ -436,6 +486,12 @@
                 document.getElementById('timerDisplay').textContent = `⏳ الوقت: ${m}:${s < 10 ? '0' : ''}${s}`;
                 timeLeft--;
             }, 1000);
+        }
+
+        async function submitExamDueToCheat() {
+            if (!isExamActiveNow) return;
+            isExamActiveNow = false;
+            await saveStudentResultToCloud(0, 100, { note: 'تم تسليم الامتحان تلقائياً بسبب محاولة تحديث أو مغادرة الصفحة (Anti-Cheat)' }, 0);
         }
 
         function renderExamQuestions(questions) {
@@ -557,7 +613,7 @@
                 if (recorder.state === 'recording') {
                     recorder.stop();
                     btn.classList.remove('recording');
-                    status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙️️';
+                    status.textContent = '✔ تم تسجيل الصوت وإرفاقه بنجاح 🎙';
                     status.style.color = '#10b981';
                 }
             }
@@ -565,7 +621,13 @@
 
         window.submitExam = async function(e) {
             if (e) e.preventDefault();
+            isExamActiveNow = false;
             if (timerInterval) clearInterval(timerInterval);
+
+            // الخروج من وضع ملء الشاشة إن وجد
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
 
             let questions = activeSelectedExam.questions;
             let score = 0, totalMarks = 0;
@@ -606,10 +668,9 @@
 
             let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
             
-            // حساب النقاط الجديدة: 5 درجات أساسية + 10 نقاط إضافية عند التقفيل الكامل (100%)
             let earnedPoints = 5;
             if (percentage === 100) {
-                earnedPoints += 10; // الإجمالي 15 نقطة
+                earnedPoints += 10; // الإجمالي 15 نقطة عند التقفيل الكامل
             }
 
             document.getElementById('examContainer').innerHTML = '';
@@ -648,7 +709,6 @@
             }
         }
 
-        // قوالب الشهادات الـ 10 الفاخرة (5 ولاد + 5 بنات)
         const boyCertTemplates = [
             { bg: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)", border: "#f59e0b", titleColor: "#fcd34d", textColor: "#f8fafc", nameColor: "#60a5fa" },
             { bg: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)", border: "#10b981", titleColor: "#34d399", textColor: "#f8fafc", nameColor: "#38bdf8" },
@@ -670,7 +730,6 @@
             let gender = document.getElementById('certGenderSelect').value;
             if (!nameInput) { alert('يرجى كتابة اسمك الثلاثي أولاً للحصول على الشهادة!'); return; }
             
-            // اختيار قالب عشوائي من ضمن الـ 5 المخصصين للولد أو البنت
             let templates = gender === 'boy' ? boyCertTemplates : girlCertTemplates;
             let randomTemplate = templates[Math.floor(Math.random() * templates.length)];
 
@@ -696,7 +755,6 @@
             document.getElementById('certificateModal').style.display = 'none';
         };
 
-        // دالة تحميل الشهادة الحقيقية بصيغة صورة PNG فوراً
         window.downloadCertificateImage = function() {
             let certElement = document.getElementById('certificateContent');
             html2canvas(certElement, { scale: 2, useCORS: true }).then(canvas => {
@@ -714,7 +772,6 @@
                 let name = studentUser.fullname || studentUser.name || email.split('@')[0];
                 let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
 
-                // حفظ النتيجة في امتحان المعلم
                 const examRef = doc(db, "exams", activeSelectedExam.id);
                 const examSnap = await getDoc(examRef);
                 
@@ -736,14 +793,11 @@
                     await updateDoc(examRef, { examSubmissions: submissions });
                 }
 
-                // إضافة النقاط إلى حساب الطالب في كولكشن المستخدمين (Firestore)
-                if (currentStudentUid) {
+                if (currentStudentUid && earnedPoints > 0) {
                     const studentDocRef = doc(db, "users", currentStudentUid);
                     await updateDoc(studentDocRef, {
                         points: increment(earnedPoints)
-                    }).catch(async () => {
-                        // لو مستخدم بدون وثيقة مخصصة بالـ UID، يمكن تحديثه بالبريد الإلكتروني إن وجد
-                    });
+                    }).catch(() => {});
                 }
             } catch (err) { console.error("خطأ في حفظ النتيجة والنقاط:", err); }
         }
