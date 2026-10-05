@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - إدارة الحصص والملازم</title>
+    <title>منصة رحلة دراسية - عرض الحصة الدراسية</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -37,8 +37,8 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
-        .container { max-width: 1100px; margin: 0 auto; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; }
+        .container { max-width: 900px; margin: 0 auto; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -64,123 +64,121 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* شريط التنقل بين أقسام الحصص والملفات */
-        .admin-nav-bar {
-            display: flex; justify-content: center; align-items: center;
-            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
-            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
-        }
-        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
-        .btn-tab {
-            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
-            padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1; min-width: 140px; text-align: center; text-decoration: none; display: inline-block;
-        }
-        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
-
-        .section-box {
+        .lesson-section-box {
             background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
-            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            padding: 20px; margin-bottom: 15px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
         }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
-
-        .btn-add { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-        .btn-add:hover { opacity: 0.9; }
-        .btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; }
-        .btn-verify { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
-
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; font-size: 0.82rem; }
-        th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
-        th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .lesson-section-title { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         
-        .modal-card { background: var(--bg-card); width: 100%; max-width: 480px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; }
-        .modal-header { padding: 15px 20px; background: var(--th-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
+        .action-btn {
+            background: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 10px;
+            font-weight: bold; cursor: pointer; font-size: 0.88rem; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); text-decoration: none; text-align: center;
+        }
+        .action-btn:hover { background: var(--primary-hover); opacity: 0.9; }
+        .action-btn.locked { background: #475569; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
+
+        /* العلامة المائية المتحركة لحماية المحتوى */
+        #watermarkLayer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999;
+            display: flex; flex-wrap: wrap; justify-content: space-around; align-content: space-around; opacity: 0.05;
+            font-size: 1rem; font-weight: bold; color: var(--text-main); transform: rotate(-25deg); overflow: hidden;
+        }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 15px; }
+        .modal-card { background: var(--bg-card); width: 100%; max-width: 700px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; display: flex; flex-direction: column; max-height: 85vh; }
+        .modal-header { padding: 14px 18px; background: var(--bg-card); color: var(--text-main); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); font-weight: bold; }
         .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
-        
-        .modal-body { padding: 20px; text-align: right; }
-        .modal-field { margin-bottom: 12px; }
-        .modal-field label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
-        .modal-field input, .modal-field textarea { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none; }
-        
-        .modal-actions { margin-top: 15px; }
-        .btn-full { width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--success); color: white; font-weight: bold; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .modal-body { padding: 18px; overflow-y: auto; flex: 1; text-align: right; }
     </style>
 </head>
 <body data-theme="dark">
+
+    <!-- علامة مائية لحماية محتوى الطالب -->
+    <div id="watermarkLayer"></div>
+
     <div class="container">
         <header class="platform-header">
-            <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إدارة الملازم والملفات والحصص</span> 📚</div></div>
+            <div class="header-right-side"><a href="main.html" class="btn-home-link">🏠 الرئيسية</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span id="lessonMainHeaderTitle">شرح الحصة الدراسية</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل بين الأقسام الثلاثة المطلوبة (الحصص/الملفات) -->
-        <nav class="admin-nav-bar">
-            <div class="admin-tabs-group">
-                <a href="admin-files.html" class="btn-tab active">إدارة الملفات 📁</a>
-                <a href="lessons-settings.html" class="btn-tab">إعدادات الحصص ⚙️</a>
-                <a href="lessons-stats.html" class="btn-tab">إحصائيات الحصص 📊</a>
-            </div>
-        </nav>
+        <!-- 1. ملازم الشرح -->
+        <div class="lesson-section-box" id="sectionStudyNotes">
+            <div class="lesson-section-title">📄 1. ملازم الشرح الأساسية</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">اقرأ ملزمة الشرح بعناية وافهم التفاصيل قبل الانتقال للفيديو.</p>
+            <button class="action-btn" onclick="openProtectedContent('studyNotes')">فتح ملازم الشرح الآمنة 👁️</button>
+        </div>
 
-        <div class="section-box">
-            <div class="section-header">
-                <h2>قائمة الملفات والملازم المرفوعة</h2>
-                <button class="btn-add" onclick="openUploadModal()">رفع ملزمة جديدة ➕</button>
-            </div>
-            <div id="adminFilesList">
-                <p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.82rem;">جاري تحميل الملفات من السحابة...</p>
-            </div>
+        <!-- 2. فيديو الشرح -->
+        <div class="lesson-section-box" id="sectionVideo">
+            <div class="lesson-section-title">🎬 2. فيديو الشرح الرئيسي</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">تابع شرح المستر وسجل ملاحظاتك الهامة.</p>
+            <button class="action-btn" onclick="openProtectedContent('video')">مشاهدة فيديو الحصة 🎥</button>
+        </div>
+
+        <!-- 3. ملازم التلخيص -->
+        <div class="lesson-section-box" id="sectionSummary">
+            <div class="lesson-section-title">📑 3. ملازم تلخيص الدرس</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">راجع أسرع النقاط والقوانين قبل دخول امتحان الدرس.</p>
+            <button class="action-btn" onclick="openProtectedContent('summary')">فتح ملازم التلخيص والسكرين المحمي 👁️</button>
+        </div>
+
+        <!-- 4. امتحان الدرس (المقفل بالشرط الذكي) -->
+        <div class="lesson-section-box" id="sectionExam">
+            <div class="lesson-section-title">📝 4. امتحان علي الدرس</div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;" id="examStatusDesc">امتحان تقييمي يقيس مدى فهمك واستيعابك للدرس.</p>
+            <button class="action-btn locked" id="examActionBtn" onclick="openLessonExam()">🔒 امتحان الدرس مقفل (أتمم مشاهدة الشرح والملازم أولاً)</button>
         </div>
     </div>
 
-    <!-- نافذة رفع ملزمة جديدة -->
-    <div class="modal-overlay" id="uploadFileModal" onclick="closeModalOnOuter(event)">
+    <!-- نافذة العرض المحمي (بدون تحميل مباشر أو تسريب) -->
+    <div class="modal-overlay" id="protectedViewerModal" onclick="if(event.target===this) closeProtectedModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>رفع ملزمة أو ملف جديد 📂</h3>
-                <button class="close-modal" onclick="closeUploadModal()">✕</button>
+                <h3 id="viewerModalTitle">معاينة المحتوى الآمن</h3>
+                <button class="close-modal" onclick="closeProtectedModal()">✕</button>
             </div>
-            <div class="modal-body">
-                <div class="modal-field">
-                    <label>عنوان الملزمة أو الملف:</label>
-                    <input type="text" id="modalFileTitle" placeholder="مثلاً: مراجعة الباب الأول كيمياء">
-                </div>
-                <div class="modal-field">
-                    <label>وصف مختصر:</label>
-                    <textarea id="modalFileDesc" placeholder="شرح مبسط لمحتوى الملزمة..." style="height: 70px; resize: none;"></textarea>
-                </div>
-                <div class="modal-field">
-                    <label>رابط التحميل المباشر (Google Drive / PDF):</label>
-                    <input type="url" id="modalFileLink" placeholder="https://drive.google.com/...">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="modal-field">
-                        <label>المادة أو التصنيف:</label>
-                        <input type="text" id="modalFileSubject" placeholder="كيمياء">
-                    </div>
-                    <div class="modal-field">
-                        <label>حجم الملف:</label>
-                        <input type="text" id="modalFileSize" placeholder="4.5 MB">
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-full" onclick="adminUploadFile()">حفظ ونشر للطلاب 🚀</button>
-                </div>
-            </div>
+            <div class="modal-body" id="viewerModalBody"></div>
         </div>
     </div>
 
-    <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
-        let globalRecordData = { studyFiles: [] };
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const cloudHeaders = { 'X-Master-Key': API_KEY, 'Content-Type': 'application/json' };
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let currentLessonId = new URLSearchParams(window.location.search).get('id') || 'sampleLessonId';
+        let lessonData = null;
+        let studentActivity = { studyNotes: false, video: false, summary: false, examScore: null };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // توليد العلامة المائية باسم الطالب وبريده لحمايته من التصوير
+                generateWatermark(user.email || 'طالب المنصة');
+                await loadLessonAndActivity();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
@@ -195,109 +193,129 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        initFilesPage();
+        function generateWatermark(text) {
+            const wmLayer = document.getElementById('watermarkLayer');
+            let html = "";
+            for (let i = 0; i < 15; i++) {
+                html += `<span>${text} - منصة رحلة دراسية</span>`;
+            }
+            wmLayer.innerHTML = html;
+        }
 
-        async function initFilesPage() {
+        async function loadLessonAndActivity() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { method: 'GET', headers: cloudHeaders });
-                if (response.ok) {
-                    let result = await response.json();
-                    if (result && result.record) {
-                        globalRecordData = result.record;
+                const lessonRef = doc(db, "lessons", currentLessonId);
+                const lessonSnap = await getDoc(lessonRef);
+                if (lessonSnap.exists()) {
+                    lessonData = lessonSnap.data();
+                    document.getElementById('lessonMainHeaderTitle').textContent = lessonData.title || 'شرح الحصة';
+                }
+
+                const userRef = doc(db, "users", currentUser.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    let userData = userSnap.data();
+                    if (userData.lessonsActivity && userData.lessonsActivity[currentLessonId]) {
+                        studentActivity = userData.lessonsActivity[currentLessonId];
                     }
                 }
-            } catch (err) {
-                console.warn("خطأ في جلب البيانات:", err);
-            } finally {
-                renderAdminFiles(globalRecordData.studyFiles || []);
+
+                evalSmartExamLock();
+            } catch (e) {
+                console.error("خطأ في جلب بيانات الحصة:", e);
             }
         }
 
-        async function updateCloudData() {
+        window.openProtectedContent = async function(type) {
+            if (!lessonData) { alert('جاري تحميل الحصة...'); return; }
+
+            let maxAttempts = lessonData.settings?.maxAttempts || 10;
+            let currentOpens = studentActivity[type + '_opens'] || 0;
+
+            if (currentOpens >= maxAttempts) {
+                alert('❌ عذراً، لقد استنفدت الحد الأقصى لعدد محاولات فتح هذا المحتوى (10 محاولات). يرجى التواصل مع الإدارة.');
+                return;
+            }
+
+            // زيادة محاولة الفتح تلقائياً وحفظها في السحابة
+            studentActivity[type + '_opens'] = currentOpens + 1;
+            studentActivity[type] = true;
+            await saveStudentActivityToCloud();
+
+            let modalTitle = document.getElementById('viewerModalTitle');
+            let modalBody = document.getElementById('viewerModalBody');
+            
+            if (type === 'studyNotes') {
+                modalTitle.textContent = '📄 معاينة ملازم الشرح (محمي ضد التسريب)';
+                modalBody.innerHTML = `<div style="white-space:pre-line; line-height:1.8;">${lessonData.studyNotes || 'لا توجد ملاحظات مرفقة.'}</div>`;
+            } else if (type === 'video') {
+                modalTitle.textContent = '🎬 مشاهدة فيديو الشرح الآمن';
+                modalBody.innerHTML = `<iframe src="${lessonData.videoUrl || ''}" style="width:100%; height:350px; border:none; border-radius:8px;" allowfullscreen></iframe>`;
+            } else if (type === 'summary') {
+                modalTitle.textContent = '📑 معاينة ملخصات الدرس السريعة';
+                modalBody.innerHTML = `<div style="white-space:pre-line; line-height:1.8;">${lessonData.summaryNotes || 'لا توجد ملخصات مرفقة.'}</div>`;
+            }
+
+            document.getElementById('protectedViewerModal').classList.add('active');
+            evalSmartExamLock();
+        };
+
+        window.closeProtectedModal = function() {
+            document.getElementById('protectedViewerModal').classList.remove('active');
+        };
+
+        function evalSmartExamLock() {
+            let smartLockEnabled = lessonData?.settings?.smartExamLock !== false;
+            let examBtn = document.getElementById('examActionBtn');
+            let examDesc = document.getElementById('examStatusDesc');
+
+            if (!smartLockEnabled || (studentActivity.studyNotes && studentActivity.video && studentActivity.summary)) {
+                examBtn.classList.remove('locked');
+                examBtn.innerHTML = '📝 ابدأ امتحان الحصة الآن 🚀';
+                examDesc.textContent = '✔ تم استيفاء شروط فتح الامتحان، انطلق الآن!';
+            } else {
+                examBtn.classList.add('locked');
+                examBtn.innerHTML = '🔒 امتحان الدرس مقفل (أتمم مشاهدة الشرح والملازم أولاً)';
+                examDesc.textContent = 'امتحان تقييمي مقفل لحين استكمال فتح (ملازم الشرح + الفيديو + ملازم التلخيص).';
+            }
+        }
+
+        window.openLessonExam = async function() {
+            let smartLockEnabled = lessonData?.settings?.smartExamLock !== false;
+            if (smartLockEnabled && !(studentActivity.studyNotes && studentActivity.video && studentActivity.summary)) {
+                alert('🔒 عذراً، يجب عليك تصفح ملازم الشرح، ومشاهدة الفيديو، وقراءة ملازم التلخيص أولاً لفتح الامتحان!');
+                return;
+            }
+
+            if (!lessonData.examId) {
+                alert('لا يوجد امتحان مخصص لهذه الحصة حالياً.');
+                return;
+            }
+
+            // توجيه الطالب لامتحان الحصة الخاص
+            window.location.href = `exam-take.html?id=${lessonData.examId}&lessonId=${currentLessonId}`;
+        };
+
+        async function saveStudentActivityToCloud() {
+            if (!currentUser) return;
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: cloudHeaders,
-                    body: JSON.stringify(globalRecordData)
-                });
-                if (!response.ok) alert("فشل التحديث في السحابة!");
-            } catch(e) {
-                console.error("خطأ سحابي:", e);
-                alert("حدث خطأ أثناء الاتصال بالسحابة.");
+                const userRef = doc(db, "users", currentUser.uid);
+                let updateObj = {};
+                updateObj[`lessonsActivity.${currentLessonId}`] = studentActivity;
+                await updateDoc(userRef, updateObj);
+            } catch (e) {
+                console.error("خطأ في حفظ سجل النشاط:", e);
             }
         }
 
-        function renderAdminFiles(files) {
-            const listContainer = document.getElementById('adminFilesList');
-            if (!files || files.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.82rem;">لا توجد ملفات مرفوعة حالياً.</p>';
-                return;
+        // حماية ضد السكرين شوت والكليك يمين
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && (e.key === 'u' || e.key === 'p' || e.key === 's' || e.key === 'c'))) {
+                e.preventDefault();
+                alert('⚠️ عذراً، هذه الإجراءات ممنوعة لحماية محتوى المنصة وحقوق الملكية الفكرية.');
             }
-            let html = `<table><thead><tr><th>عنوان الملزمة</th><th>التصنيف</th><th>الحجم</th><th>التحكم</th></tr></thead><tbody>`;
-            files.forEach((file, index) => {
-                html += `
-                    <tr>
-                        <td><b>📄 ${file.title}</b></td>
-                        <td>${file.subject || 'عامة'}</td>
-                        <td>${file.size || 'PDF'}</td>
-                        <td>
-                            <a href="${file.link}" target="_blank" class="btn-verify">معاينة 🔗</a> 
-                            <button class="btn-danger" onclick="deleteAdminFile(${index})">حذف 🗑️</button>
-                        </td>
-                    </tr>`;
-            });
-            html += `</tbody></table>`;
-            listContainer.innerHTML = html;
-        }
-
-        function openUploadModal() { document.getElementById('uploadFileModal').classList.add('active'); }
-        function closeUploadModal() { document.getElementById('uploadFileModal').classList.remove('active'); }
-        function closeModalOnOuter(e) { if (e.target.classList.contains('modal-overlay')) closeUploadModal(); }
-
-        async function adminUploadFile() {
-            const title = document.getElementById('modalFileTitle').value.trim();
-            const link = document.getElementById('modalFileLink').value.trim();
-            const desc = document.getElementById('modalFileDesc').value.trim();
-            const subject = document.getElementById('modalFileSubject').value.trim() || 'ملزمة عامة';
-            const size = document.getElementById('modalFileSize').value.trim() || 'PDF';
-
-            if (!title || !link) {
-                alert('يرجى كتابة عنوان الملزمة ورابط التحميل على الأقل!');
-                return;
-            }
-
-            if (!globalRecordData.studyFiles) globalRecordData.studyFiles = [];
-
-            globalRecordData.studyFiles.push({
-                title,
-                link,
-                description: desc,
-                subject,
-                size,
-                date: new Date().toLocaleDateString('ar-EG')
-            });
-
-            await updateCloudData();
-            alert('تم نشر الملزمة بنجاح وتحديثها على السحابة لجميع الطلاب! 🎉');
-            closeUploadModal();
-            
-            document.getElementById('modalFileTitle').value = '';
-            document.getElementById('modalFileLink').value = '';
-            document.getElementById('modalFileDesc').value = '';
-            document.getElementById('modalFileSubject').value = '';
-            document.getElementById('modalFileSize').value = '';
-
-            renderAdminFiles(globalRecordData.studyFiles);
-        }
-
-        async function deleteAdminFile(index) {
-            if (!confirm('هل أنت متأكد من حذف هذه الملزمة نهائياً من السحابة؟')) return;
-            
-            globalRecordData.studyFiles.splice(index, 1);
-            await updateCloudData();
-            renderAdminFiles(globalRecordData.studyFiles);
-            alert('تم الحذف بنجاح.');
-        }
+        });
     </script>
 </body>
 </html>
