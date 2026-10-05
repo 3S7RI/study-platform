@@ -97,13 +97,23 @@
 
         .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-top: 15px; }
         
-        /* تنسيق بناء السؤال: نص السؤال يأخذ راحته ويتمدد تلقائياً، واليمين يحوي زر الكاميرا وتحته خانة الدرجة */
         .question-top-row { display: flex; gap: 12px; align-items: flex-start; }
         .question-text-wrapper { flex: 1; }
         .question-text-wrapper textarea {
             resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4;
         }
         .question-meta-wrapper { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
+
+        /* خانة الدرجة المربعة الشكل */
+        .square-mark-input {
+            width: 38px !important;
+            height: 38px !important;
+            padding: 0 !important;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
 
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
         .option-row input[type="text"] { flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; }
@@ -183,7 +193,7 @@
                     <span id="editingIndicator" class="hidden" style="font-size: 0.75rem; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠️</span>
                 </div>
 
-                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه زر الكاميرا وتحته خانة الدرجة -->
+                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه زر الكاميرا وتحته خانة الدرجة المربعة -->
                 <div class="question-top-row">
                     <div class="form-group question-text-wrapper" style="margin-top: 0;">
                         <label>نص السؤال:</label>
@@ -196,16 +206,16 @@
                                 <circle cx="12" cy="13" r="4"></circle>
                             </svg>
                         </button>
-                        <div class="form-group" style="margin-top: 0; width: 75px;">
-                            <label style="text-align: center;">الدرجة:</label>
-                            <input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;">
+                        <div class="form-group" style="margin-top: 0;">
+                            <label style="text-align: center; font-size: 0.72rem;">الدرجة</label>
+                            <input type="number" id="newQMarks" value="1" min="0.5" step="0.5" class="square-mark-input">
                         </div>
                     </div>
                 </div>
 
-                <!-- زر رفع صورة السؤال المخفي والذي يتحكم به زر الكاميرا -->
-                <div class="form-group hidden" id="imageInputGroup">
-                    <label>إرفاق صورة توضيحية للسؤال:</label>
+                <!-- خانة رفع الصورة الحقيقية (تظهر مباشرة تحت نص السؤال بفضل الترتيب هنا) -->
+                <div class="form-group" id="imageInputGroup">
+                    <label>إرفاق صورة توضيحية للسؤال (اختياري):</label>
                     <input type="file" id="newQImageFile" accept="image/*" class="hidden" onchange="updateImageFileName(this)">
                     <div class="custom-file-upload-box" onclick="document.getElementById('newQImageFile').click()">
                         <span class="file-upload-text" id="imageFileNameDisplay">
@@ -334,26 +344,21 @@
         window.changeQuestionTypeUI = function() {
             let type = document.getElementById('selectedQuestionType').value;
             let optGroup = document.getElementById('optionsBuilderGroup');
-            let imgGroup = document.getElementById('imageInputGroup');
             let modelAnswerGroup = document.getElementById('modelAnswerGroup');
 
             if (type === 'short' || type === 'long') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.remove('hidden');
                 document.getElementById('modelAnswerLabel').textContent = type === 'short' ? 'الإجابة النموذجية للنص القصير (بحد أقصى 5 أسطر للطالب):' : 'الإجابة النموذجية للنص الطويل (مقال):';
             } else if (type === 'voice') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
             } else if (type === 'essayImage') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.remove('hidden');
                 document.getElementById('modelAnswerLabel').textContent = 'الإجابة النموذجية لصورة المقال (AI):';
             } else if (type === 'tf') {
                 optGroup.classList.remove('hidden');
-                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
                 document.getElementById('optionsBuilderList').innerHTML = `
                     <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;"><span style="font-weight: bold; font-size: 0.85rem;">صح</span></div>
@@ -361,7 +366,6 @@
                 document.getElementById('addOptBtn').style.display = 'none';
             } else {
                 optGroup.classList.remove('hidden');
-                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.add('hidden');
                 let inputType = (type === 'checkbox') ? 'checkbox' : 'radio';
                 document.getElementById('optionsBuilderList').innerHTML = `
@@ -453,6 +457,7 @@
                 renderQuestionsList();
             };
 
+            // معالجة ورفع الصورة الحقيقية وتحويلها لـ Base64 لضمان تخزينها بقاعدة البيانات
             if (imageFileinput.files && imageFileinput.files[0]) {
                 let reader = new FileReader();
                 reader.onload = function(e) { processQuestionWithImage(e.target.result); };
@@ -485,10 +490,11 @@
             let html = '';
             currentDraftQuestions.forEach((q, idx) => {
                 let typeLabel = getTypeNameArabic(q.type);
+                let imgIndicator = q.imageUrl ? ' 🖼️ (بصورة)' : '';
                 html += `
                     <div style="background: var(--th-bg); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
                         <div onclick="editQuestion(${idx})" style="cursor: pointer; flex: 1;" title="اضغط للتعديل والمعاينة">
-                            <p style="font-weight: bold; margin-bottom: 2px;">سؤال ${idx+1}: ${q.text} <span style="font-size:0.7rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px;">(${q.marks} درجات - ${typeLabel})</span></p>
+                            <p style="font-weight: bold; margin-bottom: 2px;">سؤال ${idx+1}: ${q.text} <span style="font-size:0.7rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px;">(${q.marks} درجات - ${typeLabel}${imgIndicator})</span></p>
                         </div>
                         <button class="btn-danger" onclick="deleteDraftQuestion(${idx}, event)">حذف</button>
                     </div>`;
@@ -509,6 +515,8 @@
             
             if (q.imageUrl) {
                 document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> توجد صورة مرفقة للسؤال`;
+            } else {
+                document.getElementById('imageFileNameDisplay').innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg> اضغط لاختيار صورة توضيحية للسؤال...`;
             }
 
             if (q.type === 'short' || q.type === 'long' || q.type === 'essayImage') {
