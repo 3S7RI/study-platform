@@ -122,6 +122,14 @@
         .unified-avatar-frame img {
             width: 78px; height: 78px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); position: relative; z-index: 2; background: #1e293b;
         }
+
+        /* فئات إطارات ومستويات البروفايل الخمسة */
+        .rank-frame-weak { border-color: #ef4444 !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+        .rank-frame-medium { border-color: #f59e0b !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
+        .rank-frame-strong { border-color: #eab308 !important; box-shadow: 0 0 15px rgba(234, 179, 8, 0.5); }
+        .rank-frame-very-strong { border-color: #06b6d4 !important; box-shadow: 0 0 18px rgba(6, 182, 212, 0.6); }
+        .rank-frame-legendary { border-color: #a855f7 !important; box-shadow: 0 0 22px rgba(168, 85, 247, 0.7); }
+
         .unified-level-badge {
             background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; font-size: 0.75rem; font-weight: bold; padding: 4px 14px; border-radius: 20px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); border: 1px solid rgba(255,255,255,0.15);
         }
@@ -205,11 +213,11 @@
     <!-- نافذة بروفايل الطالب الموحدة من فايربيز -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="profile-modal-card">
-            <div class="unified-avatar-frame">
+            <div class="unified-avatar-frame" id="modalAvatarFrameWrapper">
                 <img id="modalStudentAvatar" src="" alt="صورة الطالب">
             </div>
             <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1rem; margin-bottom: 6px; font-weight: 700;">اسم الطالب</h3>
-            <div class="unified-level-badge" id="modalStudentLevelBadge">⭐ جاري جلب المستوى...</div>
+            <div class="unified-level-badge" id="modalStudentLevelBadge">⭐ جاري تحديد المستوى...</div>
             
             <div class="unified-info-box">
                 <div class="unified-info-row">
@@ -245,7 +253,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, getDoc, doc, deleteDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -451,7 +459,6 @@
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let isPublished = sub.published === true;
 
-                // نظام الخانات المستطيلة: أخضر شفاف لو تم الإرسال، أحمر شفاف لو لم يُرسل
                 let rowBoxClass = isPublished ? 'student-row-box published' : 'student-row-box pending';
                 let publishBadge = !isPublished 
                     ? `<span style="color:#ef4444; font-size:0.7rem; margin-right:6px;">(بانتظار الإرسال)</span>` 
@@ -547,7 +554,7 @@
                     html += `</div>`;
                 } else {
                     html += `<div style="margin-top:6px; padding:8px; background:var(--bg-main); border-radius:6px; border:1px solid var(--border-color); font-size:0.8rem;">
-                        <span style="font-weight:bold; color:var(--primary);">✍️️ إجابة الطالب:</span> <span style="color:var(--text-main);">${studentAns}</span>
+                        <span style="font-weight:bold; color:var(--primary);">✍ إجابة الطالب:</span> <span style="color:var(--text-main);">${studentAns}</span>
                     </div>`;
                 }
                 html += `</div>`;
@@ -601,7 +608,7 @@
             document.getElementById('examAnswersModal').style.display = 'none';
         };
 
-        // مزامنة بيانات الطالب بالكامل من فايربيز (مع المستويات الخمسة وتأثيرات الإطار)
+        // دالة المزامنة فائقة السرعة المماثلة لكود بروفايل الطالب من فايربيز
         window.openStudentModal = async function(name, email, avatar) {
             document.getElementById('modalStudentName').textContent = name || 'طالب المنصة';
             document.getElementById('modalStudentEmail').textContent = email || 'غير متوفر';
@@ -609,67 +616,88 @@
             document.getElementById('modalStudentId').textContent = 'جاري الجلب...';
             document.getElementById('modalStudentPhone').textContent = 'جاري الجلب...';
             document.getElementById('modalStudentLevelBadge').textContent = '⭐ جاري تحديد المستوى...';
+            
+            const avatarFrame = document.getElementById('modalAvatarFrameWrapper');
+            avatarFrame.className = 'unified-avatar-frame'; // إعادة تعيين الإطار الافتراضي
+            
             document.getElementById('studentProfileModal').style.display = 'flex';
 
             if (!email) {
                 document.getElementById('modalStudentId').textContent = 'غير متوفر';
                 document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
-                document.getElementById('modalStudentLevelBadge').textContent = '⭐ مستوى متوسط';
+                document.getElementById('modalStudentLevelBadge').textContent = '🟡 متوسط (0 نقطة)';
+                avatarFrame.classList.add('rank-frame-medium');
                 return;
             }
 
             try {
-                const q = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
-                const querySnapshot = await getDocs(q);
+                let userData = null;
+                let realId = 'غير متوفر';
 
-                if (!querySnapshot.empty) {
-                    let userDoc = querySnapshot.docs[0];
-                    let userData = userDoc.data();
-                    let realId = userDoc.id;
+                // 1. البحث في مجموعة students أولاً (مثل كود البروفايل)
+                let docRef = doc(db, "students", email.toLowerCase().trim());
+                let docSnap = await getDoc(docRef);
 
+                if (docSnap.exists()) {
+                    userData = docSnap.data();
+                    realId = docSnap.id.substring(0, 8);
+                } else {
+                    // 2. البحث بالبريد في مجموعة students لو لم يُجد بالمفتاح المباشر
+                    const qStudents = query(collection(db, "students"), where("email", "==", email.toLowerCase().trim()));
+                    const snapStudents = await getDocs(qStudents);
+                    if (!snapStudents.empty) {
+                        userData = snapStudents.docs[0].data();
+                        realId = snapStudents.docs[0].id.substring(0, 8);
+                    } else {
+                        // 3. البحث في مجموعة users الاحتياطية
+                        const qUsers = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
+                        const snapUsers = await getDocs(qUsers);
+                        if (!snapUsers.empty) {
+                            userData = snapUsers.docs[0].data();
+                            realId = snapUsers.docs[0].id.substring(0, 8);
+                        }
+                    }
+                }
+
+                if (userData) {
+                    if (userData.studentId) realId = userData.studentId;
                     document.getElementById('modalStudentId').textContent = realId;
-                    document.getElementById('modalStudentPhone').textContent = userData.phone || userData.phoneNumber || 'غير متوفر';
+                    document.getElementById('modalStudentPhone').textContent = userData.phone || userData.parentPhone || userData.phoneNumber || 'غير متوفر';
                     
                     if (userData.profileImage || userData.avatar) {
                         document.getElementById('modalStudentAvatar').src = userData.profileImage || userData.avatar;
                     }
 
-                    // نظام المستويات الخمسة (ضعيف، متوسط، قوي، قوي جداً، أسطوري)
-                    let rawLevel = (userData.level || userData.studentLevel || 'متوسط').toString().trim();
-                    let levelDisplay = '⭐ متوسط';
-                    let frameColor = 'var(--primary)';
-
-                    if (rawLevel.includes('ضعيف')) {
-                        levelDisplay = '📉 طالب ضعيف';
-                        frameColor = '#ef4444';
-                    } else if (rawLevel.includes('متوسط')) {
-                        levelDisplay = '⭐ طالب متوسط';
-                        frameColor = '#f59e0b';
-                    } else if (rawLevel.includes('قوي جدا')) {
-                        levelDisplay = '🔥 طالب قوي جداً';
-                        frameColor = '#8b5cf6';
-                    } else if (rawLevel.includes('قوي')) {
-                        levelDisplay = '⚡ طالب قوي';
-                        frameColor = '#3b82f6';
-                    } else if (rawLevel.includes('اسطوري') || rawLevel.includes('أسطوري')) {
-                        levelDisplay = '👑 طالب أسطوري';
-                        frameColor = '#10b981';
+                    // حساب المستوى بناءً على النقاط (totalScore) تماماً مثل كود البروفايل
+                    let score = userData.totalScore || 0;
+                    let rankInfo = { frame: 'rank-frame-weak', badge: 'badge-weak', label: `🔴 مبتدئ (ضعيف) • ${score} ن` };
+                    
+                    if (score < 500) {
+                        rankInfo = { frame: 'rank-frame-weak', label: `🔴 مبتدئ (ضعيف) • ${score} ن` };
+                    } else if (score < 1500) {
+                        rankInfo = { frame: 'rank-frame-medium', label: `🟡 متوسط • ${score} ن` };
+                    } else if (score < 3000) {
+                        rankInfo = { frame: 'rank-frame-strong', label: `🟢 قوي • ${score} ن` };
+                    } else if (score < 5000) {
+                        rankInfo = { frame: 'rank-frame-very-strong', label: `🔵 قوي جداً • ${score} ن` };
                     } else {
-                        levelDisplay = `⭐ ${rawLevel}`;
+                        rankInfo = { frame: 'rank-frame-legendary', label: `🌟 أسطوري • ${score} ن` };
                     }
 
-                    document.getElementById('modalStudentLevelBadge').textContent = levelDisplay;
-                    document.querySelector('.unified-avatar-frame img').style.borderColor = frameColor;
+                    document.getElementById('modalStudentLevelBadge').textContent = rankInfo.label;
+                    avatarFrame.classList.add(rankInfo.frame);
                 } else {
-                    document.getElementById('modalStudentId').textContent = 'غير متوفر في قاعدة البيانات';
+                    document.getElementById('modalStudentId').textContent = 'غير متوفر';
                     document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
-                    document.getElementById('modalStudentLevelBadge').textContent = '⭐ طالب متوسط';
+                    document.getElementById('modalStudentLevelBadge').textContent = '🟡 متوسط (0 نقطة)';
+                    avatarFrame.classList.add('rank-frame-medium');
                 }
             } catch (e) {
                 console.error("خطأ في جلب بيانات الطالب:", e);
                 document.getElementById('modalStudentId').textContent = 'خطأ في الاتصال';
                 document.getElementById('modalStudentPhone').textContent = 'خطأ';
-                document.getElementById('modalStudentLevelBadge').textContent = '⭐ طالب متوسط';
+                document.getElementById('modalStudentLevelBadge').textContent = '🟡 متوسط (0 نقطة)';
+                avatarFrame.classList.add('rank-frame-medium');
             }
         };
 
