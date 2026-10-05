@@ -1,79 +1,131 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الملازم والملفات - لوحة التحكم</title>
+    <title>منصة رحلة دراسية - إدارة الحصص والملازم</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --header-bg: #1f1f1f;
-            --card-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --border-color: #333333;
-            --heading-color: #ffffff;
-            --input-bg: #0f172a;
-            --th-bg: rgba(255,255,255,0.05);
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --hover-bg: rgba(99, 102, 241, 0.12);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --th-bg: rgba(255, 255, 255, 0.04);
         }
+
         [data-theme="light"] {
-            --bg-color: #f4f7f6;
-            --header-bg: #1e3c72;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #eee;
-            --heading-color: #1e3c72;
-            --input-bg: #ffffff;
-            --th-bg: rgba(0,0,0,0.02);
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
+            --hover-bg: rgba(79, 70, 229, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --th-bg: rgba(0, 0, 0, 0.03);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg-color); color: var(--text-color); padding: 15px; transition: background 0.3s, color 0.3s; }
-        .container { max-width: 1000px; margin: 0 auto; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        header { display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        header h1 { font-size: 1.1rem; color: #ffffff !important; }
-        .header-btns { display: flex; gap: 10px; }
-        .btn-back, .btn-theme { background: #34495e; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; text-decoration: none; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
+        .container { max-width: 1100px; margin: 0 auto; }
         
-        .section-box { background: var(--card-bg); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; border-top: 4px solid #0284c7; }
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+        }
+
+        .header-right-side { display: flex; align-items: center; }
+        .btn-home-link {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.8rem;
+        }
+        .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .header-center-box { display: flex; align-items: center; justify-content: center; }
+        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+        
+        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .btn-theme-toggle {
+            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        /* شريط التنقل بين أقسام الحصص والملفات */
+        .admin-nav-bar {
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .btn-tab {
+            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1; min-width: 140px; text-align: center; text-decoration: none; display: inline-block;
+        }
+        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .section-box {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .section-header h2 { color: var(--heading-color); font-size: 1.2rem; }
-        
-        .btn-add { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: bold; }
-        .btn-danger { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
-        .btn-verify { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+        .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; }
-        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-color); }
-        th { background: var(--th-bg); color: var(--heading-color); font-weight: bold; }
+        .btn-add { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; font-weight: bold; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-add:hover { opacity: 0.9; }
+        .btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; }
+        .btn-verify { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; font-size: 0.82rem; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 15px; }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         
-        .modal-card { background: var(--card-bg); width: 100%; max-width: 450px; border-radius: 15px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; transform: scale(0.9); transition: transform 0.3s ease; }
-        .modal-overlay.active .modal-card { transform: scale(1); }
-        
+        .modal-card { background: var(--bg-card); width: 100%; max-width: 480px; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 25px 50px rgba(0,0,0,0.6); overflow: hidden; }
         .modal-header { padding: 15px 20px; background: var(--th-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h3 { font-size: 1rem; color: var(--heading-color); }
-        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-color); cursor: pointer; }
+        .modal-header h3 { font-size: 0.95rem; color: var(--text-main); font-weight: 700; }
+        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
         
         .modal-body { padding: 20px; text-align: right; }
         .modal-field { margin-bottom: 12px; }
-        .modal-field label { display: block; font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px; color: var(--text-color); }
-        .modal-field input, .modal-field textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.9rem; outline: none; }
+        .modal-field label { display: block; font-size: 0.8rem; opacity: 0.8; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
+        .modal-field input, .modal-field textarea { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none; }
         
         .modal-actions { margin-top: 15px; }
-        .btn-full { width: 100%; padding: 10px; border-radius: 8px; border: none; background: #27ae60; color: white; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+        .btn-full { width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--success); color: white; font-weight: bold; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
     </style>
 </head>
 <body data-theme="dark">
     <div class="container">
-        <header>
-            <div class="header-btns">
-                <button class="btn-theme" id="themeToggleBtn">☀️ فاتح</button>
-                <a href="admin-dashboard.html" class="btn-back">العودة للوحة التحكم ↩️</a>
-            </div>
-            <h1>إدارة الملازم والملفات الدراسية 📚</h1>
+        <header class="platform-header">
+            <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إدارة الملازم والملفات والحصص</span> 📚</div></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
+
+        <!-- شريط التنقل بين الأقسام الثلاثة المطلوبة (الحصص/الملفات) -->
+        <nav class="admin-nav-bar">
+            <div class="admin-tabs-group">
+                <a href="admin-files.html" class="btn-tab active">إدارة الملفات 📁</a>
+                <a href="lessons-settings.html" class="btn-tab">إعدادات الحصص ⚙️</a>
+                <a href="lessons-stats.html" class="btn-tab">إحصائيات الحصص 📊</a>
+            </div>
+        </nav>
 
         <div class="section-box">
             <div class="section-header">
@@ -81,10 +133,11 @@
                 <button class="btn-add" onclick="openUploadModal()">رفع ملزمة جديدة ➕</button>
             </div>
             <div id="adminFilesList">
-                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل الملفات من السحابة...</p>
+                <p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.82rem;">جاري تحميل الملفات من السحابة...</p>
             </div>
         </div>
     </div>
+
     <!-- نافذة رفع ملزمة جديدة -->
     <div class="modal-overlay" id="uploadFileModal" onclick="closeModalOnOuter(event)">
         <div class="modal-card">
@@ -129,23 +182,19 @@
 
         const cloudHeaders = { 'X-Master-Key': API_KEY, 'Content-Type': 'application/json' };
 
-        // نظام تبديل الثيم (داكن / فاتح)
-        const themeBtn = document.getElementById('themeToggleBtn');
-        let currentTheme = document.body.getAttribute('data-theme');
-        themeBtn.textContent = currentTheme === 'dark' ? '☀️ فاتح' : '🌙 داكن';
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const bodyElement = document.body;
+        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
+        bodyElement.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 
-        themeBtn.addEventListener('click', () => {
-            let theme = document.body.getAttribute('data-theme');
-            if (theme === 'dark') {
-                document.body.setAttribute('data-theme', 'light');
-                themeBtn.textContent = '🌙 داكن';
-            } else {
-                document.body.setAttribute('data-theme', 'dark');
-                themeBtn.textContent = '☀️ فاتح';
-            }
+        themeToggleBtn.addEventListener('click', () => {
+            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            bodyElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('platform_theme', nextTheme);
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        // جلب البيانات من السحابة عند فتح الصفحة
         initFilesPage();
 
         async function initFilesPage() {
@@ -181,7 +230,7 @@
         function renderAdminFiles(files) {
             const listContainer = document.getElementById('adminFilesList');
             if (!files || files.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد ملفات مرفوعة حالياً.</p>';
+                listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px; font-size: 0.82rem;">لا توجد ملفات مرفوعة حالياً.</p>';
                 return;
             }
             let html = `<table><thead><tr><th>عنوان الملزمة</th><th>التصنيف</th><th>الحجم</th><th>التحكم</th></tr></thead><tbody>`;
@@ -228,12 +277,10 @@
                 date: new Date().toLocaleDateString('ar-EG')
             });
 
-            // تحديث السحابة فوراً
             await updateCloudData();
             alert('تم نشر الملزمة بنجاح وتحديثها على السحابة لجميع الطلاب! 🎉');
             closeUploadModal();
             
-            // تفريغ الحقول
             document.getElementById('modalFileTitle').value = '';
             document.getElementById('modalFileLink').value = '';
             document.getElementById('modalFileDesc').value = '';
