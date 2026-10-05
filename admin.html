@@ -46,7 +46,7 @@
         body {
             background-color: var(--bg-main);
             color: var(--text-main);
-            padding: 20px;
+            padding: 15px;
             min-height: 100vh;
         }
 
@@ -62,7 +62,7 @@
             background-color: var(--bg-card);
             padding: 12px 18px;
             border-radius: 30px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
         }
@@ -149,11 +149,12 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 700;
             color: var(--text-main);
+            white-space: nowrap;
         }
-        .platform-title-box span { font-size: 1.1rem; }
+        .platform-title-box span { font-size: 1rem; }
 
         .platform-grid {
             display: grid;
@@ -165,7 +166,7 @@
         .platform-card {
             background-color: var(--bg-card);
             border-radius: 16px;
-            padding: 24px;
+            padding: 22px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
             display: flex;
@@ -200,11 +201,11 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 12px;
-            margin-top: 6px;
+            margin-top: 4px;
         }
 
         .card-title-text {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--text-main);
             display: flex;
@@ -222,7 +223,7 @@
         }
 
         .card-description {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             line-height: 1.6;
             margin-bottom: 20px;
@@ -230,13 +231,13 @@
 
         .card-action-btn {
             width: 100%;
-            padding: 12px;
+            padding: 11px;
             border-radius: 10px;
             border: none;
             font-weight: 600;
             cursor: pointer;
             text-align: center;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             transition: all 0.2s;
             text-decoration: none;
             display: inline-block;
@@ -341,7 +342,7 @@
                 <div>
                     <div class="card-heading-wrap">
                         <div class="card-title-text">📚 إدارة الملازم</div>
-                        <div class="card-counter-badge" id="totalFilesCount">0</div>
+                        <div class="card-counter-badge" id="totalFilesCount">...</div>
                     </div>
                     <p class="card-description">التحكم الكامل في رفع، تحديث أو حذف المذكرات وملازم الشرح لتظهر فوراً عند الطلاب.</p>
                 </div>
@@ -352,7 +353,7 @@
                 <div>
                     <div class="card-heading-wrap">
                         <div class="card-title-text">📊 الامتحانات</div>
-                        <div class="card-counter-badge" id="totalExamsCount">0</div>
+                        <div class="card-counter-badge" id="totalExamsCount">...</div>
                     </div>
                     <p class="card-description">إنشاء الامتحانات التفاعلية، إضافة الأسئلة بنظام Google Forms، ومتابعة درجات الطلاب.</p>
                 </div>
@@ -363,7 +364,7 @@
                 <div>
                     <div class="card-heading-wrap">
                         <div class="card-title-text">🎬 الفيديوهات</div>
-                        <div class="card-counter-badge" id="totalVideosCount">0</div>
+                        <div class="card-counter-badge" id="totalVideosCount">...</div>
                     </div>
                     <p class="card-description">إدارة مكتبة الحصص المصورة وروابط الشروحات الحصرية الخاصة بمنهج الطلاب.</p>
                 </div>
@@ -374,7 +375,7 @@
                 <div>
                     <div class="card-heading-wrap">
                         <div class="card-title-text">💬 منتدى النقاش</div>
-                        <div class="card-counter-badge" id="totalForumCount">0</div>
+                        <div class="card-counter-badge" id="totalForumCount">...</div>
                     </div>
                     <p class="card-description">متابعة تفاعلات الطلاب، الرد على الاستفسارات العامة، وإدارة منشورات المجتمع التعليمي.</p>
                 </div>
@@ -385,7 +386,7 @@
                 <div>
                     <div class="card-heading-wrap">
                         <div class="card-title-text">👥 المشرفين والطلاب</div>
-                        <div class="card-counter-badge" id="totalUsersCount">0</div>
+                        <div class="card-counter-badge" id="totalUsersCount">...</div>
                     </div>
                     <p class="card-description">إدارة صلاحيات حسابات المشرفين، متابعة سجلات الطلاب، وحظر أو تفعيل الحسابات.</p>
                 </div>
@@ -417,32 +418,25 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- نظام فحص انتهاء جلسة الأدمن (48 ساعة) ---
-        const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
-        const sessionStartTime = sessionStorage.getItem('session_start_time');
-        
-        if (sessionStartTime) {
-            if (Date.now() - parseInt(sessionStartTime) > TWO_DAYS_MS) {
-                sessionStorage.clear();
-                signOut(auth).then(() => {
-                    window.location.href = 'login.html';
-                });
-            }
-        } else {
-            sessionStorage.setItem('session_start_time', Date.now().toString());
-        }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                let adminEmail = sessionStorage.getItem('adminEmail') || user.email;
-                await initAdminHeader(user.uid, adminEmail);
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
-
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
+        // --- المزامنة الفورية السريعة لبيانات الأدمن المخزنة مسبقاً ---
+        function fastRenderAdminFromStorage() {
+            let cachedAdmin = sessionStorage.getItem('adminUser');
+            if (cachedAdmin) {
+                try {
+                    let adminData = JSON.parse(cachedAdmin);
+                    let fullName = adminData.fullname || adminData.name || "عشري";
+                    let firstName = fullName.trim().split(" ")[0];
+                    let avatar = adminData.profileImage || adminData.avatar || defaultAvatarSvg;
+                    document.getElementById('adminNameLabel').textContent = firstName;
+                    document.getElementById('headerAdminAvatar').src = avatar;
+                } catch(e) {}
+            }
+        }
+        fastRenderAdminFromStorage();
+
+        // نظام التحكم بالثيم الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -458,23 +452,42 @@
         });
 
         function updateThemeIcon(themeName) {
-            themeToggleBtn.textContent = themeName === 'dark' ? '☀️' : '🌙';
+            themeToggleBtn.textContent = themeName === 'dark' ? '☀️️' : '🌙';
         }
 
-        async function initAdminHeader(uid, emailKey) {
+        // فحص جلسة الأدمن (48 ساعة)
+        const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
+        const sessionStartTime = sessionStorage.getItem('session_start_time');
+        if (sessionStartTime) {
+            if (Date.now() - parseInt(sessionStartTime) > TWO_DAYS_MS) {
+                sessionStorage.clear();
+                signOut(auth).then(() => { window.location.href = 'login.html'; });
+            }
+        } else {
+            sessionStorage.setItem('session_start_time', Date.now().toString());
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                let adminEmail = sessionStorage.getItem('adminEmail') || user.email;
+                await initAdminDataAndCounters(user.uid, adminEmail);
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        async function initAdminDataAndCounters(uid, emailKey) {
             let adminNameEl = document.getElementById('adminNameLabel');
             let adminAvatarEl = document.getElementById('headerAdminAvatar');
 
-            let adminData = null;
+            // 1. جلب بيانات الأدمن وتحديث البروفايل بأقصى سرعة
             try {
                 let docSnap = null;
                 if (uid) {
-                    const docRef = doc(db, "admins", uid);
-                    docSnap = await getDoc(docRef);
+                    docSnap = await getDoc(doc(db, "admins", uid));
                 }
                 if ((!docSnap || !docSnap.exists()) && emailKey) {
-                    const docRef = doc(db, "admins", emailKey.toLowerCase().trim());
-                    docSnap = await getDoc(docRef);
+                    docSnap = await getDoc(doc(db, "admins", emailKey.toLowerCase().trim()));
                 }
                 if ((!docSnap || !docSnap.exists()) && auth.currentUser && auth.currentUser.email) {
                     const qEmail = query(collection(db, "admins"), where("email", "==", auth.currentUser.email));
@@ -485,29 +498,58 @@
                 }
 
                 if (docSnap && docSnap.exists()) {
-                    adminData = docSnap.data();
+                    let adminData = docSnap.data();
                     sessionStorage.setItem('adminUser', JSON.stringify(adminData));
+                    let fullName = adminData.fullname || adminData.name || "عشري";
+                    let firstName = fullName.trim().split(" ")[0];
+                    let avatar = adminData.profileImage || adminData.avatar || defaultAvatarSvg;
+                    adminNameEl.textContent = firstName;
+                    adminAvatarEl.src = avatar;
                 }
             } catch(e) {
                 console.error("خطأ جلب بيانات الأدمن:", e);
             }
 
-            if (adminData) {
-                let fullName = adminData.fullname || adminData.name || "عشري";
-                let firstName = fullName.trim().split(" ")[0];
-                let avatar = adminData.profileImage || adminData.avatar || defaultAvatarSvg;
-                adminNameEl.textContent = firstName;
-                adminAvatarEl.src = avatar;
-            } else {
-                adminNameEl.textContent = "عشري";
-                adminAvatarEl.src = defaultAvatarSvg;
+            // 2. جلب العدادات الحقيقية من فايربيز (للملازم، الامتحانات، الفيديوهات، المنتدى، والمستخدمين)
+            try {
+                const notesSnap = await getDocs(collection(db, "files"));
+                document.getElementById('totalFilesCount').textContent = notesSnap.size;
+                localStorage.setItem('admin_files', JSON.stringify(notesSnap.docs.map(d => d.data())));
+            } catch(e) {
+                document.getElementById('totalFilesCount').textContent = (JSON.parse(localStorage.getItem('admin_files')) || []).length;
             }
 
-            document.getElementById('totalFilesCount').textContent = (JSON.parse(localStorage.getItem('admin_files')) || []).length;
-            document.getElementById('totalExamsCount').textContent = (JSON.parse(localStorage.getItem('admin_exams')) || []).length;
-            document.getElementById('totalVideosCount').textContent = (JSON.parse(localStorage.getItem('admin_videos')) || []).length;
-            document.getElementById('totalForumCount').textContent = (JSON.parse(localStorage.getItem('admin_forum')) || []).length;
-            document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
+            try {
+                const examsSnap = await getDocs(collection(db, "exams"));
+                document.getElementById('totalExamsCount').textContent = examsSnap.size;
+                localStorage.setItem('admin_exams', JSON.stringify(examsSnap.docs.map(d => d.data())));
+            } catch(e) {
+                document.getElementById('totalExamsCount').textContent = (JSON.parse(localStorage.getItem('admin_exams')) || []).length;
+            }
+
+            try {
+                const videosSnap = await getDocs(collection(db, "videos"));
+                document.getElementById('totalVideosCount').textContent = videosSnap.size;
+                localStorage.setItem('admin_videos', JSON.stringify(videosSnap.docs.map(d => d.data())));
+            } catch(e) {
+                document.getElementById('totalVideosCount').textContent = (JSON.parse(localStorage.getItem('admin_videos')) || []).length;
+            }
+
+            try {
+                const forumSnap = await getDocs(collection(db, "forumPosts"));
+                document.getElementById('totalForumCount').textContent = forumSnap.size;
+                localStorage.setItem('admin_forum', JSON.stringify(forumSnap.docs.map(d => d.data())));
+            } catch(e) {
+                document.getElementById('totalForumCount').textContent = (JSON.parse(localStorage.getItem('admin_forum')) || []).length;
+            }
+
+            try {
+                const usersSnap = await getDocs(collection(db, "users"));
+                document.getElementById('totalUsersCount').textContent = usersSnap.size;
+                localStorage.setItem('admin_users', JSON.stringify(usersSnap.docs.map(d => d.data())));
+            } catch(e) {
+                document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
+            }
         }
 
         window.toggleNotificationsModal = function(show) {
@@ -526,16 +568,13 @@
 
             try {
                 const querySnapshot = await getDocs(collection(db, "adminNotifications"));
-
                 if (querySnapshot.empty) {
                     container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 15px; font-size: 0.8rem;">لا توجد إشعارات سحابية حالياً.</div>`;
                     return;
                 }
 
                 let docsList = [];
-                querySnapshot.forEach((doc) => {
-                    docsList.push({ id: doc.id, ...doc.data() });
-                });
+                querySnapshot.forEach((doc) => { docsList.push({ id: doc.id, ...doc.data() }); });
 
                 let filteredList = docsList.filter(item => {
                     let target = item.target || 'students';
