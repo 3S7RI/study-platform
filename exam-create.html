@@ -35,7 +35,7 @@
             --th-bg: rgba(0, 0, 0, 0.02);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
         body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -93,21 +93,21 @@
         .form-row-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         @media (max-width: 768px) { .form-row-grid-2 { grid-template-columns: 1fr; } }
 
-        .btn-save { background: var(--success); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin-top: 15px; width: 100%; }
+        .btn-save { background: var(--success); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin-top: 15px; width: 100%; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
 
         .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-top: 15px; }
         
-        .question-top-row { display: flex; gap: 12px; align-items: flex-start; }
-        .question-text-wrapper { flex: 1; }
+        .question-top-row { display: flex; gap: 12px; align-items: stretch; }
+        .question-text-wrapper { flex: 1; display: flex; flex-direction: column; }
         .question-text-wrapper textarea {
-            resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4;
+            resize: none; overflow-y: hidden; min-height: 44px; line-height: 1.4; flex: 1;
         }
-        .question-meta-wrapper { display: flex; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0; }
+        .question-meta-wrapper { display: flex; flex-direction: column; justify-content: flex-end; flex-shrink: 0; }
 
-        /* خانة الدرجة المربعة الشكل بجانب السؤال */
+        /* خانة الدرجة المربعة الشكل لتبدو متناسقة مع ارتفاع حقل النص تماماً */
         .square-mark-input {
-            width: 42px !important;
-            height: 42px !important;
+            width: 44px !important;
+            height: 44px !important;
             padding: 0 !important;
             text-align: center;
             font-weight: bold;
@@ -121,6 +121,14 @@
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
         .option-row input[type="text"] { flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; }
         
+        /* زر إزالة الخيار الصغير (✕) */
+        .btn-remove-opt {
+            background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger);
+            width: 26px; height: 26px; border-radius: 50%; font-size: 0.75rem; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .btn-remove-opt:hover { background: var(--danger); color: white; }
+
         .btn-add-opt { background: #0ea5e9; color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; font-weight: bold; margin-top: 6px; }
         
         .question-actions-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
@@ -140,7 +148,6 @@
         .custom-file-upload-box:hover { background: var(--hover-bg); border-color: var(--success); }
         .file-upload-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
-        /* معاينة الصورة المرفقة تحت السؤال */
         .image-preview-thumbnail {
             width: 45px; height: 45px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border-color); display: none; flex-shrink: 0; cursor: pointer;
         }
@@ -159,7 +166,29 @@
         .btn-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        /* مودال تكبير الصور المصغرة */
+        /* صندوق الإشعارات المخصص بثيم المنصة (بدل الـ alert التقليدي) */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; text-align: center; box-shadow: var(--shadow);
+            animation: toastPop 0.25s ease;
+        }
+        @keyframes toastPop {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .platform-toast-card h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 8px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.5; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 8px;
+            font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;
+        }
+        .platform-toast-btn:hover { background: var(--primary-hover); }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
         #imageLightboxModal img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
     </style>
@@ -197,11 +226,11 @@
                     <span id="editingIndicator" class="hidden" style="font-size: 0.75rem; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠️</span>
                 </div>
 
-                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه مباشرة خانة الدرجة المربعة -->
+                <!-- نص السؤال وخانة الدرجة المربعة المتناسقة تماماً بجانبه -->
                 <div class="question-top-row">
                     <div class="form-group question-text-wrapper" style="margin-top: 0;">
                         <label>نص السؤال:</label>
-                        <textarea id="newQText" placeholder="اكتب السؤال هنا (تكبر الخانة تلقائياً مع الكتابة)..." oninput="autoGrowTextarea(this)"></textarea>
+                        <textarea id="newQText" placeholder="اكتب السؤال هنا..." oninput="autoGrowTextarea(this)"></textarea>
                     </div>
                     <div class="question-meta-wrapper">
                         <div class="form-group" style="margin-top: 0;">
@@ -211,7 +240,6 @@
                     </div>
                 </div>
 
-                <!-- خانة رفع الصورة الحقيقية (تحت نص السؤال) مع معاينة حية للملف المرفوع -->
                 <div class="form-group" id="imageInputGroup">
                     <label>إرفاق صورة توضيحية للسؤال (اختياري):</label>
                     <input type="file" id="newQImageFile" accept="image/*" class="hidden" onchange="updateImageFileName(this)">
@@ -225,17 +253,24 @@
                     </div>
                 </div>
 
-                <!-- خانة الإجابة النموذجية للنص القصير أو الطويل لأجل الـ AI -->
                 <div class="form-group hidden" id="modelAnswerGroup">
                     <label id="modelAnswerLabel">الإجابة النموذجية (لتصحيح الـ AI):</label>
                     <textarea id="newModelAnswer" rows="2" placeholder="اكتب الإجابة النموذجية أو المفاتيح التي سيعتمد عليها الذكاء الاصطناعي في التصحيح..."></textarea>
                 </div>
 
                 <div class="form-group" id="optionsBuilderGroup">
-                    <label>الخيارات (حدد الصحيح):</label>
+                    <label>الخيارات (حدد الصحيح، ويمكنك مسح أي خيار بـ ✕):</label>
                     <div id="optionsBuilderList">
-                        <div class="option-row"><input type="radio" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
-                        <div class="option-row"><input type="radio" name="correctOpt" value="1" style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>
+                        <div class="option-row">
+                            <input type="radio" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;">
+                            <input type="text" class="opt-input" placeholder="الخيار الأول">
+                            <button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button>
+                        </div>
+                        <div class="option-row">
+                            <input type="radio" name="correctOpt" value="1" style="width: 16px; height: 16px; cursor: pointer;">
+                            <input type="text" class="opt-input" placeholder="الخيار الثاني">
+                            <button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button>
+                        </div>
                     </div>
                     <button class="btn-add-opt" id="addOptBtn" onclick="addOptionInput()">إضافة خيار آخر ➕</button>
                 </div>
@@ -260,6 +295,15 @@
                 </div>
             </div>
             <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان بالسحابة 🚀</button>
+        </div>
+    </div>
+
+    <!-- نافذة إشعارات المنصة المخصصة -->
+    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">رسالة التنبيه هنا...</p>
+            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
         </div>
     </div>
 
@@ -313,12 +357,22 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        // دالة عرض إشعارات المنصة بدلاً من alert
+        window.showPlatformToast = function(title, message) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
+
         window.autoGrowTextarea = function(element) {
             element.style.height = 'auto';
             element.style.height = (element.scrollHeight) + 'px';
         };
 
-        // دالة لعرض المعاينة الحية (Thumbnail) للصورة المرفقة
         window.updateImageFileName = function(input) {
             const display = document.getElementById('imageFileNameDisplay');
             const thumb = document.getElementById('imagePreviewThumb');
@@ -390,8 +444,8 @@
                 modelAnswerGroup.classList.add('hidden');
                 let inputType = (type === 'checkbox') ? 'checkbox' : 'radio';
                 document.getElementById('optionsBuilderList').innerHTML = `
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"></div>
-                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="1" style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"></div>`;
+                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="0" checked style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الأول"><button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button></div>
+                    <div class="option-row"><input type="${inputType}" name="correctOpt" value="1" style="width: 16px; height: 16px; cursor: pointer;"><input type="text" class="opt-input" placeholder="الخيار الثاني"><button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button></div>`;
                 document.getElementById('addOptBtn').style.display = 'inline-block';
             }
         };
@@ -404,8 +458,20 @@
             row.className = 'option-row';
             row.innerHTML = `
                 <input type="${inputType}" name="correctOpt" value="${list.children.length}" style="width: 16px; height: 16px; cursor: pointer;">
-                <input type="text" class="opt-input" placeholder="خيار إضافي">`;
+                <input type="text" class="opt-input" placeholder="خيار إضافي">
+                <button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button>`;
             list.appendChild(row);
+        };
+
+        // دالة مسح صف الخيار المحدد بواسطة علامة (✕)
+        window.removeOptionRow = function(btn) {
+            const row = btn.closest('.option-row');
+            const list = document.getElementById('optionsBuilderList');
+            if (list.children.length <= 2) {
+                showPlatformToast("تنبيه", "يجب أن يحتوي السؤال على خيارين على الأقل!");
+                return;
+            }
+            row.remove();
         };
 
         window.addNewQuestionToExam = function() {
@@ -415,7 +481,7 @@
             let imageFileinput = document.getElementById('newQImageFile');
             let modelAnswer = document.getElementById('newModelAnswer').value.trim();
 
-            if (!qText) { alert('يرجى كتابة نص السؤال!'); return; }
+            if (!qText) { showPlatformToast("تنبيه هام", "يرجى كتابة نص السؤال أولاً!"); return; }
 
             let processQuestionWithImage = (imageUrl) => {
                 let options = [];
@@ -558,7 +624,8 @@
                     row.className = 'option-row';
                     row.innerHTML = `
                         <input type="${inputType}" name="correctOpt" value="${oIdx}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
-                        <input type="text" class="opt-input" value="${optText}">`;
+                        <input type="text" class="opt-input" value="${optText}">
+                        <button type="button" class="btn-remove-opt" onclick="removeOptionRow(this)" title="مسح الخيار">✕</button>`;
                     list.appendChild(row);
                 });
             }
@@ -566,7 +633,7 @@
             document.getElementById('builderFormTitle').textContent = `تعديل السؤال رقم ${idx + 1}:`;
             document.getElementById('editingIndicator').classList.remove('hidden');
             document.getElementById('addOrUpdateBtn').textContent = 'تحديث السؤال 🔄';
-            window.scrollTo({ top: 350, behavior: 'smooth' });
+            // تم إلغاء القفز التلقائي لأول الصفحة بناءً على طلبك تماماً!
         };
 
         window.deleteDraftQuestion = function(idx, event) {
@@ -580,8 +647,8 @@
             let subject = document.getElementById('examSubject').value.trim();
             let targetGroup = document.getElementById('examTargetGroup').value.trim();
 
-            if (!title) { alert('يرجى كتابة عنوان الامتحان!'); return; }
-            if (currentDraftQuestions.length === 0) { alert('يرجى إضافة سؤال واحد على الأقل للامتحان!'); return; }
+            if (!title) { showPlatformToast("تنبيه", "يرجى كتابة عنوان الامتحان أولاً!"); return; }
+            if (currentDraftQuestions.length === 0) { showPlatformToast("تنبيه", "يرجى إضافة سؤال واحد على الأقل للامتحان!"); return; }
 
             let defaultSettings = {
                 active: true, timer: true, duration: 30, attempts: 1, passingScore: 50,
@@ -602,10 +669,10 @@
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
                 renderQuestionsList();
-                alert('تم نشر الامتحان بنجاح في كولكشن (exams) في فايربيز 🚀');
+                showPlatformToast("تم بنجاح 🚀", "تم نشر الامتحان بنجاح في السحابة وأصبح جاهزاً للطلاب!");
             } catch (e) {
                 console.error(e);
-                alert("حدث خطأ أثناء النشر.");
+                showPlatformToast("خطأ ❌", "حدث خطأ أثناء نشر الامتحان في السحابة.");
             }
         };
     </script>
