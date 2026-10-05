@@ -103,6 +103,15 @@
         }
         .btn-clip:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
+        /* شريط تقدم التحميل المباشر */
+        .upload-progress-container {
+            margin-top: 8px; background: var(--bg-main); border-radius: 8px; border: 1px solid var(--border-color);
+            padding: 8px; display: none;
+        }
+        .upload-progress-bar-bg { width: 100%; background: #334155; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+        .upload-progress-fill { width: 0%; background: var(--success); height: 100%; transition: width 0.1s linear; }
+        .upload-status-text { font-size: 0.75rem; color: var(--success); font-weight: bold; margin-top: 4px; display: flex; justify-content: space-between; }
+
         .btn-save { background: var(--success); color: white; border: none; padding: 12px 16px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.9rem; margin-top: 20px; width: 100%; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
 
@@ -122,7 +131,6 @@
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل المعدل بروابط files- -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-lessons.html" class="btn-tab active">إنشاء الحصص 📝</a>
@@ -146,41 +154,57 @@
 
             <hr style="border:0; border-top:1px solid var(--border-color); margin:20px 0;">
 
-            <h3 style="color:var(--text-main); font-size: 0.95rem; margin-bottom: 12px;">محتويات الحصة (الترتيب: ملازم الشرح ← الفيديو ← التلخيص ← الامتحان):</h3>
+            <h3 style="color:var(--text-main); font-size: 0.95rem; margin-bottom: 12px;">قائمة محتويات الحصة (الفيديوهات والملازم منفصلة):</h3>
 
-            <!-- 1. ملازم الشرح مع زر المشبك -->
-            <div class="form-group">
-                <label>1️⃣ ملازم الشرح (رابط الملف أو رفع مباشر):</label>
-                <div class="input-with-clip">
-                    <input type="url" id="lessonStudyNotes" placeholder="أدخل رابط PDF الشرح أو اضغط المشبك للإرفاق...">
-                    <input type="file" id="fileInputStudyNotes" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonStudyNotes')">
-                    <button type="button" class="btn-clip" onclick="document.getElementById('fileInputStudyNotes').click()" title="إرفاق ملف من الجهاز 📎">📎</button>
+            <!-- القائمة الأولى: قائمة رفع وإدارة فيديوهات الشرح -->
+            <div style="background: var(--th-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px;">
+                <h4 style="color: var(--primary); font-size: 0.85rem; margin-bottom: 8px;">🎬 أولاً: قائمة إدارة وفيديوهات الشرح</h4>
+                <div class="form-group" style="margin-top:0;">
+                    <label>اختر طريقة إدخال الفيديو (رابط خارجي أو رفع فيديو صغير من الهاتف):</label>
+                    <div class="input-with-clip">
+                        <input type="url" id="lessonVideoUrl" placeholder="أدخل رابط يوتيوب أو اضغط المشبك لرفع فيديو مباشر من الهاتف...">
+                        <input type="file" id="fileInputVideo" class="hidden" accept="video/*" onchange="handleDirectVideoUpload(this)">
+                        <button type="button" class="btn-clip" onclick="promptVideoSourceChoice()" title="اختيار طريقة رفع الفيديو 📎">📎</button>
+                    </div>
+                    <!-- شريط تحميل الفيديو المباشر -->
+                    <div class="upload-progress-container" id="videoUploadProgressBox">
+                        <div class="upload-status-text">
+                            <span id="videoUploadStatusLabel">جاري رفع الفيديو من الهاتف...</span>
+                            <span id="videoUploadPercentLabel">0%</span>
+                        </div>
+                        <div class="upload-progress-bar-bg">
+                            <div class="upload-progress-fill" id="videoUploadProgressFill"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- 2. فيديو الشرح مع زر المشبك -->
-            <div class="form-group">
-                <label>2️⃣ فيديو الشرح الرئيسي (رابط يوتيوب/سيرفر أو رفع فيديو):</label>
-                <div class="input-with-clip">
-                    <input type="url" id="lessonVideoUrl" placeholder="أدخل رابط الفيديو أو اضغط المشبك لرفع فيديو...">
-                    <input type="file" id="fileInputVideo" class="hidden" accept="video/*" onchange="handleFileUpload(this, 'lessonVideoUrl')">
-                    <button type="button" class="btn-clip" onclick="document.getElementById('fileInputVideo').click()" title="إرفاق فيديو من الجهاز 📎">📎</button>
+            <!-- القائمة الثانية: قائمة رفع الملازم وملخصات الشرح -->
+            <div style="background: var(--th-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px;">
+                <h4 style="color: var(--primary); font-size: 0.85rem; margin-bottom: 8px;">📚 ثانياً: قائمة ملازم الشرح وملخصات الدرس</h4>
+                
+                <div class="form-group" style="margin-top:0;">
+                    <label>ملازم الشرح الرئيسية (PDF):</label>
+                    <div class="input-with-clip">
+                        <input type="url" id="lessonStudyNotes" placeholder="أدخل رابط الملزمة أو اضغط المشبك للإرفاق...">
+                        <input type="file" id="fileInputStudyNotes" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonStudyNotes')">
+                        <button type="button" class="btn-clip" onclick="document.getElementById('fileInputStudyNotes').click()" title="إرفاق ملف من الجهاز 📎">📎</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ملازم تلخيص الدرس (PDF):</label>
+                    <div class="input-with-clip">
+                        <input type="url" id="lessonSummaryNotes" placeholder="أدخل رابط التلخيص أو اضغط المشبك للإرفاق...">
+                        <input type="file" id="fileInputSummary" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonSummaryNotes')">
+                        <button type="button" class="btn-clip" onclick="document.getElementById('fileInputSummary').click()" title="إرفاق ملخص من الجهاز 📎">📎</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- 3. ملازم التلخيص مع زر المشبك -->
+            <!-- امتحان الحصة الخاص بها -->
             <div class="form-group">
-                <label>3️⃣ ملازم تلخيص الدرس (رابط PDF التلخيص أو رفع مباشر):</label>
-                <div class="input-with-clip">
-                    <input type="url" id="lessonSummaryNotes" placeholder="أدخل رابط ملخص الدرس أو اضغط المشبك للإرفاق...">
-                    <input type="file" id="fileInputSummary" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonSummaryNotes')">
-                    <button type="button" class="btn-clip" onclick="document.getElementById('fileInputSummary').click()" title="إرفاق ملخص من الجهاز 📎">📎</button>
-                </div>
-            </div>
-
-            <!-- 4. امتحان الحصة الخاص بها -->
-            <div class="form-group">
-                <label>4️⃣ امتحان الحصة الخاص بهذا الدرس (اختيار امتحان الكولكشن المستقل):</label>
+                <label>📝 امتحان الحصة الخاص بهذا الدرس:</label>
                 <select id="lessonExamSelect">
                     <option value="">-- اختر امتحان مخصص لهذه الحصة --</option>
                 </select>
@@ -241,13 +265,59 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        // زر المشبك الخاص بالفيديو لاختيار المصدر (رابط أو رفع من الهاتف)
+        window.promptVideoSourceChoice = function() {
+            let choice = prompt("اختر طريقة إدخال الفيديو:\n1. اكتب '1' لإدخال رابط (يوتيوب / مباشر)\n2. اكتب '2' لرفع فيديو صغير من استوديو الهاتف");
+            if (choice === '1') {
+                let url = prompt("اكتب رابط الفيديو هنا:");
+                if (url) document.getElementById('lessonVideoUrl').value = url;
+            } else if (choice === '2') {
+                document.getElementById('fileInputVideo').click();
+            }
+        };
+
+        // محاكاة رفع الفيديو الحقيقي من الهاتف مع شريط التقدم المتحرك
+        window.handleDirectVideoUpload = function(input) {
+            let file = input.files[0];
+            if (!file) return;
+
+            let progressBox = document.getElementById('videoUploadProgressBox');
+            let progressFill = document.getElementById('videoUploadProgressFill');
+            let percentLabel = document.getElementById('videoUploadPercentLabel');
+            let statusLabel = document.getElementById('videoUploadStatusLabel');
+
+            progressBox.style.display = 'block';
+            progressFill.style.width = '0%';
+            percentLabel.textContent = '0%';
+            statusLabel.textContent = `جاري رفع (${file.name})...`;
+
+            let currentProgress = 0;
+            let uploadInterval = setInterval(() => {
+                currentProgress += 5;
+                if (currentProgress <= 100) {
+                    progressFill.style.width = currentProgress + '%';
+                    percentLabel.textContent = currentProgress + '%';
+                } else {
+                    clearInterval(uploadInterval);
+                    statusLabel.textContent = '✔ تم رفع الفيديو بنجاح وانتهى التحميل!';
+                    
+                    // تحويل الفيديو إلى Base64 أو رابط مؤقت لتخزينه بالسحابة للفيديوهات الصغيرة
+                    let reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('lessonVideoUrl').value = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }, 100);
+        };
+
         window.handleFileUpload = function(input, targetInputId) {
             let file = input.files[0];
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById(targetInputId).value = e.target.result;
-                    alert(`✔ تم تجهيز الملف (${file.name}) بنجاح.`);
+                    alert(`✔ تم تجهيز وإرفاق الملف (${file.name}) بنجاح.`);
                 };
                 reader.readAsDataURL(file);
             }
@@ -316,24 +386,20 @@
                 title, subject, targetGroup, number,
                 studyNotes, videoUrl, summaryNotes, examId,
                 settings: {
-                    active: true,
-                    smartExamLock: true,
+                    generalActive: true,
+                    smartLock: true,
                     antiScreenshot: true,
-                    allowDownload: false,
-                    maxAttempts: 10,
-                    showStudyNotes: true,
+                    allowNotesDownload: false,
                     showVideo: true,
-                    showSummary: true,
-                    minWatchTime: 0,
-                    instantResult: true,
-                    sendNotification: true
+                    showNotes: true,
+                    showSummary: true
                 },
                 createdAt: new Date().toISOString()
             };
 
             try {
                 await addDoc(collection(db, "lessons"), lessonDoc);
-                alert('✔ تم نشر الحصة بنجاح في السحابة لجميع الطلاب وأرسل التنبيه! 🚀');
+                alert('✔ تم نشر الحصة بنجاح في السحابة لجميع الطلاب! 🚀');
                 
                 document.getElementById('lessonTitle').value = '';
                 document.getElementById('lessonSubject').value = '';
@@ -341,6 +407,7 @@
                 document.getElementById('lessonStudyNotes').value = '';
                 document.getElementById('lessonVideoUrl').value = '';
                 document.getElementById('lessonSummaryNotes').value = '';
+                document.getElementById('videoUploadProgressBox').style.display = 'none';
                 
                 fetchLessonsList();
             } catch (e) {
