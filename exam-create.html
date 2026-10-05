@@ -97,10 +97,13 @@
 
         .question-builder-card { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-top: 15px; }
         
-        /* تعديل صف نص السؤال ليضم خانة الدرجات وزر الكاميرا SVG من أقصى اليسار */
-        .question-top-row { display: flex; gap: 10px; align-items: flex-end; }
+        /* تنسيق بناء السؤال: نص السؤال يأخذ راحته ويتمدد تلقائياً، واليمين يحوي زر الكاميرا وتحته خانة الدرجة */
+        .question-top-row { display: flex; gap: 12px; align-items: flex-start; }
         .question-text-wrapper { flex: 1; }
-        .question-meta-wrapper { display: flex; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+        .question-text-wrapper textarea {
+            resize: none; overflow-y: hidden; min-height: 48px; line-height: 1.4;
+        }
+        .question-meta-wrapper { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
         .option-row input[type="text"] { flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; }
@@ -116,7 +119,7 @@
             width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
 
-        /* زر الكاميرا الشكلي الوهمي المخصص لرفع صورة السؤال */
+        /* زر الكاميرا الحقيقي المخصص لرفع صورة السؤال */
         .btn-camera-upload {
             background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid var(--border-color);
             width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -124,7 +127,6 @@
         }
         .btn-camera-upload:hover { background: rgba(14, 165, 233, 0.3); border-color: #0ea5e9; transform: scale(1.05); }
 
-        /* زر رفع صورة إجابة الطالب الوهمي الأنيق */
         .custom-file-upload-box {
             display: flex; align-items: center; justify-content: space-between;
             background: var(--bg-main); border: 1px dashed var(--primary); border-radius: 10px;
@@ -181,31 +183,29 @@
                     <span id="editingIndicator" class="hidden" style="font-size: 0.75rem; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 6px; font-weight: bold;">وضع التعديل ⚠️</span>
                 </div>
 
-                <!-- نص السؤال بجانب خانة الدرجات وزر الكاميرا SVG من أقصى اليسار -->
+                <!-- نص السؤال الذي يتمدد تلقائياً، وبجانبه زر الكاميرا وتحته خانة الدرجة -->
                 <div class="question-top-row">
                     <div class="form-group question-text-wrapper" style="margin-top: 0;">
                         <label>نص السؤال:</label>
-                        <input type="text" id="newQText" placeholder="اكتب السؤال هنا...">
+                        <textarea id="newQText" placeholder="اكتب السؤال هنا (تكبر الخانة تلقائياً مع الكتابة)..." oninput="autoGrowTextarea(this)"></textarea>
                     </div>
                     <div class="question-meta-wrapper">
-                        <div class="form-group" style="margin-top: 0; width: 85px;">
-                            <label>الدرجة:</label>
+                        <button type="button" class="btn-camera-upload" onclick="document.getElementById('newQImageFile').click()" title="تصوير أو رفع صورة للسؤال">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                        </button>
+                        <div class="form-group" style="margin-top: 0; width: 75px;">
+                            <label style="text-align: center;">الدرجة:</label>
                             <input type="number" id="newQMarks" value="1" min="0.5" step="0.5" style="text-align: center;">
-                        </div>
-                        <div>
-                            <button type="button" class="btn-camera-upload" onclick="document.getElementById('newQImageFile').click()" title="تصوير أو رفع صورة للسؤال">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                                    <circle cx="12" cy="13" r="4"></circle>
-                                </svg>
-                            </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- زر رفع صورة السؤال المخفي والذي يتحكم به زر الكاميرا -->
                 <div class="form-group hidden" id="imageInputGroup">
-                    <label>إرفاق صورة توضيحية للسؤال (اختياري):</label>
+                    <label>إرفاق صورة توضيحية للسؤال:</label>
                     <input type="file" id="newQImageFile" accept="image/*" class="hidden" onchange="updateImageFileName(this)">
                     <div class="custom-file-upload-box" onclick="document.getElementById('newQImageFile').click()">
                         <span class="file-upload-text" id="imageFileNameDisplay">
@@ -296,6 +296,12 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        // دالة تمدد خانة نص السؤال تلقائياً مع الكتابة
+        window.autoGrowTextarea = function(element) {
+            element.style.height = 'auto';
+            element.style.height = (element.scrollHeight) + 'px';
+        };
+
         window.updateImageFileName = function(input) {
             const display = document.getElementById('imageFileNameDisplay');
             if (input.files && input.files[0]) {
@@ -333,7 +339,7 @@
 
             if (type === 'short' || type === 'long') {
                 optGroup.classList.add('hidden');
-                imgGroup.classList.remove('hidden'); // إظهار خانة الصورة الوهمية لجميع الأنماط إذا احتجاها الأدمن
+                imgGroup.classList.remove('hidden');
                 modelAnswerGroup.classList.remove('hidden');
                 document.getElementById('modelAnswerLabel').textContent = type === 'short' ? 'الإجابة النموذجية للنص القصير (بحد أقصى 5 أسطر للطالب):' : 'الإجابة النموذجية للنص الطويل (مقال):';
             } else if (type === 'voice') {
@@ -430,7 +436,10 @@
                     currentDraftQuestions.push(questionObj);
                 }
 
-                document.getElementById('newQText').value = '';
+                let textAreaElem = document.getElementById('newQText');
+                textAreaElem.value = '';
+                textAreaElem.style.height = 'auto';
+
                 document.getElementById('newQImageFile').value = '';
                 document.getElementById('newModelAnswer').value = '';
                 document.getElementById('newQMarks').value = '1';
@@ -490,7 +499,10 @@
         window.editQuestion = function(idx) {
             let q = currentDraftQuestions[idx];
             editingQuestionIndex = idx;
-            document.getElementById('newQText').value = q.text || '';
+            let textAreaElem = document.getElementById('newQText');
+            textAreaElem.value = q.text || '';
+            autoGrowTextarea(textAreaElem);
+
             document.getElementById('newQMarks').value = q.marks || 1;
             document.getElementById('selectedQuestionType').value = q.type || 'mcq';
             changeQuestionTypeUI();
