@@ -86,42 +86,11 @@
 
         .welcome-section { 
             text-align: center; padding: 25px 20px; background: var(--bg-card);
-            border: 1px solid var(--border-color); margin-bottom: 15px; border-radius: 16px;
+            border: 1px solid var(--border-color); margin-bottom: 20px; border-radius: 16px;
             box-shadow: var(--shadow); border-top: 4px solid var(--primary);
         }
         .welcome-section h1 { color: var(--text-main); font-size: 1.25rem; margin-bottom: 6px; font-weight: 700; }
         .welcome-section p { color: var(--text-muted); font-size: 0.85rem; }
-        
-        /* شريط الواتساب: على سطر واحد وزر الانضمام في أقصى اليسار تماماً */
-        .whatsapp-banner-wrapper { margin-bottom: 20px; }
-
-        .whatsapp-banner {
-            padding: 10px 16px; 
-            background: linear-gradient(135deg, #25d366, #128c7e);
-            border-radius: 14px; 
-            color: white; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            box-shadow: 0 6px 18px rgba(37, 211, 102, 0.2); 
-            text-decoration: none; 
-            flex-wrap: nowrap;
-            gap: 15px;
-        }
-        .whatsapp-banner:hover { opacity: 0.95; }
-        
-        .whatsapp-info { display: flex; align-items: center; gap: 10px; }
-        .whatsapp-icon-box { 
-            background: rgba(255, 255, 255, 0.25); width: 34px; height: 34px; border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; 
-        }
-        .whatsapp-text h4 { font-size: 0.88rem; font-weight: bold; color: #ffffff; }
-        
-        .whatsapp-btn { 
-            background: white; color: #128c7e; padding: 6px 14px; border-radius: 8px; 
-            font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 5px; 
-            flex-shrink: 0; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
 
         .platform-grid { 
             display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; 
@@ -156,9 +125,13 @@
         .platform-card.forum .card-action-btn { background-color: var(--accent-forum); }
         .platform-card.users .card-action-btn { background-color: var(--accent-users); }
 
+        /* تعديل الشفافية لشاشة الجرس لتصبح معتمة وواضحة مثل صفحة الطالب تماماً */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(15,23,42,0.85); display: flex; align-items: center; justify-content: center; 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center; 
             z-index: 2000; display: none; padding: 15px; 
         }
         .modal-card { 
@@ -202,7 +175,7 @@
             </div>
 
             <div class="platform-title-box">
-                <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank">لوحة تحكم الأدمن ⚙️</a>
+                <a href="#">لوحة تحكم الأدمن ⚙️</a>
             </div>
 
             <button id="themeToggleBtn" class="btn-theme-toggle" title="تغيير الوضع">☀️</button>
@@ -212,22 +185,6 @@
             <h1>مرحباً بك في لوحة تحكم الإدارة 🚀</h1>
             <p>تحكم في المنصة، ارفع الملفات، وتابع احصائيات الطلاب بكفاءة تامة.</p>
         </section>
-
-        <!-- شريط الواتساب على سطر واحد وزر الانضمام في أقصى اليسار -->
-        <div class="whatsapp-banner-wrapper">
-            <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" class="whatsapp-banner">
-                <div class="whatsapp-info">
-                    <div class="whatsapp-icon-box">📢</div>
-                    <div class="whatsapp-text">
-                        <h4>قناة الواتساب الرسمية لمنصة رحلة دراسية</h4>
-                    </div>
-                </div>
-                <div class="whatsapp-btn">
-                    <span>انضم للقناة</span>
-                    <span>🔗</span>
-                </div>
-            </a>
-        </div>
 
         <div class="platform-grid">
             <div class="platform-card notes">
@@ -339,6 +296,19 @@
                     document.getElementById('headerAdminAvatar').src = avatar;
                 } catch(e) {}
             }
+
+            // عرض العدادات المخزنة محلياً فوراً لمنع أي تعليق عند الرفريش
+            let cachedCounters = sessionStorage.getItem('cachedAdminCounters');
+            if (cachedCounters) {
+                try {
+                    let c = JSON.parse(cachedCounters);
+                    document.getElementById('totalFilesCount').textContent = c.notes || '0';
+                    document.getElementById('totalExamsCount').textContent = c.exams || '0';
+                    document.getElementById('totalVideosCount').textContent = c.videos || '0';
+                    document.getElementById('totalForumCount').textContent = c.forum || '0';
+                    document.getElementById('totalUsersCount').textContent = c.users || '0';
+                } catch(e) {}
+            }
         }
         fastRenderAdminFromStorage();
 
@@ -403,7 +373,7 @@
                 console.error("خطأ جلب بيانات الأدمن:", e);
             }
 
-            // تحميل العدادات بالتوازي لتكون السرعة فائقة
+            // تحميل العدادات بالتوازي وتخزينها في sessionStorage لمنع التعليق نهائياً عند Refresh
             Promise.all([
                 getDocs(collection(db, "files")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "exams")).catch(() => ({ size: 0 })),
@@ -411,11 +381,20 @@
                 getDocs(collection(db, "forumPosts")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "users")).catch(() => ({ size: 0 }))
             ]).then(([notesSnap, examsSnap, videosSnap, forumSnap, usersSnap]) => {
-                document.getElementById('totalFilesCount').textContent = notesSnap.size;
-                document.getElementById('totalExamsCount').textContent = examsSnap.size;
-                document.getElementById('totalVideosCount').textContent = videosSnap.size;
-                document.getElementById('totalForumCount').textContent = forumSnap.size;
-                document.getElementById('totalUsersCount').textContent = usersSnap.size;
+                let counters = {
+                    notes: notesSnap.size,
+                    exams: examsSnap.size,
+                    videos: videosSnap.size,
+                    forum: forumSnap.size,
+                    users: usersSnap.size
+                };
+                sessionStorage.setItem('cachedAdminCounters', JSON.stringify(counters));
+
+                document.getElementById('totalFilesCount').textContent = counters.notes;
+                document.getElementById('totalExamsCount').textContent = counters.exams;
+                document.getElementById('totalVideosCount').textContent = counters.videos;
+                document.getElementById('totalForumCount').textContent = counters.forum;
+                document.getElementById('totalUsersCount').textContent = counters.users;
             });
         }
 
