@@ -135,7 +135,7 @@
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إدارة الحصص 📚</span></div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️️</button></div>
         </header>
 
         <!-- شريط التنقل الموحد والمتصل بجميع الصفحات -->
@@ -159,6 +159,12 @@
             <div class="form-row-grid-2">
                 <div class="form-group"><label>الصف / الشعبة المستهدفة:</label><input type="text" id="lessonTargetGroup" placeholder="الصف الثالث الثانوي"></div>
                 <div class="form-group"><label>رقم أو كود الحصة (لتسهيل الترتيب):</label><input type="number" id="lessonNumber" value="1" min="1"></div>
+            </div>
+
+            <!-- خانة وقت فتح الحصة تلقائياً بشكل نظيف وسهل -->
+            <div class="form-group">
+                <label>⏰ وقت فتح الحصة تلقائياً:</label>
+                <input type="datetime-local" id="lessonScheduledAt">
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border-color); margin:15px 0;">
@@ -359,10 +365,11 @@
 
                 let html = "";
                 globalLessonsList.forEach((lesson) => {
+                    let scheduleBadge = lesson.scheduledAt ? `<span style="font-size: 0.7rem; background: rgba(99,102,241,0.2); color: var(--primary); padding: 2px 6px; border-radius: 4px; margin-right: 6px;">⏰ مجدولة</span>` : '';
                     html += `
                         <div class="lesson-card-item">
                             <div>
-                                <h3 style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 2px;">🎬 الحصة ${lesson.number || 1}: ${lesson.title}</h3>
+                                <h3 style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 2px;">🎬 الحصة ${lesson.number || 1}: ${lesson.title} ${scheduleBadge}</h3>
                                 <p style="font-size: 0.72rem; color: var(--text-muted);">المادة: ${lesson.subject || 'عام'} | الصف: ${lesson.targetGroup || 'عام'}</p>
                             </div>
                             <button class="btn-danger" onclick="deleteLesson('${lesson.id}')">حذف 🗑️</button>
@@ -379,6 +386,7 @@
             let subject = document.getElementById('lessonSubject').value.trim();
             let targetGroup = document.getElementById('lessonTargetGroup').value.trim();
             let number = parseInt(document.getElementById('lessonNumber').value) || 1;
+            let scheduledAt = document.getElementById('lessonScheduledAt').value; // وقت الفتح تلقائياً
             
             let studyNotes = document.getElementById('lessonStudyNotes').value.trim();
             let videoUrl = document.getElementById('lessonVideoUrl').value.trim();
@@ -389,6 +397,7 @@
 
             let lessonDoc = {
                 title, subject, targetGroup, number,
+                scheduledAt: scheduledAt || '', // حفظ وقت الجدولة تلقائياً
                 studyNotes, videoUrl, summaryNotes, examId,
                 settings: {
                     generalActive: true,
@@ -409,6 +418,7 @@
                 document.getElementById('lessonTitle').value = '';
                 document.getElementById('lessonSubject').value = '';
                 document.getElementById('lessonTargetGroup').value = '';
+                document.getElementById('lessonScheduledAt').value = '';
                 document.getElementById('lessonStudyNotes').value = '';
                 document.getElementById('lessonVideoUrl').value = '';
                 document.getElementById('lessonSummaryNotes').value = '';
