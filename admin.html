@@ -357,7 +357,8 @@
                     </div>
                     <p class="card-description">إنشاء الامتحانات التفاعلية، إضافة الأسئلة بنظام Google Forms، ومتابعة درجات الطلاب.</p>
                 </div>
-                <a href="admin-exams.html" class="card-action-btn">إدارة الامتحانات 📝</a>
+                <!-- تم التعديل ليفتح صفحة الإحصائيات والنتائج مباشرة -->
+                <a href="exam-stats.html" class="card-action-btn">إدارة الامتحانات 📝</a>
             </div>
 
             <div class="platform-card videos">
@@ -420,7 +421,6 @@
 
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
-        // --- المزامنة الفورية السريعة لبيانات الأدمن المخزنة مسبقاً ---
         function fastRenderAdminFromStorage() {
             let cachedAdmin = sessionStorage.getItem('adminUser');
             if (cachedAdmin) {
@@ -436,7 +436,6 @@
         }
         fastRenderAdminFromStorage();
 
-        // نظام التحكم بالثيم الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -455,7 +454,6 @@
             themeToggleBtn.textContent = themeName === 'dark' ? '☀️️' : '🌙';
         }
 
-        // فحص جلسة الأدمن (48 ساعة)
         const TWO_DAYS_MS = 48 * 60 * 60 * 1000;
         const sessionStartTime = sessionStorage.getItem('session_start_time');
         if (sessionStartTime) {
@@ -480,7 +478,6 @@
             let adminNameEl = document.getElementById('adminNameLabel');
             let adminAvatarEl = document.getElementById('headerAdminAvatar');
 
-            // 1. جلب بيانات الأدمن وتحديث البروفايل بأقصى سرعة
             try {
                 let docSnap = null;
                 if (uid) {
@@ -510,45 +507,39 @@
                 console.error("خطأ جلب بيانات الأدمن:", e);
             }
 
-            // 2. جلب العدادات الحقيقية من فايربيز (للملازم، الامتحانات، الفيديوهات، المنتدى، والمستخدمين)
             try {
                 const notesSnap = await getDocs(collection(db, "files"));
                 document.getElementById('totalFilesCount').textContent = notesSnap.size;
-                localStorage.setItem('admin_files', JSON.stringify(notesSnap.docs.map(d => d.data())));
             } catch(e) {
-                document.getElementById('totalFilesCount').textContent = (JSON.parse(localStorage.getItem('admin_files')) || []).length;
+                document.getElementById('totalFilesCount').textContent = '0';
             }
 
             try {
                 const examsSnap = await getDocs(collection(db, "exams"));
                 document.getElementById('totalExamsCount').textContent = examsSnap.size;
-                localStorage.setItem('admin_exams', JSON.stringify(examsSnap.docs.map(d => d.data())));
             } catch(e) {
-                document.getElementById('totalExamsCount').textContent = (JSON.parse(localStorage.getItem('admin_exams')) || []).length;
+                document.getElementById('totalExamsCount').textContent = '0';
             }
 
             try {
                 const videosSnap = await getDocs(collection(db, "videos"));
                 document.getElementById('totalVideosCount').textContent = videosSnap.size;
-                localStorage.setItem('admin_videos', JSON.stringify(videosSnap.docs.map(d => d.data())));
             } catch(e) {
-                document.getElementById('totalVideosCount').textContent = (JSON.parse(localStorage.getItem('admin_videos')) || []).length;
+                document.getElementById('totalVideosCount').textContent = '0';
             }
 
             try {
                 const forumSnap = await getDocs(collection(db, "forumPosts"));
                 document.getElementById('totalForumCount').textContent = forumSnap.size;
-                localStorage.setItem('admin_forum', JSON.stringify(forumSnap.docs.map(d => d.data())));
             } catch(e) {
-                document.getElementById('totalForumCount').textContent = (JSON.parse(localStorage.getItem('admin_forum')) || []).length;
+                document.getElementById('totalForumCount').textContent = '0';
             }
 
             try {
                 const usersSnap = await getDocs(collection(db, "users"));
                 document.getElementById('totalUsersCount').textContent = usersSnap.size;
-                localStorage.setItem('admin_users', JSON.stringify(usersSnap.docs.map(d => d.data())));
             } catch(e) {
-                document.getElementById('totalUsersCount').textContent = (JSON.parse(localStorage.getItem('admin_users')) || []).length;
+                document.getElementById('totalUsersCount').textContent = '0';
             }
         }
 
