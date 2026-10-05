@@ -83,11 +83,19 @@
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.82rem; }
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.82rem; white-space: nowrap; }
         th, td { padding: 11px 10px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
         th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
-        .student-link { color: var(--primary); cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; }
-        .student-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); flex-shrink: 0; }
+        
+        /* نظام الخانات (المستطيلات) للطالب بلون أخضر أو أحمر شفاف حسب حالة الإرسال */
+        .student-row-box {
+            display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 10px; width: 100%; transition: all 0.2s;
+        }
+        .student-row-box.published { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .student-row-box.pending { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .student-link { color: var(--text-main); cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+        .student-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); flex-shrink: 0; }
         .score-link { color: #f59e0b; cursor: pointer; font-weight: bold; text-decoration: underline; }
         .btn-danger { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         
@@ -107,7 +115,7 @@
             background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; width: 100%; max-width: 340px; text-align: center; box-shadow: var(--shadow);
         }
         
-        /* إطار البروفايل الموحد للطالب والأدمن */
+        /* إطار البروفايل الموحد والتاثيرات */
         .unified-avatar-frame {
             position: relative; width: 85px; height: 85px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center;
         }
@@ -115,7 +123,7 @@
             width: 78px; height: 78px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); position: relative; z-index: 2; background: #1e293b;
         }
         .unified-level-badge {
-            background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; font-size: 0.75rem; font-weight: bold; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); border: 1px solid rgba(255,255,255,0.15);
+            background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; font-size: 0.75rem; font-weight: bold; padding: 4px 14px; border-radius: 20px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); border: 1px solid rgba(255,255,255,0.15);
         }
         .unified-info-box {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 14px; text-align: right; margin-bottom: 15px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px;
@@ -194,19 +202,19 @@
         </div>
     </div>
 
-    <!-- نافذة بروفايل الطالب الموحدة -->
+    <!-- نافذة بروفايل الطالب الموحدة من فايربيز -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="profile-modal-card">
             <div class="unified-avatar-frame">
                 <img id="modalStudentAvatar" src="" alt="صورة الطالب">
             </div>
             <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1rem; margin-bottom: 6px; font-weight: 700;">اسم الطالب</h3>
-            <div class="unified-level-badge">👑 طالب مميز • نشط</div>
+            <div class="unified-level-badge" id="modalStudentLevelBadge">⭐ جاري جلب المستوى...</div>
             
             <div class="unified-info-box">
                 <div class="unified-info-row">
                     <span class="unified-info-label">البريد الإلكتروني:</span>
-                    <span id="modalStudentEmail" style="word-break: break-all; direction: ltr; font-size: 0.78rem;">email@example.com</span>
+                    <span id="modalStudentEmail" style="word-break: break-all; direction: ltr; font-size: 0.78rem;">---</span>
                 </div>
                 <div class="unified-info-row">
                     <span class="unified-info-label">معرف الطالب (ID):</span>
@@ -214,7 +222,7 @@
                 </div>
                 <div class="unified-info-row">
                     <span class="unified-info-label">رقم الهاتف:</span>
-                    <span id="modalStudentPhone" style="font-size: 0.78rem;">غير متوفر</span>
+                    <span id="modalStudentPhone" style="font-size: 0.78rem;">---</span>
                 </div>
             </div>
 
@@ -237,7 +245,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -269,7 +277,7 @@
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
         bodyElement.setAttribute('data-theme', savedTheme);
-        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️️' : '🌙';
 
         themeToggleBtn.addEventListener('click', () => {
             let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -419,7 +427,6 @@
             const container = document.getElementById('examStatsContainer');
             let subs = exam.examSubmissions || [];
 
-            // زر العودة ينفذ renderExamsStatsList() تماماً كأنه زر الإحصائيات الأساسي
             let html = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                     <button onclick="renderExamsStatsList()" style="background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: bold;">العودة لقائمة الإحصائيات 📋</button>
@@ -440,24 +447,25 @@
                 let percentage = sub.totalMarks > 0 ? (sub.score / sub.totalMarks) * 100 : 0;
                 let passed = percentage >= passingScore;
                 let fullName = sub.studentName || 'طالب المنصة';
-                let email = sub.studentEmail || 'غير متوفر';
+                let email = sub.studentEmail || '';
                 let avatarUrl = sub.studentAvatar || 'https://www.w3schools.com/howto/img_avatar.png';
-                let studentId = sub.studentId || sub.uid || 'غير متوفر';
-                let studentPhone = sub.studentPhone || sub.phone || 'غير متوفر';
                 let isPublished = sub.published === true;
 
-                // تم ترتيب وتنسيق الدرجة بحيث لا تكون لازقة في حالة النشر وجعلها في سطر منفصل ومنظم
+                // نظام الخانات المستطيلة: أخضر شفاف لو تم الإرسال، أحمر شفاف لو لم يُرسل
+                let rowBoxClass = isPublished ? 'student-row-box published' : 'student-row-box pending';
                 let publishBadge = !isPublished 
-                    ? `<div style="color:#f59e0b; font-size:0.72rem; margin-top:3px;">بانتظار الاعتماد</div>` 
-                    : `<div style="color:var(--success); font-size:0.72rem; margin-top:3px;">تم الإرسال 🔔</div>`;
+                    ? `<span style="color:#ef4444; font-size:0.7rem; margin-right:6px;">(بانتظار الإرسال)</span>` 
+                    : `<span style="color:var(--success); font-size:0.7rem; margin-right:6px;">(تم الإرسال 🔔)</span>`;
 
                 html += `
                     <tr>
                         <td>
-                            <span class="student-link" onclick='openStudentModal(${JSON.stringify(fullName)}, ${JSON.stringify(email)}, ${JSON.stringify(avatarUrl)}, ${JSON.stringify(studentId)}, ${JSON.stringify(studentPhone)})'>
-                                <img src="${avatarUrl}" class="student-avatar" alt="صورة">
-                                <span>${fullName}</span>
-                            </span>
+                            <div class="${rowBoxClass}">
+                                <span class="student-link" onclick='openStudentModal(${JSON.stringify(fullName)}, ${JSON.stringify(email)}, ${JSON.stringify(avatarUrl)})'>
+                                    <img src="${avatarUrl}" class="student-avatar" alt="صورة">
+                                    <span>${fullName}</span>
+                                </span>
+                            </div>
                         </td>
                         <td>
                             <span class="score-link" onclick='openStudentExamView("${examId}", ${subIdx})'>${sub.score} / ${sub.totalMarks}</span>
@@ -539,7 +547,7 @@
                     html += `</div>`;
                 } else {
                     html += `<div style="margin-top:6px; padding:8px; background:var(--bg-main); border-radius:6px; border:1px solid var(--border-color); font-size:0.8rem;">
-                        <span style="font-weight:bold; color:var(--primary);">✍️ إجابة الطالب:</span> <span style="color:var(--text-main);">${studentAns}</span>
+                        <span style="font-weight:bold; color:var(--primary);">✍️️ إجابة الطالب:</span> <span style="color:var(--text-main);">${studentAns}</span>
                     </div>`;
                 }
                 html += `</div>`;
@@ -593,13 +601,76 @@
             document.getElementById('examAnswersModal').style.display = 'none';
         };
 
-        window.openStudentModal = function(name, email, avatar, studentId, phone) {
+        // مزامنة بيانات الطالب بالكامل من فايربيز (مع المستويات الخمسة وتأثيرات الإطار)
+        window.openStudentModal = async function(name, email, avatar) {
             document.getElementById('modalStudentName').textContent = name || 'طالب المنصة';
             document.getElementById('modalStudentEmail').textContent = email || 'غير متوفر';
             document.getElementById('modalStudentAvatar').src = avatar || 'https://www.w3schools.com/howto/img_avatar.png';
-            document.getElementById('modalStudentId').textContent = studentId || 'غير متوفر';
-            document.getElementById('modalStudentPhone').textContent = phone || 'غير متوفر';
+            document.getElementById('modalStudentId').textContent = 'جاري الجلب...';
+            document.getElementById('modalStudentPhone').textContent = 'جاري الجلب...';
+            document.getElementById('modalStudentLevelBadge').textContent = '⭐ جاري تحديد المستوى...';
             document.getElementById('studentProfileModal').style.display = 'flex';
+
+            if (!email) {
+                document.getElementById('modalStudentId').textContent = 'غير متوفر';
+                document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
+                document.getElementById('modalStudentLevelBadge').textContent = '⭐ مستوى متوسط';
+                return;
+            }
+
+            try {
+                const q = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    let userDoc = querySnapshot.docs[0];
+                    let userData = userDoc.data();
+                    let realId = userDoc.id;
+
+                    document.getElementById('modalStudentId').textContent = realId;
+                    document.getElementById('modalStudentPhone').textContent = userData.phone || userData.phoneNumber || 'غير متوفر';
+                    
+                    if (userData.profileImage || userData.avatar) {
+                        document.getElementById('modalStudentAvatar').src = userData.profileImage || userData.avatar;
+                    }
+
+                    // نظام المستويات الخمسة (ضعيف، متوسط، قوي، قوي جداً، أسطوري)
+                    let rawLevel = (userData.level || userData.studentLevel || 'متوسط').toString().trim();
+                    let levelDisplay = '⭐ متوسط';
+                    let frameColor = 'var(--primary)';
+
+                    if (rawLevel.includes('ضعيف')) {
+                        levelDisplay = '📉 طالب ضعيف';
+                        frameColor = '#ef4444';
+                    } else if (rawLevel.includes('متوسط')) {
+                        levelDisplay = '⭐ طالب متوسط';
+                        frameColor = '#f59e0b';
+                    } else if (rawLevel.includes('قوي جدا')) {
+                        levelDisplay = '🔥 طالب قوي جداً';
+                        frameColor = '#8b5cf6';
+                    } else if (rawLevel.includes('قوي')) {
+                        levelDisplay = '⚡ طالب قوي';
+                        frameColor = '#3b82f6';
+                    } else if (rawLevel.includes('اسطوري') || rawLevel.includes('أسطوري')) {
+                        levelDisplay = '👑 طالب أسطوري';
+                        frameColor = '#10b981';
+                    } else {
+                        levelDisplay = `⭐ ${rawLevel}`;
+                    }
+
+                    document.getElementById('modalStudentLevelBadge').textContent = levelDisplay;
+                    document.querySelector('.unified-avatar-frame img').style.borderColor = frameColor;
+                } else {
+                    document.getElementById('modalStudentId').textContent = 'غير متوفر في قاعدة البيانات';
+                    document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
+                    document.getElementById('modalStudentLevelBadge').textContent = '⭐ طالب متوسط';
+                }
+            } catch (e) {
+                console.error("خطأ في جلب بيانات الطالب:", e);
+                document.getElementById('modalStudentId').textContent = 'خطأ في الاتصال';
+                document.getElementById('modalStudentPhone').textContent = 'خطأ';
+                document.getElementById('modalStudentLevelBadge').textContent = '⭐ طالب متوسط';
+            }
         };
 
         window.closeStudentModal = function() {
