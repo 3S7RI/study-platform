@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -125,7 +125,6 @@
         .platform-card.forum .card-action-btn { background-color: var(--accent-forum); }
         .platform-card.users .card-action-btn { background-color: var(--accent-users); }
 
-        /* تعديل الشفافية لشاشة الجرس لتصبح معتمة وواضحة مثل صفحة الطالب تماماً */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(15, 23, 42, 0.85); 
@@ -187,15 +186,16 @@
         </section>
 
         <div class="platform-grid">
+            <!-- تم التعديل هنا لتوجيه الزر إلى files-lessons.html وتغيير الاسم إلى إدارة الحصص والملخصات -->
             <div class="platform-card notes">
                 <div>
                     <div class="card-heading-wrap">
-                        <div class="card-title-text">📚 إدارة الملازم</div>
+                        <div class="card-title-text">📚 إدارة الحصص</div>
                         <div class="card-counter-badge" id="totalFilesCount">...</div>
                     </div>
-                    <p class="card-description">التحكم الكامل في رفع، تحديث أو حذف المذكرات وملازم الشرح لتظهر فوراً عند الطلاب.</p>
+                    <p class="card-description">التحكم الكامل في إنشاء وتحديث الحصص، ملازم الشرح، ملازم التلخيص والفيديوهات لتظهر فوراً عند الطلاب.</p>
                 </div>
-                <a href="admin-notes.html" class="card-action-btn">إدارة الملازم والملفات 📂</a>
+                <a href="files-lessons.html" class="card-action-btn">إدارة الحصص والملخصات 📂</a>
             </div>
 
             <div class="platform-card exams">
@@ -243,7 +243,6 @@
             </div>
         </div>
 
-        <!-- نافذة الإشعارات الإدارية السحابية بنفس ثيم صفحة الطالب -->
         <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) toggleNotificationsModal(false)">
             <div class="modal-card">
                 <div class="modal-header">
@@ -265,7 +264,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -283,7 +282,6 @@
 
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
-        // العرض الفوري من الكاش لسرعة استجابة فائقة
         function fastRenderAdminFromStorage() {
             let cachedAdmin = sessionStorage.getItem('adminUser');
             if (cachedAdmin) {
@@ -297,7 +295,6 @@
                 } catch(e) {}
             }
 
-            // عرض العدادات المخزنة محلياً فوراً لمنع أي تعليق عند الرفريش
             let cachedCounters = sessionStorage.getItem('cachedAdminCounters');
             if (cachedCounters) {
                 try {
@@ -312,7 +309,6 @@
         }
         fastRenderAdminFromStorage();
 
-        // الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -373,16 +369,15 @@
                 console.error("خطأ جلب بيانات الأدمن:", e);
             }
 
-            // تحميل العدادات بالتوازي وتخزينها في sessionStorage لمنع التعليق نهائياً عند Refresh
             Promise.all([
-                getDocs(collection(db, "files")).catch(() => ({ size: 0 })),
+                getDocs(collection(db, "lessons")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "exams")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "videos")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "forumPosts")).catch(() => ({ size: 0 })),
                 getDocs(collection(db, "users")).catch(() => ({ size: 0 }))
-            ]).then(([notesSnap, examsSnap, videosSnap, forumSnap, usersSnap]) => {
+            ]).then(([lessonsSnap, examsSnap, videosSnap, forumSnap, usersSnap]) => {
                 let counters = {
-                    notes: notesSnap.size,
+                    notes: lessonsSnap.size,
                     exams: examsSnap.size,
                     videos: videosSnap.size,
                     forum: forumSnap.size,
