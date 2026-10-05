@@ -110,6 +110,9 @@
         .btn-full-width:hover { background: var(--primary-hover); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        /* طبقة عليا فائقة لرسالة التأكيد لكي تظهر دائماً في الوجه فوق أي نافذة عائمة أخرى */
+        .modal-overlay.confirm-overlay { z-index: 10050 !important; }
+
         .profile-modal-card, .custom-confirm-card, .loader-modal-card, .rank-guide-card {
             background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; width: 100%; max-width: 360px; text-align: center; box-shadow: var(--shadow);
         }
@@ -176,7 +179,6 @@
         }
         .hidden { display: none !important; }
         
-        /* تنسيق عصري لخانة الدرجة المتناسقة مع ثيم المنصة */
         .grading-top-bar {
             background: var(--th-bg); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px;
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 0.85rem; font-weight: 600;
@@ -188,7 +190,6 @@
         }
         .grading-input-box:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
 
-        /* أزرار صح وخطأ SVG العصرية بدون نصوص */
         .grade-action-btns { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
         .btn-svg-grade {
             background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 6px; padding: 5px 8px;
@@ -200,7 +201,6 @@
         .btn-svg-grade.danger { color: var(--danger); }
         .btn-svg-grade.danger.active, .btn-svg-grade.danger:hover { background: rgba(239, 68, 68, 0.25); border-color: var(--danger); box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
 
-        /* مودال تكبير الصور */
         #imageLightboxModal img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border-color); object-fit: contain; }
     </style>
 </head>
@@ -229,8 +229,8 @@
         </div>
     </div>
 
-    <!-- نافذة تأكيد مخصصة -->
-    <div class="modal-overlay" id="customConfirmModal">
+    <!-- نافذة تأكيد مخصصة (بطبقة عليا مؤكدة للظهور دائماً في الوجه) -->
+    <div class="modal-overlay confirm-overlay" id="customConfirmModal">
         <div class="custom-confirm-card">
             <h3 id="confirmModalText" style="color: var(--text-main); font-size: 0.88rem; margin-bottom: 15px; font-weight: 600;">هل تريد توزيع درجات الامتحان الان؟</h3>
             <div style="display: flex; gap: 8px;">
@@ -239,7 +239,6 @@
             </div>
         </div>
     </div>
-
     <!-- نافذة التحميل التفاعلية -->
     <div class="modal-overlay" id="loaderModal">
         <div class="loader-modal-card" id="loaderCardContent">
@@ -390,7 +389,7 @@
             let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             bodyElement.setAttribute('data-theme', nextTheme);
             localStorage.setItem('platform_theme', nextTheme);
-            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️️' : '🌙';
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
         async function loadExamsFromCloud(forceRefresh = false) {
@@ -587,13 +586,11 @@
             container.innerHTML = html;
         };
 
-        // دالة تكبير الصورة عبر الـ Lightbox
         window.openLightbox = function(imgSrc) {
             document.getElementById('lightboxImg').src = imgSrc;
             document.getElementById('imageLightboxModal').style.display = 'flex';
         };
 
-        // نظام ذكي مانع للتكرار العشوائي: يمنح الدرجة أو يخصمها بحسب حالة الزر
         window.setQuestionGradeStatus = function(btnElement, marks, status) {
             let questionBox = btnElement.closest('.question-item-card');
             let successBtn = questionBox.querySelector('.btn-svg-success');
@@ -604,10 +601,10 @@
             let currentMarkState = questionBox.getAttribute('data-marked') || 'none';
 
             if (status === 'correct') {
-                if (currentMarkState === 'correct') return; // تم منحها مسبقاً، لا تتكرر
+                if (currentMarkState === 'correct') return;
                 
                 if (currentMarkState === 'wrong') {
-                    currentTotal += marks; // إلغاء تأثير الخطأ السابق
+                    currentTotal += marks;
                 } else if (currentMarkState === 'none') {
                     currentTotal += marks;
                 }
@@ -616,10 +613,10 @@
                 successBtn.classList.add('active');
                 dangerBtn.classList.remove('active');
             } else if (status === 'wrong') {
-                if (currentMarkState === 'wrong') return; // تم تحديدها خطأ مسبقاً، لا تتكرر
+                if (currentMarkState === 'wrong') return;
 
                 if (currentMarkState === 'correct') {
-                    currentTotal -= marks; // سحب الدرجة التي منحت سابقاً
+                    currentTotal -= marks;
                 }
 
                 questionBox.setAttribute('data-marked', 'wrong');
@@ -644,7 +641,6 @@
             let questions = exam.questions || [];
             let studentAnswers = sub.answers || {};
             
-            // شريط علوي أنيق ومتناسق مع ثيم المنصة لتعديل مجموع الدرجات
             let html = `
                 <div class="grading-top-bar">
                     <span>الامتحان: <strong>${exam.title}</strong></span>
@@ -660,7 +656,6 @@
                 let studentAns = studentAnswers[qIdx] !== undefined ? studentAnswers[qIdx] : 'لم يُجب';
                 let qMarks = q.marks || 1;
                 
-                // أزرار SVG للصح والخطأ بدون نصوص وبشكل ذكي مانع للتكرار
                 let gradeActionSvg = `
                     <div class="grade-action-btns">
                         <button type="button" class="btn-svg-grade success btn-svg-success" onclick="setQuestionGradeStatus(this, ${qMarks}, 'correct')" title="منح الدرجة">
@@ -735,7 +730,6 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
-        // حفظ التصحيح وتحديث نقاط الطالب فوراً
         window.saveManualGradingAndNotify = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
@@ -849,7 +843,7 @@
                     document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
                     levelBadge.textContent = '🟡 متوسط • 0 نقطة';
                     avatarFrame.className = 'avatar-wrapper rank-frame-medium';
-                    levelBadge.className = 'level-badge-box badge-medium';
+                    levelBadge.className = `level-badge-box badge-medium`;
                 }
             } catch (e) {
                 console.error("خطأ في جلب بيانات الطالب:", e);
