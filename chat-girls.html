@@ -266,34 +266,25 @@
         .message-item.me { margin-right: auto; flex-direction: row-reverse; }
 
         .msg-avatar {
-            width: 26px; height: 26px;
+            width: 28px; height: 28px;
             border-radius: 50%; object-fit: cover;
             border: 1px solid var(--card-border);
             flex-shrink: 0; cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .msg-avatar:hover { opacity: 0.9; transform: scale(1.05); }
+        .msg-avatar:hover { opacity: 0.9; }
 
         .msg-content-box { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
         .msg-info { display: flex; align-items: center; gap: 5px; font-size: 0.67rem; color: var(--text-sub); flex-wrap: wrap; }
         .msg-name { font-weight: 700; color: var(--text-main); cursor: pointer; }
         .msg-name:hover { text-decoration: underline; color: var(--primary); }
-        
-        .avatar-with-frame { position: relative; display: inline-block; flex-shrink: 0; }
-        .profile-frame-overlay {
-            position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
-            border-radius: 50%; pointer-events: none; z-index: 2;
-        }
-        .frame-legendary { border: 2.5px solid #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.7); animation: frameGlow 2s infinite alternate; }
-        .frame-strong { border: 2.5px solid #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.7); }
-        @keyframes frameGlow { 0% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        .rank-tag { font-size: 0.53rem; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
-        .rank-weak { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-        .rank-medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-        .rank-strong { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-        .rank-very-strong { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-        .rank-legendary { background: rgba(244, 114, 182, 0.15); color: #f472b6; }
+        /* تخصص تباين ومظهر الرتب بناءً على النظام */
+        .rank-tag { font-size: 0.55rem; padding: 1px 6px; border-radius: 6px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
+        .rank-weak { background: rgba(239, 68, 68, 0.15); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+        .rank-medium { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); }
+        .rank-strong { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+        .rank-very-strong { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+        .rank-legendary { background: rgba(244, 114, 182, 0.15); color: #f472b6; border-color: rgba(244, 114, 182, 0.3); }
 
         .msg-bubble-container {
             display: flex;
@@ -731,9 +722,8 @@
     <!-- نافذة عرض البروفايل الموحد والمعتمد -->
     <div class="modal-overlay" id="userProfileModal" onclick="if(event.target===this) closeUserProfileModal()">
         <div class="modal-card" style="text-align: center; align-items: center;">
-            <div class="avatar-with-frame" style="margin-bottom: 6px;">
-                <img id="profileModalAvatar" src="" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover;" alt="الصورة الشخصية">
-                <div id="profileModalFrameOverlay" class="profile-frame-overlay"></div>
+            <div style="margin-bottom: 6px;">
+                <img id="profileModalAvatar" src="" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-border);" alt="الصورة الشخصية">
             </div>
             <h3 id="profileModalName" style="font-size: 1rem; font-weight: bold; margin-bottom: 2px;">اسم الطالبة</h3>
             <span id="profileModalRankTag" class="rank-tag" style="padding: 2px 8px; font-size: 0.68rem; margin-bottom: 8px;">رتبة</span>
@@ -816,17 +806,16 @@
         }
         const db = firebase.firestore();
 
-        // الاعتماد الكلي على studentId المعرف الحقيقي بدلاً من الـ uid العشوائي
+        // الاعتماد الكامل والحصري على معرف الطالب (studentId) من التخزين المحلي
         let currentStudentId = localStorage.getItem('currentStudentId') || localStorage.getItem('chat_studentId') || 'STU-0001';
         let currentUser = {
             uid: currentStudentId,
             studentId: currentStudentId,
             name: localStorage.getItem('chat_name') || 'طالبة متميزة',
-            rank: localStorage.getItem('chat_rank') || 'strong',
+            rank: localStorage.getItem('chat_rank') || 'weak',
             gender: 'female',
             streak: parseInt(localStorage.getItem('chat_streak') || '0'),
             avatar: localStorage.getItem('chat_avatar') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-            frame: localStorage.getItem('chat_frame') || 'frame-legendary',
             email: localStorage.getItem('currentStudentEmail') || 'student.girl@gmail.com',
             phone: localStorage.getItem('currentStudentPhone') || '01012345678',
             isAdmin: localStorage.getItem('chat_is_admin') === 'true' || localStorage.getItem('isAdmin') === 'true',
@@ -860,7 +849,7 @@
             setInterval(updateOnlinePresence, 15000);
         });
 
-        // استيراد ومزامنة بيانات الطالبة من كولكشن students باستخدام الـ studentId حصراً
+        // دالة استيراد وتحديث البيانات بدقة حصراً من كولكشن students باستخدام الـ studentId الفعلي
         async function syncStudentCloudProfile() {
             try {
                 let sId = currentUser.studentId;
@@ -876,9 +865,8 @@
                     let data = docSnap.data();
                     currentUser.name = data.fullName || data.name || currentUser.name;
                     currentUser.studentId = data.studentId || data.id || currentUser.studentId;
-                    currentUser.rank = data.rank || currentUser.rank;
+                    currentUser.rank = data.rank || data.level || currentUser.rank;
                     currentUser.avatar = data.profileImage || data.avatar || currentUser.avatar;
-                    currentUser.frame = data.frame || currentUser.frame;
                     currentUser.email = data.email || currentUser.email;
                     currentUser.phone = data.phone || data.studentPhone || data.parentPhone || currentUser.phone;
                     if(data.streak !== undefined) currentUser.streak = parseInt(data.streak);
@@ -887,11 +875,10 @@
                     localStorage.setItem('currentStudentId', currentUser.studentId);
                     localStorage.setItem('chat_rank', currentUser.rank);
                     localStorage.setItem('chat_avatar', currentUser.avatar);
-                    localStorage.setItem('chat_frame', currentUser.frame);
                     localStorage.setItem('chat_streak', currentUser.streak);
                 }
             } catch(e) {
-                console.error("خطأ في جلب بيانات الطالبة من فايربيز:", e);
+                console.error("خطأ في جلب بيانات الطالبة من قاعدة البيانات:", e);
             }
             updateUserProfileUI();
         }
@@ -1033,7 +1020,7 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = `message-item ${isMe ? 'me' : ''}`;
 
-            const rankClass = `rank-${msg.rank || 'strong'}`;
+            const rankClass = `rank-${msg.rank || 'weak'}`;
             const rankLabel = getRankArabicName(msg.rank);
             const timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'الآن';
 
@@ -1116,14 +1103,12 @@
 
             let senderIdKey = msg.studentId || msg.uid || '';
 
+            // تم إزالة الإطارات والتأثيرات نهائياً من صور الشات بناءً على طلبك
             itemDiv.innerHTML = `
-                <div class="avatar-with-frame">
-                    <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${senderIdKey}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">
-                    <div class="profile-frame-overlay ${msg.frame || 'frame-legendary'}"></div>
-                </div>
+                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${senderIdKey}', '${msg.name}', '${msg.rank}', '${msg.avatar}')">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name" onclick="showUserProfile('${senderIdKey}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">${msg.name}</span>
+                        <span class="msg-name" onclick="showUserProfile('${senderIdKey}', '${msg.name}', '${msg.rank}', '${msg.avatar}')">${msg.name}</span>
                         <span class="rank-tag ${rankClass}">${rankLabel}</span>
                     </div>
                     <div class="msg-bubble-container">
@@ -1151,7 +1136,6 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
-                frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 replyTo: activeReplyData ? { id: activeReplyData.id, name: activeReplyData.name, text: activeReplyData.text } : null
@@ -1274,7 +1258,6 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
-                frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'voice',
                 fileUrl: recordedVoiceBase64,
@@ -1338,7 +1321,6 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
-                frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'poll',
                 question: question,
@@ -1381,7 +1363,6 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
-                frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'ask',
                 question: question,
@@ -1461,8 +1442,8 @@
                 .catch(err => console.error(err));
         }
 
-        // جلب البروفايل باستخدام الـ studentId حصراً وعرض التأثيرات والإطار والبريد ورقم الهاتف
-        async function showUserProfile(targetStudentId, fallbackName, fallbackRank, fallbackAvatar, fallbackFrame) {
+        // استيراد دقيق لبيانات الطالبة من كولكشن students حصراً وعرض الرتبة والمستوي الصحيح بدون تأثيرات أو فريمات
+        async function showUserProfile(targetStudentId, fallbackName, fallbackRank, fallbackAvatar) {
             if(targetStudentId !== currentUser.studentId && !currentUser.isAdmin) {
                 try {
                     let docSnap = await db.collection('students').doc(targetStudentId).get();
@@ -1479,7 +1460,6 @@
             let profilePhone = currentUser.phone || '01012345678';
             let profileRank = fallbackRank;
             let profileAvatar = fallbackAvatar;
-            let profileFrame = fallbackFrame || 'frame-legendary';
 
             try {
                 let docSnap = await db.collection('students').doc(targetStudentId).get();
@@ -1489,9 +1469,8 @@
                     if(data.studentId || data.id) profileStudentId = data.studentId || data.id;
                     if(data.email) profileEmail = data.email;
                     if(data.phone || data.studentPhone) profilePhone = data.phone || data.studentPhone;
-                    if(data.rank) profileRank = data.rank;
+                    if(data.rank || data.level) profileRank = data.rank || data.level;
                     if(data.profileImage || data.avatar) profileAvatar = data.profileImage || data.avatar;
-                    if(data.frame) profileFrame = data.frame;
                 }
             } catch(e) {}
 
@@ -1500,9 +1479,6 @@
             document.getElementById('profileModalRankTag').className = `rank-tag rank-${profileRank}`;
             document.getElementById('profileModalAvatar').src = profileAvatar;
             document.getElementById('profileModalStudentId').textContent = profileStudentId;
-            
-            let frameOverlay = document.getElementById('profileModalFrameOverlay');
-            frameOverlay.className = `profile-frame-overlay ${profileFrame}`;
 
             let maskedEmail = smartMaskEmail(profileEmail);
             let maskedPhone = smartMaskPhone(profilePhone);
@@ -1554,13 +1530,13 @@
 
         function getRankArabicName(rankCode) {
             const ranks = {
-                'weak': 'طالبة مكافحة',
+                'weak': 'مبتدئ (ضعيف)',
                 'medium': 'طالبة مجتهدة',
                 'strong': 'طالبة متفوقة',
                 'very-strong': 'طالبة متميزة',
                 'legendary': 'طالبة أسطورية'
             };
-            return ranks[rankCode] || 'طالبة مجتهدة';
+            return ranks[rankCode] || 'مبتدئ (ضعيف)';
         }
 
         function openImageViewer(url) {
