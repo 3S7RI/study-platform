@@ -157,7 +157,7 @@
         .admin-notif-card {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
         }
-        .admin-notif-header { display: flex; align-items: center; justify5: space-between; margin-bottom: 4px; }
+        .admin-notif-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
         .admin-info-badge { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: bold; color: var(--primary); }
         .admin-notif-time { font-size: 0.65rem; color: var(--text-muted); }
         .admin-notif-text { font-size: 0.8rem; color: var(--text-main); line-height: 1.5; }
@@ -295,6 +295,26 @@
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
+        // 1. نظام التحقق من صلاحية تسجيل الدخول (يومين / 48 ساعة فقط)
+        function checkSessionExpiration() {
+            const loginTime = localStorage.getItem('platform_login_time');
+            if (loginTime) {
+                const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                if (hoursPassed > 48) { // بعد مرور يومين يتم مسح الكاش وتوجيهه لتسجيل الدخول من جديد
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    signOut(auth).then(() => {
+                        window.location.href = 'login.html';
+                    });
+                    return false;
+                }
+            } else {
+                // لو مفيش وقت متسجل، بنسجل وقت الدخول الحالي
+                localStorage.setItem('platform_login_time', Date.now().toString());
+            }
+            return true;
+        }
+
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -311,14 +331,14 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // دالة فورية تدمج البحث في sessionStorage و localStorage لضمان ظهور البيانات لحظياً دون تأخير
+        // 2. دالة فورية لعرض الاسم والصورة من التخزين المحلي فور فتح الصفحة بدون أي تأخير أو وميض
         function loadProfileFromCacheInstant() {
-            const cachedData = sessionStorage.getItem('cachedStudentProfile') || 
-                               localStorage.getItem('cachedStudentProfile') || 
-                               sessionStorage.getItem('currentUser') || 
+            if (!checkSessionExpiration()) return;
+
+            const cachedData = localStorage.getItem('cachedStudentProfile') || 
+                               sessionStorage.getItem('cachedStudentProfile') || 
                                localStorage.getItem('currentUser') || 
-                               sessionStorage.getItem('studentUser') || 
-                               localStorage.getItem('studentUser');
+                               sessionStorage.getItem('currentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
@@ -345,12 +365,12 @@
             }
         }
         
-        // تشغيل التحميل الفوري قبل أي شيء
         loadProfileFromCacheInstant();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || localStorage.getItem('currentStudentEmail') || user.email;
+                if (!checkSessionExpiration()) return;
+                const studentEmail = localStorage.getItem('currentStudentEmail') || sessionStorage.getItem('currentStudentEmail') || user.email;
                 currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotificationsFast();
@@ -372,8 +392,8 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // جلب الكاش القديم لدمج أو الاحتفاظ بالبيانات إن وجدت ناقصة
-                    const existingCacheStr = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('cachedStudentProfile');
+                    // جلب الكاش القديم لدمج البيانات إن وجدت ناقصة مؤقتاً من الشبكة
+                    const existingCacheStr = localStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('cachedStudentProfile');
                     let existingCache = {};
                     try { existingCache = JSON.parse(existingCacheStr) || {}; } catch(e) {}
 
@@ -385,9 +405,9 @@
                         data.fullName = existingCache.fullName || existingCache.name || '';
                     }
 
-                    // حفظ البيانات في كلاً من sessionStorage و localStorage لضمان استقرارها التام مع الريفريش
-                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    // حفظ البيانات دائمًا في localStorage لضمان استقرارها عند الـ Refresh المباشر
                     localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
 
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
@@ -472,8 +492,7 @@
         }
 
         async function checkUnreadNotificationsFast() {
-            let list = await fetchAllNotificationsAndGrades();
-            let unreadCount = 0;
+            let list = await fetchAllNotificationsAndGrades();            let unreadCount = 0;
             list.forEach(item => {
                 if (item.time > lastSeenNotificationTime) {
                     unreadCount++;
@@ -523,7 +542,7 @@
             list.slice(0, 20).forEach(item => {
                 const timeFormatted = item.time ? new Date(item.time).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
                 html += `
-                    ` + `<div class="admin-notif-card" style="${item.type === 'exam_grade' ? 'border-color: var(--success); background: rgba(16, 185, 129, 0.05);' : ''}">` + `
+                    <div class="admin-notif-card" style="${item.type === 'exam_grade' ? 'border-color: var(--success); background: rgba(16, 185, 129, 0.05);' : ''}">
                         <div class="admin-notif-header">
                             <span class="admin-info-badge">${item.sender}</span>
                             <span class="admin-notif-time">${timeFormatted}</span>
