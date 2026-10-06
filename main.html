@@ -311,24 +311,25 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // دالة فورية لتحميل البيانات والصورة من الكاش فور فتح الصفحة (بدون أي وميض أو تأخير)
+        // دالة فورية لعرض الاسم والصورة من الكاش فور فتح الصفحة (بدون أي تأخير أو وميض)
         function loadProfileFromCacheInstant() {
             const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
-                    currentStudentNameGlobal = data.name || data.fullName || '';
+                    currentStudentNameGlobal = data.fullName || data.name || '';
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
                     }
                     if (data.lastSeenNotificationTime) {
                         lastSeenNotificationTime = data.lastSeenNotificationTime;
                     }
-                    const studentName = currentStudentNameGlobal || 'بطل';
-                    let firstName = studentName.trim().split(' ')[0];
-                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                    document.getElementById('navStudentName').innerText = firstName;
+                    if (currentStudentNameGlobal) {
+                        let firstName = currentStudentNameGlobal.trim().split(' ')[0];
+                        document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                        document.getElementById('navStudentName').innerText = firstName;
+                    }
                     
                     const profileImgSrc = data.profileImage || data.avatar;
                     if (profileImgSrc) {
@@ -363,7 +364,7 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // لو الداتا اللي راجعة من السيرفر مش فيها صورة، بنحتفظ بالصورة اللي موجودة فعلياً في الكاش عشان متتحولش افتراضية
+                    // ضمان الاحتفاظ بالصورة والاسم لو البيانات راقبة ناقصة من السيرفر مؤقتاً
                     if (!data.profileImage && !data.avatar) {
                         const existingCache = sessionStorage.getItem('cachedStudentProfile');
                         if (existingCache) {
@@ -374,17 +375,28 @@
                         }
                     }
 
+                    if (!data.fullName && !data.name) {
+                        const existingCache = sessionStorage.getItem('cachedStudentProfile');
+                        if (existingCache) {
+                            try {
+                                const parsedExisting = JSON.parse(existingCache);
+                                data.fullName = parsedExisting.fullName || parsedExisting.name || '';
+                            } catch(e) {}
+                        }
+                    }
+
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
-                    currentStudentNameGlobal = data.name || data.fullName || '';
+                    currentStudentNameGlobal = data.fullName || data.name || '';
                     if (data.createdAt) { studentCreatedAtTime = new Date(data.createdAt).getTime() || 0; }
                     if (data.lastSeenNotificationTime) { lastSeenNotificationTime = data.lastSeenNotificationTime; }
 
-                    const studentName = currentStudentNameGlobal || 'بطل';
-                    let firstName = studentName.trim().split(' ')[0];
-                    document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                    document.getElementById('navStudentName').innerText = firstName;
-                    
+                    if (currentStudentNameGlobal) {
+                        let firstName = currentStudentNameGlobal.trim().split(' ')[0];
+                        document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                        document.getElementById('navStudentName').innerText = firstName;
+                    }
+
                     const finalImage = data.profileImage || data.avatar;
                     if (finalImage) {
                         navProfileImg.src = finalImage;
