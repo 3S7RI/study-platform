@@ -73,13 +73,30 @@
         .lesson-title-header { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 8px; }
         .lesson-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
 
-        /* تنسيق القوائم الأربعة داخل الصفحة */
+        /* نظام القوائم القابلة للطي (Accordion Lists) */
         .lesson-section-box {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
-            padding: 16px; margin-bottom: 16px;
+            margin-bottom: 14px; overflow: hidden; transition: all 0.3s ease;
         }
-        .lesson-section-title { font-size: 0.95rem; font-weight: bold; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
         
+        .lesson-section-header {
+            padding: 14px 18px; font-size: 0.95rem; font-weight: bold; color: var(--primary);
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            background: rgba(99, 102, 241, 0.04); user-select: none;
+        }
+        .lesson-section-header:hover { background: var(--hover-bg); }
+        
+        .arrow-icon { font-size: 0.8rem; transition: transform 0.3s ease; }
+        .lesson-section-box.active .arrow-icon { transform: rotate(180deg); }
+
+        .lesson-section-content {
+            max-height: 0; overflow: hidden; padding: 0 18px; transition: max-height 0.35s ease-out, padding 0.35s ease;
+            border-top: 1px solid transparent;
+        }
+        .lesson-section-box.active .lesson-section-content {
+            max-height: 1200px; padding: 16px 18px; border-top-color: var(--border-color);
+        }
+
         .sub-btn {
             background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
             padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer;
@@ -97,6 +114,23 @@
         /* مشغل الفيديو الداخلي المميز */
         .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
         video { width: 100%; max-height: 400px; display: block; outline: none; }
+
+        /* إشعار المنصة البسيط (Toast Notification) */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--danger);
+            width: 100%; max-width: 350px; border-radius: 14px; padding: 18px; text-align: center; box-shadow: var(--shadow);
+        }
+        .platform-toast-card h3 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 7px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.8rem; cursor: pointer; width: 100%;
+        }
 
         /* نافذة العرض الداخلي للملازم */
         .modal-overlay {
@@ -147,6 +181,15 @@
         </div>
     </div>
 
+    <!-- نافذة الإشعارات التنبيهية البسيطة -->
+    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">محتوى الحصة غير متاح...</p>
+            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
+        </div>
+    </div>
+
     <!-- نافذة منبثقة لعرض الملفات والملازم داخل المنصة -->
     <div class="modal-overlay" id="innerViewerModal" onclick="if(event.target===this) closeInnerViewer()">
         <div class="modal-card">
@@ -188,7 +231,6 @@
                 currentUserId = user.uid;
                 currentUserEmail = user.email || user.displayName || "طالب معتمد";
             }
-            // قراءة كود الحصة من الرابط (URL Parameters)
             const urlParams = new URLSearchParams(window.location.search);
             const lessonId = urlParams.get('id');
 
@@ -212,6 +254,16 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        window.showPlatformToast = function(title, message) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
+
         async function fetchLessonDetails(lessonId) {
             try {
                 const docRef = doc(db, "lessons", lessonId);
@@ -225,7 +277,6 @@
                 let lesson = docSnap.data();
                 renderLessonPage(lessonId, lesson);
 
-                // تسجيل مشاهدة الحصة واحتساب 10 نقاط للطالب في السحابة
                 if (currentUserId) {
                     let userRef = doc(db, "users", currentUserId);
                     let userSnap = await getDoc(userRef);
@@ -247,6 +298,19 @@
             }
         }
 
+        // تحويل روابط يوتيوب العادية إلى Embed لتظهر بدون مشاكل
+        function getEmbedYouTubeUrl(url) {
+            if (!url) return '';
+            if (url.includes('embed/')) return url;
+            let videoId = '';
+            if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0];
+            } else if (url.includes('watch?v=')) {
+                videoId = url.split('watch?v=')[1].split('&')[0];
+            }
+            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+        }
+
         function renderLessonPage(lessonId, item) {
             let s = item.settings || {};
             let html = `
@@ -254,60 +318,80 @@
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // القائمة الأولى: الملازم
+            // القائمة الأولى: الملازم (مع تفاعل الطي والفتح + إشعار عند عدم وجودها)
+            let hasStudyNotes = !!item.studyNotes;
             html += `
-                <div class="lesson-section-box">
-                    <div class="lesson-section-title">📂 أولاً: قائمة الملازم وملفات الشرح</div>
-                    <div>
-                        ${item.studyNotes ? `<button class="sub-btn" onclick="openInnerViewer('ملزمة الشرح الأساسية', '${item.studyNotes}')">📄 فتح ملزمة الشرح</button>` : '<p style="font-size:0.78rem; opacity:0.7;">لا توجد ملزمة شرح مرفقة.</p>'}
+                <div class="lesson-section-box" id="sectionStudyNotes">
+                    <div class="lesson-section-header" onclick="toggleAccordion('sectionStudyNotes', ${hasStudyNotes}, 'ملزمة الشرح الأساسية غير مرفقة لهذه الحصة حالياً.')">
+                        <span>📂 أولاً: قائمة الملازم وملفات الشرح</span>
+                        <span class="arrow-icon">▼</span>
+                    </div>
+                    <div class="lesson-section-content">
+                        ${hasStudyNotes ? `<button class="sub-btn" onclick="openInnerViewer('ملزمة الشرح الأساسية', '${item.studyNotes}')">📄 فتح ملزمة الشرح</button>` : ''}
                     </div>
                 </div>
             `;
 
-            // القائمة الثانية: فيديو الشرح
-            if (s.showVideo !== false && item.videoUrl) {
-                let videoSource = item.videoUrl;
-                let isYouTube = videoSource.includes('youtube.com') || videoSource.includes('youtu.be');
-                
-                html += `
-                    <div class="lesson-section-box">
-                        <div class="lesson-section-title">🎬 ثانياً: قائمة فيديو الشرح</div>
-                        <div class="video-player-wrapper">
-                            ${isYouTube ? 
-                                `<iframe src="${videoSource}" style="width:100%; height:380px; border:none;" allowfullscreen></iframe>` :
-                                `<video controls controlsList="nodownload" id="lessonVideoPlayer">
-                                    <source src="${videoSource}" type="video/mp4">
-                                    متصفحك لا يدعم تشغيل الفيديو.
-                                 </video>`
-                            }
-                        </div>
+            // القائمة الثانية: فيديو الشرح (مع معالجة الـ Embed وتصحيح العرض)
+            let hasVideo = s.showVideo !== false && !!item.videoUrl;
+            let videoSource = hasVideo ? item.videoUrl : '';
+            let isYouTube = videoSource.includes('youtube.com') || videoSource.includes('youtu.be');
+            let finalVideoUrl = isYouTube ? getEmbedYouTubeUrl(videoSource) : videoSource;
+
+            html += `
+                <div class="lesson-section-box" id="sectionVideo">
+                    <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo', ${hasVideo}, 'لا يوجد فيديو شرح مرفق لهذه الحصة حالياً.')">
+                        <span>🎬 ثانياً: قائمة فيديو الشرح</span>
+                        <span class="arrow-icon">▼</span>
                     </div>
-                `;
-            }
+                    <div class="lesson-section-content">
+                        ${hasVideo ? `
+                            <div class="video-player-wrapper">
+                                ${isYouTube ? 
+                                    `<iframe src="${finalVideoUrl}" style="width:100%; height:380px; border:none;" allowfullscreen></iframe>` :
+                                    `<video controls controlsList="nodownload" id="lessonVideoPlayer">
+                                        <source src="${finalVideoUrl}" type="video/mp4">
+                                        متصفحك لا يدعم تشغيل الفيديو.
+                                     </video>`
+                                }
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
 
             // القائمة الثالثة: ملخص الدرس
-            if (s.showSummary !== false && item.summaryNotes) {
-                html += `
-                    <div class="lesson-section-box">
-                        <div class="lesson-section-title">📑 ثالثاً: قائمة ملخص الدرس</div>
-                        <button class="sub-btn" style="background: rgba(16, 185, 129, 0.15); color: var(--success);" onclick="openInnerViewer('ملخص الدرس', '${item.summaryNotes}')">📑 فتح ملخص الدرس</button>
+            let hasSummary = s.showSummary !== false && !!item.summaryNotes;
+            html += `
+                <div class="lesson-section-box" id="sectionSummary">
+                    <div class="lesson-section-header" onclick="toggleAccordion('sectionSummary', ${hasSummary}, 'لا يوجد ملخص درس مرفق لهذه الحصة حالياً.')">
+                        <span>📑 ثالثاً: قائمة ملخص الدرس</span>
+                        <span class="arrow-icon">▼</span>
                     </div>
-                `;
-            }
+                    <div class="lesson-section-content">
+                        ${hasSummary ? `<button class="sub-btn" style="background: rgba(16, 185, 129, 0.15); color: var(--success);" onclick="openInnerViewer('ملخص الدرس', '${item.summaryNotes}')">📑 فتح ملخص الدرس</button>` : ''}
+                    </div>
+                </div>
+            `;
 
             // القائمة الرابعة: امتحان الحصة
+            let hasExam = !!item.examId;
             html += `
-                <div class="lesson-section-box" style="border-color: var(--primary);">
-                    <div class="lesson-section-title">📝 رابعاً: امتحان الحصة والتقييم</div>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">امتحان مخصص لاختبار فهمك واجتياز الحصة بنجاح لحصد 10 نقاط ⭐.</p>
-                    ${item.examId ? `<a href="exam.html?id=${item.examId}&lessonId=${lessonId}" class="view-btn">بدء امتحان الحصة الآن 📝</a>` : '<p style="font-size:0.78rem; opacity:0.7;">لا يوجد امتحان مرفق لهذه الحصة حالياً.</p>'}
+                <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
+                    <div class="lesson-section-header" onclick="toggleAccordion('sectionExam', ${hasExam}, 'لا يوجد امتحان مخصص أو مرفق لهذه الحصة حالياً.')">
+                        <span>📝 رابعاً: امتحان الحصة والتقييم</span>
+                        <span class="arrow-icon">▼</span>
+                    </div>
+                    <div class="lesson-section-content">
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">امتحان مخصص لاختبار فهمك واجتياز الحصة بنجاح لحصد 10 نقاط ⭐.</p>
+                        ${hasExam ? `<a href="exam.html?id=${item.examId}&lessonId=${lessonId}" class="view-btn">بدء امتحان الحصة الآن 📝</a>` : ''}
+                    </div>
                 </div>
             `;
 
             html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
             document.getElementById('lessonContainerBox').innerHTML = html;
 
-            // تفاعل الفيديو (ضغطتين للتقديم والتأخير 10 ثوانٍ)
             setTimeout(() => {
                 let vid = document.getElementById('lessonVideoPlayer');
                 if (vid) {
@@ -323,6 +407,16 @@
                 }
             }, 500);
         }
+
+        // دالة التحكم في فتح وطى القوائم (Accordion) مع إظهار إشعار في حال عدم توفر المحتوى
+        window.toggleAccordion = function(boxId, isAvailable, missingMessage) {
+            const box = document.getElementById(boxId);
+            if (!isAvailable) {
+                showPlatformToast("تنبيه المحتوى ⚠️", missingMessage);
+                return;
+            }
+            box.classList.toggle('active');
+        };
 
         window.openInnerViewer = function(title, fileUrl) {
             document.getElementById('innerViewerTitle').textContent = title;
