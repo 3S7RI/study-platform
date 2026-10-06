@@ -135,7 +135,7 @@
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إدارة الحصص 📚</span></div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️️</button></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
         <!-- شريط التنقل الموحد والمتصل بجميع الصفحات -->
@@ -161,7 +161,7 @@
                 <div class="form-group"><label>رقم أو كود الحصة (لتسهيل الترتيب):</label><input type="number" id="lessonNumber" value="1" min="1"></div>
             </div>
 
-            <!-- خانة وقت فتح الحصة تلقائياً بشكل نظيف وسهل -->
+            <!-- خانة وقت فتح الحصة تلقائياً -->
             <div class="form-group">
                 <label>⏰ وقت فتح الحصة تلقائياً:</label>
                 <input type="datetime-local" id="lessonScheduledAt">
@@ -175,7 +175,7 @@
             <div style="background: var(--th-bg); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 12px;">
                 <h4 style="color: var(--primary); font-size: 0.82rem; margin-bottom: 6px;">🎬 أولاً: قائمة إدارة وفيديوهات الشرح</h4>
                 <div class="form-group" style="margin-top:0;">
-                    <label>اختر طريقة إدخال الفيديو (رابط خارجي أو رفع فيديو صغير من الهاتف):</label>
+                    <label>اختر طريقة إدخال الفيديو (رابط يوتيوب أو رفع فيديو مباشر):</label>
                     <div class="input-with-clip">
                         <input type="url" id="lessonVideoUrl" placeholder="أدخل رابط يوتيوب أو اضغط المشبك لرفع فيديو مباشر...">
                         <input type="file" id="fileInputVideo" class="hidden" accept="video/*" onchange="handleDirectVideoUpload(this)">
@@ -270,7 +270,7 @@
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
         bodyElement.setAttribute('data-theme', savedTheme);
-        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️️' : '🌙';
 
         themeToggleBtn.addEventListener('click', () => {
             let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -336,16 +336,17 @@
 
         async function fetchLessonExamsDropdown() {
             try {
-                const querySnapshot = await getDocs(collection(db, "lessonExams"));
+                // جلب الامتحانات المنشورة من كولكشن 'exams' بدلاً من 'lessonExams' لتتوافق تماماً مع صفحة إنشاء الامتحانات
+                const querySnapshot = await getDocs(collection(db, "exams"));
                 const select = document.getElementById('lessonExamSelect');
                 let html = '<option value="">-- اختر امتحان مخصص لهذه الحصة --</option>';
                 querySnapshot.forEach((docSnap) => {
                     let ex = docSnap.data();
-                    html += `<option value="${docSnap.id}">📝 ${ex.title || 'امتحان درس'}</option>`;
+                    html += `<option value="${docSnap.id}">📝 ${ex.title || 'امتحان الدرس'} (${ex.subject || 'عام'})</option>`;
                 });
                 select.innerHTML = html;
             } catch (e) {
-                console.warn("جاري إنشاء كولكشن امتحانات الحصص...");
+                console.warn("خطأ في جلب الامتحانات:", e);
             }
         }
 
@@ -386,7 +387,7 @@
             let subject = document.getElementById('lessonSubject').value.trim();
             let targetGroup = document.getElementById('lessonTargetGroup').value.trim();
             let number = parseInt(document.getElementById('lessonNumber').value) || 1;
-            let scheduledAt = document.getElementById('lessonScheduledAt').value; // وقت الفتح تلقائياً
+            let scheduledAt = document.getElementById('lessonScheduledAt').value;
             
             let studyNotes = document.getElementById('lessonStudyNotes').value.trim();
             let videoUrl = document.getElementById('lessonVideoUrl').value.trim();
@@ -397,7 +398,7 @@
 
             let lessonDoc = {
                 title, subject, targetGroup, number,
-                scheduledAt: scheduledAt || '', // حفظ وقت الجدولة تلقائياً
+                scheduledAt: scheduledAt || '',
                 studyNotes, videoUrl, summaryNotes, examId,
                 settings: {
                     generalActive: true,
@@ -422,6 +423,7 @@
                 document.getElementById('lessonStudyNotes').value = '';
                 document.getElementById('lessonVideoUrl').value = '';
                 document.getElementById('lessonSummaryNotes').value = '';
+                document.getElementById('lessonExamSelect').value = '';
                 document.getElementById('videoUploadProgressBox').style.display = 'none';
                 
                 fetchLessonsList();
