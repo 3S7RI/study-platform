@@ -124,7 +124,35 @@
         }
         .upload-badge:hover { background: var(--primary-hover); transform: scale(1.1); }
 
-        .student-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+        .student-name-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .student-name { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+        
+        .gender-icon-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        }
+        .gender-icon-badge.male {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid #3b82f6;
+        }
+        .gender-icon-badge.female {
+            background: rgba(236, 72, 153, 0.15);
+            border: 1px solid #ec4899;
+        }
+        .gender-icon-badge svg {
+            width: 14px;
+            height: 14px;
+        }
         
         .student-id-container {
             display: inline-flex;
@@ -312,7 +340,10 @@
                     <img id="profileAvatarDisplay" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>" alt="صورة الطالب">
                     <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
                 </div>
-                <div class="student-name" id="profileNameDisplay">جاري التحميل...</div>
+                <div class="student-name-row">
+                    <div class="student-name" id="profileNameDisplay">جاري التحميل...</div>
+                    <span id="profileGenderIcon" class="gender-icon-badge male"></span>
+                </div>
                 <div class="student-id-container">
                     <span class="id-text-badge" id="profileIdDisplay">ID: ...</span>
                     <button class="copy-id-btn" onclick="copyStudentId()">نسخ 📋</button>
@@ -340,7 +371,6 @@
             </div>
         </div>
     </div>
-
     <div class="footer-rights">
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
@@ -405,6 +435,7 @@
             </div>
         </div>
     </div>
+    
     <div class="modal-overlay" id="rankGuideModal" onclick="if(event.target===this) closeRankGuideModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -550,7 +581,27 @@
             return { frame: 'rank-frame-legendary', badge: 'badge-legendary', label: 'أسطوري 🌟' };
         }
 
-        // --- عرض البروفايل فوراً من الكاش لمنع أي تأخير ---
+        // دالة توليد SVG الأيقونة الخاصة بالذكر (أزرق) أو الأنثى (بينك)
+        function getGenderSvgHtml(gender) {
+            if (gender === 'female') {
+                return `<span class="gender-icon-badge female" title="أنثى">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="10" r="5"></circle>
+                        <line x1="12" y1="15" x2="12" y2="21"></line>
+                        <line x1="9" y1="18" x2="15" y2="18"></line>
+                    </svg>
+                </span>`;
+            } else {
+                return `<span class="gender-icon-badge male" title="ذكر">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="5"></circle>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                    </svg>
+                </span>`;
+            }
+        }
+
         function loadProfileFromCacheInstant() {
             const cachedData = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('student_profile_cache');
             if (cachedData) {
@@ -606,6 +657,7 @@
                         totalScore: 0,
                         profileImage: currentUser.photoURL || '',
                         allowComparison: true,
+                        gender: 'male',
                         phone: '',
                         parentPhone: ''
                     };
@@ -625,6 +677,7 @@
             const score = data.totalScore || 0;
             const rankInfo = getRankClass(score);
             const avatarUrl = data.profileImage || defaultMaleSvg;
+            const studentGender = data.gender || 'male';
 
             document.getElementById('studentProfileContent').innerHTML = `
                 <div class="profile-header">
@@ -632,7 +685,10 @@
                         <img id="profileAvatarDisplay" src="${avatarUrl}" alt="صورة الطالب">
                         <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
                     </div>
-                    <div class="student-name" id="profileNameDisplay">${data.name || 'طالب متميز'}</div>
+                    <div class="student-name-row">
+                        <div class="student-name" id="profileNameDisplay">${data.name || 'طالب متميز'}</div>
+                        ${getGenderSvgHtml(studentGender)}
+                    </div>
                     <div class="student-id-container">
                         <span class="id-text-badge" id="profileIdDisplay">ID: ${data.studentId || currentUser?.uid.substring(0,8) || ''}</span>
                         <button class="copy-id-btn" onclick="copyStudentId('${data.studentId || currentUser?.uid || ''}')">نسخ 📋</button>
@@ -897,6 +953,7 @@
                 const score = targetData.totalScore || 0;
                 const rankInfo = getRankClass(score);
                 const avatarUrl = targetData.profileImage || defaultMaleSvg;
+                const targetGender = targetData.gender || 'male';
 
                 if (isAlreadyFriend) {
                     body.innerHTML = `
@@ -904,7 +961,10 @@
                             <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
                                 <img src="${avatarUrl}" alt="صورة الطالب">
                             </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
+                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main); display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <span>${targetData.name || 'طالب متميز'}</span>
+                                ${getGenderSvgHtml(targetGender)}
+                            </div>
                             <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
                             <p style="color: var(--success-color); font-weight: bold; font-size: 0.85rem; margin-top: 15px;">هذا الطالب صديقك بالفعل 🤝</p>
                         </div>
@@ -915,7 +975,10 @@
                             <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
                                 <img src="${avatarUrl}" alt="صورة الطالب">
                             </div>
-                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main);">${targetData.name || 'طالب متميز'}</div>
+                            <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; color:var(--text-main); display:flex; align-items:center; justify-content:center; gap:6px;">
+                                <span>${targetData.name || 'طالب متميز'}</span>
+                                ${getGenderSvgHtml(targetGender)}
+                            </div>
                             <div style="font-size:0.75rem; color:var(--primary-color); margin-bottom:10px; font-weight:bold;">ID: ${targetData.studentId || targetDocKey.substring(0,8)}</div>
                             <div style="margin-bottom:16px;">
                                 <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
@@ -1030,13 +1093,9 @@
             }
         }
 
-        // --- تعديل دالة القبول لحذف الطلب من قاعدة البيانات فوراً ومسحه من القائمة ---
         window.acceptFriendRequest = async function(reqId, senderId) {
             try {
-                // حذف مستند طلب الصداقة نهائياً من فايربيس عشان يختفي تماماً من الطلبات
                 await deleteDoc(doc(db, "friendRequests", reqId));
-
-                // إنشاء معرف موحد للعلاقة لحفظ الصداقة
                 const friendshipId = [currentUser.uid, senderId].sort().join('_');
                 await setDoc(doc(db, "friends", friendshipId), { 
                     user1: currentUser.uid, 
@@ -1054,7 +1113,6 @@
 
         window.rejectFriendRequest = async function(reqId) {
             try {
-                // حذف الطلب عند الرفض أيضاً عشان يختفي
                 await deleteDoc(doc(db, "friendRequests", reqId));
                 showToast('تم رفض طلب الصداقة.', '❌');
                 loadFriendRequestsList();
@@ -1063,7 +1121,6 @@
             }
         };
 
-        // --- تعديل دالة جلب الأصدقاء لتدعم مطابقة الـ UID والـ Email معاً ---
         async function loadFriendsList() {
             const container = document.getElementById('friendsListContainer');
             container.innerHTML = `<div class="loading">جاري تحميل قائمة أصدقائك... ⏳</div>`;
