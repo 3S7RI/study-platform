@@ -110,7 +110,6 @@
         .btn-full-width:hover { background: var(--primary-hover); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
-        /* طبقة عليا فائقة لرسالة التأكيد لكي تظهر دائماً في الوجه فوق أي نافذة عائمة أخرى */
         .modal-overlay.confirm-overlay { z-index: 10050 !important; }
 
         .profile-modal-card, .custom-confirm-card, .loader-modal-card, .rank-guide-card {
@@ -229,7 +228,7 @@
         </div>
     </div>
 
-    <!-- نافذة تأكيد مخصصة (بطبقة عليا مؤكدة للظهور دائماً في الوجه) -->
+    <!-- نافذة تأكيد مخصصة -->
     <div class="modal-overlay confirm-overlay" id="customConfirmModal">
         <div class="custom-confirm-card">
             <h3 id="confirmModalText" style="color: var(--text-main); font-size: 0.88rem; margin-bottom: 15px; font-weight: 600;">هل تريد توزيع درجات الامتحان الان؟</h3>
@@ -266,7 +265,7 @@
     <div class="modal-overlay" id="studentProfileModal" onclick="if(event.target===this) closeStudentModal()">
         <div class="profile-modal-card">
             <div class="avatar-wrapper rank-frame-legendary" id="modalAvatarFrameWrapper">
-                <img id="modalStudentAvatar" src="" alt="صورة الطالب">
+                <img id="modalStudentAvatar" alt="صورة الطالب">
             </div>
             <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px; font-weight: 700;">اسم الطالب</h3>
             
@@ -338,19 +337,19 @@
         </div>
     </div>
 
-    <!-- نافذة تكبير الصور (Lightbox) -->
+    <!-- نافذة تكبير الصور -->
     <div class="modal-overlay" id="imageLightboxModal" onclick="this.style.display='none'">
         <div style="position: relative;" onclick="event.stopPropagation()">
             <button onclick="document.getElementById('imageLightboxModal').style.display='none'" style="position: absolute; top: -15px; left: -15px; background: var(--danger); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; z-index: 10;">✕</button>
-            <img id="lightboxImg" src="" alt="صورة مكبرة">
+            <img id="lightboxImg" alt="صورة مكبرة">
         </div>
     </div>
 
-    <!-- Firebase SDK واستيراد خدمة الطالب الموحدة -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { findStudentDocument, addPointsToStudent, calculateStudentRank } from "./student-service.js";
 
         const firebaseConfig = {
@@ -585,7 +584,6 @@
             html += `</tbody></table></div>`;
             container.innerHTML = html;
         };
-
         window.openLightbox = function(imgSrc) {
             document.getElementById('lightboxImg').src = imgSrc;
             document.getElementById('imageLightboxModal').style.display = 'flex';
@@ -730,6 +728,7 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
+        // حفظ التقييم اليدوي وإرسال إشعار النتيجة لهذا الطالب المحدّد حصراً
         window.saveManualGradingAndNotify = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
@@ -749,9 +748,23 @@
                 const examRef = doc(db, "exams", examId);
                 await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
 
-                let studentIdentifier = studentSub.studentEmail || studentSub.studentId || studentSub.uid;
+                let studentIdentifier = (studentSub.studentEmail || '').toLowerCase().trim();
                 if (studentIdentifier && scoreDifference !== 0) {
                     await addPointsToStudent(db, studentIdentifier, scoreDifference);
+                }
+
+                // إرسال إشعار الدرجة خصيصاً لهذا الطالب فقط (Target: Single)
+                if (studentIdentifier) {
+                    const cleanEmail = studentIdentifier.replace(/[^a-zA-Z0-9]/g, "_");
+                    const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
+                    await setDoc(doc(db, "adminNotifications", notifId), {
+                        title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
+                        message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${newScore} من ${studentSub.totalMarks}</b> 🎯`,
+                        target: "single",
+                        recipientEmail: studentIdentifier,
+                        sender: "نظام التصحيح الأكاديمي 📝",
+                        createdAt: serverTimestamp()
+                    });
                 }
 
                 await loadExamsFromCloud(true);
@@ -763,6 +776,7 @@
             }
         };
 
+        // تصحيح وتوزيع درجات الامتحان لكل الطلاب المنضمين مع إرسال إشعار مستقل لكل طالب على حدة
         window.gradeAllSubmissionsForExam = async function(examId) {
             let exams = await loadExamsFromCloud();
             let exam = exams.find(e => e.id === examId);
@@ -771,9 +785,27 @@
             for (let sub of exam.examSubmissions) {
                 if (!sub.published) {
                     sub.published = true;
-                    let studentIdentifier = sub.studentEmail || sub.studentId || sub.uid;
+                    let studentIdentifier = (sub.studentEmail || '').toLowerCase().trim();
                     if (studentIdentifier && sub.score > 0) {
                         await addPointsToStudent(db, studentIdentifier, sub.score);
+                    }
+
+                    // إرسال إشعار فردي خاص بكل طالب لكي لا تتداخل الدرجات نهائياً
+                    if (studentIdentifier) {
+                        const cleanEmail = studentIdentifier.replace(/[^a-zA-Z0-9]/g, "_");
+                        const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
+                        try {
+                            await setDoc(doc(db, "adminNotifications", notifId), {
+                                title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
+                                message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯`,
+                                target: "single",
+                                recipientEmail: studentIdentifier,
+                                sender: "نظام التصحيح الأكاديمي 📝",
+                                createdAt: serverTimestamp()
+                            });
+                        } catch(err) {
+                            console.error("خطأ في إرسال إشعار الطالب:", studentIdentifier, err);
+                        }
                     }
                 }
             }
