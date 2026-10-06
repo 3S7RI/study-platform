@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - عرض ومشاهدة الحصة</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --hover-bg: rgba(99, 102, 241, 0.12);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --th-bg: rgba(255, 255, 255, 0.04);
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
+            --hover-bg: rgba(79, 70, 229, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --th-bg: rgba(0, 0, 0, 0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+        
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+        }
+
+        .header-right-side { display: flex; align-items: center; }
+        .btn-home-link {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.8rem;
+        }
+        .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .header-center-box { display: flex; align-items: center; justify-content: center; }
+        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+        
+        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .btn-theme-toggle {
+            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        .lesson-main-card {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 24px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            position: relative; overflow: hidden;
+        }
+
+        .lesson-title-header { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 8px; }
+        .lesson-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+
+        /* تنسيق القوائم الأربعة داخل الصفحة */
+        .lesson-section-box {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 16px; margin-bottom: 16px;
+        }
+        .lesson-section-title { font-size: 0.95rem; font-weight: bold; color: var(--primary); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+        
+        .sub-btn {
+            background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
+            padding: 9px 16px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; margin: 4px; text-decoration: none;
+        }
+        .sub-btn:hover { background: var(--primary); color: white; }
+
+        .view-btn {
+            background-color: var(--primary); color: white; text-decoration: none; text-align: center;
+            padding: 11px; border-radius: 10px; font-weight: bold; font-size: 0.88rem; display: block;
+            border: none; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+        .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; transform: translateY(-1px); }
+
+        /* مشغل الفيديو الداخلي المميز */
+        .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
+        video { width: 100%; max-height: 400px; display: block; outline: none; }
+
+        /* نافذة العرض الداخلي للملازم */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-card {
+            background: var(--bg-card); width: 100%; max-width: 750px;
+            border-radius: 16px; border: 1px solid var(--border-color);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); overflow: hidden;
+            display: flex; flex-direction: column; max-height: 90vh; position: relative;
+        }
+        .modal-header {
+            padding: 14px 18px; background: var(--bg-card); color: var(--text-main);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 1rem;
+        }
+        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
+        .modal-body {
+            padding: 20px; overflow-y: auto; flex: 1; text-align: right;
+            font-size: 0.88rem; line-height: 1.7; color: var(--text-main); position: relative;
+        }
+
+        .watermark-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 1.4rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
+        }
+    </style>
+</head>
+<body id="pageBody" data-theme="dark">
+
+    <div class="container">
+        <header class="platform-header">
+            <div class="header-right-side"><a href="files.html" class="btn-home-link">⬅ العودة للمكتبة</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>غرفة مشاهدة الحصة</span> 🎬</div></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
+        </header>
+
+        <div class="lesson-main-card" id="lessonContainerBox">
+            <div id="loadingText" style="text-align: center; padding: 40px; color: var(--text-muted);">جاري تحميل محتوى الحصة وتجهيز القوائم...</div>
+        </div>
+
+        <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
+            جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
+        </div>
+    </div>
+
+    <!-- نافذة منبثقة لعرض الملفات والملازم داخل المنصة -->
+    <div class="modal-overlay" id="innerViewerModal" onclick="if(event.target===this) closeInnerViewer()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="innerViewerTitle">عرض المستند</h3>
+                <button class="close-modal" onclick="closeInnerViewer()">✕</button>
+            </div>
+            <div class="modal-body" id="innerViewerBody" style="text-align: center; padding: 10px;">
+                <!-- محتوى الملزمة الداخلي -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUserId = null;
+        let currentUserEmail = "طالب زائر";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                currentUserEmail = user.email || user.displayName || "طالب معتمد";
+            }
+            // قراءة كود الحصة من الرابط (URL Parameters)
+            const urlParams = new URLSearchParams(window.location.search);
+            const lessonId = urlParams.get('id');
+
+            if (lessonId) {
+                await fetchLessonDetails(lessonId);
+            } else {
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
+            }
+        });
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const bodyElement = document.body;
+        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
+        bodyElement.setAttribute('data-theme', savedTheme);
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggleBtn.addEventListener('click', () => {
+            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            bodyElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('platform_theme', nextTheme);
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
+        });
+
+        async function fetchLessonDetails(lessonId) {
+            try {
+                const docRef = doc(db, "lessons", lessonId);
+                const docSnap = await getDoc(docRef);
+
+                if (!docSnap.exists()) {
+                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، هذه الحصة غير موجودة أو تم حذفها.</p>`;
+                    return;
+                }
+
+                let lesson = docSnap.data();
+                renderLessonPage(lessonId, lesson);
+
+                // تسجيل مشاهدة الحصة واحتساب 10 نقاط للطالب في السحابة
+                if (currentUserId) {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        if (!lessonsActivity[lessonId] || !lessonsActivity[lessonId].watched) {
+                            lessonsActivity[lessonId] = { watched: true, studyNotes: true, video: true, summary: true };
+                            await updateDoc(userRef, {
+                                points: increment(10),
+                                lessonsActivity: lessonsActivity
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("خطأ في جلب تفاصيل الحصة:", e);
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
+            }
+        }
+
+        function renderLessonPage(lessonId, item) {
+            let s = item.settings || {};
+            let html = `
+                <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
+                <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
+            `;
+
+            // القائمة الأولى: الملازم
+            html += `
+                <div class="lesson-section-box">
+                    <div class="lesson-section-title">📂 أولاً: قائمة الملازم وملفات الشرح</div>
+                    <div>
+                        ${item.studyNotes ? `<button class="sub-btn" onclick="openInnerViewer('ملزمة الشرح الأساسية', '${item.studyNotes}')">📄 فتح ملزمة الشرح</button>` : '<p style="font-size:0.78rem; opacity:0.7;">لا توجد ملزمة شرح مرفقة.</p>'}
+                    </div>
+                </div>
+            `;
+
+            // القائمة الثانية: فيديو الشرح
+            if (s.showVideo !== false && item.videoUrl) {
+                let videoSource = item.videoUrl;
+                let isYouTube = videoSource.includes('youtube.com') || videoSource.includes('youtu.be');
+                
+                html += `
+                    <div class="lesson-section-box">
+                        <div class="lesson-section-title">🎬 ثانياً: قائمة فيديو الشرح</div>
+                        <div class="video-player-wrapper">
+                            ${isYouTube ? 
+                                `<iframe src="${videoSource}" style="width:100%; height:380px; border:none;" allowfullscreen></iframe>` :
+                                `<video controls controlsList="nodownload" id="lessonVideoPlayer">
+                                    <source src="${videoSource}" type="video/mp4">
+                                    متصفحك لا يدعم تشغيل الفيديو.
+                                 </video>`
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+
+            // القائمة الثالثة: ملخص الدرس
+            if (s.showSummary !== false && item.summaryNotes) {
+                html += `
+                    <div class="lesson-section-box">
+                        <div class="lesson-section-title">📑 ثالثاً: قائمة ملخص الدرس</div>
+                        <button class="sub-btn" style="background: rgba(16, 185, 129, 0.15); color: var(--success);" onclick="openInnerViewer('ملخص الدرس', '${item.summaryNotes}')">📑 فتح ملخص الدرس</button>
+                    </div>
+                `;
+            }
+
+            // القائمة الرابعة: امتحان الحصة
+            html += `
+                <div class="lesson-section-box" style="border-color: var(--primary);">
+                    <div class="lesson-section-title">📝 رابعاً: امتحان الحصة والتقييم</div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">امتحان مخصص لاختبار فهمك واجتياز الحصة بنجاح لحصد 10 نقاط ⭐.</p>
+                    ${item.examId ? `<a href="exam.html?id=${item.examId}&lessonId=${lessonId}" class="view-btn">بدء امتحان الحصة الآن 📝</a>` : '<p style="font-size:0.78rem; opacity:0.7;">لا يوجد امتحان مرفق لهذه الحصة حالياً.</p>'}
+                </div>
+            `;
+
+            html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
+            document.getElementById('lessonContainerBox').innerHTML = html;
+
+            // تفاعل الفيديو (ضغطتين للتقديم والتأخير 10 ثوانٍ)
+            setTimeout(() => {
+                let vid = document.getElementById('lessonVideoPlayer');
+                if (vid) {
+                    vid.addEventListener('dblclick', (e) => {
+                        let rect = vid.getBoundingClientRect();
+                        let clickX = e.clientX - rect.left;
+                        if (clickX < rect.width / 2) {
+                            vid.currentTime -= 10;
+                        } else {
+                            vid.currentTime += 10;
+                        }
+                    });
+                }
+            }, 500);
+        }
+
+        window.openInnerViewer = function(title, fileUrl) {
+            document.getElementById('innerViewerTitle').textContent = title;
+            let viewerBody = document.getElementById('innerViewerBody');
+            
+            if (fileUrl.includes('data:application/pdf') || fileUrl.endsWith('.pdf') || fileUrl.includes('base64')) {
+                viewerBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%; height:550px; border:none; border-radius:8px;"></iframe>`;
+            } else {
+                viewerBody.innerHTML = `
+                    <div style="padding: 25px; text-align: center;">
+                        <p style="margin-bottom: 15px;">رابط الملف أو المستند جاهز للعرض:</p>
+                        <a href="${fileUrl}" target="_blank" class="view-btn" style="display:inline-block; max-width:280px;">فتح المستند داخل المنصة 📄</a>
+                    </div>
+                `;
+            }
+            document.getElementById('innerViewerModal').classList.add('active');
+        };
+
+        window.closeInnerViewer = function() {
+            document.getElementById('innerViewerModal').classList.remove('active');
+        };
+    </script>
+</body>
+</html>
