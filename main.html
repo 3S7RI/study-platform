@@ -311,7 +311,7 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // دالة لعرض بيانات البروفايل من التخزين المؤقت فوراً لمنع التعليق
+        // دالة فورية لتحميل البيانات والصورة من الكاش فور فتح الصفحة (بدون أي وميض أو تأخير)
         function loadProfileFromCacheInstant() {
             const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser');
             if (cachedData) {
@@ -362,6 +362,18 @@
 
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
+                    
+                    // لو الداتا اللي راجعة من السيرفر مش فيها صورة، بنحتفظ بالصورة اللي موجودة فعلياً في الكاش عشان متتحولش افتراضية
+                    if (!data.profileImage && !data.avatar) {
+                        const existingCache = sessionStorage.getItem('cachedStudentProfile');
+                        if (existingCache) {
+                            try {
+                                const parsedExisting = JSON.parse(existingCache);
+                                data.profileImage = parsedExisting.profileImage || parsedExisting.avatar || '';
+                            } catch(e) {}
+                        }
+                    }
+
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.name || data.fullName || '';
@@ -372,7 +384,11 @@
                     let firstName = studentName.trim().split(' ')[0];
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
                     document.getElementById('navStudentName').innerText = firstName;
-                    navProfileImg.src = data.profileImage || data.avatar || defaultMaleSvg;
+                    
+                    const finalImage = data.profileImage || data.avatar;
+                    if (finalImage) {
+                        navProfileImg.src = finalImage;
+                    }
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
