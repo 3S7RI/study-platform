@@ -226,7 +226,6 @@
         .error-msg { color: #ef4444; font-size: 0.78rem; margin-top: 4px; display: none; }
         .success-msg { color: #10b981; font-size: 0.82rem; margin-top: 4px; display: none; }
 
-        /* نافذة المودال المخصصة لبوابة المطور */
         .custom-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
@@ -259,7 +258,6 @@
 </head>
 <body>
 
-    <!-- الكلمات المفتاحية الضخمة جداً (أكثر من 500 كلمة وعبارة بحثية) مخفية تماماً عن الزائر ولا تؤثر على شكل الموقع نهائياً -->
     <div style="display: none;" aria-hidden="true">
         <h1>منصة رحلة دراسية</h1>
         <h2>منصة رحلة دراسية لطلاب تالتة اعدادي</h2>
@@ -274,7 +272,6 @@
             اختبارات إلكترونية تالتة إعدادي أسئلة متوقعة تالتة إعدادي بنك المعرفة المصري تلخيص كتاب المدرسة امتحانات أونلاين تالتة إعدادي 
             متابعة الطلاب أول بأول درجات ونقاط ومستويات تشجيعية أفضل منصة تعليمية لطلاب الإعدادية في مصر شرح بالفيديو والصوت 
             تحميل مذكرات الشرح بصيغة PDF حل بوسترات التقييمات الأسبوعية منصة رحلة دراسية التعليمية الرسمية.
-            [مئات الكلمات والعبارات المكررة والداعمة لمحركات البحث لتغطية كافة احتمالات البحث الخاصة بالطلاب والمعلمين والأولياء الأمور في جمهورية مصر العربية وخارجها لتتصدر منصة رحلة دراسية محركات البحث بلا منازع]
         </p>
     </div>
 
@@ -384,7 +381,6 @@
         </div>
     </div>
 
-    <!-- نافذة المودال المخصصة لبوابة المطور -->
     <div class="custom-modal-overlay" id="adminModal">
         <div class="custom-modal-box">
             <h3>🔐 بوابة المطور والمديرين</h3>
@@ -396,7 +392,6 @@
             </div>
         </div>
     </div>
-
     <script>
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
@@ -436,7 +431,7 @@
             "اقترب من الله يفتح لك أبواباً لم تكن تدور في خلدك، فالتوفيق بيده وحده.",
             "ليس من يُطارد حلمه كمن يكتفي بالجلوس على رصيف الأمنيات.",
             "اللهم صلِ على سيدنا محمد، صلاة تنحل بها العقد وتنكشف بها الكرب وتُقضى بها الحوائج.",
-            "خطوة صغيرة كل يوم في المذاكرة تصنع فارقاً عظيماً نهاية المطاف.",
+            "خطوة صغيرة كل يوم في المذاكرة تصنع فارقاً عظيمًا نهاية المطاف.",
             "كن مع الله ولا تبالي، واجعل كتابك رفيقك ونيتك خالصة لترضي ربك.",
             "التوكل على الله نصف السعي، والأخذ بالأسباب نصفه الآخر."
         ];
@@ -639,7 +634,6 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
-                const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
                 const studentName = nameInput || "زائرنا المتميز";
 
                 const emailHtmlContent = `
@@ -804,9 +798,9 @@
                     phone: sPhone,
                     parentPhone: pPhone,
                     status: 'active',
-                    rank: 'ضعيف',
+                    rank: 'strong',
                     profileImage: profileImageBase64,
-                    avatar: profileImageBase64,
+                    avatar: profileImageBase64 || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
                     allowComparison: true,
                     bgPatternEnabled: true,
                     selectedEmojis: ['⭐', '🚀'],
@@ -819,14 +813,26 @@
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, firstName);
 
+                // تخزين مؤقت (Session Storage) للجلسة الحالية فقط
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
                 sessionStorage.setItem('currentStudentId', studentId);
+                sessionStorage.setItem('chat_uid', user.uid);
+                sessionStorage.setItem('chat_name', name);
+                sessionStorage.setItem('chat_rank', 'strong');
+                sessionStorage.setItem('chat_gender', gender);
+                sessionStorage.setItem('chat_streak', '5');
+                sessionStorage.setItem('chat_avatar', studentData.avatar);
                 sessionStorage.setItem('studentUser', JSON.stringify(studentData));
                 sessionStorage.setItem('currentUser', JSON.stringify(studentData));
 
-                window.location.href = 'welcome.html';
+                // التوجيه التلقائي الذكي حسب الجنس (ولاد / بنات)
+                if (gender === 'female') {
+                    window.location.href = 'chat-girls.html';
+                } else {
+                    window.location.href = 'chat-boys.html';
+                }
 
             } catch (error) {
                 console.error(error);
