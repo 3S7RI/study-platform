@@ -330,16 +330,21 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // 2. دالة فورية لعرض الاسم والصورة من الـ localStorage لحظة فتح الصفحة أو عمل Refresh
+        // 2. دالة فورية شاملة تفحص كل مفاتيح الكاش الممكنة لضمان عرض الاسم والصورة لحظياً عند الـ Refresh
         function loadProfileFromCacheInstant() {
             if (!checkSessionExpiration()) return false;
 
-            const cachedData = localStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('cachedStudentProfile');
+            const cachedData = localStorage.getItem('cachedStudentProfile') || 
+                               localStorage.getItem('currentUser') || 
+                               localStorage.getItem('studentUser') || 
+                               localStorage.getItem('studentData') ||
+                               sessionStorage.getItem('cachedStudentProfile') || 
+                               sessionStorage.getItem('currentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     currentStudentEmailGlobal = (data.email || localStorage.getItem('currentStudentEmail') || '').toLowerCase().trim();
-                    currentStudentNameGlobal = data.fullName || data.name || '';
+                    currentStudentNameGlobal = data.fullName || data.name || data.studentName || '';
                     
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
@@ -353,7 +358,7 @@
                         document.getElementById('navStudentName').innerText = firstName;
                     }
                     
-                    const profileImgSrc = data.profileImage || data.avatar;
+                    const profileImgSrc = data.profileImage || data.avatar || data.img;
                     if (profileImgSrc) {
                         navProfileImg.src = profileImgSrc;
                     }
@@ -363,14 +368,13 @@
             return false;
         }
         
-        // تشغيل التحميل الفوري فوراً
+        // تشغيل التحميل الفوري قبل فحص الـ Auth لمنع ظهور كلمة "حسابي" لحظياً
         loadProfileFromCacheInstant();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (!checkSessionExpiration()) return;
                 
-                // حفظ الـ UID والإيميل محلياً لضمان عدم ضياعهم أبداً عند الـ Refresh
                 localStorage.setItem('currentStudentUid', user.uid);
                 const studentEmail = localStorage.getItem('currentStudentEmail') || user.email;
                 if (studentEmail) {
@@ -381,7 +385,6 @@
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotificationsFast();
             } else {
-                // لو الـ Auth مش مسجل بس عندنا كاش قديم ساري، بنستمر بيه، لو مفيش بنوجهه للوجين
                 if (!loadProfileFromCacheInstant()) {
                     window.location.href = 'login.html';
                 }
@@ -404,22 +407,21 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // دمج البيانات القديمة لو الناش ناقص
-                    const existingCacheStr = localStorage.getItem('cachedStudentProfile');
+                    const existingCacheStr = localStorage.getItem('cachedStudentProfile') || localStorage.getItem('currentUser');
                     let existingCache = {};
                     try { existingCache = JSON.parse(existingCacheStr) || {}; } catch(e) {}
 
                     if (!data.profileImage && !data.avatar) {
-                        data.profileImage = existingCache.profileImage || existingCache.avatar || '';
+                        data.profileImage = existingCache.profileImage || existingCache.avatar || existingCache.img || '';
                     }
 
                     if (!data.fullName && !data.name) {
-                        data.fullName = existingCache.fullName || existingCache.name || '';
+                        data.fullName = existingCache.fullName || existingCache.name || existingCache.studentName || '';
                     }
 
-                    // تخزين دائم ومضمون في localStorage
+                    // تخزين دائم وموحد في جميع مفاتيح التخزين المحلي لضمان عدم ضياع البيانات أبداً مع أي حساب
                     localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
-                    sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    localStorage.setItem('currentUser', JSON.stringify(data));
 
                     currentStudentEmailGlobal = (data.email || savedEmail || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
