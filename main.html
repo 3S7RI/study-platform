@@ -87,7 +87,6 @@
         .welcome-section h1 { color: var(--text-main); font-size: 1.25rem; margin-bottom: 6px; font-weight: 700; }
         .welcome-section p { color: var(--text-muted); font-size: 0.85rem; }
         
-        /* شريط الواتساب على سطر واحد وزر الانضمام في أقصى اليسار تماماً */
         .whatsapp-banner-wrapper { margin-bottom: 15px; }
 
         .whatsapp-banner {
@@ -194,7 +193,6 @@
             <p>استعد للتفوق.. اختر القسم اللي حابب تبدأ فيه دلوقتي 🚀</p>
         </section>
 
-        <!-- شريط الواتساب على سطر واحد وزر الانضمام في أقصى اليسار -->
         <div class="whatsapp-banner-wrapper">
             <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" class="whatsapp-banner">
                 <div class="whatsapp-info">
@@ -211,7 +209,6 @@
         </div>
 
         <main class="sections-container">
-            <!-- بطاقة الحصص والشروحات (تم حذف بطاقة الفيديوهات وتوحيد العناوين والنصوص) -->
             <div class="card" style="border-top-color: #0ea5e9;">
                 <div>
                     <h3>الحصص و الشروحات 🎥</h3>
@@ -253,7 +250,6 @@
             </div>
         </main>
 
-        <!-- نافذة الإشعارات -->
         <div class="modal-overlay" id="notificationsModal" onclick="if(event.target===this) closeNotificationsModal()">
             <div class="modal-card">
                 <div class="modal-header">
@@ -299,7 +295,6 @@
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
-        // الوضع الداكن والفاتح
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -316,8 +311,9 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
+        // دالة لعرض بيانات البروفايل من التخزين المؤقت فوراً لمنع التعليق
         function loadProfileFromCacheInstant() {
-            const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser');
+            const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
@@ -333,8 +329,10 @@
                     let firstName = studentName.trim().split(' ')[0];
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
                     document.getElementById('navStudentName').innerText = firstName;
-                    if (data.profileImage) {
-                        navProfileImg.src = data.profileImage;
+                    
+                    const profileImgSrc = data.profileImage || data.avatar;
+                    if (profileImgSrc) {
+                        navProfileImg.src = profileImgSrc;
                     }
                 } catch(e) {}
             }
@@ -374,7 +372,7 @@
                     let firstName = studentName.trim().split(' ')[0];
                     document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
                     document.getElementById('navStudentName').innerText = firstName;
-                    navProfileImg.src = data.profileImage || defaultMaleSvg;
+                    navProfileImg.src = data.profileImage || data.avatar || defaultMaleSvg;
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
@@ -493,7 +491,7 @@
             list.slice(0, 20).forEach(item => {
                 const timeFormatted = item.time ? new Date(item.time).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : 'منذ قليل';
                 html += `
-                    <div class="admin-notif-card" style="${item.type === 'exam_grade' ? 'border-color: var(--success); background: rgba(16, 185, 129, 0.05);' : ''}">
+                    ` + `<div class="admin-notif-card" style="${item.type === 'exam_grade' ? 'border-color: var(--success); background: rgba(16, 185, 129, 0.05);' : ''}">` + `
                         <div class="admin-notif-header">
                             <span class="admin-info-badge">${item.sender}</span>
                             <span class="admin-notif-time">${timeFormatted}</span>
