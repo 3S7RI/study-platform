@@ -130,7 +130,7 @@
         .card p { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 15px; line-height: 1.5; }
         .card-btn { 
             display: inline-block; background-color: var(--primary); color: white; padding: 9px 16px; 
-            border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.82rem; width: 100%; 
+            border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.82rem; width: 100%; cursor: pointer; border: none;
         }
         .card-btn:hover { background-color: var(--primary-hover); }
 
@@ -225,12 +225,13 @@
                 <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍️</a>
             </div>
 
+            <!-- بطاقة الدردشة الموجهة بذكاء حسب نوع الطالب -->
             <div class="card" style="border-top-color: #6366f1;">
                 <div>
                     <h3>الدردشه العامه 💬</h3>
                     <p>تواصل مع زمايلك، شارك الأسئلة والملفات في الساحة الجماعية.</p>
                 </div>
-                <a href="chat.html" class="card-btn" style="background-color: #6366f1;">دخول الدردشة 🌐</a>
+                <button onclick="goToChat()" class="card-btn" style="background-color: #6366f1;">دخول الدردشة 🌐</button>
             </div>
 
             <div class="card" style="border-top-color: #f59e0b;">
@@ -291,11 +292,11 @@
 
         let currentStudentEmailGlobal = "";
         let currentStudentNameGlobal = "";
+        let currentStudentGenderGlobal = "male"; // افتراضي
         let studentCreatedAtTime = 0; 
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
-        // 1. نظام التحقق من صلاحية الجلسة (48 ساعة / يومين)
         function checkSessionExpiration() {
             const loginTime = localStorage.getItem('platform_login_time');
             if (loginTime) {
@@ -328,29 +329,23 @@
         });
 
         const navProfileImg = document.getElementById('navProfileImg');
-        const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // 2. دالة فورية شاملة تفحص كل مفاتيح الكاش الممكنة لضمان عرض الاسم والصورة لحظياً عند الـ Refresh
         function loadProfileFromCacheInstant() {
             if (!checkSessionExpiration()) return false;
 
             const cachedData = localStorage.getItem('cachedStudentProfile') || 
                                localStorage.getItem('currentUser') || 
                                localStorage.getItem('studentUser') || 
-                               localStorage.getItem('studentData') ||
-                               sessionStorage.getItem('cachedStudentProfile') || 
-                               sessionStorage.getItem('currentUser');
+                               sessionStorage.getItem('cachedStudentProfile');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     currentStudentEmailGlobal = (data.email || localStorage.getItem('currentStudentEmail') || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || data.studentName || '';
+                    currentStudentGenderGlobal = data.gender || localStorage.getItem('chat_gender') || 'male';
                     
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
-                    }
-                    if (data.lastSeenNotificationTime) {
-                        lastSeenNotificationTime = data.lastSeenNotificationTime;
                     }
                     if (currentStudentNameGlobal) {
                         let firstName = currentStudentNameGlobal.trim().split(' ')[0];
@@ -368,7 +363,6 @@
             return false;
         }
         
-        // تشغيل التحميل الفوري قبل فحص الـ Auth لمنع ظهور كلمة "حسابي" لحظياً
         loadProfileFromCacheInstant();
 
         onAuthStateChanged(auth, async (user) => {
@@ -416,15 +410,20 @@
                     }
 
                     if (!data.fullName && !data.name) {
-                        data.fullName = existingCache.fullName || existingCache.name || existingCache.studentName || '';
+                        data.fullName = existingCache.fullName || existingCache.name || '';
                     }
 
-                    // تخزين دائم وموحد في جميع مفاتيح التخزين المحلي لضمان عدم ضياع البيانات أبداً مع أي حساب
+                    if (!data.gender) {
+                        data.gender = existingCache.gender || 'male';
+                    }
+
                     localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
                     localStorage.setItem('currentUser', JSON.stringify(data));
+                    localStorage.setItem('chat_gender', data.gender);
 
                     currentStudentEmailGlobal = (data.email || savedEmail || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
+                    currentStudentGenderGlobal = data.gender || 'male';
                     
                     if (data.createdAt) { studentCreatedAtTime = new Date(data.createdAt).getTime() || 0; }
                     if (data.lastSeenNotificationTime) { lastSeenNotificationTime = data.lastSeenNotificationTime; }
@@ -444,6 +443,16 @@
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
             }
         }
+
+        // دالة التوجيه الذكي لشات الولاد أو البنات بناءً على الـ gender
+        window.goToChat = function() {
+            const gender = currentStudentGenderGlobal || localStorage.getItem('chat_gender') || 'male';
+            if (gender === 'female') {
+                window.location.href = 'chat-girls.html';
+            } else {
+                window.location.href = 'chat-boys.html';
+            }
+        };
 
         async function fetchAllNotificationsAndGrades() {
             let combinedNotifications = [];
