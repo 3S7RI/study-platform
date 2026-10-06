@@ -295,12 +295,12 @@
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
-        // 1. نظام التحقق من صلاحية تسجيل الدخول (يومين / 48 ساعة فقط)
+        // 1. نظام التحقق من صلاحية الجلسة (48 ساعة / يومين)
         function checkSessionExpiration() {
             const loginTime = localStorage.getItem('platform_login_time');
             if (loginTime) {
                 const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-                if (hoursPassed > 48) { // بعد مرور يومين يتم مسح الكاش وتوجيهه لتسجيل الدخول من جديد
+                if (hoursPassed > 48) {
                     localStorage.clear();
                     sessionStorage.clear();
                     signOut(auth).then(() => {
@@ -309,7 +309,6 @@
                     return false;
                 }
             } else {
-                // لو مفيش وقت متسجل، بنسجل وقت الدخول الحالي
                 localStorage.setItem('platform_login_time', Date.now().toString());
             }
             return true;
@@ -331,18 +330,15 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // 2. دالة فورية لعرض الاسم والصورة من التخزين المحلي فور فتح الصفحة بدون أي تأخير أو وميض
+        // 2. دالة فورية لعرض الاسم والصورة من الـ localStorage لحظة فتح الصفحة أو عمل Refresh
         function loadProfileFromCacheInstant() {
-            if (!checkSessionExpiration()) return;
+            if (!checkSessionExpiration()) return false;
 
-            const cachedData = localStorage.getItem('cachedStudentProfile') || 
-                               sessionStorage.getItem('cachedStudentProfile') || 
-                               localStorage.getItem('currentUser') || 
-                               sessionStorage.getItem('currentUser');
+            const cachedData = localStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('cachedStudentProfile');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
-                    currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    currentStudentEmailGlobal = (data.email || localStorage.getItem('currentStudentEmail') || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
                     
                     if (data.createdAt) {
@@ -361,39 +357,55 @@
                     if (profileImgSrc) {
                         navProfileImg.src = profileImgSrc;
                     }
+                    return true;
                 } catch(e) {}
             }
+            return false;
         }
         
+        // تشغيل التحميل الفوري فوراً
         loadProfileFromCacheInstant();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (!checkSessionExpiration()) return;
-                const studentEmail = localStorage.getItem('currentStudentEmail') || sessionStorage.getItem('currentStudentEmail') || user.email;
+                
+                // حفظ الـ UID والإيميل محلياً لضمان عدم ضياعهم أبداً عند الـ Refresh
+                localStorage.setItem('currentStudentUid', user.uid);
+                const studentEmail = localStorage.getItem('currentStudentEmail') || user.email;
+                if (studentEmail) {
+                    localStorage.setItem('currentStudentEmail', studentEmail.toLowerCase().trim());
+                }
+                
                 currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotificationsFast();
             } else {
-                window.location.href = 'login.html';
+                // لو الـ Auth مش مسجل بس عندنا كاش قديم ساري، بنستمر بيه، لو مفيش بنوجهه للوجين
+                if (!loadProfileFromCacheInstant()) {
+                    window.location.href = 'login.html';
+                }
             }
         });
 
         async function fetchAndUpdateMainProfile(uid, emailKey) {
             try {
                 let docSnap = null;
-                if (uid) {
-                    docSnap = await getDoc(doc(db, "students", uid));
+                const savedUid = uid || localStorage.getItem('currentStudentUid');
+                const savedEmail = emailKey || localStorage.getItem('currentStudentEmail');
+
+                if (savedUid) {
+                    docSnap = await getDoc(doc(db, "students", savedUid));
                 }
-                if ((!docSnap || !docSnap.exists()) && emailKey) {
-                    docSnap = await getDoc(doc(db, "students", emailKey.toLowerCase().trim()));
+                if ((!docSnap || !docSnap.exists()) && savedEmail) {
+                    docSnap = await getDoc(doc(db, "students", savedEmail.toLowerCase().trim()));
                 }
 
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // جلب الكاش القديم لدمج البيانات إن وجدت ناقصة مؤقتاً من الشبكة
-                    const existingCacheStr = localStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('cachedStudentProfile');
+                    // دمج البيانات القديمة لو الناش ناقص
+                    const existingCacheStr = localStorage.getItem('cachedStudentProfile');
                     let existingCache = {};
                     try { existingCache = JSON.parse(existingCacheStr) || {}; } catch(e) {}
 
@@ -405,11 +417,11 @@
                         data.fullName = existingCache.fullName || existingCache.name || '';
                     }
 
-                    // حفظ البيانات دائمًا في localStorage لضمان استقرارها عند الـ Refresh المباشر
+                    // تخزين دائم ومضمون في localStorage
                     localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
 
-                    currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+                    currentStudentEmailGlobal = (data.email || savedEmail || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
                     
                     if (data.createdAt) { studentCreatedAtTime = new Date(data.createdAt).getTime() || 0; }
@@ -492,7 +504,8 @@
         }
 
         async function checkUnreadNotificationsFast() {
-            let list = await fetchAllNotificationsAndGrades();            let unreadCount = 0;
+            let list = await fetchAllNotificationsAndGrades();
+            let unreadCount = 0;
             list.forEach(item => {
                 if (item.time > lastSeenNotificationTime) {
                     unreadCount++;
@@ -512,9 +525,10 @@
             lastSeenNotificationTime = Date.now();
             document.getElementById('mainNotifDot').style.display = 'none';
 
-            if (currentStudentEmailGlobal && auth.currentUser) {
+            const activeUid = auth.currentUser?.uid || localStorage.getItem('currentStudentUid');
+            if (currentStudentEmailGlobal && activeUid) {
                 try {
-                    let docRef = doc(db, "students", auth.currentUser.uid);
+                    let docRef = doc(db, "students", activeUid);
                     await setDoc(docRef, { lastSeenNotificationTime: lastSeenNotificationTime }, { merge: true });
                 } catch (e) {}
             }
