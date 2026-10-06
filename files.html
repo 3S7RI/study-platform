@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - مكتبة الملازم والحصص</title>
+    <title>منصة رحلة دراسية - مكتبة الحصص والقاعات</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -72,23 +72,14 @@
         .page-header h1 { color: var(--text-main); font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
         .page-header p { color: var(--text-muted); font-size: 0.85rem; }
 
-        .files-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 15px;
-        }
+        .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
 
         .file-card {
             background: var(--bg-card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow);
             display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-color);
             border-top: 3px solid var(--primary); position: relative; overflow: hidden;
         }
-
-        /* تنسيق كارت الحصة المقفولة بسلاسل وعد تنازلي */
-        .file-card.locked {
-            border-top-color: var(--danger);
-            background: rgba(239, 68, 68, 0.03);
-        }
+        .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
 
         .file-icon { font-size: 2rem; margin-bottom: 10px; }
         .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 6px; }
@@ -106,44 +97,61 @@
             border: none; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; transform: translateY(-1px); }
-
-        .view-btn.locked-btn {
-            background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none;
-        }
+        .view-btn.locked-btn { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none; }
 
         .countdown-box {
             background: var(--th-bg); border: 1px dashed var(--danger); padding: 8px; border-radius: 8px;
             text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
 
+        /* نافذة الحصة الداخلية والقوائم الأربعة */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(6px);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
         }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal-card {
-            background: var(--bg-card); width: 100%; max-width: 650px;
+            background: var(--bg-card); width: 100%; max-width: 800px;
             border-radius: 16px; border: 1px solid var(--border-color);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); overflow: hidden;
-            display: flex; flex-direction: column; max-height: 85vh; position: relative;
+            display: flex; flex-direction: column; max-height: 90vh; position: relative;
         }
         .modal-header {
             padding: 14px 18px; background: var(--bg-card); color: var(--text-main);
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 1rem;
         }
         .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
         .modal-body {
-            padding: 18px; overflow-y: auto; flex: 1; text-align: right;
-            font-size: 0.85rem; line-height: 1.7; color: var(--text-main); position: relative;
+            padding: 20px; overflow-y: auto; flex: 1; text-align: right;
+            font-size: 0.88rem; line-height: 1.7; color: var(--text-main); position: relative;
         }
+
+        /* تنسيق القوائم الأربعة داخل الحصة */
+        .lesson-section-box {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 14px; margin-bottom: 14px;
+        }
+        .lesson-section-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
         
+        .sub-btn {
+            background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
+            padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; margin: 4px; text-decoration: none;
+        }
+        .sub-btn:hover { background: var(--primary); color: white; }
+
+        /* مشغل الفيديو الداخلي المميز */
+        .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
+        video { width: 100%; max-height: 350px; display: block; outline: none; }
+
         .watermark-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 1.2rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
+            font-size: 1.2rem; color: rgba(255, 255, 255, 0.06); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
@@ -151,17 +159,17 @@
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side"><a href="main.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والملازم</span> 📚</div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص الدراسية</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
         <div class="page-header">
-            <h1>مرحباً بك في مكتبة الحصص الدراسية 📖</h1>
-            <p>تصفح مذكرات الشرح وحصص الفيديو والملازم بكل أمان.</p>
+            <h1>مرحباً بك في قاعات الحصص الدراسية 📖</h1>
+            <p>تابع حصصك، شاهد الفيديوهات، وافتح الملازم والامتحانات بكل سهولة داخل المنصة.</p>
         </div>
 
         <div id="filesGrid" class="files-grid">
-            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة وجلب الحصص من السحابة...</p>
+            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة الحصص من السحابة...</p>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
@@ -169,22 +177,37 @@
         </div>
     </div>
 
-    <!-- نافذة المعاينة مع دعم العلامة المائية والحماية -->
-    <div class="modal-overlay" id="fileModal" onclick="if(event.target===this) closeFileModal()">
+    <!-- نافذة الحصة الداخلية وتحتوي على القوائم الأربعة -->
+    <div class="modal-overlay" id="lessonModal" onclick="if(event.target===this) closeLessonModal()">
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalFileTitle">معاينة الحصة أو الملزمة</h3>
-                <button class="close-modal" onclick="closeFileModal()">✕</button>
+                <h3 id="modalLessonTitle">غرفة الحصة الدراسية</h3>
+                <button class="close-modal" onclick="closeLessonModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalFileBody"></div>
+            <div class="modal-body" id="modalLessonBody">
+                <!-- يتم توليد القوائم الأربعة هنا -->
+            </div>
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) ومزامنة الإعدادات الحقيقية والعد التنازلي -->
+    <!-- نافذة منبثقة فرعية لعرض الملفات والملازم داخل المنصة من غير خروج -->
+    <div class="modal-overlay" id="innerViewerModal" onclick="if(event.target===this) closeInnerViewer()">
+        <div class="modal-card" style="max-width: 750px;">
+            <div class="modal-header">
+                <h3 id="innerViewerTitle">عرض المستند</h3>
+                <button class="close-modal" onclick="closeInnerViewer()">✕</button>
+            </div>
+            <div class="modal-body" id="innerViewerBody" style="text-align: center; padding: 10px;">
+                <!-- محتوى الملزمة أو الملف الداخلي -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -201,15 +224,17 @@
         const db = getFirestore(app);
 
         let globalLessonsData = [];
+        let currentUserId = null;
         let currentUserEmail = "طالب زائر";
         let countdownIntervals = [];
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                currentUserId = user.uid;
                 currentUserEmail = user.email || user.displayName || "طالب معتمد";
-                await fetchCloudLessonsAndSettings();
+                await fetchCloudLessons();
             } else {
-                await fetchCloudLessonsAndSettings();
+                await fetchCloudLessons();
             }
         });
 
@@ -226,9 +251,8 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        async function fetchCloudLessonsAndSettings() {
+        async function fetchCloudLessons() {
             try {
-                // جلب البيانات من كولكشن 'lessons' (حسب ما تم توحيده في صفحات الأدمن)
                 const querySnapshot = await getDocs(collection(db, "lessons"));
                 globalLessonsData = [];
                 querySnapshot.forEach((docSnap) => {
@@ -236,15 +260,13 @@
                 });
                 renderLessonsList(globalLessonsData);
             } catch (err) {
-                console.error("خطأ في جلب الحصص من السحابة:", err);
+                console.error("خطأ في جلب الحصص:", err);
                 document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">عذراً، حدث خطأ أثناء الاتصال بالسحابة.</p>`;
             }
         }
 
         function renderLessonsList(items) {
             const grid = document.getElementById('filesGrid');
-            
-            // وقف أي عداد تنازلي قديم عشان ميحصلش تداخل
             countdownIntervals.forEach(interval => clearInterval(interval));
             countdownIntervals = [];
 
@@ -269,7 +291,7 @@
                 let s = item.settings || {};
                 let title = item.title || 'حصة دراسية';
                 let subject = item.subject || 'عام';
-                let scheduledAt = item.scheduledAt; // وقت الفتح التلقائي المجدول
+                let scheduledAt = item.scheduledAt;
 
                 let now = new Date().getTime();
                 let isLocked = false;
@@ -315,7 +337,6 @@
                 card.innerHTML = cardHtml;
                 grid.appendChild(card);
 
-                // لو الحصة مقفولة، نشغل العداد التنازلي الحي بالثواني
                 if (isLocked) {
                     let intervalId = setInterval(() => {
                         let currentTime = new Date().getTime();
@@ -323,7 +344,6 @@
 
                         if (distance < 0) {
                             clearInterval(intervalId);
-                            // أول ما الوقت يخلص، نعمل إعادة تحميل للقائمة عشان تفتح الحصة تلقائياً
                             renderLessonsList(globalLessonsData);
                             return;
                         }
@@ -343,71 +363,133 @@
             });
         }
 
-        window.openLessonModal = function(itemId) {
+        // فتح غرفة الحصة وعرض القوائم الأربعة المرتبة وتسجيل مشاهدة الحصة
+        window.openLessonModal = async function(itemId) {
             const item = globalLessonsData.find(e => e.id === itemId);
             if (!item) return;
 
             let s = item.settings || {};
+            let bodyHtml = `<div style="font-weight: bold; color: var(--primary); margin-bottom: 15px; font-size: 1rem;">📌 ${item.title}</div>`;
 
-            // تطبيق حماية منع السكرين شوت وأدوات الفحص لو مفعلة
-            if (s.antiScreenshot !== false) {
-                document.addEventListener("keyup", (e) => {
-                    if (e.key == "PrintScreen") {
-                        navigator.clipboard.writeText("");
-                        alert("⚠️ تنبيه أمني: التصوير (Screenshot) ممنوع داخل هذه الحصة!");
-                    }
-                });
-            }
-
-            let modalBodyHtml = `
-                <div style="font-weight: bold; color: var(--primary); margin-bottom: 12px; font-size: 0.95rem;">📌 محتويات الحصة والإعدادات المفعلة:</div>
-                <div style="margin-bottom: 15px; font-size: 0.85rem; color: var(--text-muted);">${item.title || 'تفاصيل الحصة'}</div>
+            // القائمة الأولى: قائمة الملازم
+            bodyHtml += `
+                <div class="lesson-section-box">
+                    <div class="lesson-section-title">📂 أولاً: قائمة الملازم وملفات الشرح</div>
+                    <div>
+                        ${item.studyNotes ? `<button class="sub-btn" onclick="openInnerViewer('ملازم الشرح', '${item.studyNotes}')">📄 فتح ملزمة الشرح الأساسية</button>` : '<p style="font-size:0.78rem; opacity:0.7;">لا توجد ملزمة شرح رئيسية مرفقة.</p>'}
+                    </div>
+                </div>
             `;
 
+            // القائمة الثانية: فيديو الشرح
             if (s.showVideo !== false && item.videoUrl) {
-                modalBodyHtml += `
-                    <div style="margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="font-weight: bold; margin-bottom: 8px;">🎬 فيديو الشرح الأساسي:</div>
-                        <div style="background: #000; padding: 15px; border-radius: 6px; color: #fff; font-size: 0.8rem; text-align: center; word-break: break-all;">
-                            رابط الفيديو أو الملف: <a href="${item.videoUrl}" target="_blank" style="color: #6366f1;">مشاهدة الفيديو 🎥</a>
+                let videoSource = item.videoUrl;
+                let isYouTube = videoSource.includes('youtube.com') || videoSource.includes('youtu.be');
+                
+                bodyHtml += `
+                    <div class="lesson-section-box">
+                        <div class="lesson-section-title">🎬 ثانياً: قائمة فيديو الشرح</div>
+                        <div class="video-player-wrapper">
+                            ${isYouTube ? 
+                                `<iframe src="${videoSource}" style="width:100%; height:300px; border:none;" allowfullscreen></iframe>` :
+                                `<video controls controlsList="nodownload" id="lessonVideoPlayer">
+                                    <source src="${videoSource}" type="video/mp4">
+                                    متصفحك لا يدعم تشغيل الفيديو.
+                                 </video>`
+                            }
                         </div>
                     </div>
                 `;
             }
 
-            if (s.showNotes !== false && item.studyNotes) {
-                modalBodyHtml += `
-                    <div style="margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="font-weight: bold; margin-bottom: 8px;">📚 ملازم الشرح وملفات الدرس:</div>
-                        <a href="${item.studyNotes}" target="_blank" class="view-btn" style="display:inline-block; text-align:center; padding: 6px 12px; font-size: 0.8rem;">فتح ملزمة الشرح 📄</a>
-                    </div>
-                `;
-            }
-
+            // القائمة الثالثة: ملخص الدرس
             if (s.showSummary !== false && item.summaryNotes) {
-                modalBodyHtml += `
-                    <div style="margin-bottom: 15px; background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-                        <div style="font-weight: bold; margin-bottom: 8px;">📑 ملخص الدرس:</div>
-                        <a href="${item.summaryNotes}" target="_blank" class="view-btn" style="display:inline-block; text-align:center; padding: 6px 12px; font-size: 0.8rem; background: var(--success);">فتح التلخيص 📑</a>
+                bodyHtml += `
+                    <div class="lesson-section-box">
+                        <div class="lesson-section-title">📑 ثالثاً: قائمة ملخص الدرس</div>
+                        <button class="sub-btn" style="background: rgba(16, 185, 129, 0.15); color: var(--success);" onclick="openInnerViewer('ملخص الدرس', '${item.summaryNotes}')">📑 فتح ملخص الدرس</button>
                     </div>
                 `;
             }
 
-            if (item.examId) {
-                modalBodyHtml += `
-                    <a href="exam.html?id=${item.examId}" class="view-btn" style="text-align:center; margin-top: 15px; display:block;">بدء امتحان الحصة الآن 📝</a>
-                `;
+            // القائمة الرابعة: امتحان الحصة واحتساب الـ 10 نقاط
+            bodyHtml += `
+                <div class="lesson-section-box" style="border-color: var(--primary);">
+                    <div class="lesson-section-title">📝 رابعاً: امتحان الحصة والتقييم</div>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">امتحان مخصص لقياس فهمك للدرس واجتياز الحصة بنجاح لحصد 10 نقاط ⭐.</p>
+                    ${item.examId ? `<a href="exam.html?id=${item.examId}&lessonId=${item.id}" class="view-btn" style="text-align:center;">بدء امتحان الحصة الآن 📝</a>` : '<p style="font-size:0.78rem; opacity:0.7;">لا يوجد امتحان مرفق لهذه الحصة حالياً.</p>'}
+                </div>
+            `;
+
+            bodyHtml += `<div class="watermark-overlay">${currentUserEmail}</div>`;
+
+            document.getElementById('modalLessonTitle').textContent = item.title || 'غرفة الحصة';
+            document.getElementById('modalLessonBody').innerHTML = bodyHtml;
+            document.getElementById('lessonModal').classList.add('active');
+
+            // تسجيل أن الطالب شاهد محتوى الحصة وإضافة 10 نقاط في حسابه بالسحابة
+            if (currentUserId) {
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        
+                        // لو دي أول مرة يدخل الحصة، نضيف له الـ 10 نقاط ونحدث تفاعله
+                        if (!lessonsActivity[itemId] || !lessonsActivity[itemId].watched) {
+                            lessonsActivity[itemId] = { ...lessonsActivity[itemId], watched: true, studyNotes: true, video: true, summary: true };
+                            await updateDoc(userRef, {
+                                points: increment(10),
+                                lessonsActivity: lessonsActivity
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn("خطأ في تحديث نقاط الطالب:", e);
+                }
             }
 
-            modalBodyHtml += `<div class="watermark-overlay">${currentUserEmail}</div>`;
-
-            document.getElementById('modalFileTitle').textContent = item.title || 'تفاصيل الحصة';
-            document.getElementById('modalFileBody').innerHTML = modalBodyHtml;
-            document.getElementById('fileModal').classList.add('active');
+            // تفعيل تفاعل الفيديو (ضغطتين للتقديم والتأخير 10 ثواني)
+            setTimeout(() => {
+                let vid = document.getElementById('lessonVideoPlayer');
+                if (vid) {
+                    vid.addEventListener('dblclick', (e) => {
+                        let rect = vid.getBoundingClientRect();
+                        let clickX = e.clientX - rect.left;
+                        if (clickX < rect.width / 2) {
+                            vid.currentTime -= 10;
+                        } else {
+                            vid.currentTime += 10;
+                        }
+                    });
+                }
+            }, 500);
         };
 
-        window.closeFileModal = function() {
-            document.getElementById('fileModal').classList.remove('active');
+        window.closeLessonModal = function() {
+            document.getElementById('lessonModal').classList.remove('active');
+        };
+
+        window.openInnerViewer = function(title, fileUrl) {
+            document.getElementById('innerViewerTitle').textContent = title;
+            let viewerBody = document.getElementById('innerViewerBody');
+            
+            if (fileUrl.includes('data:application/pdf') || fileUrl.endsWith('.pdf') || fileUrl.includes('base64')) {
+                viewerBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%; height:500px; border:none; border-radius:8px;"></iframe>`;
+            } else {
+                viewerBody.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <p style="margin-bottom: 15px;">رابط الملف أو المستند جاهز للعرض:</p>
+                        <a href="${fileUrl}" target="_blank" class="view-btn" style="display:inline-block; max-width:250px;">فتح المستند في نافذة المنصة 📄</a>
+                    </div>
+                `;
+            }
+            document.getElementById('innerViewerModal').classList.add('active');
+        };
+
+        window.closeInnerViewer = function() {
+            document.getElementById('innerViewerModal').classList.remove('active');
         };
     </script>
 </body>
