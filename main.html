@@ -222,7 +222,7 @@
                     <h3>الامتحانات الشامله 📝</h3>
                     <p>اختبر نفسك في امتحانات تفاعلية واعرف درجتك فوراً.</p>
                 </div>
-                <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍️</a>
+                <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍️️</a>
             </div>
 
             <!-- بطاقة الدردشة الموجهة بذكاء حسب نوع الطالب -->
@@ -292,11 +292,12 @@
 
         let currentStudentEmailGlobal = "";
         let currentStudentNameGlobal = "";
-        let currentStudentGenderGlobal = "male"; // افتراضي
+        let currentStudentGenderGlobal = "male"; 
         let studentCreatedAtTime = 0; 
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
+        // ⏱️️ فحص انتهاء الجلسة (صالحة لمدة 48 ساعة / يومين)
         function checkSessionExpiration() {
             const loginTime = localStorage.getItem('platform_login_time');
             if (loginTime) {
@@ -330,56 +331,66 @@
 
         const navProfileImg = document.getElementById('navProfileImg');
 
-        function loadProfileFromCacheInstant() {
-            if (!checkSessionExpiration()) return false;
-
-            const cachedData = localStorage.getItem('cachedStudentProfile') || 
-                               localStorage.getItem('currentUser') || 
-                               localStorage.getItem('studentUser') || 
-                               sessionStorage.getItem('cachedStudentProfile');
+        // جلب البيانات فوراً من الكاش الخاص بالحساب الحالي فقط لمنع تداخل الحسابات
+        function loadProfileForUser(email) {
+            if (!email) return false;
+            const userKey = `profile_${email.toLowerCase().trim()}`;
+            const cachedData = localStorage.getItem(userKey) || localStorage.getItem('currentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
-                    currentStudentEmailGlobal = (data.email || localStorage.getItem('currentStudentEmail') || '').toLowerCase().trim();
-                    currentStudentNameGlobal = data.fullName || data.name || data.studentName || '';
-                    currentStudentGenderGlobal = data.gender || localStorage.getItem('chat_gender') || 'male';
-                    
-                    if (data.createdAt) {
-                        studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
+                    if ((data.email || '').toLowerCase().trim() === email.toLowerCase().trim()) {
+                        applyProfileData(data);
+                        return true;
                     }
-                    if (currentStudentNameGlobal) {
-                        let firstName = currentStudentNameGlobal.trim().split(' ')[0];
-                        document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                        document.getElementById('navStudentName').innerText = firstName;
-                    }
-                    
-                    const profileImgSrc = data.profileImage || data.avatar || data.img;
-                    if (profileImgSrc) {
-                        navProfileImg.src = profileImgSrc;
-                    }
-                    return true;
                 } catch(e) {}
             }
             return false;
         }
-        
-        loadProfileFromCacheInstant();
+
+        function applyProfileData(data) {
+            currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
+            currentStudentNameGlobal = data.fullName || data.name || data.studentName || '';
+            currentStudentGenderGlobal = data.gender || 'male';
+            
+            if (data.createdAt) {
+                studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
+            }
+            if (data.lastSeenNotificationTime) {
+                lastSeenNotificationTime = data.lastSeenNotificationTime;
+            }
+            if (currentStudentNameGlobal) {
+                let firstName = currentStudentNameGlobal.trim().split(' ')[0];
+                document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
+                document.getElementById('navStudentName').innerText = firstName;
+            }
+            
+            const profileImgSrc = data.profileImage || data.avatar || data.img;
+            if (profileImgSrc) {
+                navProfileImg.src = profileImgSrc;
+            }
+        }
+
+        // تحميل سريع مبدئي من آخر إيميل مسجل
+        const initialEmail = localStorage.getItem('currentStudentEmail');
+        loadProfileForUser(initialEmail);
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 if (!checkSessionExpiration()) return;
                 
+                const studentEmail = (user.email || localStorage.getItem('currentStudentEmail') || '').toLowerCase().trim();
                 localStorage.setItem('currentStudentUid', user.uid);
-                const studentEmail = localStorage.getItem('currentStudentEmail') || user.email;
-                if (studentEmail) {
-                    localStorage.setItem('currentStudentEmail', studentEmail.toLowerCase().trim());
-                }
+                localStorage.setItem('currentStudentEmail', studentEmail);
                 
-                currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
+                loadProfileForUser(studentEmail);
+
+                currentStudentEmailGlobal = studentEmail;
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotificationsFast();
             } else {
-                if (!loadProfileFromCacheInstant()) {
+                const savedEmail = localStorage.getItem('currentStudentEmail');
+                if (!loadProfileForUser(savedEmail)) {
                     window.location.href = 'login.html';
                 }
             }
@@ -388,63 +399,31 @@
         async function fetchAndUpdateMainProfile(uid, emailKey) {
             try {
                 let docSnap = null;
-                const savedUid = uid || localStorage.getItem('currentStudentUid');
-                const savedEmail = emailKey || localStorage.getItem('currentStudentEmail');
+                const cleanEmail = emailKey ? emailKey.toLowerCase().trim() : '';
 
-                if (savedUid) {
-                    docSnap = await getDoc(doc(db, "students", savedUid));
+                if (cleanEmail) {
+                    docSnap = await getDoc(doc(db, "students", cleanEmail));
                 }
-                if ((!docSnap || !docSnap.exists()) && savedEmail) {
-                    docSnap = await getDoc(doc(db, "students", savedEmail.toLowerCase().trim()));
+                if ((!docSnap || !docSnap.exists()) && uid) {
+                    docSnap = await getDoc(doc(db, "students", uid));
                 }
 
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
-                    
-                    const existingCacheStr = localStorage.getItem('cachedStudentProfile') || localStorage.getItem('currentUser');
-                    let existingCache = {};
-                    try { existingCache = JSON.parse(existingCacheStr) || {}; } catch(e) {}
+                    const userKey = `profile_${cleanEmail}`;
 
-                    if (!data.profileImage && !data.avatar) {
-                        data.profileImage = existingCache.profileImage || existingCache.avatar || existingCache.img || '';
-                    }
-
-                    if (!data.fullName && !data.name) {
-                        data.fullName = existingCache.fullName || existingCache.name || '';
-                    }
-
-                    if (!data.gender) {
-                        data.gender = existingCache.gender || 'male';
-                    }
-
-                    localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    // حفظ البيانات في كاش مستقل خاص بهذا الحساب فقط
+                    localStorage.setItem(userKey, JSON.stringify(data));
                     localStorage.setItem('currentUser', JSON.stringify(data));
-                    localStorage.setItem('chat_gender', data.gender);
+                    localStorage.setItem('chat_gender', data.gender || 'male');
 
-                    currentStudentEmailGlobal = (data.email || savedEmail || '').toLowerCase().trim();
-                    currentStudentNameGlobal = data.fullName || data.name || '';
-                    currentStudentGenderGlobal = data.gender || 'male';
-                    
-                    if (data.createdAt) { studentCreatedAtTime = new Date(data.createdAt).getTime() || 0; }
-                    if (data.lastSeenNotificationTime) { lastSeenNotificationTime = data.lastSeenNotificationTime; }
-
-                    if (currentStudentNameGlobal) {
-                        let firstName = currentStudentNameGlobal.trim().split(' ')[0];
-                        document.getElementById('studentWelcome').innerText = `أهلاً بك يا ${firstName} في منصتك! 🚀`;
-                        document.getElementById('navStudentName').innerText = firstName;
-                    }
-
-                    const finalImage = data.profileImage || data.avatar;
-                    if (finalImage) {
-                        navProfileImg.src = finalImage;
-                    }
+                    applyProfileData(data);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
             }
         }
 
-        // دالة التوجيه الذكي لشات الولاد أو البنات بناءً على الـ gender
         window.goToChat = function() {
             const gender = currentStudentGenderGlobal || localStorage.getItem('chat_gender') || 'male';
             if (gender === 'female') {
@@ -536,10 +515,10 @@
             lastSeenNotificationTime = Date.now();
             document.getElementById('mainNotifDot').style.display = 'none';
 
-            const activeUid = auth.currentUser?.uid || localStorage.getItem('currentStudentUid');
-            if (currentStudentEmailGlobal && activeUid) {
+            const activeEmail = currentStudentEmailGlobal || localStorage.getItem('currentStudentEmail');
+            if (activeEmail) {
                 try {
-                    let docRef = doc(db, "students", activeUid);
+                    let docRef = doc(db, "students", activeEmail.toLowerCase().trim());
                     await setDoc(docRef, { lastSeenNotificationTime: lastSeenNotificationTime }, { merge: true });
                 } catch (e) {}
             }
