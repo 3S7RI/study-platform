@@ -157,7 +157,7 @@
         .admin-notif-card {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
         }
-        .admin-notif-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+        .admin-notif-header { display: flex; align-items: center; justify5: space-between; margin-bottom: 4px; }
         .admin-info-badge { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: bold; color: var(--primary); }
         .admin-notif-time { font-size: 0.65rem; color: var(--text-muted); }
         .admin-notif-text { font-size: 0.8rem; color: var(--text-main); line-height: 1.5; }
@@ -189,7 +189,7 @@
         </header>
 
         <section class="welcome-section">
-            <h1 id="studentWelcome">أهلاً بك يا بطل في منصتك!</h1>
+            <h1 id="studentWelcome">أهلاً بك في منصتك!</h1>
             <p>استعد للتفوق.. اختر القسم اللي حابب تبدأ فيه دلوقتي 🚀</p>
         </section>
 
@@ -311,14 +311,20 @@
         const navProfileImg = document.getElementById('navProfileImg');
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
-        // دالة فورية لعرض الاسم والصورة من الكاش فور فتح الصفحة (بدون أي تأخير أو وميض)
+        // دالة فورية تدمج البحث في sessionStorage و localStorage لضمان ظهور البيانات لحظياً دون تأخير
         function loadProfileFromCacheInstant() {
-            const cachedData = sessionStorage.getItem('cachedStudentProfile') || sessionStorage.getItem('currentUser') || sessionStorage.getItem('studentUser');
+            const cachedData = sessionStorage.getItem('cachedStudentProfile') || 
+                               localStorage.getItem('cachedStudentProfile') || 
+                               sessionStorage.getItem('currentUser') || 
+                               localStorage.getItem('currentUser') || 
+                               sessionStorage.getItem('studentUser') || 
+                               localStorage.getItem('studentUser');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
+                    
                     if (data.createdAt) {
                         studentCreatedAtTime = new Date(data.createdAt).getTime() || 0;
                     }
@@ -338,11 +344,13 @@
                 } catch(e) {}
             }
         }
+        
+        // تشغيل التحميل الفوري قبل أي شيء
         loadProfileFromCacheInstant();
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const studentEmail = sessionStorage.getItem('currentStudentEmail') || user.email;
+                const studentEmail = sessionStorage.getItem('currentStudentEmail') || localStorage.getItem('currentStudentEmail') || user.email;
                 currentStudentEmailGlobal = (studentEmail || '').toLowerCase().trim();
                 await fetchAndUpdateMainProfile(user.uid, studentEmail);
                 checkUnreadNotificationsFast();
@@ -364,30 +372,26 @@
                 if (docSnap && docSnap.exists()) {
                     const data = docSnap.data();
                     
-                    // ضمان الاحتفاظ بالصورة والاسم لو البيانات راقبة ناقصة من السيرفر مؤقتاً
+                    // جلب الكاش القديم لدمج أو الاحتفاظ بالبيانات إن وجدت ناقصة
+                    const existingCacheStr = sessionStorage.getItem('cachedStudentProfile') || localStorage.getItem('cachedStudentProfile');
+                    let existingCache = {};
+                    try { existingCache = JSON.parse(existingCacheStr) || {}; } catch(e) {}
+
                     if (!data.profileImage && !data.avatar) {
-                        const existingCache = sessionStorage.getItem('cachedStudentProfile');
-                        if (existingCache) {
-                            try {
-                                const parsedExisting = JSON.parse(existingCache);
-                                data.profileImage = parsedExisting.profileImage || parsedExisting.avatar || '';
-                            } catch(e) {}
-                        }
+                        data.profileImage = existingCache.profileImage || existingCache.avatar || '';
                     }
 
                     if (!data.fullName && !data.name) {
-                        const existingCache = sessionStorage.getItem('cachedStudentProfile');
-                        if (existingCache) {
-                            try {
-                                const parsedExisting = JSON.parse(existingCache);
-                                data.fullName = parsedExisting.fullName || parsedExisting.name || '';
-                            } catch(e) {}
-                        }
+                        data.fullName = existingCache.fullName || existingCache.name || '';
                     }
 
+                    // حفظ البيانات في كلاً من sessionStorage و localStorage لضمان استقرارها التام مع الريفريش
                     sessionStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+                    localStorage.setItem('cachedStudentProfile', JSON.stringify(data));
+
                     currentStudentEmailGlobal = (data.email || '').toLowerCase().trim();
                     currentStudentNameGlobal = data.fullName || data.name || '';
+                    
                     if (data.createdAt) { studentCreatedAtTime = new Date(data.createdAt).getTime() || 0; }
                     if (data.lastSeenNotificationTime) { lastSeenNotificationTime = data.lastSeenNotificationTime; }
 
