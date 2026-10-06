@@ -17,7 +17,7 @@
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, setDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -43,6 +43,20 @@
         window.setDoc = setDoc;
         window.getDocs = getDocs;
         window.serverTimestamp = serverTimestamp;
+
+        // 🚀 فحص الجلسة وتوجيه الطالب فوراً للرئيسية لو كان مسجلاً بالفعل
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const loginTime = localStorage.getItem('platform_login_time');
+                if (loginTime) {
+                    const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                    // لو مر أقل من 48 ساعة (يومين)، وجهه مباشرة للرئيسية بدون إظهار صفحة التسجيل
+                    if (hoursPassed <= 48) {
+                        window.location.href = 'main.html';
+                    }
+                }
+            }
+        });
     </script>
 
     <style>
@@ -730,6 +744,9 @@
             btn.disabled = true;
 
             try {
+                // ⏱️ حفظ وقت تسجيل الدخول الجديد لتأمين الجلسة لمدة يومين
+                localStorage.setItem('platform_login_time', Date.now().toString());
+
                 const studentDocRef = window.doc(window.firebaseDb, "students", email);
                 const studentDocSnap = await window.getDoc(studentDocRef);
                 if (studentDocSnap.exists()) {
@@ -759,7 +776,7 @@
                     studentId: studentId,
                     fullName: name,
                     name: name,
-                    gender: gender, // حفظ نوع الحساب (male أو female) في قاعدة البيانات
+                    gender: gender,
                     email: email,
                     studentPhone: sPhone,
                     phone: sPhone,
@@ -780,7 +797,6 @@
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, firstName);
 
-                // تخزين مؤقت ومحلي للجلسة الحالية
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
@@ -795,11 +811,11 @@
                 sessionStorage.setItem('currentUser', JSON.stringify(studentData));
                 localStorage.setItem('cachedStudentProfile', JSON.stringify(studentData));
 
-                // التوجيه الطبيعي لصفحة الترحيب (Welcome) أولاً ثم الماين
                 window.location.href = 'welcome.html';
 
             } catch (error) {
                 console.error(error);
+                localStorage.removeItem('platform_login_time'); // مسح التوقيت لو حصل خطأ في التسجيل
                 let errMsg = error.message;
                 if (error.code === 'auth/email-already-in-use') {
                     errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً!';
