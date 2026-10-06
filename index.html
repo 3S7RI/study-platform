@@ -419,6 +419,9 @@
 
         async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
             try {
+                // استخراج الاسم الأول فقط بدقة تامة
+                const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
+                
                 let templatesList = [];
                 const docRef = window.doc(db, "messagestore", "welcomeTemplates");
                 const docSnap = await window.getDoc(docRef);
@@ -428,8 +431,8 @@
                 } else {
                     templatesList = [
                         {
-                            title: `🌟 أهلاً بيك يا ${studentName} في رحلة دراسية!`,
-                            message: `منورنا يا بطل في أقوى منصة تعليمية! جهز قهوتك واستعد لرحلة تفوق مفيهاش مستحيل يا ${studentName}.`
+                            title: `🌟 أهلاً بيك يا ${firstName} في رحلة دراسية!`,
+                            message: `منورنا يا بطل في أقوى منصة تعليمية! جهز قهوتك واستعد لرحلة تفوق مفيهاش مستحيل يا ${firstName}.`
                         }
                     ];
                 }
@@ -437,18 +440,22 @@
                 const randomIndex = Math.floor(Math.random() * templatesList.length);
                 const selectedTemplate = templatesList[randomIndex];
 
-                const finalTitle = selectedTemplate.title.replace(/\${studentName}/g, studentName);
-                const finalMessage = selectedTemplate.message.replace(/\${studentName}/g, studentName);
-                const notifId = "welcome_" + studentEmail.replace(/[^a-zA-Z0-9]/g, "_");
+                // استبدال أي متغير داخل القالب بالاسم الأول حصراً
+                const finalTitle = selectedTemplate.title.replace(/\${studentName}/g, firstName);
+                const finalMessage = selectedTemplate.message.replace(/\${studentName}/g, firstName);
+                
+                // معرّف إشعار فريد يمنع تداخل أو ظهور الإشعارات القديمة
+                const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
+                const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
                 
                 await window.setDoc(window.doc(db, "adminNotifications", notifId), {
                     title: finalTitle,
                     message: finalMessage,
                     target: "single",
-                    recipientEmail: studentEmail,
+                    recipientEmail: studentEmail.toLowerCase().trim(),
                     sender: "إدارة المنصة 📖",
                     createdAt: window.serverTimestamp()
-                }, { merge: true });
+                });
             } catch (err) {
                 console.error("خطأ في حفظ الإشعار الترحيبي:", err);
             }
@@ -615,7 +622,7 @@
                 sendBtn.textContent = 'جاري إرسال الكود...';
                 generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                 
-                const studentName = nameInput || "زائرنا المتميز";
+                const studentName = nameInput ? nameInput.trim().split(' ')[0] : "زائرنا";
 
                 const emailHtmlContent = `
                 <div dir="rtl" style="background-color: #0f172a; padding: 30px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
@@ -651,7 +658,7 @@
                     },
                     body: JSON.stringify({
                         sender: { name: "منصة رحلة دراسية", email: "mohamad91xm@gmail.com" },
-                        to: [{ email: emailInput, name: nameInput || "مستخدم جديد" }],
+                        to: [{ email: emailInput, name: studentName }],
                         subject: "✨ كود التحقق الخاص بك - منصة رحلة دراسية",
                         htmlContent: emailHtmlContent
                     })
@@ -791,11 +798,12 @@
                     friends: [],
                     friendRequests: [],
                     chats: {},
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    lastSeenNotificationTime: Date.now() // لتجاهل أي إشعارات قديمة وضمان ظهور الجديدة فقط
                 };
 
                 await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
-                await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, firstName);
+                await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, name);
 
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
@@ -815,7 +823,7 @@
 
             } catch (error) {
                 console.error(error);
-                localStorage.removeItem('platform_login_time'); // مسح التوقيت لو حصل خطأ في التسجيل
+                localStorage.removeItem('platform_login_time');
                 let errMsg = error.message;
                 if (error.code === 'auth/email-already-in-use') {
                     errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً!';
