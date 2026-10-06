@@ -103,55 +103,6 @@
             background: var(--th-bg); border: 1px dashed var(--danger); padding: 8px; border-radius: 8px;
             text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
-
-        /* نافذة الحصة الداخلية والقوائم الأربعة */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(6px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
-        }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        .modal-card {
-            background: var(--bg-card); width: 100%; max-width: 800px;
-            border-radius: 16px; border: 1px solid var(--border-color);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6); overflow: hidden;
-            display: flex; flex-direction: column; max-height: 90vh; position: relative;
-        }
-        .modal-header {
-            padding: 14px 18px; background: var(--bg-card); color: var(--text-main);
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid var(--border-color); font-weight: bold; font-size: 1rem;
-        }
-        .close-modal { background: none; border: none; font-size: 1.2rem; color: var(--text-main); cursor: pointer; }
-        .modal-body {
-            padding: 20px; overflow-y: auto; flex: 1; text-align: right;
-            font-size: 0.88rem; line-height: 1.7; color: var(--text-main); position: relative;
-        }
-
-        /* تنسيق القوائم الأربعة داخل الحصة */
-        .lesson-section-box {
-            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
-            padding: 14px; margin-bottom: 14px;
-        }
-        .lesson-section-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-        
-        .sub-btn {
-            background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--border-color);
-            padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 6px; margin: 4px; text-decoration: none;
-        }
-        .sub-btn:hover { background: var(--primary); color: white; }
-
-        /* مشغل الفيديو الداخلي المميز */
-        .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
-        video { width: 100%; max-height: 350px; display: block; outline: none; }
-
-        .watermark-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 1.2rem; color: rgba(255, 255, 255, 0.06); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
-        }
-        .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
@@ -159,13 +110,13 @@
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side"><a href="main.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص الدراسية</span> 📚</div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والقاعات</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
         <div class="page-header">
-            <h1>مرحباً بك في قاعات الحصص الدراسية 📖</h1>
-            <p>تابع حصصك، شاهد الفيديوهات، وافتح الملازم والامتحانات بكل سهولة داخل المنصة.</p>
+            <h1>مرحباً بك في مكتبة الحصص الدراسية 📖</h1>
+            <p>تابع حصصك، وتصفح محتواها التعليمي بكل سهولة وأمان داخل المنصة.</p>
         </div>
 
         <div id="filesGrid" class="files-grid">
@@ -177,37 +128,11 @@
         </div>
     </div>
 
-    <!-- نافذة الحصة الداخلية وتحتوي على القوائم الأربعة -->
-    <div class="modal-overlay" id="lessonModal" onclick="if(event.target===this) closeLessonModal()">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="modalLessonTitle">غرفة الحصة الدراسية</h3>
-                <button class="close-modal" onclick="closeLessonModal()">✕</button>
-            </div>
-            <div class="modal-body" id="modalLessonBody">
-                <!-- يتم توليد القوائم الأربعة هنا -->
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة منبثقة فرعية لعرض الملفات والملازم داخل المنصة من غير خروج -->
-    <div class="modal-overlay" id="innerViewerModal" onclick="if(event.target===this) closeInnerViewer()">
-        <div class="modal-card" style="max-width: 750px;">
-            <div class="modal-header">
-                <h3 id="innerViewerTitle">عرض المستند</h3>
-                <button class="close-modal" onclick="closeInnerViewer()">✕</button>
-            </div>
-            <div class="modal-body" id="innerViewerBody" style="text-align: center; padding: 10px;">
-                <!-- محتوى الملزمة أو الملف الداخلي -->
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -224,18 +149,10 @@
         const db = getFirestore(app);
 
         let globalLessonsData = [];
-        let currentUserId = null;
-        let currentUserEmail = "طالب زائر";
         let countdownIntervals = [];
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                currentUserEmail = user.email || user.displayName || "طالب معتمد";
-                await fetchCloudLessons();
-            } else {
-                await fetchCloudLessons();
-            }
+            await fetchCloudLessons();
         });
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -329,7 +246,8 @@
                                 <span>📂 المادة: ${subject}</span>
                                 <span>📖 متاح</span>
                             </div>
-                            <button class="view-btn" onclick="openLessonModal('${item.id}')">دخول الحصة والمحتوى 🚀</button>
+                            <!-- التوجيه لصفحة العرض المستقلة files-lesson-view.html -->
+                            <a href="files-lesson-view.html?id=${item.id}" class="view-btn" style="text-align: center;">دخول الحصة والمحتوى 🚀</a>
                         </div>
                     `;
                 }
@@ -362,135 +280,6 @@
                 }
             });
         }
-
-        // فتح غرفة الحصة وعرض القوائم الأربعة المرتبة وتسجيل مشاهدة الحصة
-        window.openLessonModal = async function(itemId) {
-            const item = globalLessonsData.find(e => e.id === itemId);
-            if (!item) return;
-
-            let s = item.settings || {};
-            let bodyHtml = `<div style="font-weight: bold; color: var(--primary); margin-bottom: 15px; font-size: 1rem;">📌 ${item.title}</div>`;
-
-            // القائمة الأولى: قائمة الملازم
-            bodyHtml += `
-                <div class="lesson-section-box">
-                    <div class="lesson-section-title">📂 أولاً: قائمة الملازم وملفات الشرح</div>
-                    <div>
-                        ${item.studyNotes ? `<button class="sub-btn" onclick="openInnerViewer('ملازم الشرح', '${item.studyNotes}')">📄 فتح ملزمة الشرح الأساسية</button>` : '<p style="font-size:0.78rem; opacity:0.7;">لا توجد ملزمة شرح رئيسية مرفقة.</p>'}
-                    </div>
-                </div>
-            `;
-
-            // القائمة الثانية: فيديو الشرح
-            if (s.showVideo !== false && item.videoUrl) {
-                let videoSource = item.videoUrl;
-                let isYouTube = videoSource.includes('youtube.com') || videoSource.includes('youtu.be');
-                
-                bodyHtml += `
-                    <div class="lesson-section-box">
-                        <div class="lesson-section-title">🎬 ثانياً: قائمة فيديو الشرح</div>
-                        <div class="video-player-wrapper">
-                            ${isYouTube ? 
-                                `<iframe src="${videoSource}" style="width:100%; height:300px; border:none;" allowfullscreen></iframe>` :
-                                `<video controls controlsList="nodownload" id="lessonVideoPlayer">
-                                    <source src="${videoSource}" type="video/mp4">
-                                    متصفحك لا يدعم تشغيل الفيديو.
-                                 </video>`
-                            }
-                        </div>
-                    </div>
-                `;
-            }
-
-            // القائمة الثالثة: ملخص الدرس
-            if (s.showSummary !== false && item.summaryNotes) {
-                bodyHtml += `
-                    <div class="lesson-section-box">
-                        <div class="lesson-section-title">📑 ثالثاً: قائمة ملخص الدرس</div>
-                        <button class="sub-btn" style="background: rgba(16, 185, 129, 0.15); color: var(--success);" onclick="openInnerViewer('ملخص الدرس', '${item.summaryNotes}')">📑 فتح ملخص الدرس</button>
-                    </div>
-                `;
-            }
-
-            // القائمة الرابعة: امتحان الحصة واحتساب الـ 10 نقاط
-            bodyHtml += `
-                <div class="lesson-section-box" style="border-color: var(--primary);">
-                    <div class="lesson-section-title">📝 رابعاً: امتحان الحصة والتقييم</div>
-                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">امتحان مخصص لقياس فهمك للدرس واجتياز الحصة بنجاح لحصد 10 نقاط ⭐.</p>
-                    ${item.examId ? `<a href="exam.html?id=${item.examId}&lessonId=${item.id}" class="view-btn" style="text-align:center;">بدء امتحان الحصة الآن 📝</a>` : '<p style="font-size:0.78rem; opacity:0.7;">لا يوجد امتحان مرفق لهذه الحصة حالياً.</p>'}
-                </div>
-            `;
-
-            bodyHtml += `<div class="watermark-overlay">${currentUserEmail}</div>`;
-
-            document.getElementById('modalLessonTitle').textContent = item.title || 'غرفة الحصة';
-            document.getElementById('modalLessonBody').innerHTML = bodyHtml;
-            document.getElementById('lessonModal').classList.add('active');
-
-            // تسجيل أن الطالب شاهد محتوى الحصة وإضافة 10 نقاط في حسابه بالسحابة
-            if (currentUserId) {
-                try {
-                    let userRef = doc(db, "users", currentUserId);
-                    let userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        let userData = userSnap.data();
-                        let lessonsActivity = userData.lessonsActivity || {};
-                        
-                        // لو دي أول مرة يدخل الحصة، نضيف له الـ 10 نقاط ونحدث تفاعله
-                        if (!lessonsActivity[itemId] || !lessonsActivity[itemId].watched) {
-                            lessonsActivity[itemId] = { ...lessonsActivity[itemId], watched: true, studyNotes: true, video: true, summary: true };
-                            await updateDoc(userRef, {
-                                points: increment(10),
-                                lessonsActivity: lessonsActivity
-                            });
-                        }
-                    }
-                } catch (e) {
-                    console.warn("خطأ في تحديث نقاط الطالب:", e);
-                }
-            }
-
-            // تفعيل تفاعل الفيديو (ضغطتين للتقديم والتأخير 10 ثواني)
-            setTimeout(() => {
-                let vid = document.getElementById('lessonVideoPlayer');
-                if (vid) {
-                    vid.addEventListener('dblclick', (e) => {
-                        let rect = vid.getBoundingClientRect();
-                        let clickX = e.clientX - rect.left;
-                        if (clickX < rect.width / 2) {
-                            vid.currentTime -= 10;
-                        } else {
-                            vid.currentTime += 10;
-                        }
-                    });
-                }
-            }, 500);
-        };
-
-        window.closeLessonModal = function() {
-            document.getElementById('lessonModal').classList.remove('active');
-        };
-
-        window.openInnerViewer = function(title, fileUrl) {
-            document.getElementById('innerViewerTitle').textContent = title;
-            let viewerBody = document.getElementById('innerViewerBody');
-            
-            if (fileUrl.includes('data:application/pdf') || fileUrl.endsWith('.pdf') || fileUrl.includes('base64')) {
-                viewerBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%; height:500px; border:none; border-radius:8px;"></iframe>`;
-            } else {
-                viewerBody.innerHTML = `
-                    <div style="padding: 20px; text-align: center;">
-                        <p style="margin-bottom: 15px;">رابط الملف أو المستند جاهز للعرض:</p>
-                        <a href="${fileUrl}" target="_blank" class="view-btn" style="display:inline-block; max-width:250px;">فتح المستند في نافذة المنصة 📄</a>
-                    </div>
-                `;
-            }
-            document.getElementById('innerViewerModal').classList.add('active');
-        };
-
-        window.closeInnerViewer = function() {
-            document.getElementById('innerViewerModal').classList.remove('active');
-        };
     </script>
 </body>
 </html>
