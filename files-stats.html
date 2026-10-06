@@ -147,7 +147,7 @@
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل الموحد والمتصل بجميع الصفحات -->
+        <!-- شريط التنقل الموحد والمتصل بجميع صفحات الأدمن -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
@@ -249,6 +249,7 @@
 
         async function fetchLessonsAndStudents() {
             try {
+                // جلب الحصص من كولكشن 'lessons'
                 const lessonsSnap = await getDocs(collection(db, "lessons"));
                 globalLessonsList = [];
                 const container = document.getElementById('lessonsCardsContainer');
@@ -276,6 +277,7 @@
                 });
                 container.innerHTML = html;
 
+                // جلب الطلاب من كولكشن 'users'
                 const studentsSnap = await getDocs(collection(db, "users"));
                 globalStudentsList = [];
                 studentsSnap.forEach((docSnap) => {
@@ -319,13 +321,12 @@
             globalStudentsList.forEach((student) => {
                 let name = student.name || 'طالب المنصة';
                 let avatar = student.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
-                let studentIdJson = JSON.stringify(student.id);
+                
+                let activity = (student.lessonsActivity || {})[lessonId] || { studyNotes: false, video: false, summary: false, watched: false };
 
-                let activity = (student.lessonsActivity || {})[lessonId] || { studyNotes: false, video: false, summary: false, examScore: null };
-
-                let studyBadge = activity.studyNotes ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
-                let videoBadge = activity.video ? '<span style="color:var(--success); font-weight:bold;">✔ شاهد</span>' : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
-                let summaryBadge = activity.summary ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
+                let studyBadge = (activity.studyNotes || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
+                let videoBadge = (activity.video || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ شاهد</span>' : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
+                let summaryBadge = (activity.summary || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
                 let examBadge = activity.examScore !== null && activity.examScore !== undefined ? `<span style="color:var(--success); font-weight:bold;">✔ ${activity.examScore} درجات</span>` : '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر</span>';
 
                 html += `
@@ -384,7 +385,6 @@
         };
 
         window.closeStudentModal = function() {
-            document.getElementById('studentProfileModal').classList.add('active');
             document.getElementById('studentProfileModal').classList.remove('active');
         };
     </script>
