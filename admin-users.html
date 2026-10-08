@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,101 +9,122 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f0a14, #181124, #281331);
-            --card-bg: rgba(24, 20, 38, 0.94);
-            --card-border: rgba(244, 114, 182, 0.28);
-            --text-main: #fdf2f8;
-            --text-sub: #f472b6;
-            --navbar-bg: rgba(18, 14, 28, 0.96);
-            --input-bg: rgba(14, 10, 24, 0.95);
-            --input-border: #f472b6;
-            --primary: #f472b6;
-            --primary-hover: #ec4899;
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
             --success: #10b981;
             --danger: #ef4444;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            --btn-bg: rgba(244, 114, 182, 0.12);
-            --btn-border: rgba(244, 114, 182, 0.3);
+            --hover-bg: rgba(99, 102, 241, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --th-bg: rgba(255, 255, 255, 0.03);
         }
 
         [data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #fdf2f8, #fce7f3, #fff1f2);
-            --card-bg: rgba(255, 255, 255, 0.96);
-            --card-border: rgba(244, 114, 182, 0.25);
-            --text-main: #4a044e;
-            --text-sub: #db2777;
-            --navbar-bg: rgba(255, 255, 255, 0.96);
-            --input-bg: #fff1f2;
-            --input-border: #fbcfe8;
-            --primary: #db2777;
-            --primary-hover: #be185d;
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
             --success: #059669;
             --danger: #dc2626;
-            --shadow: 0 15px 35px rgba(219, 39, 119, 0.1);
-            --btn-bg: rgba(219, 39, 119, 0.08);
-            --btn-border: rgba(219, 39, 119, 0.2);
+            --hover-bg: rgba(79, 70, 229, 0.05);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            --th-bg: rgba(0, 0, 0, 0.02);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
-        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1050px; margin: 0 auto; width: 100%; }
-
-        header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: var(--navbar-bg); backdrop-filter: blur(16px); color: var(--text-main); padding: 12px 16px; 
-            border-radius: 16px; margin-bottom: 20px; box-shadow: var(--shadow); 
-            border: 1px solid var(--card-border); gap: 10px; flex-wrap: wrap; width: 100%;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 1100px; margin: 0 auto; width: 100%; }
+        
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
         }
-        
-        .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
-        .header-bottom { display: flex; align-items: center; gap: 10px; width: 100%; }
-        
-        .btn-action, .btn-back { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; transition: 0.2s; }
-        .btn-action { flex: 1; }
-        .btn-action:hover, .btn-back:hover { background: var(--primary); color: white; border-color: var(--primary); }
-        .btn-action.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3); }
-        
-        .btn-theme { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); width: 40px; height: 40px; font-size: 0.95rem; padding: 0; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s; }
-        .btn-theme:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .section-box { background: var(--card-bg); backdrop-filter: blur(16px); border-radius: 18px; box-shadow: var(--shadow); padding: 22px; margin-bottom: 20px; border: 1px solid var(--card-border); border-top: 4px solid var(--primary); word-break: break-word; }
+        .header-right-side { display: flex; align-items: center; }
+        .btn-home-link {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.8rem;
+        }
+        .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .header-center-box { display: flex; align-items: center; justify-content: center; }
+        .platform-title-box { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+        
+        .header-left-side { display: flex; align-items: center; gap: 10px; }
+        .btn-theme-toggle {
+            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
+            width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        .admin-nav-bar {
+            display: flex; justify-content: center; align-items: center;
+            background-color: var(--bg-card); padding: 12px 16px; border-radius: 16px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .admin-tabs-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .btn-tab {
+            background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem; flex: 1; min-width: 120px; text-align: center; text-decoration: none; display: inline-block;
+        }
+        .btn-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+
+        .section-box {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary); word-break: break-word;
+        }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .section-header h2 { color: var(--text-main); font-size: 1.1rem; }
+        .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
 
         .form-group { margin-top: 12px; }
-        .form-group label { display: block; font-size: 0.82rem; margin-bottom: 5px; color: var(--text-sub); }
-        .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
+        .form-group label { display: block; font-size: 0.82rem; margin-bottom: 5px; color: var(--text-muted); }
+        .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
         
-        .btn-save { background: var(--primary); color: white; border: none; padding: 10px 22px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3); }
-        .btn-save:hover { background: var(--primary-hover); }
+        .btn-save { background: var(--success); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-save:hover { opacity: 0.9; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; overflow: hidden; border-radius: 12px; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--card-border); font-size: 0.85rem; color: var(--text-main); }
-        th { background: rgba(0, 0, 0, 0.1); color: var(--text-sub); font-weight: bold; }
-        .btn-ctrl { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); padding: 7px 12px; border-radius: 10px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-ctrl:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; overflow: hidden; border-radius: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-main); }
+        th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
+        
+        .btn-ctrl { background: var(--primary); color: white; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-ctrl:hover { background: var(--primary-hover); }
 
-        .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-        .modal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; width: 100%; max-width: 420px; padding: 22px; box-shadow: var(--shadow); }
+        .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 420px; padding: 20px; box-shadow: var(--shadow); }
 
         .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
     <div class="container">
-        <header>
-            <div class="header-top">
-                <a href="dashboard.html" class="btn-back">اللوحة الرئيسية ↩️</a>
-                <button class="btn-theme" id="themeToggleBtn" title="تغيير الثيم">☀️</button>
-            </div>
-            
-            <div class="header-bottom">
-                <button class="btn-action active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
-                <button class="btn-action" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡</button>
-            </div>
+        <!-- الهيدر المطور بالاسم المطلوب -->
+        <header class="platform-header">
+            <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية 🏠</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إدارة المستخدمين (الطلاب والمشرفين)</span> 👥</div></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
+        <!-- شريط التنقل للتبويبات -->
+        <nav class="admin-nav-bar">
+            <div class="admin-tabs-group">
+                <button class="btn-tab active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
+                <button class="btn-tab" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡</button>
+            </div>
+        </nav>
+
+        <!-- شاشة 1: إدارة الطلاب -->
         <div id="tabStudentsContent" class="section-box">
             <div class="section-header">
                 <h2>قائمة ومتابعة الطلاب المسجلين سحابياً 👨‍🎓</h2>
@@ -113,13 +134,14 @@
             </div>
         </div>
 
+        <!-- شاشة 2: إدارة المشرفين -->
         <div id="tabAdminsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>إدارة المشرفين وصلاحيات لوحة التحكم 🛡️</h2>
             </div>
 
-            <div style="background: rgba(0,0,0,0.1); padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); margin-bottom: 20px;">
-                <h3 style="font-size: 0.95rem; color: var(--text-sub); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
+            <div style="background: var(--th-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                <h3 style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group" style="margin-top:0;"><label>الاسم:</label><input type="text" id="newAdminName" placeholder="اسم المشرف"></div>
                     <div class="form-group" style="margin-top:0;"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="newAdminUsername" placeholder="البريد أو المعرف"></div>
@@ -136,27 +158,29 @@
                 <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف للسحابة 🚀</button>
             </div>
 
-            <h3 style="font-size: 0.95rem; color: var(--text-sub); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
+            <h3 style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
             <div id="adminsTableContainer">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل قائمة المشرفين...</p>
             </div>
         </div>
     </div>
 
+    <!-- نافذة تحكم المشرف (Modal) -->
     <div class="modal-overlay" id="adminModal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 id="modalAdminName" style="font-size: 1rem; color: var(--text-main);">إدارة المشرف</h3>
-                <button onclick="closeModal('adminModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
+                <button onclick="closeModal('adminModal')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button class="btn-ctrl" onclick="adminAction('upgrade')">⭐ ترقية المشرف العام</button>
-                <button class="btn-ctrl" onclick="adminAction('delete')">🗑️ حذف المشرف</button>
-                <button class="btn-ctrl" onclick="openEditAdminSubModal()">✏️ تعديل معلومات المشرف</button>
+                <button class="btn-ctrl" style="background: var(--danger);" onclick="adminAction('delete')">🗑️ حذف المشرف</button>
+                <button class="btn-ctrl" style="background: #3b82f6;" onclick="openEditAdminSubModal()">✏️ تعديل معلومات المشرف</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة تعديل بيانات المشرف الفرعية -->
     <div class="modal-overlay" id="editAdminSubModal">
         <div class="modal-card">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
@@ -164,19 +188,20 @@
             <div class="form-group"><label>البريد الجديد:</label><input type="text" id="editAdminUsernameInput"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveAdminEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:rgba(255,255,255,0.1);" onclick="closeModal('editAdminSubModal')">إلغاء</button>
+                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editAdminSubModal')">إلغاء</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة تحكم الطالب (Modal) -->
     <div class="modal-overlay" id="studentModal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 id="modalStudentName" style="font-size: 1rem; color: var(--text-main);">إدارة الطالبة</h3>
-                <button onclick="closeModal('studentModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
+                <button onclick="closeModal('studentModal')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-ctrl" onclick="studentAction('delete')">🗑️ حذف الطالبة من السحابة</button>
+                <button class="btn-ctrl" style="background: var(--danger);" onclick="studentAction('delete')">🗑️ حذف الطالبة من السحابة</button>
                 <div class="form-group" style="margin-top:0;">
                     <label style="font-size:0.8rem;">ترقية الرتبة / المستوى:</label>
                     <select id="studentLevelSelect" onchange="updateStudentLevel(this.value)">
@@ -187,11 +212,12 @@
                         <option value="legendary">طالبة أسطورية</option>
                     </select>
                 </div>
-                <button class="btn-ctrl" onclick="openEditStudentSubModal()">✏️ تعديل معلومات الطالبة</button>
+                <button class="btn-ctrl" style="background: #3b82f6;" onclick="openEditStudentSubModal()">✏️ تعديل معلومات الطالبة</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة تعديل بيانات الطالب الفرعية -->
     <div class="modal-overlay" id="editStudentSubModal">
         <div class="modal-card">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات الطالبة</h3>
@@ -199,7 +225,7 @@
             <div class="form-group"><label>البريد الإلكتروني الجديد:</label><input type="text" id="editStudentContactInput"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveStudentEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:rgba(255,255,255,0.1);" onclick="closeModal('editStudentSubModal')">إلغاء</button>
+                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editStudentSubModal')">إلغاء</button>
             </div>
         </div>
     </div>
@@ -224,19 +250,17 @@
         let activeDocId = null;
 
         const bodyElement = document.getElementById('pageBody');
-        const themeBtn = document.getElementById('themeToggleBtn');
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
         
-        let savedTheme = localStorage.getItem('app_theme') || 'dark';
+        let savedTheme = localStorage.getItem('platform_theme') || 'dark';
         bodyElement.setAttribute('data-theme', savedTheme);
-        themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 
-        themeBtn.addEventListener('click', () => {
-            let currentTheme = bodyElement.getAttribute('data-theme');
-            let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            bodyElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('app_theme', newTheme);
-            themeBtn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        themeToggleBtn.addEventListener('click', () => {
+            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            bodyElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('platform_theme', nextTheme);
+            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
         function switchTab(tab) {
