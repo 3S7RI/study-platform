@@ -124,7 +124,7 @@
         .verified-badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; background-color: #38bdf8; border-radius: 50%; vertical-align: middle; }
         .verified-badge svg { width: 11px; height: 11px; fill: #0f172a; }
 
-        .student-id-container {
+        .admin-id-container {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -152,11 +152,11 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             width: 100%;
         }
         .profile-action-btn {
-            background: var(--input-bg); color: #fff; padding: 11px 5px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 5px; text-align: center; white-space: nowrap;
+            background: var(--input-bg); color: #fff; padding: 12px 10px; border-radius: 12px; border: 1px solid var(--border-color); cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
         }
         .profile-action-btn:hover { background: #334155; border-color: var(--primary-color); }
         .btn-full { grid-column: span 2; }
@@ -396,13 +396,13 @@
     </div>
 
     <div class="top-nav-bar">
-        <a href="admin.html" class="back-btn"><span>←</span> عودة لوحة التحكم</a>
+        <a href="admin.html" class="back-btn"><span>←</span> لوحة التحكم الرئيسية</a>
         <button class="back-btn" onclick="confirmAdminLogout()" style="color: var(--danger-color);">تسجيل الخروج 🚪</button>
     </div>
 
     <div class="profile-card" id="profileCardMain">
         <div id="profileContent">
-            <div class="loading">جاري فحص وصلاحية بيانات الأدمن في السحابة... ⏳</div>
+            <div class="loading">جاري التحقق من بيانات الأدمن في سحابة الإدارة... ⏳</div>
         </div>
     </div>
 
@@ -414,12 +414,12 @@
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeModal('settingsModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>⚙️ إعدادات وتعديل البروفايل</h3>
+                <h3>⚙️ إعدادات وتعديل البروفايل الإداري</h3>
                 <button class="close-modal" onclick="closeModal('settingsModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
                 <div class="form-group">
-                    <label>البريد الإلكتروني (للحساب المسجل)</label>
+                    <label>البريد الإلكتروني للأدمن</label>
                     <input type="email" id="editEmail" readonly style="opacity: 0.7; cursor: not-allowed; background: var(--input-bg);">
                 </div>
                 <div class="form-group">
@@ -485,7 +485,7 @@
     <div class="modal-overlay" id="notesModal" onclick="if(event.target===this) closeModal('notesModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>📝 المفكرة السحابية</h3>
+                <h3>📝 المفكرة السحابية للأدمن</h3>
                 <button class="close-modal" onclick="closeModal('notesModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
@@ -502,7 +502,7 @@
     <div class="modal-overlay" id="messageComposerModal" onclick="if(event.target===this) closeModal('messageComposerModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>⚡ مؤلف الرسائل السريعة للطلاب</h3>
+                <h3>⚡ مؤلف الرسائل السريعة</h3>
                 <button class="close-modal" onclick="closeModal('messageComposerModal')">✕</button>
             </div>
             <div class="modal-body edit-form-modal">
@@ -562,7 +562,7 @@
     <div class="modal-overlay" id="avatarModal" onclick="if(event.target===this) closeModal('avatarModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>تعديل صورة البروفايل 🖼</h3>
+                <h3>تعديل صورة بروفايل الأدمن 🖼</h3>
                 <button class="close-modal" onclick="closeModal('avatarModal')">✕</button>
             </div>
             <div class="modal-body" style="text-align: center;">
@@ -636,7 +636,7 @@
             }
         };
 
-        // التحقق الحازم والنهائي من مصادقة الأدمن ومنع إنشاء حسابات طلاب وهمية
+        // التحقق الصارم المخصص لبروفايل الأدمن فقط (مجموعة admins) ومنع إنشاء أي حساب طالب وهمي
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 let emailKey = (user.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
@@ -655,10 +655,9 @@
                         currentAdminData = docSnap.data();
                         sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                         sessionStorage.setItem('adminEmail', emailKey);
-                        renderProfile(currentAdminData);
+                        renderAdminProfile(currentAdminData);
                     } else {
-                        // إذا لم يكن الحساب مسجلاً في مجموعة admins كأدمن حقيقي
-                        alert("عذراً، هذا الحساب ليس له صلاحيات أدمن أو غير مسجل في لوحة الإدارة!");
+                        alert("عذراً، هذا الحساب ليس له صلاحيات أدمن أو غير مسجل في مجموعة الإدارة!");
                         sessionStorage.clear();
                         await signOut(auth);
                         window.location.href = 'login.html';
@@ -672,7 +671,7 @@
             }
         });
 
-        function renderProfile(admin) {
+        function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
             let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
             let fullName = admin.fullname || admin.name || "مسؤول النظام";
@@ -691,8 +690,8 @@
                         </span>
                     </div>
                     
-                    <div class="student-id-container">
-                        <span class="id-text-badge">ID: ${adminId}</span>
+                    <div class="admin-id-container">
+                        <span class="id-text-badge">Admin ID: ${adminId}</span>
                         <button class="copy-id-btn" onclick="copyAdminId('${adminId}')">نسخ 📋</button>
                     </div>
 
@@ -772,7 +771,7 @@
                     await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
-                renderProfile(currentAdminData);
+                renderAdminProfile(currentAdminData);
                 closeModal('avatarModal');
                 showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
             } catch (error) {
@@ -794,7 +793,7 @@
                     await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
-                renderProfile(currentAdminData);
+                renderAdminProfile(currentAdminData);
                 closeModal('settingsModal');
                 showToast("تم حذف صورة البروفايل بنجاح.", "🗑️");
             } catch (err) {
@@ -824,7 +823,7 @@
                     await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
-                renderProfile(currentAdminData);
+                renderAdminProfile(currentAdminData);
                 closeModal('settingsModal');
                 showToast("تم حفظ تعديلات البروفايل بنجاح! ✅", "💾");
             } catch (err) {
