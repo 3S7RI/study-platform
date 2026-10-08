@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المستخدمين (الطلاب والمشرفين) - لوحة التحكم</title>
+    <title>إدارة حسابات المنصة</title>
     <!-- تضمين مكتبات Firebase SDK المطلوبة للمزامنة السحابية -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -104,6 +104,12 @@
         .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
         .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 420px; padding: 20px; box-shadow: var(--shadow); }
 
+        .avatar-wrapper { position: relative; width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; padding: 3px; display: flex; align-items: center; justify-content: center; background: var(--primary); }
+        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; }
+        
+        .unified-info-box { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; margin-top: 10px; text-align: right; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; }
+        .unified-info-row { display: flex; justify-content: space-between; align-items: center; }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -112,7 +118,7 @@
         <!-- الهيدر المطور بالاسم المطلوب -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية 🏠</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إدارة المستخدمين (الطلاب والمشرفين)</span> 👥</div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إدارة حسابات المنصة</span> 👥</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
@@ -165,6 +171,65 @@
         </div>
     </div>
 
+    <!-- نافذة بروفايل الطالبة المتكاملة -->
+    <div class="modal-overlay" id="studentProfileModal">
+        <div class="modal-card" style="text-align: center;">
+            <div class="avatar-wrapper">
+                <img id="profileAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="صورة الطالبة">
+            </div>
+            <h3 id="profileName" style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 4px;">اسم الطالبة</h3>
+            <p id="profileRank" style="color: var(--primary); font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;">المستوى</p>
+            
+            <div class="unified-info-box">
+                <div class="unified-info-row"><span style="color:var(--text-muted);">البريد:</span><span id="profileEmail" style="direction:ltr;">---</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">معرف الطالب:</span><span id="profileId" style="font-family:monospace;">---</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">إجمالي النقاط:</span><span id="profilePoints">0</span></div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                <button class="btn-ctrl" onclick="openEditStudentModal()">✏️ تعديل المعلومات والإعدادات</button>
+                <button class="btn-ctrl" style="background:#f59e0b;" onclick="openStudentLogs()">📊 سجل الطالبة (الدرجات والحصص)</button>
+                <button class="btn-ctrl" style="background:var(--danger);" onclick="banStudent()">🚫 حظر الطالبة (404)</button>
+                <button class="btn-ctrl" style="background:#dc2626;" onclick="deleteStudentAccount()">🗑️ حذف حساب الطالبة</button>
+            </div>
+            <button onclick="closeModal('studentProfileModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل بيانات الطالبة الفرعية -->
+    <div class="modal-overlay" id="editStudentModal">
+        <div class="modal-card">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات وإعدادات الطالبة</h3>
+            <div class="form-group"><label>اسم الطالبة:</label><input type="text" id="editStudentName"></div>
+            <div class="form-group"><label>البريد الإلكتروني:</label><input type="text" id="editStudentEmail"></div>
+            <div class="form-group">
+                <label>ترقية المستوى / الرتبة:</label>
+                <select id="editStudentRankSelect">
+                    <option value="weak">مبتدئ (ضعيف)</option>
+                    <option value="medium">طالبة مجتهدة</option>
+                    <option value="strong">طالبة متفوقة</option>
+                    <option value="very-strong">طالبة متميزة</option>
+                    <option value="legendary">طالبة أسطورية</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveStudentEdits()">حفظ التعديلات</button>
+                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editStudentModal')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة سجل الطالبة (درجات وحصص) -->
+    <div class="modal-overlay" id="studentLogsModal">
+        <div class="modal-card" style="max-width: 500px; text-align: right;">
+            <h3 style="color: var(--primary); margin-bottom: 10px; font-size: 1rem;">📊 سجل درجات الحصص والامتحانات</h3>
+            <div id="studentLogsContent" style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; background: var(--th-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <p style="text-align: center; opacity: 0.7;">جاري جلب السجل الأكاديمي...</p>
+            </div>
+            <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
+        </div>
+    </div>
+
     <!-- نافذة تحكم المشرف (Modal) -->
     <div class="modal-overlay" id="adminModal">
         <div class="modal-card">
@@ -193,43 +258,6 @@
         </div>
     </div>
 
-    <!-- نافذة تحكم الطالب (Modal) -->
-    <div class="modal-overlay" id="studentModal">
-        <div class="modal-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 id="modalStudentName" style="font-size: 1rem; color: var(--text-main);">إدارة الطالبة</h3>
-                <button onclick="closeModal('studentModal')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;">✕</button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-ctrl" style="background: var(--danger);" onclick="studentAction('delete')">🗑️ حذف الطالبة من السحابة</button>
-                <div class="form-group" style="margin-top:0;">
-                    <label style="font-size:0.8rem;">ترقية الرتبة / المستوى:</label>
-                    <select id="studentLevelSelect" onchange="updateStudentLevel(this.value)">
-                        <option value="weak">مبتدئ (ضعيف)</option>
-                        <option value="medium">طالبة مجتهدة</option>
-                        <option value="strong">طالبة متفوقة</option>
-                        <option value="very-strong">طالبة متميزة</option>
-                        <option value="legendary">طالبة أسطورية</option>
-                    </select>
-                </div>
-                <button class="btn-ctrl" style="background: #3b82f6;" onclick="openEditStudentSubModal()">✏️ تعديل معلومات الطالبة</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة تعديل بيانات الطالب الفرعية -->
-    <div class="modal-overlay" id="editStudentSubModal">
-        <div class="modal-card">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات الطالبة</h3>
-            <div class="form-group"><label>الاسم الجديد:</label><input type="text" id="editStudentNameInput"></div>
-            <div class="form-group"><label>البريد الإلكتروني الجديد:</label><input type="text" id="editStudentContactInput"></div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveStudentEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editStudentSubModal')">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -248,6 +276,7 @@
         let studentsList = [];
         let adminsList = [];
         let activeDocId = null;
+        let activeStudentData = null;
 
         const bodyElement = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -299,7 +328,7 @@
                 });
                 renderStudentsTable();
             } catch (err) {
-                console.error("خطأ في جلب الطلاب من كولكشن students:", err);
+                console.error("خطأ في جلب الطلاب:", err);
                 document.getElementById('studentsTableContainer').innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">تعذر الاتصال بقاعدة بيانات الطلاب.</p>';
             }
         }
@@ -314,14 +343,13 @@
                 renderAdminsTable();
             } catch (err) {
                 console.error("خطأ في جلب المشرفين:", err);
-                document.getElementById('adminsTableContainer').innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">تعذر الاتصال بقاعدة بيانات المشرفين.</p>';
             }
         }
 
         function renderStudentsTable() {
             const container = document.getElementById('studentsTableContainer');
             if (studentsList.length === 0) {
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً في كولكشن students.</p>';
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً.</p>';
                 return;
             }
 
@@ -336,7 +364,7 @@
                         <td style="font-family:monospace; direction:ltr;">${sId}</td>
                         <td>${rank}</td>
                         <td>
-                            <button class="btn-ctrl" onclick="openStudentModal('${stu.id}')">إدارة ⚙️</button>
+                            <button class="btn-ctrl" onclick="openStudentProfile('${stu.id}')">ملف الطالبة ⚙️</button>
                         </td>
                     </tr>`;
             });
@@ -344,69 +372,111 @@
             container.innerHTML = html;
         }
 
-        function openStudentModal(docId) {
+        function openStudentProfile(docId) {
             activeDocId = docId;
-            let stu = studentsList.find(s => s.id === docId);
-            if (!stu) return;
-            document.getElementById('modalStudentName').textContent = stu.fullName || stu.name || 'طالبة';
-            document.getElementById('studentLevelSelect').value = stu.rank || stu.level || 'weak';
-            document.getElementById('studentModal').style.display = 'flex';
-        }
+            activeStudentData = studentsList.find(s => s.id === docId);
+            if (!activeStudentData) return;
 
-        async function studentAction(action) {
-            if (!activeDocId) return;
-            if (action === 'delete') {
-                if (!confirm('هل تريد حذف هذه الطالبة نهائياً من سحابة فايربيز؟')) return;
-                try {
-                    await db.collection('students').doc(activeDocId).delete();
-                    closeModal('studentModal');
-                    await fetchStudentsFromCloud();
-                    alert('تم حذف الطالبة بنجاح!');
-                } catch(e) {
-                    alert('حدث خطأ أثناء الحذف.');
-                }
+            document.getElementById('profileName').textContent = activeStudentData.fullName || activeStudentData.name || 'طالبة المنصة';
+            document.getElementById('profileRank').textContent = getRankArabicName(activeStudentData.rank || activeStudentData.level);
+            document.getElementById('profileEmail').textContent = activeStudentData.email || 'غير متوفر';
+            document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id.substring(0,8);
+            document.getElementById('profilePoints').textContent = activeStudentData.totalScore || 0;
+            
+            if (activeStudentData.profileImage || activeStudentData.avatar) {
+                document.getElementById('profileAvatar').src = activeStudentData.profileImage || activeStudentData.avatar;
             }
+
+            document.getElementById('studentProfileModal').style.display = 'flex';
         }
 
-        async function updateStudentLevel(newRank) {
-            if (!activeDocId) return;
-            try {
-                await db.collection('students').doc(activeDocId).update({ rank: newRank, level: newRank });
-                await fetchStudentsFromCloud();
-            } catch(e) {
-                alert('فشل تحديث الرتبة في السحابة.');
-            }
-        }
-
-        function openEditStudentSubModal() {
-            let stu = studentsList.find(s => s.id === activeDocId);
-            if (!stu) return;
-            document.getElementById('editStudentNameInput').value = stu.fullName || stu.name || '';
-            document.getElementById('editStudentContactInput').value = stu.email || '';
-            document.getElementById('editStudentSubModal').style.display = 'flex';
+        function openEditStudentModal() {
+            if (!activeStudentData) return;
+            document.getElementById('editStudentName').value = activeStudentData.fullName || activeStudentData.name || '';
+            document.getElementById('editStudentEmail').value = activeStudentData.email || '';
+            document.getElementById('editStudentRankSelect').value = activeStudentData.rank || activeStudentData.level || 'weak';
+            document.getElementById('editStudentModal').style.display = 'flex';
         }
 
         async function saveStudentEdits() {
             if (!activeDocId) return;
-            let name = document.getElementById('editStudentNameInput').value.trim();
-            let email = document.getElementById('editStudentContactInput').value.trim();
+            let name = document.getElementById('editStudentName').value.trim();
+            let email = document.getElementById('editStudentEmail').value.trim();
+            let rank = document.getElementById('editStudentRankSelect').value;
+
             if(!name) return alert('يرجى كتابة اسم الطالبة');
 
             try {
-                await db.collection('students').doc(activeDocId).update({ fullName: name, name: name, email: email });
+                await db.collection('students').doc(activeDocId).update({
+                    fullName: name,
+                    name: name,
+                    email: email,
+                    rank: rank,
+                    level: rank
+                });
                 await fetchStudentsFromCloud();
-                closeModal('editStudentSubModal');
-                closeModal('studentModal');
-                alert('تم تحديث معلومات الطالبة بنجاح!');
+                closeModal('editStudentModal');
+                closeModal('studentProfileModal');
+                alert('تم تحديث معلومات الطالبة بنجاح! ⭐');
             } catch(e) {
                 alert('فشل حفظ التعديلات.');
+            }
+        }
+
+        async function openStudentLogs() {
+            if (!activeStudentData) return;
+            const container = document.getElementById('studentLogsContent');
+            container.innerHTML = '<p style="text-align: center; opacity: 0.7;">جاري تحميل السجل الأكاديمي...</p>';
+            document.getElementById('studentLogsModal').style.display = 'flex';
+
+            try {
+                let email = activeStudentData.email || '';
+                let examsSnap = await db.collection('exams').get();
+                let logsHtml = `<p style="margin-bottom:8px; font-weight:bold; color:var(--primary);">الامتحانات المجتازة:</p>`;
+                let foundExams = false;
+
+                examsSnap.forEach(docSnap => {
+                    let examData = docSnap.data();
+                    let subs = examData.examSubmissions || [];
+                    subs.forEach(sub => {
+                        if (sub.studentEmail === email || sub.studentName === activeStudentData.name) {
+                            foundExams = true;
+                            logsHtml += `<div style="background:var(--bg-main); padding:6px 10px; border-radius:6px; margin-bottom:4px;">
+                                🎯 ${examData.title || 'امتحان'} - الدرجة: <b style="color:var(--success);">${sub.score}/${sub.totalMarks}</b>
+                            </div>`;
+                        }
+                    });
+                });
+
+                if (!foundExams) logsHtml += `<p style="opacity:0.7;">لا توجد سجلات امتحانات مسجلة حتى الآن.</p>`;
+                container.innerHTML = logsHtml;
+            } catch(e) {
+                container.innerHTML = '<p style="color:var(--danger);">تعذر تحميل السجل.</p>';
+            }
+        }
+
+        function banStudent() {
+            // توجيه الطالبة لصفحة الحظر 404
+            window.location.href = '404.html';
+        }
+
+        async function deleteStudentAccount() {
+            if (!activeDocId) return;
+            if (!confirm('هل تريد حقاً حذف حساب هذه الطالبة نهائياً من سحابة فايربيز؟')) return;
+            try {
+                await db.collection('students').doc(activeDocId).delete();
+                closeModal('studentProfileModal');
+                await fetchStudentsFromCloud();
+                alert('تم حذف حساب الطالبة بنجاح!');
+            } catch(e) {
+                alert('حدث خطأ أثناء الحذف.');
             }
         }
 
         function renderAdminsTable() {
             const container = document.getElementById('adminsTableContainer');
             if (adminsList.length === 0) {
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين مضافين حالياً في قاعدة البيانات.</p>';
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين مضافين حالياً.</p>';
                 return;
             }
 
