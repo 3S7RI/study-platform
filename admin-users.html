@@ -1,124 +1,128 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة المستخدمين (الطلاب والمشرفين) - لوحة التحكم</title>
+    <!-- تضمين مكتبات Firebase SDK المطلوبة للمزامنة السحابية -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            --bg-color: #0b0f19;
-            --header-bg: rgba(30, 41, 59, 0.85);
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text-color: #f3f4f6;
-            --border-color: rgba(255, 255, 255, 0.1);
-            --heading-color: #ffffff;
-            --input-bg: rgba(15, 23, 42, 0.8);
-            --th-bg: rgba(255, 255, 255, 0.03);
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
-            --btn-bg: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f0a14, #181124, #281331);
+            --card-bg: rgba(24, 20, 38, 0.94);
+            --card-border: rgba(244, 114, 182, 0.28);
+            --text-main: #fdf2f8;
+            --text-sub: #f472b6;
+            --navbar-bg: rgba(18, 14, 28, 0.96);
+            --input-bg: rgba(14, 10, 24, 0.95);
+            --input-border: #f472b6;
+            --primary: #f472b6;
+            --primary-hover: #ec4899;
+            --success: #10b981;
+            --danger: #ef4444;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --btn-bg: rgba(244, 114, 182, 0.12);
+            --btn-border: rgba(244, 114, 182, 0.3);
         }
+
         [data-theme="light"] {
-            --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
-            --bg-color: #f4f7f6;
-            --header-bg: #1e3c72;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --border-color: #e2e8f0;
-            --heading-color: #1e3c72;
-            --input-bg: #ffffff;
-            --th-bg: rgba(0, 0, 0, 0.02);
-            --accent-purple: #7c3aed;
-            --accent-blue: #2563eb;
-            --btn-bg: #3b82f6;
+            --bg-gradient: linear-gradient(135deg, #fdf2f8, #fce7f3, #fff1f2);
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --card-border: rgba(244, 114, 182, 0.25);
+            --text-main: #4a044e;
+            --text-sub: #db2777;
+            --navbar-bg: rgba(255, 255, 255, 0.96);
+            --input-bg: #fff1f2;
+            --input-border: #fbcfe8;
+            --primary: #db2777;
+            --primary-hover: #be185d;
+            --success: #059669;
+            --danger: #dc2626;
+            --shadow: 0 15px 35px rgba(219, 39, 119, 0.1);
+            --btn-bg: rgba(219, 39, 119, 0.08);
+            --btn-border: rgba(219, 39, 119, 0.2);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg-color); background-image: var(--bg-gradient); background-attachment: fixed; color: var(--text-color); padding: 15px; min-height: 100vh; transition: background 0.3s, color 0.3s; }
-        .container { max-width: 1050px; margin: 0 auto; width: 100%; overflow: hidden; }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        body { background: var(--bg-gradient); color: var(--text-main); min-height: 100vh; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 1050px; margin: 0 auto; width: 100%; }
+
         header { 
             display: flex; justify-content: space-between; align-items: center; 
-            background: var(--header-bg); backdrop-filter: blur(10px); color: white; padding: 12px 16px; 
-            border-radius: 16px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
-            border: 1px solid var(--border-color);
-            gap: 10px; flex-wrap: wrap; width: 100%;
+            background: var(--navbar-bg); backdrop-filter: blur(16px); color: var(--text-main); padding: 12px 16px; 
+            border-radius: 16px; margin-bottom: 20px; box-shadow: var(--shadow); 
+            border: 1px solid var(--card-border); gap: 10px; flex-wrap: wrap; width: 100%;
         }
         
         .header-top { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
         .header-bottom { display: flex; align-items: center; gap: 10px; width: 100%; }
         
-        .btn-action, .btn-back { background: rgba(255, 255, 255, 0.08); color: white; border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; transition: 0.2s; }
+        .btn-action, .btn-back { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); padding: 10px 14px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 0.82rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; transition: 0.2s; }
         .btn-action { flex: 1; }
-        .btn-action:hover, .btn-back:hover { background: rgba(255, 255, 255, 0.15); }
-        .btn-action.active { background: var(--accent-purple); border-color: transparent; box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+        .btn-action:hover, .btn-back:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .btn-action.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3); }
         
-        .btn-theme { background: rgba(255, 255, 255, 0.08); color: white; border: 1px solid var(--border-color); width: 40px; height: 40px; font-size: 0.95rem; padding: 0; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s; }
-        .btn-theme:hover { background: rgba(255, 255, 255, 0.15); }
+        .btn-theme { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); width: 40px; height: 40px; font-size: 0.95rem; padding: 0; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s; }
+        .btn-theme:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        .section-box { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 18px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); padding: 22px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--accent-purple); word-break: break-word; }
+        .section-box { background: var(--card-bg); backdrop-filter: blur(16px); border-radius: 18px; box-shadow: var(--shadow); padding: 22px; margin-bottom: 20px; border: 1px solid var(--card-border); border-top: 4px solid var(--primary); word-break: break-word; }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .section-header h2 { color: var(--heading-color); font-size: 1.1rem; }
+        .section-header h2 { color: var(--text-main); font-size: 1.1rem; }
 
         .form-group { margin-top: 12px; }
-        .form-group label { display: block; font-size: 0.82rem; margin-bottom: 5px; opacity: 0.85; }
-        .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 0.85rem; outline: none; transition: 0.2s; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--accent-purple); box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
+        .form-group label { display: block; font-size: 0.82rem; margin-bottom: 5px; color: var(--text-sub); }
+        .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--input-border); background: var(--input-bg); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
         
-        .btn-save { background: #10b981; color: white; border: none; padding: 10px 22px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-        .btn-save:hover { background: #059669; }
+        .btn-save { background: var(--primary); color: white; border: none; padding: 10px 22px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3); }
+        .btn-save:hover { background: var(--primary-hover); }
 
-        /* الجداول */
         table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; overflow: hidden; border-radius: 12px; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-color); }
-        th { background: var(--th-bg); color: var(--heading-color); font-weight: bold; }
-        .btn-ctrl { background: var(--accent-blue); color: white; border: none; padding: 7px 12px; border-radius: 10px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-ctrl:hover { opacity: 0.9; }
+        th, td { padding: 12px; border-bottom: 1px solid var(--card-border); font-size: 0.85rem; color: var(--text-main); }
+        th { background: rgba(0, 0, 0, 0.1); color: var(--text-sub); font-weight: bold; }
+        .btn-ctrl { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--btn-border); padding: 7px 12px; border-radius: 10px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-ctrl:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* الشاشات العائمة Modal */
-        .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-        .modal-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 18px; width: 100%; max-width: 420px; padding: 22px; box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+        .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+        .modal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; width: 100%; max-width: 420px; padding: 22px; box-shadow: var(--shadow); }
 
         .hidden { display: none !important; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
     <div class="container">
-        <!-- الهيدر المطور المنسق -->
         <header>
             <div class="header-top">
-                <!-- قم بتعديل اسم الملف هنا في حال كان اسم صفحة لوحة التحكم الرئيسية مختلفاً، مثلاً: dashboard.html -->
                 <a href="dashboard.html" class="btn-back">اللوحة الرئيسية ↩️</a>
                 <button class="btn-theme" id="themeToggleBtn" title="تغيير الثيم">☀️</button>
             </div>
             
             <div class="header-bottom">
                 <button class="btn-action active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
-                <button class="btn-action" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡️️</button>
+                <button class="btn-action" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡</button>
             </div>
         </header>
 
-        <!-- شاشة 1: إدارة الطلاب -->
         <div id="tabStudentsContent" class="section-box">
             <div class="section-header">
-                <h2>قائمة ومتابعة الطلاب المسجلين 👨‍🎓</h2>
+                <h2>قائمة ومتابعة الطلاب المسجلين سحابياً 👨‍🎓</h2>
             </div>
             <div id="studentsTableContainer">
-                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل بيانات الطلاب من السحابة...</p>
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري مزامنة بيانات الطلاب من كولكشن students...</p>
             </div>
         </div>
 
-        <!-- شاشة 2: إدارة المشرفين -->
         <div id="tabAdminsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>إدارة المشرفين وصلاحيات لوحة التحكم 🛡️</h2>
             </div>
 
-            <div style="background: var(--th-bg); padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); margin-bottom: 20px;">
-                <h3 style="font-size: 0.95rem; color: var(--heading-color); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
+            <div style="background: rgba(0,0,0,0.1); padding: 16px; border-radius: 14px; border: 1px solid var(--card-border); margin-bottom: 20px;">
+                <h3 style="font-size: 0.95rem; color: var(--text-sub); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group" style="margin-top:0;"><label>الاسم:</label><input type="text" id="newAdminName" placeholder="اسم المشرف"></div>
-                    <div class="form-group" style="margin-top:0;"><label>اسم المستخدم:</label><input type="text" id="newAdminUsername" placeholder="username"></div>
+                    <div class="form-group" style="margin-top:0;"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="newAdminUsername" placeholder="البريد أو المعرف"></div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                     <div class="form-group" style="margin-top:0;"><label>كلمة المرور:</label><input type="password" id="newAdminPassword" placeholder="كلمة السر"></div>
@@ -132,94 +136,97 @@
                 <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف للسحابة 🚀</button>
             </div>
 
-            <h3 style="font-size: 0.95rem; color: var(--heading-color); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
+            <h3 style="font-size: 0.95rem; color: var(--text-sub); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
             <div id="adminsTableContainer">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل قائمة المشرفين...</p>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تحكم المشرف (Modal) -->
     <div class="modal-overlay" id="adminModal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 id="modalAdminName" style="font-size: 1rem; color: var(--heading-color);">إدارة المشرف</h3>
-                <button onclick="closeModal('adminModal')" style="background:none; border:none; color:var(--text-color); cursor:pointer; font-size:1.1rem;">✕</button>
+                <h3 id="modalAdminName" style="font-size: 1rem; color: var(--text-main);">إدارة المشرف</h3>
+                <button onclick="closeModal('adminModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-ctrl" style="background:#10b981;" onclick="adminAction('verify')">✅ توثيق الحساب</button>
-                <button class="btn-ctrl" style="background:var(--accent-purple);" onclick="adminAction('upgrade')">⭐ ترقية المشرف</button>
-                <button class="btn-ctrl" style="background:#f59e0b;" onclick="adminAction('ban')">🚫 حظر / تفعيل المشرف</button>
-                <button class="btn-ctrl" style="background:#ef4444;" onclick="adminAction('delete')">🗑️ حذف المشرف</button>
-                <button class="btn-ctrl" style="background:#3b82f6; margin-top: 5px;" onclick="openEditAdminSubModal()">✏️ تعديل معلومات المشرف</button>
+                <button class="btn-ctrl" onclick="adminAction('upgrade')">⭐ ترقية المشرف العام</button>
+                <button class="btn-ctrl" onclick="adminAction('delete')">🗑️ حذف المشرف</button>
+                <button class="btn-ctrl" onclick="openEditAdminSubModal()">✏️ تعديل معلومات المشرف</button>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تعديل بيانات المشرف الفرعية -->
     <div class="modal-overlay" id="editAdminSubModal">
         <div class="modal-card">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--heading-color);">تعديل معلومات المشرف</h3>
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
             <div class="form-group"><label>الاسم الجديد:</label><input type="text" id="editAdminNameInput"></div>
-            <div class="form-group"><label>اسم المستخدم الجديد:</label><input type="text" id="editAdminUsernameInput"></div>
+            <div class="form-group"><label>البريد الجديد:</label><input type="text" id="editAdminUsernameInput"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveAdminEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:#64748b;" onclick="closeModal('editAdminSubModal')">إلغاء</button>
+                <button class="btn-ctrl" style="flex:1; background:rgba(255,255,255,0.1);" onclick="closeModal('editAdminSubModal')">إلغاء</button>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تحكم الطالب (Modal) -->
     <div class="modal-overlay" id="studentModal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 id="modalStudentName" style="font-size: 1rem; color: var(--heading-color);">إدارة الطالب</h3>
-                <button onclick="closeModal('studentModal')" style="background:none; border:none; color:var(--text-color); cursor:pointer; font-size:1.1rem;">✕</button>
+                <h3 id="modalStudentName" style="font-size: 1rem; color: var(--text-main);">إدارة الطالبة</h3>
+                <button onclick="closeModal('studentModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-ctrl" style="background:#f59e0b;" onclick="studentAction('ban')">🚫 حظر / تفعيل الطالب</button>
-                <button class="btn-ctrl" style="background:#ef4444;" onclick="studentAction('delete')">🗑️ حذف الطالب</button>
+                <button class="btn-ctrl" onclick="studentAction('delete')">🗑️ حذف الطالبة من السحابة</button>
                 <div class="form-group" style="margin-top:0;">
-                    <label style="font-size:0.8rem;">ترقية مستوى الطالب:</label>
+                    <label style="font-size:0.8rem;">ترقية الرتبة / المستوى:</label>
                     <select id="studentLevelSelect" onchange="updateStudentLevel(this.value)">
-                        <option value="الضعيف">الضعيف</option>
-                        <option value="المتوسط">المتوسط</option>
-                        <option value="القوي">القوي</option>
-                        <option value="القوي جداً">القوي جداً</option>
-                        <option value="الأسطوري">الأسطوري</option>
+                        <option value="weak">مبتدئ (ضعيف)</option>
+                        <option value="medium">طالبة مجتهدة</option>
+                        <option value="strong">طالبة متفوقة</option>
+                        <option value="very-strong">طالبة متميزة</option>
+                        <option value="legendary">طالبة أسطورية</option>
                     </select>
                 </div>
-                <button class="btn-ctrl" style="background:#3b82f6; margin-top: 5px;" onclick="openEditStudentSubModal()">✏️ تعديل معلومات الطالب</button>
+                <button class="btn-ctrl" onclick="openEditStudentSubModal()">✏️ تعديل معلومات الطالبة</button>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تعديل بيانات الطالب الفرعية -->
     <div class="modal-overlay" id="editStudentSubModal">
         <div class="modal-card">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--heading-color);">تعديل معلومات الطالب</h3>
-            <div class="form-group"><label>اسم الطالب الجديد:</label><input type="text" id="editStudentNameInput"></div>
-            <div class="form-group"><label>البريد / الهاتف الجديد:</label><input type="text" id="editStudentContactInput"></div>
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات الطالبة</h3>
+            <div class="form-group"><label>الاسم الجديد:</label><input type="text" id="editStudentNameInput"></div>
+            <div class="form-group"><label>البريد الإلكتروني الجديد:</label><input type="text" id="editStudentContactInput"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveStudentEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:#64748b;" onclick="closeModal('editStudentSubModal')">إلغاء</button>
+                <button class="btn-ctrl" style="flex:1; background:rgba(255,255,255,0.1);" onclick="closeModal('editStudentSubModal')">إلغاء</button>
             </div>
         </div>
     </div>
 
     <script>
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e'; 
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
-        let globalRecordData = { students: [], admins: [] };
-        let activeIndex = null;
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+        };
 
-        const cloudHeaders = { 'X-Master-Key': API_KEY, 'Content-Type': 'application/json' };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
 
-        // نظام تبديل الثيم المتطابق
+        let studentsList = [];
+        let adminsList = [];
+        let activeDocId = null;
+
         const bodyElement = document.getElementById('pageBody');
         const themeBtn = document.getElementById('themeToggleBtn');
         
-        let savedTheme = localStorage.getItem('adminUsersTheme') || 'dark';
+        let savedTheme = localStorage.getItem('app_theme') || 'dark';
         bodyElement.setAttribute('data-theme', savedTheme);
         themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 
@@ -228,11 +235,10 @@
             let newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
             bodyElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('adminUsersTheme', newTheme);
+            localStorage.setItem('app_theme', newTheme);
             themeBtn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        // التبديل بين التبويبات
         function switchTab(tab) {
             const btnStudents = document.getElementById('btnTabStudents');
             const btnAdmins = document.getElementById('btnTabAdmins');
@@ -253,62 +259,60 @@
             }
         }
 
-        // جلب البيانات من السحابة وتصحيح هيكلة الـ record
-        initUsersPage();
+        initCloudManagement();
 
-        async function initUsersPage() {
-            try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { method: 'GET', headers: cloudHeaders });
-                if (response.ok) {
-                    let result = await response.json();
-                    if (result && result.record) {
-                        globalRecordData = result.record;
-                        if (!globalRecordData.students) globalRecordData.students = [];
-                        if (!globalRecordData.admins) globalRecordData.admins = [];
-                    }
-                }
-            } catch (err) {
-                console.warn("خطأ في جلب السحابة:", err);
-            } finally {
-                renderStudentsTable();
-                renderAdminsTable();
-            }
+        async function initCloudManagement() {
+            await fetchStudentsFromCloud();
+            await fetchAdminsFromCloud();
         }
 
-        async function updateCloudData() {
+        async function fetchStudentsFromCloud() {
             try {
-                let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: cloudHeaders,
-                    body: JSON.stringify(globalRecordData)
+                const snapshot = await db.collection('students').get();
+                studentsList = [];
+                snapshot.forEach(doc => {
+                    studentsList.push({ id: doc.id, ...doc.data() });
                 });
-                if (!response.ok) alert("فشل التحديث في السحابة!");
-            } catch(e) {
-                console.error("خطأ سحابي:", e);
-                alert("حدث خطأ في الاتصال بالسحابة.");
+                renderStudentsTable();
+            } catch (err) {
+                console.error("خطأ في جلب الطلاب من كولكشن students:", err);
+                document.getElementById('studentsTableContainer').innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">تعذر الاتصال بقاعدة بيانات الطلاب.</p>';
             }
         }
 
-        // عرض جدول الطلاب
+        async function fetchAdminsFromCloud() {
+            try {
+                const snapshot = await db.collection('admins').get();
+                adminsList = [];
+                snapshot.forEach(doc => {
+                    adminsList.push({ id: doc.id, ...doc.data() });
+                });
+                renderAdminsTable();
+            } catch (err) {
+                console.error("خطأ في جلب المشرفين:", err);
+                document.getElementById('adminsTableContainer').innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">تعذر الاتصال بقاعدة بيانات المشرفين.</p>';
+            }
+        }
+
         function renderStudentsTable() {
             const container = document.getElementById('studentsTableContainer');
-            let students = globalRecordData.students || [];
-
-            if (students.length === 0) {
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً.</p>';
+            if (studentsList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً في كولكشن students.</p>';
                 return;
             }
 
-            let html = `<table><thead><tr><th>اسم الطالب</th><th>المستوى</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody>`;
-            students.forEach((stu, idx) => {
-                let isActive = stu.active !== false;
+            let html = `<table><thead><tr><th>اسم الطالبة</th><th>المعرف (ID)</th><th>الرتبة</th><th>الإجراءات</th></tr></thead><tbody>`;
+            studentsList.forEach((stu) => {
+                let name = stu.fullName || stu.name || 'طالبة';
+                let sId = stu.studentId || stu.id || '---';
+                let rank = getRankArabicName(stu.rank || stu.level);
                 html += `
                     <tr>
-                        <td><b>👤 ${stu.name || 'طالب'}</b></td>
-                        <td>${stu.level || 'المتوسط'}</td>
-                        <td>${isActive ? '<span style="color:#10b981;">نشط ✅</span>' : '<span style="color:#ef4444;">محظور ❌</span>'}</td>
+                        <td><b>👤 ${name}</b></td>
+                        <td style="font-family:monospace; direction:ltr;">${sId}</td>
+                        <td>${rank}</td>
                         <td>
-                            <button class="btn-ctrl" onclick="openStudentModal(${idx})">إدارة ⚙️</button>
+                            <button class="btn-ctrl" onclick="openStudentModal('${stu.id}')">إدارة ⚙️</button>
                         </td>
                     </tr>`;
             });
@@ -316,77 +320,82 @@
             container.innerHTML = html;
         }
 
-        function openStudentModal(idx) {
-            activeIndex = idx;
-            let stu = globalRecordData.students[idx];
-            document.getElementById('modalStudentName').textContent = stu.name || 'طالب';
-            document.getElementById('studentLevelSelect').value = stu.level || 'المتوسط';
+        function openStudentModal(docId) {
+            activeDocId = docId;
+            let stu = studentsList.find(s => s.id === docId);
+            if (!stu) return;
+            document.getElementById('modalStudentName').textContent = stu.fullName || stu.name || 'طالبة';
+            document.getElementById('studentLevelSelect').value = stu.rank || stu.level || 'weak';
             document.getElementById('studentModal').style.display = 'flex';
         }
 
         async function studentAction(action) {
-            if (activeIndex === null) return;
-            let stu = globalRecordData.students[activeIndex];
-            if (action === 'ban') {
-                stu.active = stu.active === false ? true : false;
-            } else if (action === 'delete') {
-                if (!confirm('هل تريد حذف هذا الطالب نهائياً؟')) return;
-                globalRecordData.students.splice(activeIndex, 1);
-                closeModal('studentModal');
+            if (!activeDocId) return;
+            if (action === 'delete') {
+                if (!confirm('هل تريد حذف هذه الطالبة نهائياً من سحابة فايربيز؟')) return;
+                try {
+                    await db.collection('students').doc(activeDocId).delete();
+                    closeModal('studentModal');
+                    await fetchStudentsFromCloud();
+                    alert('تم حذف الطالبة بنجاح!');
+                } catch(e) {
+                    alert('حدث خطأ أثناء الحذف.');
+                }
             }
-            await updateCloudData();
-            renderStudentsTable();
-            if (action !== 'delete') alert('تم تنفيذ الإجراء بنجاح!');
         }
 
-        async function updateStudentLevel(newLevel) {
-            if (activeIndex === null) return;
-            globalRecordData.students[activeIndex].level = newLevel;
-            await updateCloudData();
-            renderStudentsTable();
+        async function updateStudentLevel(newRank) {
+            if (!activeDocId) return;
+            try {
+                await db.collection('students').doc(activeDocId).update({ rank: newRank, level: newRank });
+                await fetchStudentsFromCloud();
+            } catch(e) {
+                alert('فشل تحديث الرتبة في السحابة.');
+            }
         }
 
         function openEditStudentSubModal() {
-            let stu = globalRecordData.students[activeIndex];
-            document.getElementById('editStudentNameInput').value = stu.name || '';
-            document.getElementById('editStudentContactInput').value = stu.email || stu.phone || '';
+            let stu = studentsList.find(s => s.id === activeDocId);
+            if (!stu) return;
+            document.getElementById('editStudentNameInput').value = stu.fullName || stu.name || '';
+            document.getElementById('editStudentContactInput').value = stu.email || '';
             document.getElementById('editStudentSubModal').style.display = 'flex';
         }
 
         async function saveStudentEdits() {
-            if (activeIndex === null) return;
+            if (!activeDocId) return;
             let name = document.getElementById('editStudentNameInput').value.trim();
-            let contact = document.getElementById('editStudentContactInput').value.trim();
-            if(!name) return alert('يرجى كتابة اسم الطالب');
-            
-            globalRecordData.students[activeIndex].name = name;
-            globalRecordData.students[activeIndex].email = contact;
-            await updateCloudData();
-            renderStudentsTable();
-            closeModal('editStudentSubModal');
-            closeModal('studentModal');
-            alert('تم تحديث معلومات الطالب بنجاح!');
+            let email = document.getElementById('editStudentContactInput').value.trim();
+            if(!name) return alert('يرجى كتابة اسم الطالبة');
+
+            try {
+                await db.collection('students').doc(activeDocId).update({ fullName: name, name: name, email: email });
+                await fetchStudentsFromCloud();
+                closeModal('editStudentSubModal');
+                closeModal('studentModal');
+                alert('تم تحديث معلومات الطالبة بنجاح!');
+            } catch(e) {
+                alert('فشل حفظ التعديلات.');
+            }
         }
 
-        // عرض جدول وإدارة المشرفين
         function renderAdminsTable() {
             const container = document.getElementById('adminsTableContainer');
-            let admins = globalRecordData.admins || [];
-
-            if (admins.length === 0) {
-                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين إضافيين مضافين حالياً.</p>';
+            if (adminsList.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين مضافين حالياً في قاعدة البيانات.</p>';
                 return;
             }
 
-            let html = `<table><thead><tr><th>اسم المشرف</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
-            admins.forEach((adm, idx) => {
+            let html = `<table><thead><tr><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
+            adminsList.forEach((adm) => {
                 let roleName = adm.role === 'full' ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
                 html += `
                     <tr>
                         <td><b>🛡️ ${adm.name || 'مشرف'}</b></td>
+                        <td style="font-family:monospace; direction:ltr;">${adm.username || adm.email || '---'}</td>
                         <td>${roleName}</td>
                         <td>
-                            <button class="btn-ctrl" onclick="openAdminModal(${idx})">إدارة ⚙️</button>
+                            <button class="btn-ctrl" onclick="openAdminModal('${adm.id}')">إدارة ⚙️</button>
                         </td>
                     </tr>`;
             });
@@ -394,53 +403,55 @@
             container.innerHTML = html;
         }
 
-        function openAdminModal(idx) {
-            activeIndex = idx;
-            let adm = globalRecordData.admins[idx];
+        function openAdminModal(docId) {
+            activeDocId = docId;
+            let adm = adminsList.find(a => a.id === docId);
+            if (!adm) return;
             document.getElementById('modalAdminName').textContent = adm.name || 'مشرف';
             document.getElementById('adminModal').style.display = 'flex';
         }
 
         async function adminAction(action) {
-            if (activeIndex === null) return;
-            let adm = globalRecordData.admins[activeIndex];
-            if (action === 'verify') {
-                alert('تم توثيق الحساب بنجاح! ✅');
-            } else if (action === 'upgrade') {
-                adm.role = 'full';
-                alert('تمت ترقية المشرف لصلاحية مشرف عام! ⭐');
-            } else if (action === 'ban') {
-                adm.active = adm.active === false ? true : false;
-                alert('تم تحديث حالة الحظر بنجاح!');
+            if (!activeDocId) return;
+            let adm = adminsList.find(a => a.id === activeDocId);
+            if (action === 'upgrade') {
+                try {
+                    await db.collection('admins').doc(activeDocId).update({ role: 'full' });
+                    await fetchAdminsFromCloud();
+                    alert('تمت ترقية المشرف لصلاحية مشرف عام! ⭐');
+                } catch(e) { alert('فشل الترقية.'); }
             } else if (action === 'delete') {
                 if (!confirm('هل تريد حقاً سحب صلاحيات هذا المشرف وحذفه؟')) return;
-                globalRecordData.admins.splice(activeIndex, 1);
-                closeModal('adminModal');
+                try {
+                    await db.collection('admins').doc(activeDocId).delete();
+                    closeModal('adminModal');
+                    await fetchAdminsFromCloud();
+                    alert('تم حذف المشرف بنجاح!');
+                } catch(e) { alert('فشل الحذف.'); }
             }
-            await updateCloudData();
-            renderAdminsTable();
         }
 
         function openEditAdminSubModal() {
-            let adm = globalRecordData.admins[activeIndex];
+            let adm = adminsList.find(a => a.id === activeDocId);
+            if (!adm) return;
             document.getElementById('editAdminNameInput').value = adm.name || '';
-            document.getElementById('editAdminUsernameInput').value = adm.username || '';
+            document.getElementById('editAdminUsernameInput').value = adm.username || adm.email || '';
             document.getElementById('editAdminSubModal').style.display = 'flex';
         }
 
         async function saveAdminEdits() {
-            if (activeIndex === null) return;
+            if (!activeDocId) return;
             let name = document.getElementById('editAdminNameInput').value.trim();
             let username = document.getElementById('editAdminUsernameInput').value.trim();
             if(!name) return alert('يرجى كتابة الاسم');
 
-            globalRecordData.admins[activeIndex].name = name;
-            globalRecordData.admins[activeIndex].username = username;
-            await updateCloudData();
-            renderAdminsTable();
-            closeModal('editAdminSubModal');
-            closeModal('adminModal');
-            alert('تم تحديث معلومات المشرف بنجاح!');
+            try {
+                await db.collection('admins').doc(activeDocId).update({ name: name, username: username, email: username });
+                await fetchAdminsFromCloud();
+                closeModal('editAdminSubModal');
+                closeModal('adminModal');
+                alert('تم تحديث معلومات المشرف بنجاح!');
+            } catch(e) { alert('فشل التعديل.'); }
         }
 
         async function addNewAdmin() {
@@ -454,21 +465,39 @@
                 return;
             }
 
-            if (!globalRecordData.admins) globalRecordData.admins = [];
+            try {
+                await db.collection('admins').doc(username.toLowerCase().trim()).set({
+                    name: name,
+                    username: username,
+                    email: username,
+                    password: password,
+                    role: role
+                });
+                
+                document.getElementById('newAdminName').value = '';
+                document.getElementById('newAdminUsername').value = '';
+                document.getElementById('newAdminPassword').value = '';
 
-            globalRecordData.admins.push({ name, username, password, role });
-            await updateCloudData();
-            
-            document.getElementById('newAdminName').value = '';
-            document.getElementById('newAdminUsername').value = '';
-            document.getElementById('newAdminPassword').value = '';
-
-            renderAdminsTable();
-            alert('تم إضافة المشرف الجديد بنجاح بالسحابة! 🚀');
+                await fetchAdminsFromCloud();
+                alert('تم إضافة المشرف الجديد بنجاح بالسحابة! 🚀');
+            } catch(e) {
+                alert('حدث خطأ أثناء إضافة المشرف.');
+            }
         }
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
+        }
+
+        function getRankArabicName(rankCode) {
+            const ranks = {
+                'weak': 'مبتدئ (ضعيف)',
+                'medium': 'طالبة مجتهدة',
+                'strong': 'طالبة متفوقة',
+                'very-strong': 'طالبة متميزة',
+                'legendary': 'طالبة أسطورية'
+            };
+            return ranks[rankCode] || 'مبتدئ (ضعيف)';
         }
     </script>
 </body>
