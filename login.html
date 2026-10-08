@@ -5,17 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
     
-    <!-- التحقق اللحظي والفوري لآخر حساب مسجل (أدمن أو طالب) وتوجيهه فوراً بدون أي تأخير -->
+    <!-- التحقق اللحظي والفوري لآخر حساب مسجل (أدمن أو طالب) وتوجيهه فوراً دون أي تأخير -->
     <script>
         (function() {
             const loginTime = localStorage.getItem('platform_login_time');
-            if (loginTime) {
+            const userType = localStorage.getItem('platform_user_type'); // 'admin' أو 'student'
+            
+            if (loginTime && userType) {
                 const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
                 if (hoursPassed <= 48) {
-                    const isAdmin = localStorage.getItem('isAdmin') === 'true';
-                    window.location.replace(isAdmin ? 'admin.html' : 'main.html');
+                    if (userType === 'admin') {
+                        window.location.replace('admin.html');
+                    } else if (userType === 'student') {
+                        window.location.replace('main.html');
+                    }
                 } else {
                     localStorage.removeItem('platform_login_time');
+                    localStorage.removeItem('platform_user_type');
                     localStorage.removeItem('isAdmin');
                 }
             }
@@ -431,7 +437,7 @@
             btn.disabled = true;
 
             try {
-                // 1. فحص الأدمن بدقة تامة
+                // 1. فحص مجموعة الأدمن أولاً بدقة تامة
                 const adminDocRef = window.doc(window.firebaseDb, "admins", email);
                 const adminSnap = await window.getDoc(adminDocRef);
 
@@ -441,8 +447,9 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // حفظ بيانات جلسة الأدمن بدقة ليعود إليها مباشرة
+                    // حفظ بيانات جلسة الأدمن الحقيقي بدقة في localStorage و sessionStorage
                     localStorage.setItem('platform_login_time', Date.now().toString());
+                    localStorage.setItem('platform_user_type', 'admin');
                     localStorage.setItem('isAdmin', 'true');
                     
                     sessionStorage.setItem('isLoggedIn', 'true');
@@ -457,7 +464,7 @@
                     return;
                 }
 
-                // 2. فحص الطلاب
+                // 2. فحص مجموعة الطلاب الحقيقيين إذا لم يكن أدمن
                 const studentDocRef = window.doc(window.firebaseDb, "students", email);
                 const studentSnap = await window.getDoc(studentDocRef);
 
@@ -467,8 +474,9 @@
                     const studentData = studentSnap.data();
                     const studentDataString = JSON.stringify(studentData);
                     
-                    // حفظ بيانات جلسة الطالب بدقة ليعود إليها مباشرة
+                    // حفظ بيانات جلسة الطالب الحقيقي بدقة في localStorage و sessionStorage
                     localStorage.setItem('platform_login_time', Date.now().toString());
+                    localStorage.setItem('platform_user_type', 'student');
                     localStorage.setItem('isAdmin', 'false');
 
                     sessionStorage.setItem('isLoggedIn', 'true');
@@ -487,6 +495,7 @@
             } catch (error) {
                 console.error(error);
                 localStorage.removeItem('platform_login_time');
+                localStorage.removeItem('platform_user_type');
                 localStorage.removeItem('isAdmin');
 
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
