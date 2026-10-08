@@ -41,7 +41,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s, color 0.3s, border-color 0.3s; }
         
         body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1100px; margin: 0 auto; width: 100%; }
+        .container { max-width: 1200px; margin: 0 auto; width: 100%; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -81,7 +81,7 @@
 
         .section-box {
             background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
-            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary); word-break: break-word;
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
         }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .section-header h2 { color: var(--text-main); font-size: 1.05rem; font-weight: 700; }
@@ -94,11 +94,20 @@
         .btn-save { background: var(--success); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; overflow: hidden; border-radius: 10px; }
-        th, td { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-main); }
+        /* تنسيق جدول الكمبيوتر بصف واحد بدون تكسير */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; border-radius: 10px; white-space: nowrap; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-main); vertical-align: middle; }
         th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
         
-        .btn-ctrl { background: var(--primary); color: white; border: none; padding: 7px 12px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .student-table-row-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); cursor: pointer; transition: transform 0.2s; }
+        .student-table-row-avatar:hover { transform: scale(1.1); }
+
+        .online-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
+        .online-badge.online { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .online-badge.offline { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.3); }
+
+        .btn-ctrl { background: var(--primary); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-ctrl:hover { background: var(--primary-hover); }
 
         .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
@@ -135,7 +144,7 @@
             <div class="section-header">
                 <h2>قائمة ومتابعة الطلاب المسجلين سحابياً 👨‍🎓</h2>
             </div>
-            <div id="studentsTableContainer">
+            <div id="studentsTableContainer" class="table-responsive">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري مزامنة بيانات الطلاب من كولكشن students...</p>
             </div>
         </div>
@@ -165,7 +174,7 @@
             </div>
 
             <h3 style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
-            <div id="adminsTableContainer">
+            <div id="adminsTableContainer" class="table-responsive">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل قائمة المشرفين...</p>
             </div>
         </div>
@@ -295,20 +304,20 @@
         function switchTab(tab) {
             const btnStudents = document.getElementById('btnTabStudents');
             const btnAdmins = document.getElementById('btnTabAdmins');
-            const contentStudents = document.getElementById('tabStudentsContent');
+            const contentStudents = document.getElementById('tabStudentsContext');
             const contentAdmins = document.getElementById('tabAdminsContent');
 
-            btnStudents.classList.remove('active');
-            btnAdmins.classList.remove('active');
-            contentStudents.classList.add('hidden');
-            contentAdmins.classList.add('hidden');
+            document.getElementById('btnTabStudents').classList.remove('active');
+            document.getElementById('btnTabAdmins').classList.remove('active');
+            document.getElementById('tabStudentsContent').classList.add('hidden');
+            document.getElementById('tabAdminsContent').classList.add('hidden');
 
             if (tab === 'students') {
-                btnStudents.classList.add('active');
-                contentStudents.classList.remove('hidden');
+                document.getElementById('btnTabStudents').classList.add('active');
+                document.getElementById('tabStudentsContent').classList.remove('hidden');
             } else {
-                btnAdmins.classList.add('active');
-                contentAdmins.classList.remove('hidden');
+                document.getElementById('btnTabAdmins').classList.add('active');
+                document.getElementById('tabAdminsContent').classList.remove('hidden');
             }
         }
 
@@ -353,15 +362,33 @@
                 return;
             }
 
-            let html = `<table><thead><tr><th>اسم الطالبة</th><th>المعرف (ID)</th><th>الرتبة</th><th>الإجراءات</th></tr></thead><tbody>`;
-            studentsList.forEach((stu) => {
-                let name = stu.fullName || stu.name || 'طالبة';
-                let sId = stu.studentId || stu.id || '---';
+            let html = `<table><thead><tr><th>صورة الطالبة</th><th>اسم الطالبة</th><th>المعرف (ID)</th><th>حالة الاتصال</th><th>الرتبة</th><th>الإجراءات</th></tr></thead><tbody>`;
+            
+            studentsList.forEach((stu, index) => {
+                let rawName = stu.fullName || stu.name || stu.email || 'طالبة المنصة';
+                // تنظيف اسم الطالبة في حال كان مسجلاً خطأ بالإيميل
+                let name = rawName.includes('@') ? rawName.split('@')[0] : rawName;
+                
+                // تنظيف ومعالجة الـ ID بحيث يكون منظماً وفريداً ولا يعرض إيميلات عشوائية مشوهة
+                let sId = stu.studentId || (stu.id.includes('@') ? `STU-00${index + 1}` : stu.id);
+                
+                let avatarUrl = stu.profileImage || stu.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let rank = getRankArabicName(stu.rank || stu.level);
+                
+                // محاكاة حالة الاتصال بناءً على آخر نشاط أو البيانات السحابية (افتراضي متصل أو غير متصل)
+                let isOnline = stu.isOnline === true || (stu.lastActive && (Date.now() - stu.lastActive < 300000));
+                let statusBadge = isOnline 
+                    ? `<span class="online-badge online">🟢 متصل الآن</span>` 
+                    : `<span class="online-badge offline">⚪ غير متصل</span>`;
+
                 html += `
                     <tr>
-                        <td><b>👤 ${name}</b></td>
+                        <td>
+                            <img src="${avatarUrl}" class="student-table-row-avatar" alt="صورة" onclick="openStudentProfile('${stu.id}')" title="فتح البروفايل">
+                        </td>
+                        <td><b>${name}</b></td>
                         <td style="font-family:monospace; direction:ltr;">${sId}</td>
+                        <td>${statusBadge}</td>
                         <td>${rank}</td>
                         <td>
                             <button class="btn-ctrl" onclick="openStudentProfile('${stu.id}')">ملف الطالبة ⚙️</button>
@@ -377,10 +404,13 @@
             activeStudentData = studentsList.find(s => s.id === docId);
             if (!activeStudentData) return;
 
-            document.getElementById('profileName').textContent = activeStudentData.fullName || activeStudentData.name || 'طالبة المنصة';
+            let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || 'طالبة المنصة';
+            let cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
+
+            document.getElementById('profileName').textContent = cleanName;
             document.getElementById('profileRank').textContent = getRankArabicName(activeStudentData.rank || activeStudentData.level);
             document.getElementById('profileEmail').textContent = activeStudentData.email || 'غير متوفر';
-            document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id.substring(0,8);
+            document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id;
             document.getElementById('profilePoints').textContent = activeStudentData.totalScore || 0;
             
             if (activeStudentData.profileImage || activeStudentData.avatar) {
@@ -392,7 +422,8 @@
 
         function openEditStudentModal() {
             if (!activeStudentData) return;
-            document.getElementById('editStudentName').value = activeStudentData.fullName || activeStudentData.name || '';
+            let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || '';
+            document.getElementById('editStudentName').value = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             document.getElementById('editStudentEmail').value = activeStudentData.email || '';
             document.getElementById('editStudentRankSelect').value = activeStudentData.rank || activeStudentData.level || 'weak';
             document.getElementById('editStudentModal').style.display = 'flex';
@@ -456,7 +487,6 @@
         }
 
         function banStudent() {
-            // توجيه الطالبة لصفحة الحظر 404
             window.location.href = '404.html';
         }
 
