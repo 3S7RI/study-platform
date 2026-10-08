@@ -8,7 +8,7 @@
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -32,21 +32,6 @@
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
-
-        // 🚀 التحقق من الجلسة واستمرارها لمدة يومين وتوجيه الطالب فوراً للرئيسية
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const loginTime = localStorage.getItem('platform_login_time');
-                if (loginTime) {
-                    const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-                    // لو مر أقل من 48 ساعة (يومين)، وجهه فوراً بدون إظهار صفحة اللوجين
-                    if (hoursPassed <= 48) {
-                        const isAdmin = localStorage.getItem('isAdmin') === 'true';
-                        window.location.href = isAdmin ? 'admin.html' : 'main.html';
-                    }
-                }
-            }
-        });
     </script>
 
     <style>
@@ -294,7 +279,7 @@
                 <label for="password" id="passLabel">كلمة المرور</label>
                 <div class="password-wrapper">
                     <input type="password" id="password" placeholder="******" required>
-                    <span class="toggle-password" id="togglePassBtn">👁️️</span>
+                    <span class="toggle-password" id="togglePassBtn">👁</span>
                 </div>
                 <div class="error-msg" id="passError">كلمة المرور غير صحيحة</div>
             </div>
@@ -430,10 +415,7 @@
             btn.disabled = true;
 
             try {
-                // ⏱️ حفظ وقت تسجيل الدخول الحالي (لكي تظل الجلسة صالحة لمدة يومين 48 ساعة)
-                localStorage.setItem('platform_login_time', Date.now().toString());
-
-                // 1. فحص الأدمن
+                // 1. فحص الأدمن أولاً بكل دقة
                 const adminDocRef = window.doc(window.firebaseDb, "admins", email);
                 const adminSnap = await window.getDoc(adminDocRef);
 
@@ -456,7 +438,7 @@
                     return;
                 }
 
-                // 2. فحص الطلاب
+                // 2. فحص الطلاب إذا لم يكن أدمن
                 const studentDocRef = window.doc(window.firebaseDb, "students", email);
                 const studentSnap = await window.getDoc(studentDocRef);
 
@@ -482,8 +464,6 @@
 
             } catch (error) {
                 console.error(error);
-                // لو حصل خطأ في الدخول، امسح وقت تسجيل الدخول المؤقت
-                localStorage.removeItem('platform_login_time');
 
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
                     emailError.style.display = 'block';
