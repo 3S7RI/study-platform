@@ -5,11 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
     
+    <!-- التحقق الفوري والسريع من جلسة الـ 48 ساعة لمنع أي تأخير -->
+    <script>
+        (function() {
+            const loginTime = localStorage.getItem('platform_login_time');
+            if (loginTime) {
+                const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                if (hoursPassed <= 48) {
+                    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+                    window.location.replace(isAdmin ? 'admin.html' : 'main.html');
+                } else {
+                    localStorage.removeItem('platform_login_time');
+                }
+            }
+        })();
+    </script>
+
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -31,7 +47,6 @@
         window.sendPasswordResetEmail = sendPasswordResetEmail;
         window.doc = doc;
         window.getDoc = getDoc;
-        window.setDoc = setDoc;
     </script>
 
     <style>
@@ -415,7 +430,10 @@
             btn.disabled = true;
 
             try {
-                // 1. فحص الأدمن أولاً بكل دقة
+                // حفظ وقت الدخول فوراً لتفعيل جلسة الـ 48 ساعة السريعة
+                localStorage.setItem('platform_login_time', Date.now().toString());
+
+                // 1. فحص الأدمن بدقة تامة
                 const adminDocRef = window.doc(window.firebaseDb, "admins", email);
                 const adminSnap = await window.getDoc(adminDocRef);
 
@@ -434,11 +452,11 @@
                     sessionStorage.setItem('adminUser', adminDataString);
                     sessionStorage.setItem('currentUser', adminDataString);
 
-                    window.location.href = 'admin.html';
+                    window.location.replace('admin.html');
                     return;
                 }
 
-                // 2. فحص الطلاب إذا لم يكن أدمن
+                // 2. فحص الطلاب
                 const studentDocRef = window.doc(window.firebaseDb, "students", email);
                 const studentSnap = await window.getDoc(studentDocRef);
 
@@ -456,7 +474,7 @@
                     sessionStorage.setItem('studentUser', studentDataString);
                     sessionStorage.setItem('currentUser', studentDataString);
 
-                    window.location.href = 'main.html';
+                    window.location.replace('main.html');
                     return;
                 }
 
@@ -464,6 +482,7 @@
 
             } catch (error) {
                 console.error(error);
+                localStorage.removeItem('platform_login_time');
 
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
                     emailError.style.display = 'block';
