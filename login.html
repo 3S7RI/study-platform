@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
     
-    <!-- التحقق الفوري والسريع من جلسة الـ 48 ساعة لمنع أي تأخير -->
+    <!-- التحقق اللحظي والفوري لآخر حساب مسجل (أدمن أو طالب) وتوجيهه فوراً بدون أي تأخير -->
     <script>
         (function() {
             const loginTime = localStorage.getItem('platform_login_time');
@@ -16,6 +16,7 @@
                     window.location.replace(isAdmin ? 'admin.html' : 'main.html');
                 } else {
                     localStorage.removeItem('platform_login_time');
+                    localStorage.removeItem('isAdmin');
                 }
             }
         })();
@@ -430,9 +431,6 @@
             btn.disabled = true;
 
             try {
-                // حفظ وقت الدخول فوراً لتفعيل جلسة الـ 48 ساعة السريعة
-                localStorage.setItem('platform_login_time', Date.now().toString());
-
                 // 1. فحص الأدمن بدقة تامة
                 const adminDocRef = window.doc(window.firebaseDb, "admins", email);
                 const adminSnap = await window.getDoc(adminDocRef);
@@ -443,7 +441,10 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
+                    // حفظ بيانات جلسة الأدمن بدقة ليعود إليها مباشرة
+                    localStorage.setItem('platform_login_time', Date.now().toString());
                     localStorage.setItem('isAdmin', 'true');
+                    
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminRole', adminData.role || 'admin');
@@ -466,7 +467,10 @@
                     const studentData = studentSnap.data();
                     const studentDataString = JSON.stringify(studentData);
                     
+                    // حفظ بيانات جلسة الطالب بدقة ليعود إليها مباشرة
+                    localStorage.setItem('platform_login_time', Date.now().toString());
                     localStorage.setItem('isAdmin', 'false');
+
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'false');
                     sessionStorage.setItem('currentStudentEmail', studentData.email || email);
@@ -483,6 +487,7 @@
             } catch (error) {
                 console.error(error);
                 localStorage.removeItem('platform_login_time');
+                localStorage.removeItem('isAdmin');
 
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
                     emailError.style.display = 'block';
