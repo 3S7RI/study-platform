@@ -584,6 +584,7 @@
             html += `</tbody></table></div>`;
             container.innerHTML = html;
         };
+
         window.openLightbox = function(imgSrc) {
             document.getElementById('lightboxImg').src = imgSrc;
             document.getElementById('imageLightboxModal').style.display = 'flex';
@@ -728,6 +729,16 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
+        // دالة مساعدة لحساب النقاط بناءً على الدرجة والتقفيل (10 أساسي + 5 عند التقفيل = 15 كحد أقصى)
+        function calculateExamPointsEarned(score, totalMarks) {
+            if (score <= 0) return 0;
+            // إذا حصل على الدرجة النهائية كاملة (قفل الامتحان)
+            if (score >= totalMarks) {
+                return 15; // 10 نقاط الامتحان + 5 نقاط مكافأة التقفيل
+            }
+            return 10; // الامتحان العادي بـ 10 نقاط
+        }
+
         window.saveManualGradingAndNotify = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualTotalScore').value) || 0;
@@ -738,7 +749,11 @@
 
             let studentSub = exam.examSubmissions[subIdx];
             let oldScore = studentSub.score || 0;
-            let scoreDifference = newScore - oldScore;
+            
+            // حساب النقاط القديمة والجديدة بناءً على قاعدة التقفيل (10 نقاط أو 15 عند التقفيل)
+            let oldPointsEarned = studentSub.published ? calculateExamPointsEarned(oldScore, studentSub.totalMarks) : 0;
+            let newPointsEarned = calculateExamPointsEarned(newScore, studentSub.totalMarks);
+            let pointsDifference = newPointsEarned - oldPointsEarned;
 
             studentSub.score = newScore;
             studentSub.published = true;
@@ -748,8 +763,8 @@
                 await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
 
                 let studentIdentifier = (studentSub.studentEmail || '').toLowerCase().trim();
-                if (studentIdentifier && scoreDifference !== 0) {
-                    await addPointsToStudent(db, studentIdentifier, scoreDifference);
+                if (studentIdentifier && pointsDifference !== 0) {
+                    await addPointsToStudent(db, studentIdentifier, pointsDifference);
                 }
 
                 if (studentIdentifier) {
@@ -757,7 +772,7 @@
                     const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
                     await setDoc(doc(db, "adminNotifications", notifId), {
                         title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
-                        message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${newScore} من ${studentSub.totalMarks}</b> 🎯`,
+                        message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${newScore} من ${studentSub.totalMarks}</b> 🎯 واكتسبت نقاطاً جديدة في حسابك!`,
                         target: "single",
                         recipientEmail: studentIdentifier,
                         sender: "نظام التصحيح الأكاديمي 📝",
@@ -783,8 +798,12 @@
                 if (!sub.published) {
                     sub.published = true;
                     let studentIdentifier = (sub.studentEmail || '').toLowerCase().trim();
-                    if (studentIdentifier && sub.score > 0) {
-                        await addPointsToStudent(db, studentIdentifier, sub.score);
+                    
+                    // حساب النقاط (10 نقاط للحل أو 15 نقطة في حال قفل الامتحان)
+                    let pointsToAdd = calculateExamPointsEarned(sub.score, sub.totalMarks);
+
+                    if (studentIdentifier && pointsToAdd > 0) {
+                        await addPointsToStudent(db, studentIdentifier, pointsToAdd);
                     }
 
                     if (studentIdentifier) {
@@ -793,7 +812,7 @@
                         try {
                             await setDoc(doc(db, "adminNotifications", notifId), {
                                 title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
-                                message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯`,
+                                message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯 وتمت إضافة النقاط لحسابك.`,
                                 target: "single",
                                 recipientEmail: studentIdentifier,
                                 sender: "نظام التصحيح الأكاديمي 📝",
