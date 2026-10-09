@@ -77,7 +77,6 @@
         .post-tools-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
         .media-upload-btns { display: flex; gap: 8px; flex-wrap: wrap; }
         
-        /* أزرار الرفع والتسجيل البسيطة والشيك */
         .media-btn {
             background: var(--th-bg); border: 1px solid var(--border-color); color: var(--text-main);
             padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
@@ -110,6 +109,16 @@
             padding: 2px 7px; border-radius: 6px; font-weight: bold; border: 1px solid var(--border-color); 
             display: inline-flex; align-items: center; gap: 4px;
         }
+
+        /* أيقونات النوع SVG الموحدة للأولاد والبنات */
+        .gender-icon-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px; border-radius: 50%; vertical-align: middle;
+        }
+        .gender-icon-badge.male { background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; }
+        .gender-icon-badge.female { background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; }
+        .gender-icon-badge svg { width: 11px; height: 11px; }
+
         .post-author-info span { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; display: block; }
         
         .delete-post-btn {
@@ -224,6 +233,7 @@
         let currentStudentLevel = "الثانوية العامة";
         let currentStudentPoints = 0;
         let currentStudentImage = defaultMaleSvg;
+        let currentStudentGender = "male";
 
         const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
         const adminRole = sessionStorage.getItem('adminRole') || 'sub';
@@ -239,30 +249,63 @@
         let activeCommentChunks = [];
         let activeCommentAudioBase64 = "";
 
-        // جلب بيانات الطالب الحقيقية من فايربيز أو التخزين المحلي لضمان ظهور مستواه ونقاطه بدقة
+        // دالة تحديد ما إذا كانت الطالبة أنثى
+        function isFemaleStudent(stu) {
+            let gender = (stu.gender || stu.type || '').toLowerCase();
+            if (gender === 'female' || gender === 'بنت' || gender === 'طالبة') return true;
+            let rawName = (stu.fullName || stu.name || '').toLowerCase();
+            if (rawName.includes('ة') && !rawName.includes('محمد') && !rawName.includes('أحمد')) return true;
+            return false;
+        }
+
+        // دالة توليد أيقونة النوع SVG الموحدة
+        function getGenderSvgHtml(female) {
+            if (female) {
+                return `<span class="gender-icon-badge female" title="أنثى">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="10" r="5"></circle>
+                        <line x1="12" y1="15" x2="12" y2="21"></line>
+                        <line x1="9" y1="18" x2="15" y2="18"></line>
+                    </svg>
+                </span>`;
+            } else {
+                return `<span class="gender-icon-badge male" title="ذكر">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="5"></circle>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                    </svg>
+                </span>`;
+            }
+        }
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 try {
                     let docSnap = await getDoc(doc(db, "students", user.uid));
+                    if (!docSnap.exists() && user.email) {
+                        docSnap = await getDoc(doc(db, "students", user.email.toLowerCase().trim()));
+                    }
                     if (docSnap.exists()) {
                         let data = docSnap.data();
                         currentStudentName = data.name || data.fullName || user.displayName || 'طالب المنصة';
-                        currentStudentLevel = data.level || data.educationalLevel || 'الثانوية العامة';
-                        currentStudentPoints = data.points || 0;
+                        currentStudentLevel = data.level || data.rank || 'ضعيف';
+                        currentStudentPoints = data.totalScore || data.points || 0;
                         currentStudentImage = data.profileImage || defaultMaleSvg;
+                        currentStudentGender = data.gender || data.type || 'male';
                     }
                 } catch(e) {
                     const cached = JSON.parse(localStorage.getItem('studentUser')) || {};
                     currentStudentName = cached.fullName || cached.name || 'طالب المنصة';
-                    currentStudentLevel = cached.level || 'الثانوية العامة';
+                    currentStudentLevel = cached.level || 'ضعيف';
                     currentStudentPoints = cached.points || 0;
                     currentStudentImage = cached.profileImage || defaultMaleSvg;
+                    currentStudentGender = cached.gender || 'male';
                 }
             }
             loadForumData();
         });
 
-        // ثيم المنصة
         const bodyElement = document.body;
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -376,6 +419,18 @@
             }
         }
 
+        // أسماء المستويات الموحدة
+        function getRankName(rankCode) {
+            const ranks = {
+                'weak': 'ضعيف',
+                'medium': 'متوسط',
+                'strong': 'قوي',
+                'very-strong': 'قوي جداً',
+                'legendary': 'أسطوري'
+            };
+            return ranks[rankCode] || rankCode || 'ضعيف';
+        }
+
         function renderPosts(posts) {
             const feed = document.getElementById('postsFeed');
             if (posts.length === 0) {
@@ -394,6 +449,9 @@
                 let realIndex = posts.length - 1 - index;
                 let userImg = post.profileImage || defaultMaleSvg;
                 let canDelete = isUserAdmin || (currentStudentName && post.authorName === currentStudentName);
+                let female = isFemaleStudent({ gender: post.gender, name: post.authorName });
+                let genderSvg = getGenderSvgHtml(female);
+                let rankLabel = getRankName(post.studentLevel);
 
                 let commentsHtml = '';
                 if (post.comments && post.comments.length > 0) {
@@ -442,8 +500,8 @@
                             <img src="${userImg}" class="post-avatar" alt="صورة">
                             <div class="post-author-info">
                                 <h4>
-                                    ${post.authorName} 
-                                    <span class="student-meta-badge">🎓 ${post.studentLevel || 'عام'} | ⭐ ${post.studentPoints || 0} نقطة</span>
+                                    <span style="display:inline-flex; align-items:center; gap:5px;">${post.authorName} ${genderSvg}</span>
+                                    <span class="student-meta-badge">🎓 ${rankLabel} | ⭐ ${post.studentPoints || 0} نقطة</span>
                                 </h4>
                                 <span>${post.date || 'منذ قليل'}</span>
                             </div>
@@ -528,6 +586,7 @@
                 studentLevel: currentStudentLevel,
                 studentPoints: currentStudentPoints,
                 profileImage: currentStudentImage,
+                gender: currentStudentGender,
                 content: content,
                 image: selectedBase64Image,
                 audio: recordedAudioBase64,
@@ -611,7 +670,6 @@
                     if (!record.forumPosts[postIndex].comments) {
                         record.forumPosts[postIndex].comments = [];
                     }
-                    record.forumPosts.push; // safe-guard
                     record.forumPosts[postIndex].comments.push({
                         authorName: authorName,
                         text: text,
