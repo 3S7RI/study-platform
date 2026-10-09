@@ -1310,17 +1310,35 @@
 
             const bubbleEl = itemDiv.querySelector('.msg-bubble');
             let pressTimer = null;
-
-            bubbleEl.addEventListener('mousedown', (e) => {
-                pressTimer = setTimeout(() => { openContextMenu(e, msg.id, msg.uid, msg.text || ''); }, 600);
-            });
-            bubbleEl.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
-            bubbleEl.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
+            let isLongPress = false;
 
             bubbleEl.addEventListener('touchstart', (e) => {
-                pressTimer = setTimeout(() => { openContextMenu(e.touches[0], msg.id, msg.uid, msg.text || ''); }, 600);
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    openContextMenu(e.touches[0], msg.id, msg.uid, msg.text || '');
+                }, 500);
+            }, {passive: true});
+
+            bubbleEl.addEventListener('touchend', (e) => {
+                clearTimeout(pressTimer);
             });
-            bubbleEl.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+
+            bubbleEl.addEventListener('touchmove', (e) => {
+                clearTimeout(pressTimer);
+            });
+
+            bubbleEl.addEventListener('mousedown', (e) => {
+                if(e.button !== 0) return;
+                isLongPress = false;
+                pressTimer = setTimeout(() => {
+                    isLongPress = true;
+                    openContextMenu(e, msg.id, msg.uid, msg.text || '');
+                }, 500);
+            });
+
+            bubbleEl.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
+            bubbleEl.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
 
             bubbleEl.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
@@ -1331,7 +1349,7 @@
         }
 
         function openContextMenu(e, msgId, authorUid, msgText) {
-            e.preventDefault();
+            if(e.preventDefault) e.preventDefault();
             selectedMessageForCtx = { id: msgId, uid: authorUid, text: decodeURIComponent(msgText) };
             const menu = document.getElementById('messageContextMenu');
             
@@ -1424,7 +1442,7 @@
                     }
                     transaction.update(msgRef, { reactions: reactions });
                 });
-            }).catch(err => console.error(err));
+            }).catch(err => console.error("خطأ التفاعل:", err));
 
             pop.classList.remove('active');
         }
