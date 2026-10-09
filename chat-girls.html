@@ -1013,8 +1013,11 @@
                     let data = docSnap.data();
                     currentUser.name = data.fullName || data.name || currentUser.name;
                     currentUser.studentId = data.studentId || data.id || currentUser.studentId;
-                    currentUser.points = data.points !== undefined ? parseInt(data.points) : currentUser.points;
+                    
+                    let fetchedPoints = data.totalScore !== undefined ? data.totalScore : (data.points !== undefined ? data.points : currentUser.points);
+                    currentUser.points = parseInt(fetchedPoints);
                     currentUser.rank = determineRankByPoints(currentUser.points);
+                    
                     currentUser.avatar = data.profileImage || data.avatar || currentUser.avatar;
                     currentUser.frame = determineFrameByRank(currentUser.rank);
                     currentUser.email = data.email || currentUser.email;
@@ -1036,10 +1039,10 @@
         }
 
         function determineRankByPoints(pts) {
-            if(pts >= 500) return 'legendary';
-            if(pts >= 300) return 'very-strong';
-            if(pts >= 150) return 'strong';
-            if(pts >= 50) return 'medium';
+            if(pts >= 5000) return 'legendary';
+            if(pts >= 3000) return 'very-strong';
+            if(pts >= 1500) return 'strong';
+            if(pts >= 500) return 'medium';
             return 'weak';
         }
 
@@ -1320,13 +1323,8 @@
                 }, 500);
             }, {passive: true});
 
-            bubbleEl.addEventListener('touchend', (e) => {
-                clearTimeout(pressTimer);
-            });
-
-            bubbleEl.addEventListener('touchmove', (e) => {
-                clearTimeout(pressTimer);
-            });
+            bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
+            bubbleEl.addEventListener('touchmove', () => clearTimeout(pressTimer));
 
             bubbleEl.addEventListener('mousedown', (e) => {
                 if(e.button !== 0) return;
@@ -1337,8 +1335,8 @@
                 }, 500);
             });
 
-            bubbleEl.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
-            bubbleEl.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
+            bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
+            bubbleEl.addEventListener('mouseleave', () => clearTimeout(pressTimer));
 
             bubbleEl.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
@@ -1811,14 +1809,12 @@
                     if(data.studentId || data.id) profileStudentId = data.studentId || data.id;
                     if(data.email) profileEmail = data.email;
                     if(data.phone || data.studentPhone) profilePhone = data.phone || data.studentPhone;
-                    if(data.points !== undefined) {
-                        profilePoints = parseInt(data.points);
-                        profileRank = determineRankByPoints(profilePoints);
-                        profileFrame = determineFrameByRank(profileRank);
-                    } else if(data.rank) {
-                        profileRank = data.rank;
-                        profileFrame = determineFrameByRank(profileRank);
-                    }
+                    
+                    let fetchedPoints = data.totalScore !== undefined ? data.totalScore : (data.points !== undefined ? data.points : profilePoints);
+                    profilePoints = parseInt(fetchedPoints);
+                    profileRank = determineRankByPoints(profilePoints);
+                    profileFrame = determineFrameByRank(profileRank);
+
                     if(data.profileImage || data.avatar) profileAvatar = data.profileImage || data.avatar;
                 }
             } catch(e) {}
