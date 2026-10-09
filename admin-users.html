@@ -91,8 +91,17 @@
         .form-group input, .form-group select { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; }
         .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
         
-        .btn-save { background: var(--success); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-save { background: var(--success); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 15px; transition: 0.2s; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); width: 100%; }
         .btn-save:hover { opacity: 0.9; }
+
+        /* زر بلص الدائري المخصص */
+        .btn-add-circle {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; border: none; width: 38px; height: 38px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); transition: transform 0.2s;
+        }
+        .btn-add-circle:hover { transform: scale(1.08); }
 
         .table-responsive { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; border-radius: 10px; white-space: nowrap; }
@@ -110,19 +119,22 @@
         .btn-ctrl:hover { background: var(--primary-hover); }
 
         .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 440px; padding: 20px; box-shadow: var(--shadow); }
+        .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 440px; padding: 20px; box-shadow: var(--shadow); text-align: right; }
 
         .avatar-wrapper { position: relative; width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; padding: 3px; display: flex; align-items: center; justify-content: center; background: var(--primary); }
         .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; }
         
+        /* مستطيل المستوى المطابق للصورة تماماً */
         .rank-badge-box {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(16, 185, 129, 0.15));
-            border: 1.5px solid var(--primary);
-            border-radius: 12px;
-            padding: 8px 14px;
+            background: rgba(120, 20, 20, 0.4);
+            border: 1.5px solid #a855f7;
+            border-radius: 20px;
+            padding: 8px 18px;
             margin: 8px auto 12px;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .unified-info-box { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; margin-top: 10px; text-align: right; font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; }
@@ -159,6 +171,10 @@
         <div id="tabStudentsContent" class="section-box">
             <div class="section-header">
                 <h2>قائمة طلاب المنصة 👨‍🎓</h2>
+                <!-- زر بلص الدائري لإضافة طالب جديد -->
+                <button class="btn-add-circle" onclick="openAddStudentModal()" title="إضافة طالب جديد">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
             </div>
             <div id="studentsTableContainer" class="table-responsive">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري مزامنة بيانات الطلاب من كولكشن students...</p>
@@ -196,6 +212,28 @@
         </div>
     </div>
 
+    <!-- نافذة إضافة طالب جديد (شاشة عائمة بـ ثيم المنصة) -->
+    <div class="modal-overlay" id="addStudentModal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 1rem; color: var(--text-main);">إضافة طالب جديد</h3>
+                <button onclick="closeModal('addStudentModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
+            </div>
+            <div class="form-group" style="margin-top:0;"><label>اسم الطالب:</label><input type="text" id="addStuName" placeholder="الاسم الكامل"></div>
+            <div class="form-group"><label>البريد الإلكتروني:</label><input type="email" id="addStuEmail" placeholder="example@gmail.com"></div>
+            <div class="form-group"><label>كلمة المرور:</label><input type="password" id="addStuPass" placeholder="******"></div>
+            <div class="form-group"><label>رقم الهاتف:</label><input type="text" id="addStuPhone" placeholder="010xxxxxxxx"></div>
+            <div class="form-group"><label>رقم هاتف ولي الأمر:</label><input type="text" id="addStuParentPhone" placeholder="011xxxxxxxx"></div>
+            <div class="form-group"><label>نوع الطالب:</label>
+                <select id="addStuGender">
+                    <option value="male">ولد (ذكر)</option>
+                    <option value="female">بنت (أنثى)</option>
+                </select>
+            </div>
+            <button class="btn-save" onclick="saveNewStudent()">إضافة الطالب للمنصة 🚀</button>
+        </div>
+    </div>
+
     <!-- نافذة بروفايل الطالب المتكاملة -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="modal-card" style="text-align: center;">
@@ -204,8 +242,10 @@
             </div>
             <h3 id="profileName" style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 2px;">اسم الطالب</h3>
             
+            <!-- مستطيل المستوى المطابق للصورة تماماً -->
             <div class="rank-badge-box">
-                <span id="profileRank" style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">المستوى</span>
+                <span style="font-size: 0.9rem;">ℹ️</span>
+                <span id="profileRankText" style="color: #fca5a5; font-size: 0.82rem; font-weight: bold;">ضعيف • 0 نقطة</span>
             </div>
             
             <div class="unified-info-box">
@@ -224,14 +264,14 @@
             </div>
 
             <div style="margin-top: 10px;">
-                <button class="btn-ctrl" style="background: #10b981;" onclick="openUpgradeModalFromProfile()">⭐ ترقية المستوى</button>
+                <button class="btn-ctrl" style="background: #10b981;" onclick="upgradeStudentLevelAuto()">⭐ ترقية المستوى التلقائية</button>
             </div>
 
             <button onclick="closeModal('studentProfileModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
 
-    <!-- نافذة تعديل بيانات الطالب المتكاملة -->
+    <!-- نافذة تعديل بيانات الطالب المتكاملة (بدون خانة المستوى الزائدة) -->
     <div class="modal-overlay" id="editStudentModal">
         <div class="modal-card">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات وإعدادات الطالب</h3>
@@ -241,40 +281,9 @@
             <div class="form-group"><label>رقم هاتف الطالب:</label><input type="text" id="editStudentPhone"></div>
             <div class="form-group"><label>رقم هاتف ولي الأمر:</label><input type="text" id="editStudentParentPhone"></div>
             <div class="form-group"><label>عدد النقاط:</label><input type="number" id="editStudentPoints"></div>
-            <div class="form-group">
-                <label>ترقية المستوى / الرتبة:</label>
-                <select id="editStudentRankSelect">
-                    <option value="weak">مبتدئ (ضعيف)</option>
-                    <option value="medium">طالب مجتهد / مجتهدة</option>
-                    <option value="strong">طالب متفوق / متفوقة</option>
-                    <option value="very-strong">طالب متميز / متميزة</option>
-                    <option value="legendary">طالب أسطوري / أسطورية</option>
-                </select>
-            </div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveStudentEdits()">حفظ التعديلات</button>
                 <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editStudentModal')">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة ترقية مستوى الطالب بشكل مستقل -->
-    <div class="modal-overlay" id="upgradeStudentModal">
-        <div class="modal-card">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--primary);">⭐ ترقية رتبة ومستوى الطالب</h3>
-            <div class="form-group">
-                <label>اختر المستوى الجديد:</label>
-                <select id="directUpgradeRankSelect">
-                    <option value="weak">مبتدئ (ضعيف)</option>
-                    <option value="medium">طالب مجتهد / مجتهدة</option>
-                    <option value="strong">طالب متفوق / متفوقة</option>
-                    <option value="very-strong">طالب متميز / متميزة</option>
-                    <option value="legendary">طالب أسطوري / أسطورية</option>
-                </select>
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveDirectUpgrade()">تطبيق الترقية 🚀</button>
-                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('upgradeStudentModal')">إلغاء</button>
             </div>
         </div>
     </div>
@@ -409,6 +418,15 @@
             return false;
         }
 
+        // دالة توليد أيقونة SVG النوع بجانب الاسم في آخر الاسم
+        function getGenderSvgIcon(female) {
+            if (female) {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;"><circle cx="12" cy="9" r="6"></circle><path d="M12 15v7"></path><path d="M9 19h6"></path></svg>`;
+            } else {
+                return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;"><circle cx="10" cy="14" r="6"></circle><path d="M20 4l-6.5 6.5"></path><path d="M15 4h5v5"></path></svg>`;
+            }
+        }
+
         function renderStudentsTable() {
             const container = document.getElementById('studentsTableContainer');
             if (studentsList.length === 0) {
@@ -423,8 +441,9 @@
                 let name = rawName.includes('@') ? rawName.split('@')[0] : rawName;
                 let sId = stu.studentId || (stu.id.includes('@') ? `STU-00${index + 1}` : stu.id);
                 let avatarUrl = stu.profileImage || stu.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
-                let rank = getRankName(stu.rank || stu.level, isFemaleStudent(stu));
-                let genderIcon = isFemaleStudent(stu) ? '👧' : '👦';
+                let rank = getRankName(stu.rank || stu.level);
+                let female = isFemaleStudent(stu);
+                let genderSvg = getGenderSvgIcon(female);
 
                 let isOnline = stu.isOnline === true || (stu.lastActive && (Date.now() - stu.lastActive < 300000));
                 let statusBadge = isOnline 
@@ -436,7 +455,7 @@
                         <td>
                             <img src="${avatarUrl}" class="student-table-row-avatar" alt="صورة" onclick="openStudentProfile('${stu.id}')" title="فتح البروفايل">
                         </td>
-                        <td><b>${genderIcon} ${name}</b></td>
+                        <td><b>${name} ${genderSvg}</b></td>
                         <td style="font-family:monospace; direction:ltr;">${sId}</td>
                         <td>${statusBadge}</td>
                         <td>${rank}</td>
@@ -457,15 +476,17 @@
             let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || 'طالب المنصة';
             let cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             let female = isFemaleStudent(activeStudentData);
-            let genderIcon = female ? '👧' : '👦';
+            let genderSvg = getGenderSvgIcon(female);
 
-            document.getElementById('profileName').textContent = `${genderIcon} ${cleanName}`;
-            document.getElementById('profileRank').textContent = getRankName(activeStudentData.rank || activeStudentData.level, female);
+            document.getElementById('profileName').innerHTML = `${cleanName} ${genderSvg}`;
+            let rankText = getRankName(activeStudentData.rank || activeStudentData.level);
+            let points = activeStudentData.totalScore || activeStudentData.points || 0;
+            document.getElementById('profileRankText').textContent = `${rankText} • ${points} نقطة`;
             document.getElementById('profileEmail').textContent = activeStudentData.email || 'غير متوفر';
             document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id;
             document.getElementById('profilePhone').textContent = activeStudentData.phone || '---';
             document.getElementById('profileParentPhone').textContent = activeStudentData.parentPhone || activeStudentData.guardianPhone || '---';
-            document.getElementById('profilePoints').textContent = activeStudentData.totalScore || activeStudentData.points || 0;
+            document.getElementById('profilePoints').textContent = points;
             
             if (activeStudentData.profileImage || activeStudentData.avatar) {
                 document.getElementById('profileAvatar').src = activeStudentData.profileImage || activeStudentData.avatar;
@@ -487,7 +508,6 @@
             document.getElementById('editStudentPhone').value = activeStudentData.phone || '';
             document.getElementById('editStudentParentPhone').value = activeStudentData.parentPhone || activeStudentData.guardianPhone || '';
             document.getElementById('editStudentPoints').value = activeStudentData.totalScore || activeStudentData.points || 0;
-            document.getElementById('editStudentRankSelect').value = activeStudentData.rank || activeStudentData.level || 'weak';
             document.getElementById('editStudentModal').style.display = 'flex';
         }
 
@@ -499,7 +519,6 @@
             let phone = document.getElementById('editStudentPhone').value.trim();
             let parentPhone = document.getElementById('editStudentParentPhone').value.trim();
             let points = parseInt(document.getElementById('editStudentPoints').value) || 0;
-            let rank = document.getElementById('editStudentRankSelect').value;
 
             if(!name) return alert('يرجى كتابة اسم الطالب');
 
@@ -513,9 +532,7 @@
                     parentPhone: parentPhone,
                     guardianPhone: parentPhone,
                     totalScore: points,
-                    points: points,
-                    rank: rank,
-                    level: rank
+                    points: points
                 });
                 await fetchStudentsFromCloud();
                 closeModal('editStudentModal');
@@ -526,26 +543,77 @@
             }
         }
 
-        function openUpgradeModalFromProfile() {
-            if (!activeStudentData) return;
-            document.getElementById('directUpgradeRankSelect').value = activeStudentData.rank || activeStudentData.level || 'weak';
-            document.getElementById('upgradeStudentModal').style.display = 'flex';
-        }
+        // الترقية التلقائية للمستوى التالي مباشرة
+        async function upgradeStudentLevelAuto() {
+            if (!activeDocId || !activeStudentData) return;
+            const levelsOrder = ['weak', 'medium', 'strong', 'very-strong', 'legendary'];
+            let currentLevel = activeStudentData.rank || activeStudentData.level || 'weak';
+            let currentIndex = levelsOrder.indexOf(currentLevel);
+            if (currentIndex === -1 || currentIndex >= levelsOrder.length - 1) {
+                currentIndex = levelsOrder.length - 2;
+            }
+            let nextLevel = levelsOrder[currentIndex + 1];
 
-        async function saveDirectUpgrade() {
-            if (!activeDocId) return;
-            let rank = document.getElementById('directUpgradeRankSelect').value;
             try {
                 await db.collection('students').doc(activeDocId).update({
-                    rank: rank,
-                    level: rank
+                    rank: nextLevel,
+                    level: nextLevel
                 });
                 await fetchStudentsFromCloud();
-                closeModal('upgradeStudentModal');
                 closeModal('studentProfileModal');
-                alert('تم ترقية مستوى الطالب بنجاح! 🚀');
+                alert('تم ترقية مستوى الطالب تلقائياً بنجاح! 🚀');
             } catch(e) {
                 alert('حدث خطأ أثناء الترقية.');
+            }
+        }
+
+        function openAddStudentModal() {
+            document.getElementById('addStuName').value = '';
+            document.getElementById('addStuEmail').value = '';
+            document.getElementById('addStuPass').value = '';
+            document.getElementById('addStuPhone').value = '';
+            document.getElementById('addStuParentPhone').value = '';
+            document.getElementById('addStudentModal').style.display = 'flex';
+        }
+
+        async function saveNewStudent() {
+            let name = document.getElementById('addStuName').value.trim();
+            let email = document.getElementById('addStuEmail').value.trim().toLowerCase();
+            let pass = document.getElementById('addStuPass').value.trim();
+            let phone = document.getElementById('addStuPhone').value.trim();
+            let parentPhone = document.getElementById('addStuParentPhone').value.trim();
+            let gender = document.getElementById('addStuGender').value;
+
+            if (!name || !email || !pass) {
+                alert('يرجى ملء الحقول الأساسية (الاسم، البريد، كلمة المرور)!');
+                return;
+            }
+
+            try {
+                let studentIdDoc = email;
+                await db.collection('students').doc(studentIdDoc).set({
+                    fullName: name,
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    parentPhone: parentPhone,
+                    guardianPhone: parentPhone,
+                    gender: gender,
+                    type: gender,
+                    rank: 'weak',
+                    level: 'weak',
+                    totalScore: 0,
+                    points: 0,
+                    active: true,
+                    createdAt: Date.now()
+                });
+
+                closeModal('addStudentModal');
+                await fetchStudentsFromCloud();
+                alert('تم إضافة الطالب الجديد بنجاح للمنصة! 🚀');
+            } catch(e) {
+                console.error(e);
+                alert('حدث خطأ أثناء إضافة الطالب.');
             }
         }
 
@@ -709,22 +777,16 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
-        function getRankName(rankCode, female) {
-            const ranksMale = {
-                'weak': 'مبتدئ (ضعيف)',
-                'medium': 'طالب مجتهد',
-                'strong': 'طالب متفوق',
-                'very-strong': 'طالب متميز',
-                'legendary': 'طالب أسطوري'
+        // أسماء المستويات الدقيقة (ضعيف، متوسط، قوي، قوي جدا، أسطوري)
+        function getRankName(rankCode) {
+            const ranks = {
+                'weak': 'ضعيف',
+                'medium': 'متوسط',
+                'strong': 'قوي',
+                'very-strong': 'قوي جداً',
+                'legendary': 'أسطوري'
             };
-            const ranksFemale = {
-                'weak': 'مبتدئة (ضعيفة)',
-                'medium': 'طالبة مجتهدة',
-                'strong': 'طالبة متفوقة',
-                'very-strong': 'طالبة متميزة',
-                'legendary': 'طالبة أسطورية'
-            };
-            return female ? (ranksFemale[rankCode] || 'مبتدئة (ضعيفة)') : (ranksMale[rankCode] || 'مبتدئ (ضعيف)');
+            return ranks[rankCode] || 'ضعيف';
         }
     </script>
 </body>
