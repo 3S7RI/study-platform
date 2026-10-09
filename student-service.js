@@ -2,7 +2,7 @@
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * 1. البحث عن وثيقة الطالب في قاعدة البيانات بأي وسيلة (Email, StudentId, UID, أو Name)
+ * 1. البحث عن وثيقة الطالب في قاعدة البيانات بأي وسيلة (Email, StudentId, UID، أو Name)
  */
 export async function findStudentDocument(db, identifier) {
     if (!identifier) return null;
@@ -62,14 +62,14 @@ export async function getOrSaveStudentData(db, studentIdentifier, initialData = 
         
         const defaultData = {
             email: cleanId.includes('@') ? cleanId : '',
-            name: initialData.name || 'طالب جديد',
-            fullName: initialData.fullName || initialData.name || 'طالب جديد',
+            name: initialData.name || 'طالبة مكافحة',
+            fullName: initialData.fullName || initialData.name || 'طالبة مكافحة',
             studentId: initialData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
             phone: initialData.phone || '',
             parentPhone: initialData.parentPhone || '',
-            gender: initialData.gender || 'male',
-            totalScore: initialData.totalScore || 0,
-            points: initialData.points || 0,
+            gender: initialData.gender || 'female',
+            totalScore: initialData.totalScore || 10,
+            points: initialData.points || 10,
             rank: 'weak',
             level: 'weak',
             active: true,
@@ -77,11 +77,11 @@ export async function getOrSaveStudentData(db, studentIdentifier, initialData = 
         };
 
         await setDoc(docRef, defaultData, { merge: true });
-        console.log("تم إنشاء وتخزين طالب جديد بنجاح في السحابة:", cleanId);
+        console.log("تم إنشاء وتخزين طالبة جديدة بنجاح في السحابة:", cleanId);
         
         return { id: cleanId, ref: docRef, data: defaultData, collectionName: 'students' };
     } catch (e) {
-        console.error("خطأ في إنشاء الطالب تلقائياً:", e);
+        console.error("خطأ في إنشاء الطالبة تلقائياً:", e);
         return null;
     }
 }
@@ -108,10 +108,10 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
         }
 
         await updateDoc(studentObj.ref, payload);
-        console.log("تم تحديث وتخزين بيانات الطالب بنجاح!");
+        console.log("تم تحديث وتخزين بيانات الطالبة بنجاح!");
         return true;
     } catch (e) {
-        console.error("خطأ في تحديث بيانات الطالب:", e);
+        console.error("خطأ في تحديث بيانات الطالبة:", e);
         return false;
     }
 }
@@ -126,7 +126,7 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
         let studentObj = await getOrSaveStudentData(db, studentIdentifier);
         if (!studentObj) return false;
 
-        const currentScore = studentObj.data.totalScore || studentObj.data.points || 0;
+        const currentScore = studentObj.data.totalScore || studentObj.data.points || 10;
         const newTotalScore = currentScore + pointsToAdd;
         const newRankInfo = calculateStudentRank(newTotalScore);
 
@@ -139,28 +139,28 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
             lastUpdated: new Date().toISOString()
         });
 
-        console.log(`تم إضافة ${pointsToAdd} نقطة بنجاح للطالب. المجموع الجديد: ${newTotalScore} والمستوى: ${newRankInfo.title}`);
+        console.log(`تم إضافة ${pointsToAdd} نقطة بنجاح للطالبة. المجموع الجديد: ${newTotalScore} والمستوى: ${newRankInfo.title}`);
         return true;
     } catch (e) {
-        console.error("خطأ في إضافة النقاط للطالب:", e);
+        console.error("خطأ في إضافة النقاط للطالبة:", e);
         return false;
     }
 }
 
 /**
- * 5. جلب معلومات المستوى والشارة ودقة المسميات (ضعيف، متوسط، قوي، قوي جداً، أسطوري) بناءً على إجمالي النقاط
+ * 5. جلب معلومات المستوى والشارة ودقة المسميات مطابقة لدليل المنصة الرسمي
  */
 export function calculateStudentRank(totalScore) {
     let score = totalScore || 0;
-    if (score < 500) {
-        return { rankKey: 'weak', title: 'ضعيف', frameClass: 'rank-frame-weak', badgeClass: 'badge-weak', color: '#fca5a5' };
-    } else if (score < 1500) {
-        return { rankKey: 'medium', title: 'متوسط', frameClass: 'rank-frame-medium', badgeClass: 'badge-medium', color: '#fde68a' };
-    } else if (score < 3000) {
-        return { rankKey: 'strong', title: 'قوي', frameClass: 'rank-frame-strong', badgeClass: 'badge-strong', color: '#fef08a' };
-    } else if (score < 5000) {
-        return { rankKey: 'very-strong', title: 'قوي جداً', frameClass: 'rank-frame-very-strong', badgeClass: 'badge-very-strong', color: '#bfdbfe' };
+    if (score >= 5000) {
+        return { rankKey: 'legendary', title: 'أسطوري', frameClass: 'frame-legendary', badgeClass: 'badge-legendary', color: '#f472b6' };
+    } else if (score >= 3000) {
+        return { rankKey: 'very-strong', title: 'قوي جداً', frameClass: 'frame-legendary', badgeClass: 'badge-very-strong', color: '#3b82f6' };
+    } else if (score >= 1500) {
+        return { rankKey: 'strong', title: 'قوي', frameClass: 'frame-strong', badgeClass: 'badge-strong', color: '#10b981' };
+    } else if (score >= 500) {
+        return { rankKey: 'medium', title: 'متوسط', frameClass: 'frame-medium', badgeClass: 'badge-medium', color: '#f59e0b' };
     } else {
-        return { rankKey: 'legendary', title: 'أسطوري', frameClass: 'rank-frame-legendary', badgeClass: 'badge-legendary', color: '#e9d5ff' };
+        return { rankKey: 'weak', title: 'مبتدئ (ضعيف)', frameClass: 'frame-weak', badgeClass: 'badge-weak', color: '#ef4444' };
     }
 }
