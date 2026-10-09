@@ -276,9 +276,17 @@
 
         .msg-content-box { display: flex; flex-direction: column; gap: 2px; width: 100%; min-width: 0; }
         .msg-info { display: flex; align-items: center; gap: 5px; font-size: 0.67rem; color: var(--text-sub); flex-wrap: wrap; }
-        .msg-name { font-weight: 700; color: var(--text-main); cursor: pointer; }
+        .msg-name { font-weight: 700; color: var(--text-main); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
         .msg-name:hover { text-decoration: underline; color: var(--primary); }
         
+        /* تصميم أيقونة النوع (أنثى) الموحدة بجانب اسم الطالبة */
+        .gender-icon-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; border-radius: 50%; vertical-align: middle;
+            background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; flex-shrink: 0;
+        }
+        .gender-icon-badge svg { width: 9px; height: 9px; }
+
         .avatar-with-frame { position: relative; display: inline-block; flex-shrink: 0; }
         .profile-frame-overlay {
             position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
@@ -1124,11 +1132,20 @@
                     </div>`;
             }
 
+            // توليد أيقونة النوع SVG الموحدة للبنات بجانب اسم المستخدمة
+            let femaleSvg = `<span class="gender-icon-badge" title="أنثى">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="10" r="5"></circle>
+                    <line x1="12" y1="15" x2="12" y2="21"></line>
+                    <line x1="9" y1="18" x2="15" y2="18"></line>
+                </svg>
+            </span>`;
+
             itemDiv.innerHTML = `
                 <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">${msg.name}</span>
+                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">${msg.name} ${femaleSvg}</span>
                         <span class="rank-tag ${rankClass}">${rankLabel}</span>
                     </div>
                     <div class="msg-bubble-container">
@@ -1558,13 +1575,13 @@
 
         function getRankArabicName(rankCode) {
             const ranks = {
-                'weak': 'طالبة مكافحة',
-                'medium': 'طالبة مجتهدة',
-                'strong': 'طالبة متفوقة',
-                'very-strong': 'طالبة متميزة',
-                'legendary': 'طالبة أسطورية'
+                'weak':'ضعيف (مبتدئ) ',
+                'medium': 'متوسط',
+                'strong': 'قوي',
+                'very-strong': 'قوي جدا',
+                'legendary': 'اسطوري'
             };
-            return ranks[rankCode] || 'طالبة مجتهدة';
+            return ranks[rankCode] || 'ضعيف';
         }
 
         function openImageViewer(url) {
