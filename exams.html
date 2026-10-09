@@ -143,14 +143,6 @@
         }
         .celebration-card { border: 2px solid var(--success); max-width: 420px; box-shadow: 0 15px 35px rgba(16,185,129,0.3); }
 
-        .confetti {
-            position: absolute; width: 8px; height: 8px; background: #f59e0b; animation: fall 3s linear infinite; pointer-events: none;
-        }
-        @keyframes fall {
-            0% { transform: translateY(-30px) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-        }
-
         .certificate-box {
             border-radius: 16px; padding: 25px; max-width: 560px; width: 100%; text-align: center;
             box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; margin: auto;
@@ -194,7 +186,7 @@
     <div class="celebration-overlay" id="celebrationOverlay">
         <div class="celebration-card">
             <h2 style="color: var(--success); font-size: 1.05rem; margin-bottom: 10px; line-height: 1.5;">
-                مـبـروك يـا اسـطوره!! قـفلت الإمـتحـان و جـبـت 100% 🏆
+                مـبـروك يـا اسـطوره!! قـفلت الإمـتحـان و جـبـت الدرجة النهائية 🏆
             </h2>
             <div style="text-align: right; background: var(--th-bg); padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; line-height: 1.6; border: 1px solid var(--border-color);">
                 <p>1. تـم إضـافة 15 نـقطه لـحسابك ✨</p>
@@ -213,18 +205,17 @@
         </div>
     </div>
 
-    <!-- شاشة عرض شهادة التقدير الفاخرة (جاهزة لاستقبال صورة الشهادة الفاضية التي يرفعها المعلم) -->
+    <!-- شاشة عرض شهادة التقدير الفاخرة -->
     <div class="certificate-modal" id="certificateModal">
         <div style="display: flex; flex-direction: column; align-items: center; max-width: 600px; width: 100%;">
             <div class="certificate-box" id="certificateContent" style="background-size: cover; background-position: center; position: relative; min-height: 380px; display: flex; flex-direction: column; justify-content: space-between;">
-                <!-- النصوص والأماكن المدمجة تلقائياً -->
                 <div style="text-align: center; padding-top: 20px;">
                     <h2 id="finalCertName" style="font-size: 1.4rem; color: #1e293b; font-weight: bold; background: rgba(255,255,255,0.85); display: inline-block; padding: 4px 20px; border-radius: 8px;">اسم الطالب</h2>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.85); padding: 8px 15px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; color: #334155;">
-                    <span id="certClassGrade">الصف الثالث الإعدادي 🎓</span>
+                    <span id="certClassGrade">الصف الدراسى 🎓</span>
                     <span id="certDate">2026/10/05</span>
-                    <span id="certSignText">مؤسس المنصة: محمد عماد (عشري) ✍</span>
+                    <span id="certSignText">منصة رحلة دراسية ✍</span>
                 </div>
             </div>
             
@@ -251,7 +242,6 @@
             <h2 id="resultGradeText" style="margin-bottom: 6px; color: var(--primary); font-size: 1.1rem;">لقد حصلت على الدرجة</h2>
             <p id="resultPercentageText" style="font-size: 1rem; font-weight: bold; margin-bottom: 10px;">النسبة: 0%</p>
             <p id="customEndingMsg" style="font-size: 0.85rem; color: var(--success); font-weight: bold; margin-bottom: 10px;"></p>
-            <p id="aiGradingNote" style="font-size: 0.78rem; color: #f59e0b; margin-bottom: 8px; display: none;">🤖 تمت مراجعة وتصحيح الأسئلة تلقائياً بواسطة بوت الذكاء الاصطناعي (AI).</p>
             <button onclick="location.reload()" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.82rem;">العودة لقائمة الامتحانات 📋</button>
         </div>
 
@@ -352,7 +342,7 @@
                 let maxQuota = exam.settings?.maxQuota ? parseInt(exam.settings.maxQuota) : null;
                 let submissions = exam.examSubmissions || [];
                 
-                let studentSubmissionsCount = submissions.filter(sub => sub.studentEmail === currentStudentEmail).length;
+                let studentSubmissionsCount = submissions.filter(sub => sub.studentEmail === currentStudentEmail && sub.isInitialOpen !== true).length;
                 let studentAttemptsExceeded = studentSubmissionsCount >= attemptsAllowed;
                 
                 let totalUniqueStudentsCount = new Set(submissions.map(sub => sub.studentEmail)).size;
@@ -389,8 +379,9 @@
 
             pendingExamIdToStart = examId;
 
-            let welcomeToggle = exam.settings?.welcomeToggle !== false;
-            let welcomeMsg = exam.settings?.welcomeMsg || 'تنبيه هام قبل دخول الامتحان...';
+            // إصلاح تفعيل رسالة التنبيه قبل الامتحان
+            let welcomeToggle = exam.settings?.welcomeToggle;
+            let welcomeMsg = exam.settings?.welcomeMsg || '';
 
             if (welcomeToggle && welcomeMsg.trim() !== '') {
                 document.getElementById('welcomeMsgTextContent').textContent = welcomeMsg;
@@ -435,7 +426,6 @@
             activeSelectedExam = availableExamsList.find(e => e.id === examId);
             if (!activeSelectedExam) return;
 
-            // احتساب المحاولة في السحابة فوراً بمجرد فتح الامتحان
             await registerInitialAttemptInCloud(examId);
 
             isExamActiveNow = true;
@@ -464,7 +454,6 @@
             renderExamQuestions(activeSelectedExam.questions);
         }
 
-        // دالة احتساب محاولة الطالب في السحابة فور الضغط على دخول
         async function registerInitialAttemptInCloud(examId) {
             try {
                 let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
@@ -677,20 +666,26 @@
             });
 
             let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
-            let earnedPoints = percentage === 100 ? 15 : 5;
+            let earnedPoints = score >= totalMarks ? 15 : 5;
 
             document.getElementById('examContainer').innerHTML = '';
             document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalMarks}`;
             document.getElementById('resultPercentageText').textContent = `النسبة المئوية: ${percentage}%`;
-            document.getElementById('customEndingMsg').textContent = activeSelectedExam.settings?.customMsg || 'شكراً لإتمامك الامتحان بنجاح!';
+            
+            // إصلاح رسالة نهاية الامتحان وعرض الرسالة المخصصة بشكل صحيح
+            let endingMsg = activeSelectedExam.settings?.customMsg || 'شكراً لإتمامك الامتحان بنجاح!';
+            document.getElementById('customEndingMsg').textContent = endingMsg;
             
             document.getElementById('examResultBox').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
 
-            // التحقق مما إذا كان الامتحان مفعلاً له شهادة تقدير وصورة مرفوعة
-            if (percentage === 100 && activeSelectedExam.settings?.hasCertificate) {
+            // إصلاح تفعيل وعرض شاشة الاحتفال بالدرجة الكاملة (التقفيل)
+            let isFullScore = score >= totalMarks;
+            let hasCertEnabled = activeSelectedExam.settings?.hasCertificate === true;
+
+            if (isFullScore && hasCertEnabled) {
                 document.getElementById('totalPointsDisplay').textContent = earnedPoints;
                 triggerCelebrationEffect();
             }
@@ -705,10 +700,9 @@
             if (!nameInput) { alert('يرجى كتابة اسمك الثلاثي أولاً للحصول على الشهادة!'); return; }
             
             document.getElementById('finalCertName').textContent = nameInput;
-            document.getElementById('certClassGrade').textContent = 'الصف الثالث الإعدادي 🎓';
+            document.getElementById('certClassGrade').textContent = activeSelectedExam.targetGroup ? `الفئة: ${activeSelectedExam.targetGroup}` : 'الصف الدراسي 🎓';
             document.getElementById('certDate').textContent = new Date().toLocaleDateString('ar-EG');
             
-            // إذا رفع المعلم صورة للشهادة في الإعدادات، يتم تطبيقها كخلفية
             if (activeSelectedExam.settings?.certImageUrl) {
                 document.getElementById('certificateContent').style.backgroundImage = `url('${activeSelectedExam.settings.certImageUrl}')`;
             }
