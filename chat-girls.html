@@ -262,6 +262,7 @@
             align-items: flex-start; 
             max-width: 88%; 
             position: relative;
+            user-select: none;
         }
         .message-item.me { margin-right: auto; flex-direction: row-reverse; }
 
@@ -293,6 +294,8 @@
         }
         .frame-legendary { border: 2.5px solid #f472b6; box-shadow: 0 0 10px rgba(244, 114, 182, 0.7); animation: frameGlow 2s infinite alternate; }
         .frame-strong { border: 2.5px solid #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.7); }
+        .frame-medium { border: 2.5px solid #10b981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.6); }
+        .frame-weak { border: 2.5px solid #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.6); }
         @keyframes frameGlow { 0% { opacity: 0.7; } 100% { opacity: 1; } }
 
         .rank-tag { font-size: 0.53rem; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
@@ -321,6 +324,7 @@
             border: 1px solid var(--card-border);
             box-shadow: 0 1px 4px rgba(0,0,0,0.08);
             width: 100%;
+            cursor: pointer;
         }
 
         .message-item.me .msg-bubble { background: var(--bubble-me); color: white; border-top-left-radius: 2px; border-color: rgba(255,255,255,0.15); }
@@ -366,6 +370,82 @@
         .poll-option:hover { background: var(--primary); color: white; }
         .reply-trigger-btn { background: none; border: none; color: var(--primary); font-size: 0.63rem; cursor: pointer; font-weight: bold; }
         
+        /* تأثيرات التفاعلات على الرسائل */
+        .msg-reactions-row {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 2px;
+        }
+        .reaction-chip {
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
+            border-radius: 10px;
+            padding: 1px 5px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+        }
+
+        /* قائمة الضغط المطول العائمة (واتساب ستايل) */
+        .message-context-menu {
+            position: fixed;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: none;
+            flex-direction: column;
+            z-index: 5000;
+            backdrop-filter: blur(16px);
+            min-width: 140px;
+            overflow: hidden;
+        }
+        .message-context-menu.active { display: flex; }
+        .ctx-menu-item {
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            color: var(--text-main);
+            background: none;
+            border: none;
+            text-align: right;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .ctx-menu-item:last-child { border-bottom: none; }
+        .ctx-menu-item:hover { background: var(--primary); color: white; }
+
+        /* قائمة تفاعلات الإيموشن السريعة (سنتين / 10-12 إيموشن) */
+        .quick-emoji-popup {
+            position: fixed;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 6px 10px;
+            display: none;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            box-shadow: var(--shadow);
+            z-index: 5001;
+            backdrop-filter: blur(16px);
+        }
+        .quick-emoji-popup.active { display: grid; }
+        .emoji-option-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 50%;
+            text-align: center;
+        }
+        .emoji-option-btn:hover { background: var(--btn-bg); transform: scale(1.2); }
+
         .voice-note-player { 
             display: flex; 
             align-items: center; 
@@ -583,6 +663,30 @@
             <!-- حاوية الرسائل الديناميكية المزامنة السحابية الفورية -->
         </div>
 
+        <!-- قائمة الضغط المطول العائمة (واتساب ستايل) -->
+        <div class="message-context-menu" id="messageContextMenu">
+            <button class="ctx-menu-item" onclick="ctxActionCopy()">📋 نسخ الرسالة</button>
+            <button class="ctx-menu-item" onclick="ctxActionReply()">↩ الرد على الرسالة</button>
+            <button class="ctx-menu-item" onclick="ctxActionReact()">⭐ تفاعل</button>
+            <button class="ctx-menu-item" id="ctxDeleteBtn" onclick="ctxActionDelete()" style="color:var(--danger);">🗑 حذف الرسالة</button>
+        </div>
+
+        <!-- قائمة تفاعلات الإيموشن السريعة (تظهر عند الضغط المزدوج أو خيار التفاعل) -->
+        <div class="quick-emoji-popup" id="quickEmojiPopup">
+            <button class="emoji-option-btn" onclick="sendReaction('❤️')">❤️</button>
+            <button class="emoji-option-btn" onclick="sendReaction('👍')">👍</button>
+            <button class="emoji-option-btn" onclick="sendReaction('🔥')">🔥</button>
+            <button class="emoji-option-btn" onclick="sendReaction('👏')">👏</button>
+            <button class="emoji-option-btn" onclick="sendReaction('💡')">💡</button>
+            <button class="emoji-option-btn" onclick="openAllEmojisPicker()">➕</button>
+            <button class="emoji-option-btn" onclick="sendReaction('📚')">📚</button>
+            <button class="emoji-option-btn" onclick="sendReaction('⭐')">⭐</button>
+            <button class="emoji-option-btn" onclick="sendReaction('✨')">✨</button>
+            <button class="emoji-option-btn" onclick="sendReaction('🎉')">🎉</button>
+            <button class="emoji-option-btn" onclick="sendReaction('💯')">💯</button>
+            <button class="emoji-option-btn" onclick="sendReaction('🎓')">🎓</button>
+        </div>
+
         <!-- شريط حالة تسجيل الريكورد الصوتي المباشر -->
         <div class="recording-status-bar" id="recordingStatusBar">
             <span id="recordingTimerText">🔴 جاري تسجيل الريكورد الصوتي... (0 ثانية)</span>
@@ -746,10 +850,10 @@
         </div>
     </div>
 
-    <!-- نافذة عرض البروفايل -->
+    <!-- نافذة عرض البروفايل (بثيم التأثيرات الموحد الصحيح) -->
     <div class="modal-overlay" id="userProfileModal" onclick="if(event.target===this) closeUserProfileModal()">
         <div class="modal-card" style="text-align: center; align-items: center;">
-            <div class="avatar-with-frame" style="margin-bottom: 6px;">
+            <div class="avatar-with-frame" style="margin-bottom: 6px; width: 78px; height: 78px; display: flex; align-items: center; justify-content: center;">
                 <img id="profileModalAvatar" src="" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover;" alt="الصورة الشخصية">
                 <div id="profileModalFrameOverlay" class="profile-frame-overlay"></div>
             </div>
@@ -838,12 +942,13 @@
         let currentUser = {
             uid: localStorage.getItem('chat_uid') || localStorage.getItem('currentStudentUid') || 'girl_' + Math.random().toString(36).substring(2, 9),
             studentId: localStorage.getItem('currentStudentId') || 'STU-0001',
-            name: localStorage.getItem('chat_name') || localStorage.getItem('currentStudentName') || 'طالبة متميزة',
-            rank: localStorage.getItem('chat_rank') || 'strong',
+            name: localStorage.getItem('chat_name') || localStorage.getItem('currentStudentName') || 'طالبة مكافحة',
+            rank: localStorage.getItem('chat_rank') || 'weak',
+            points: parseInt(localStorage.getItem('chat_points') || localStorage.getItem('currentStudentPoints') || '10'),
             gender: 'female',
             streak: parseInt(localStorage.getItem('chat_streak') || '0'),
             avatar: localStorage.getItem('chat_avatar') || localStorage.getItem('currentStudentAvatar') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-            frame: localStorage.getItem('chat_frame') || 'frame-legendary',
+            frame: localStorage.getItem('chat_frame') || 'frame-weak',
             email: localStorage.getItem('currentStudentEmail') || 'student.girl@gmail.com',
             phone: localStorage.getItem('currentStudentPhone') || '01012345678',
             isAdmin: localStorage.getItem('chat_is_admin') === 'true' || localStorage.getItem('isAdmin') === 'true',
@@ -865,6 +970,7 @@
         let recordingSeconds = 0;
         let recordingTimerInterval = null;
         let recordedVoiceBase64 = null;
+        let selectedMessageForCtx = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
@@ -875,6 +981,16 @@
             syncStudentCloudProfile();
             updateOnlinePresence();
             setInterval(updateOnlinePresence, 15000);
+
+            // إغلاق القوائم عند النقر في أي مكان خارجها
+            window.addEventListener('click', (e) => {
+                if(!e.target.closest('.message-context-menu') && !e.target.closest('.message-item')) {
+                    document.getElementById('messageContextMenu').classList.remove('active');
+                }
+                if(!e.target.closest('.quick-emoji-popup')) {
+                    document.getElementById('quickEmojiPopup').classList.remove('active');
+                }
+            });
         });
 
         async function syncStudentCloudProfile() {
@@ -892,9 +1008,10 @@
                     let data = docSnap.data();
                     currentUser.name = data.fullName || data.name || currentUser.name;
                     currentUser.studentId = data.studentId || data.id || currentUser.studentId;
-                    currentUser.rank = data.rank || currentUser.rank;
+                    currentUser.points = data.points !== undefined ? parseInt(data.points) : currentUser.points;
+                    currentUser.rank = determineRankByPoints(currentUser.points);
                     currentUser.avatar = data.profileImage || data.avatar || currentUser.avatar;
-                    currentUser.frame = data.frame || currentUser.frame;
+                    currentUser.frame = determineFrameByRank(currentUser.rank);
                     currentUser.email = data.email || currentUser.email;
                     currentUser.phone = data.phone || data.studentPhone || data.parentPhone || currentUser.phone;
                     if(data.streak !== undefined) currentUser.streak = parseInt(data.streak);
@@ -902,6 +1019,7 @@
                     localStorage.setItem('chat_name', currentUser.name);
                     localStorage.setItem('currentStudentId', currentUser.studentId);
                     localStorage.setItem('chat_rank', currentUser.rank);
+                    localStorage.setItem('chat_points', currentUser.points);
                     localStorage.setItem('chat_avatar', currentUser.avatar);
                     localStorage.setItem('chat_frame', currentUser.frame);
                     localStorage.setItem('chat_streak', currentUser.streak);
@@ -912,11 +1030,29 @@
             updateUserProfileUI();
         }
 
+        function determineRankByPoints(pts) {
+            if(pts >= 500) return 'legendary';
+            if(pts >= 300) return 'very-strong';
+            if(pts >= 150) return 'strong';
+            if(pts >= 50) return 'medium';
+            return 'weak';
+        }
+
+        function determineFrameByRank(rankCode) {
+            switch(rankCode) {
+                case 'legendary': return 'frame-legendary';
+                case 'very-strong': return 'frame-legendary';
+                case 'strong': return 'frame-strong';
+                case 'medium': return 'frame-medium';
+                default: return 'frame-weak';
+            }
+        }
+
         function updateUserProfileUI() {
             document.getElementById('coreDayNumber').innerText = currentUser.streak;
             document.getElementById('treeStreakCountDisplay').innerText = `${currentUser.streak} يوم`;
             document.getElementById('settingUsernameDisplay').innerText = currentUser.name;
-            document.getElementById('settingRankDisplay').innerText = getRankArabicName(currentUser.rank);
+            document.getElementById('settingRankDisplay').innerText = `${getRankArabicName(currentUser.rank)} (${currentUser.points} نقطة)`;
         }
 
         function openStreakTreeModal() {
@@ -1049,8 +1185,10 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = `message-item ${isMe ? 'me' : ''}`;
 
-            const rankClass = `rank-${msg.rank || 'strong'}`;
-            const rankLabel = getRankArabicName(msg.rank);
+            const rankCode = msg.rank || 'weak';
+            const rankClass = `rank-${rankCode}`;
+            const rankLabel = getRankArabicName(rankCode);
+            const ptsVal = msg.points !== undefined ? msg.points : 10;
             const timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'الآن';
 
             let replyHtml = '';
@@ -1060,16 +1198,16 @@
 
             let contentBody = '';
             if(msg.type === 'text') {
-                contentBody = `<div class="msg-bubble">${linkify(msg.text)}</div>`;
+                contentBody = `<div class="msg-bubble" data-msgid="${msg.id}" data-msgtext="${encodeURIComponent(msg.text || '')}">${linkify(msg.text)}</div>`;
             } else if(msg.type === 'image') {
                 contentBody = `
-                    <div class="msg-bubble" style="padding:4px;">
+                    <div class="msg-bubble" style="padding:4px;" data-msgid="${msg.id}" data-msgtext="${encodeURIComponent(msg.text || 'صورة')}">
                         <img src="${msg.fileUrl}" class="msg-image" onclick="openImageViewer(this.src)">
                         ${msg.text ? '<div style="margin-top:2px;">' + linkify(msg.text) + '</div>' : ''}
                     </div>`;
             } else if(msg.type === 'file') {
                 contentBody = `
-                    <div class="msg-bubble">
+                    <div class="msg-bubble" data-msgid="${msg.id}" data-msgtext="${encodeURIComponent(msg.fileName || 'مستند')}">
                         <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;">
                             <svg style="width:14px;height:14px;fill:currentColor;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                             <a href="${msg.fileUrl}" target="_blank" style="color:inherit; font-weight:bold; font-size:0.75rem; text-decoration:underline;">${msg.fileName || 'مستند مرفق'}</a>
@@ -1078,7 +1216,7 @@
                     </div>`;
             } else if(msg.type === 'voice') {
                 contentBody = `
-                    <div class="msg-bubble" style="padding:4px;">
+                    <div class="msg-bubble" style="padding:4px;" data-msgid="${msg.id}" data-msgtext="ريكورد صوتي">
                         <div class="voice-note-player">
                             <button class="voice-play-btn" onclick="toggleVoicePlay(this, '${msg.fileUrl}')">▶</button>
                             <div class="voice-body-container">
@@ -1112,7 +1250,7 @@
                     });
                 }
                 contentBody = `
-                    <div class="msg-bubble">
+                    <div class="msg-bubble" data-msgid="${msg.id}" data-msgtext="تصويت: ${msg.question}">
                         <div class="poll-box">
                             <div style="font-weight:bold; margin-bottom:5px; font-size:0.73rem;">📊 ${msg.question}</div>
                             ${optionsHtml}
@@ -1121,13 +1259,23 @@
                     </div>`;
             } else if(msg.type === 'ask') {
                 contentBody = `
-                    <div class="msg-bubble">
+                    <div class="msg-bubble" data-msgid="${msg.id}" data-msgtext="سؤال: ${msg.question}">
                         <div class="ask-box">
                             <div style="font-weight:bold; color:var(--primary); margin-bottom:2px; font-size:0.7rem;">❓ سؤال دراسي:</div>
                             <div style="font-size:0.75rem; margin-bottom:5px;">${msg.question}</div>
                             <button class="modal-btn" style="padding:3px 6px; font-size:0.63rem;" onclick="replyToAsk('${msg.id}', '${msg.name}')">الإجابة</button>
                         </div>
                     </div>`;
+            }
+
+            // عرض التفاعلات تحت الفقاعة إذا وجدت
+            let reactionsHtml = '';
+            if(msg.reactions && Object.keys(msg.reactions).length > 0) {
+                reactionsHtml = `<div class="msg-reactions-row">`;
+                for(let emoji in msg.reactions) {
+                    reactionsHtml += `<span class="reaction-chip">${emoji} ${msg.reactions[emoji].length}</span>`;
+                }
+                reactionsHtml += `</div>`;
             }
 
             let femaleSvg = `<span class="gender-icon-badge" title="أنثى">
@@ -1139,15 +1287,16 @@
             </span>`;
 
             itemDiv.innerHTML = `
-                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">
+                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankCode}', '${msg.avatar}', '${msg.frame}', ${ptsVal})">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${msg.rank}', '${msg.avatar}', '${msg.frame}')">${msg.name} ${femaleSvg}</span>
-                        <span class="rank-tag ${rankClass}">${rankLabel}</span>
+                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankCode}', '${msg.avatar}', '${msg.frame}', ${ptsVal})">${msg.name} ${femaleSvg}</span>
+                        <span class="rank-tag ${rankClass}">${rankLabel} (${ptsVal} نقطة)</span>
                     </div>
                     <div class="msg-bubble-container">
                         ${replyHtml}
                         ${contentBody}
+                        ${reactionsHtml}
                         <div class="msg-footer-row">
                             <button class="reply-trigger-btn" onclick="prepareReply('${msg.id}', '${msg.name}', '${msg.text || (msg.type === 'voice' ? 'ريكورد' : 'مرفق')}')">↩ رد</button>
                             <span class="msg-time">${timeStr}</span>
@@ -1156,7 +1305,134 @@
                 </div>
             `;
 
+            // إضافة تفاعلات الضغط المطول (Long Press) والضغط المزدوج (Double Click)
+            const bubbleEl = itemDiv.querySelector('.msg-bubble');
+            let pressTimer = null;
+
+            bubbleEl.addEventListener('mousedown', (e) => {
+                pressTimer = setTimeout(() => { openContextMenu(e, msg.id, msg.uid, msg.text || ''); }, 600);
+            });
+            bubbleEl.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
+            bubbleEl.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
+
+            bubbleEl.addEventListener('touchstart', (e) => {
+                pressTimer = setTimeout(() => { openContextMenu(e.touches[0], msg.id, msg.uid, msg.text || ''); }, 600);
+            });
+            bubbleEl.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+
+            // تفاعل الضغط المزدوج (Double Click) لإظهار نافذة الإيموشنات السريعة
+            bubbleEl.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openQuickEmojis(e, msg.id);
+            });
+
             chatMessages.appendChild(itemDiv);
+        }
+
+        // دوال القائمة العائمة (Context Menu) والضغط المطول
+        function openContextMenu(e, msgId, authorUid, msgText) {
+            e.preventDefault();
+            selectedMessageForCtx = { id: msgId, uid: authorUid, text: decodeURIComponent(msgText) };
+            const menu = document.getElementById('messageContextMenu');
+            
+            // إظهار أو إخفاء زر الحذف بناءً على ملكية الرسالة أو الأدمن
+            const deleteBtn = document.getElementById('ctxDeleteBtn');
+            if(authorUid === currentUser.uid || currentUser.isAdmin) {
+                deleteBtn.style.display = 'flex';
+            } else {
+                deleteBtn.style.display = 'none';
+            }
+
+            let posX = e.clientX || (e.touches && e.touches[0].clientX) || 100;
+            let posY = e.clientY || (e.touches && e.touches[0].clientY) || 100;
+
+            menu.style.left = Math.min(posX, window.innerWidth - 160) + 'px';
+            menu.style.top = Math.min(posY, window.innerHeight - 180) + 'px';
+            menu.classList.add('active');
+        }
+
+        function ctxActionCopy() {
+            if(selectedMessageForCtx && selectedMessageForCtx.text) {
+                navigator.clipboard.writeText(selectedMessageForCtx.text).then(() => {
+                    alert('تم نسخ الرسالة بنجاح!');
+                });
+            }
+            document.getElementById('messageContextMenu').classList.remove('active');
+        }
+
+        function ctxActionReply() {
+            if(selectedMessageForCtx) {
+                prepareReply(selectedMessageForCtx.id, 'عضو', selectedMessageForCtx.text);
+            }
+            document.getElementById('messageContextMenu').classList.remove('active');
+        }
+
+        function ctxActionReact() {
+            if(selectedMessageForCtx) {
+                const pop = document.getElementById('quickEmojiPopup');
+                pop.style.left = '50%';
+                pop.style.top = '50%';
+                pop.style.transform = 'translate(-50%, -50%)';
+                pop.dataset.targetMsgId = selectedMessageForCtx.id;
+                pop.classList.add('active');
+            }
+            document.getElementById('messageContextMenu').classList.remove('active');
+        }
+
+        function ctxActionDelete() {
+            if(selectedMessageForCtx) {
+                if(confirm('هل أنت متأكدة من حذف هذه الرسالة؟')) {
+                    db.collection('rooms').doc(currentRoomId).collection('messages').doc(selectedMessageForCtx.id).delete()
+                        .catch(err => alert('تعذر الحذف: ' + err.message));
+                }
+            }
+            document.getElementById('messageContextMenu').classList.remove('active');
+        }
+
+        // دوال تفاعلات الإيموشنات السريعة والكاملة
+        function openQuickEmojis(e, msgId) {
+            const pop = document.getElementById('quickEmojiPopup');
+            pop.dataset.targetMsgId = msgId;
+            let posX = e.clientX || 150;
+            let posY = e.clientY || 150;
+            pop.style.left = Math.min(posX, window.innerWidth - 220) + 'px';
+            pop.style.top = Math.max(posY - 70, 20) + 'px';
+            pop.style.transform = 'none';
+            pop.classList.add('active');
+        }
+
+        function sendReaction(emoji) {
+            const pop = document.getElementById('quickEmojiPopup');
+            const msgId = pop.dataset.targetMsgId;
+            if(!msgId) return;
+
+            const msgRef = db.collection('rooms').doc(currentRoomId).collection('messages').doc(msgId);
+            db.runTransaction(transaction => {
+                return transaction.get(msgRef).then(doc => {
+                    if(!doc.exists) return;
+                    let data = doc.data();
+                    let reactions = data.reactions || {};
+                    if(!reactions[emoji]) reactions[emoji] = [];
+                    
+                    // إزالة تفاعل المستخدم القديم إن وجد وإضافته للتفاعل الجديد
+                    for(let em in reactions) {
+                        reactions[em] = reactions[em].filter(u => u !== currentUser.uid);
+                        if(reactions[em].length === 0) delete reactions[em];
+                    }
+                    
+                    reactions[emoji].push(currentUser.uid);
+                    transaction.update(msgRef, { reactions: reactions });
+                });
+            }).catch(err => console.error(err));
+
+            pop.classList.remove('active');
+        }
+
+        function openAllEmojisPicker() {
+            let customEmoji = prompt('أدخلي أي إيموشن ترغبين به (مثال: 🚀, 💎, 🎯):');
+            if(customEmoji) {
+                sendReaction(customEmoji.trim());
+            }
         }
 
         function handleMainAction() {
@@ -1170,10 +1446,12 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
+                points: currentUser.points,
                 frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                replyTo: activeReplyData ? { id: activeReplyData.id, name: activeReplyData.name, text: activeReplyData.text } : null
+                replyTo: activeReplyData ? { id: activeReplyData.id, name: activeReplyData.name, text: activeReplyData.text } : null,
+                reactions: {}
             };
 
             if(stagedFileObject) {
@@ -1200,11 +1478,6 @@
             const menu = document.getElementById('attachmentMenu');
             menu.classList.toggle('active');
         }
-
-        window.addEventListener('click', () => {
-            const menu = document.getElementById('attachmentMenu');
-            if(menu) menu.classList.remove('active');
-        });
 
         function stageFile(inputElem, fileType) {
             if(inputElem.files && inputElem.files[0]) {
@@ -1293,12 +1566,14 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
+                points: currentUser.points,
                 frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'voice',
                 fileUrl: recordedVoiceBase64,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                replyTo: null
+                replyTo: null,
+                reactions: {}
             }).then(() => { cancelVoiceRecording(); });
         }
 
@@ -1357,6 +1632,7 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
+                points: currentUser.points,
                 frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'poll',
@@ -1364,7 +1640,8 @@
                 options: options,
                 votes: {},
                 votedUsers: [],
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                reactions: {}
             }).then(() => {
                 closePollModal();
                 document.getElementById('pollQuestionInput').value = '';
@@ -1400,11 +1677,13 @@
                 studentId: currentUser.studentId,
                 name: currentUser.name,
                 rank: currentUser.rank,
+                points: currentUser.points,
                 frame: currentUser.frame,
                 avatar: currentUser.avatar,
                 type: 'ask',
                 question: question,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                reactions: {}
             }).then(() => {
                 closeAskModal();
                 document.getElementById('askQuestionInput').value = '';
@@ -1480,7 +1759,7 @@
                 .catch(err => console.error(err));
         }
 
-        async function showUserProfile(targetUid, fallbackName, fallbackRank, fallbackAvatar, fallbackFrame) {
+        async function showUserProfile(targetUid, fallbackName, fallbackRank, fallbackAvatar, fallbackFrame, fallbackPoints) {
             if(targetUid !== currentUser.uid && !currentUser.isAdmin) {
                 try {
                     let docSnap = await db.collection('students').doc(targetUid).get();
@@ -1495,9 +1774,10 @@
             let profileStudentId = currentUser.studentId || 'STU-0001';
             let profileEmail = currentUser.email || 'student.girl@gmail.com';
             let profilePhone = currentUser.phone || '01012345678';
-            let profileRank = fallbackRank;
+            let profilePoints = fallbackPoints !== undefined ? fallbackPoints : 10;
+            let profileRank = determineRankByPoints(profilePoints);
             let profileAvatar = fallbackAvatar;
-            let profileFrame = fallbackFrame || 'frame-legendary';
+            let profileFrame = determineFrameByRank(profileRank);
 
             try {
                 let docSnap = await db.collection('students').doc(targetUid).get();
@@ -1507,14 +1787,20 @@
                     if(data.studentId || data.id) profileStudentId = data.studentId || data.id;
                     if(data.email) profileEmail = data.email;
                     if(data.phone || data.studentPhone) profilePhone = data.phone || data.studentPhone;
-                    if(data.rank) profileRank = data.rank;
+                    if(data.points !== undefined) {
+                        profilePoints = parseInt(data.points);
+                        profileRank = determineRankByPoints(profilePoints);
+                        profileFrame = determineFrameByRank(profileRank);
+                    } else if(data.rank) {
+                        profileRank = data.rank;
+                        profileFrame = determineFrameByRank(profileRank);
+                    }
                     if(data.profileImage || data.avatar) profileAvatar = data.profileImage || data.avatar;
-                    if(data.frame) profileFrame = data.frame;
                 }
             } catch(e) {}
 
             document.getElementById('profileModalName').textContent = profileName;
-            document.getElementById('profileModalRankTag').textContent = getRankArabicName(profileRank);
+            document.getElementById('profileModalRankTag').textContent = `${getRankArabicName(profileRank)} (${profilePoints} نقطة)`;
             document.getElementById('profileModalRankTag').className = `rank-tag rank-${profileRank}`;
             document.getElementById('profileModalAvatar').src = profileAvatar;
             document.getElementById('profileModalStudentId').textContent = profileStudentId;
@@ -1578,7 +1864,7 @@
                 'very-strong': 'قوي جداً',
                 'legendary': 'أسطوري'
             };
-            return ranks[rankCode] || 'قوي';
+            return ranks[rankCode] || 'ضعيف';
         }
 
         function openImageViewer(url) {
