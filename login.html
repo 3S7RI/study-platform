@@ -5,23 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
     
-    <!-- التحقق اللحظي والفوري من الجلسة وتوجيه الحساب الحقيقي (أدمن أو طالب) بدون أي حسابات وهمية -->
+    <!-- التحقق الأوتوماتيكي للطلاب فقط (تم استثناء الأدمن لزيادة الأمان وعدم حفظ جلسته أوتوماتيكياً) -->
     <script>
         (function() {
             const loginTime = localStorage.getItem('platform_login_time');
             const userType = localStorage.getItem('platform_user_type'); // 'admin' أو 'student'
             
             if (loginTime && userType) {
-                const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-                if (hoursPassed <= 48) {
-                    if (userType === 'admin') {
-                        window.location.replace('admin.html');
-                    } else if (userType === 'student') {
-                        window.location.replace('main.html');
-                    }
-                } else {
+                // إذا كان المستخدم الأخير مسجلاً كأدمن، نقوم بمسح الجلسة فوراً لعدم تفعيل الـ 48 ساعة له
+                if (userType === 'admin') {
                     localStorage.clear();
                     sessionStorage.clear();
+                } else {
+                    // خاصية الـ 48 ساعة تعمل للطلاب فقط
+                    const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
+                    if (hoursPassed <= 48) {
+                        window.location.replace('main.html');
+                    } else {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                    }
                 }
             }
         })();
@@ -448,8 +451,7 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // تخزين بيانات جلسة الأدمن الحقيقي بوضوح تام لمنع أي التباس ببروفايل الطالب
-                    localStorage.setItem('platform_login_time', Date.now().toString());
+                    // للأدمن: لا نقوم بتفعيل خاصية الـ 48 ساعة أوتوماتيكياً (لن يتم حفظ وقت الدخول للأدمن لضمان طلب تسجيل الدخول دائماً للأمان)
                     localStorage.setItem('platform_user_type', 'admin');
                     localStorage.setItem('isAdmin', 'true');
                     
@@ -475,7 +477,7 @@
                     const studentData = studentSnap.data();
                     const studentDataString = JSON.stringify(studentData);
                     
-                    // تخزين بيانات جلسة الطالب الحقيقي بوضوح تام
+                    // للطلاب: نقوم بتفعيل خاصية الـ 48 ساعة بشكل طبيعي
                     localStorage.setItem('platform_login_time', Date.now().toString());
                     localStorage.setItem('platform_user_type', 'student');
                     localStorage.setItem('isAdmin', 'false');
