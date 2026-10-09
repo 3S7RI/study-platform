@@ -14,8 +14,10 @@
             --navbar-bg: rgba(15, 23, 42, 0.9);
             --btn-bg: rgba(255, 255, 255, 0.1);
             --btn-border: rgba(255, 255, 255, 0.15);
-            --primary: #f59e0b;
-            --primary-hover: #d97706;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
             --shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
 
@@ -28,8 +30,10 @@
             --navbar-bg: rgba(255, 255, 255, 0.9);
             --btn-bg: rgba(0, 0, 0, 0.05);
             --btn-border: rgba(0, 0, 0, 0.1);
-            --primary: #d97706;
-            --primary-hover: #b45309;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
             --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         }
 
@@ -70,7 +74,16 @@
             border: 2px solid var(--primary);
         }
 
-        .profile-nav-btn span { color: var(--text-main); font-weight: bold; font-size: 0.9rem; white-space: nowrap; }
+        .profile-nav-btn span { color: var(--text-main); font-weight: bold; font-size: 0.9rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+
+        /* أيقونات النوع SVG الموحدة للأولاد والبنات */
+        .gender-icon-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 20px; height: 20px; border-radius: 50%; vertical-align: middle;
+        }
+        .gender-icon-badge.male { background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; }
+        .gender-icon-badge.female { background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; }
+        .gender-icon-badge svg { width: 12px; height: 12px; }
 
         .back-home-btn {
             background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--text-main); padding: 8px 16px;
@@ -178,7 +191,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // إعدادات مشروعك في فايربيس
         const firebaseConfig = {
           apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
           authDomain: "study-trip-1.firebaseapp.com",
@@ -192,7 +204,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- نظام الثيم الداكن والفاتح ---
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const htmlTag = document.documentElement;
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -212,7 +223,6 @@
             }
         });
 
-        // --- التحقق من sessionStorage فقط ---
         const isLoggedIn = sessionStorage.getItem('isLoggedIn');
         const rawUserData = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser');
         const userData = rawUserData ? JSON.parse(rawUserData) : null;
@@ -224,21 +234,52 @@
 
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
+        // دالة تحديد ما إذا كانت الطالبة أنثى
+        function isFemaleStudent(stu) {
+            let gender = (stu.gender || stu.type || '').toLowerCase();
+            if (gender === 'female' || gender === 'بنت' || gender === 'طالبة') return true;
+            let rawName = (stu.fullName || stu.name || '').toLowerCase();
+            if (rawName.includes('ة') && !rawName.includes('محمد') && !rawName.includes('أحمد')) return true;
+            return false;
+        }
+
+        // دالة توليد أيقونة النوع SVG الموحدة
+        function getGenderSvgHtml(female) {
+            if (female) {
+                return `<span class="gender-icon-badge female" title="أنثى">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="10" r="5"></circle>
+                        <line x1="12" y1="15" x2="12" y2="21"></line>
+                        <line x1="9" y1="18" x2="15" y2="18"></line>
+                    </svg>
+                </span>`;
+            } else {
+                return `<span class="gender-icon-badge male" title="ذكر">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="5"></circle>
+                        <line x1="21" y1="3" x2="14" y2="10"></line>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                    </svg>
+                </span>`;
+            }
+        }
+
         if (userData) {
             const studentName = userData.fullName || userData.name || 'طالبنا العزيز';
             const firstName = studentName.trim().split(' ')[0];
+            const female = isFemaleStudent(userData);
+            const genderSvg = getGenderSvgHtml(female);
+
             document.getElementById('statsTitle').innerText = `إحصائيات وتقارير الطالب: ${firstName}`;
-            document.getElementById('navStudentName').innerText = firstName;
+            document.getElementById('navStudentName').innerHTML = `${firstName} ${genderSvg}`;
             document.getElementById('navProfileImg').src = userData.profileImage || userData.avatar || defaultMaleSvg;
             
-            // جلب الإحصائيات مباشرة من فايربيس
             fetchCloudStats(userData.email || userData.studentId || userData.id);
         }
 
         async function fetchCloudStats(identifier) {
             if (!identifier) return;
             try {
-                // افتراض تخزين مستخدمي المنصة داخل مصفوفة في قاعدة بيانات فايربيس (تحديث حسب هيكلتك)
                 const docRef = doc(db, "config", "platform data");
                 const docSnap = await getDoc(docRef);
 
