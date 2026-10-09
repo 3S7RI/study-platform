@@ -143,7 +143,8 @@
         .file-upload-text { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         
         .form-row-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        @media (max-width: 768px) { .form-row-grid-3 { grid-template-columns: 1fr; } }
+        .form-row-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        @media (max-width: 768px) { .form-row-grid-3, .form-row-grid-2 { grid-template-columns: 1fr; } }
 
         .btn-save { background: var(--success); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82rem; margin-top: 15px; width: 100%; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
@@ -161,7 +162,6 @@
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
-                <!-- تم استبدال أيقونة الترس الـ SVG بإيموجي الترس العادي -->
                 <a href="exam-settings.html" class="btn-tab active">الإعدادات ⚙️</a>
                 <a href="exam-stats.html" class="btn-tab">إحصائيات 📊</a>
             </div>
@@ -196,12 +196,27 @@
                 <div class="setting-card"><label for="settingAntiCheat">منع مغادرة الصفحة وعمل Refresh 🛡️</label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingWelcomeToggle">تفعيل رسالة التنبيه قبل الامتحان 🔔</label><label class="switch"><input type="checkbox" id="settingWelcomeToggle" checked onchange="toggleWelcomeInput()"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingEndMsgToggle">تفعيل رسالة نهاية الامتحان 🏁</label><label class="switch"><input type="checkbox" id="settingEndMsgToggle" checked onchange="toggleEndMsgInput()"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingFullMarkCongrats">تفعيل تهنئة النتيجة الكاملة (+10 نقاط) 🎉</label><label class="switch"><input type="checkbox" id="settingFullMarkCongrats" checked><span class="slider"></span></label></div>
+                
+                <!-- مفتاح تفعيل نظام درجات التقفيل المخصصة -->
+                <div class="setting-card" style="border-color: var(--primary);"><label for="settingEnableBonus" style="color: var(--primary); font-weight: bold;">🎯 تفعيل نظام درجات التقفيل الخاصة</label><label class="switch"><input type="checkbox" id="settingEnableBonus" onchange="toggleBonusPointsInputs(this.checked)"><span class="slider"></span></label></div>
+                
                 <div class="setting-card" style="border-color: var(--success);"><label for="settingHasCertificate" style="color: var(--success); font-weight: bold;">🏆 تفعيل شهادة تقدير (عند التقفيل 100%)</label><label class="switch"><input type="checkbox" id="settingHasCertificate" onchange="toggleCertUploadBox(this.checked)"><span class="slider"></span></label></div>
             </div>
 
-            <!-- صندوق رفع صورة الشهادة الفاضية المصمم بثيم المنصة -->
-            <div class="form-group hidden" id="certUploadSection" style="background: var(--th-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+            <!-- خيارات تحديد النقاط العادية ونقاط التقفيل -->
+            <div class="form-row-grid-2 hidden" id="bonusPointsSection" style="background: var(--th-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+                <div class="form-group" style="margin-top: 0;">
+                    <label style="color: var(--primary);">نقاط الامتحان العادية (الحل الناجح):</label>
+                    <input type="number" id="settingNormalPoints" value="10">
+                </div>
+                <div class="form-group" style="margin-top: 0;">
+                    <label style="color: var(--success);">نقاط التقفيل الإجمالية (عند الدرجة الكاملة):</label>
+                    <input type="number" id="settingBonusPoints" value="15">
+                </div>
+            </div>
+
+            <!-- صندوق رفع صورة الشهادة الفاضية -->
+            <div class="form-group hidden" id="certUploadSection" style="background: var(--th-bg); padding: 14px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 12px;">
                 <label style="color: var(--success); font-weight: bold; margin-bottom: 6px;">📁 ارفع صورة الشهادة الفاضية (قالب الخلفية لتظهر للطالب):</label>
                 <input type="file" id="certImageFileInput" accept="image/*" class="hidden" onchange="updateCertFileName(this)">
                 <div class="custom-file-upload-box" onclick="document.getElementById('certImageFileInput').click()">
@@ -238,7 +253,7 @@
 
 مـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀
 
-و مـتـنساش مـحدش بـيحاول و بـيجـيب صـفر👀🤍
+و مـتـنساش مـحدش بـيحاول و بـيج-يب صـفر👀🤍
 
 (ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) 
 
@@ -259,7 +274,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (Modular v10) -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -283,7 +298,7 @@
 
         const DEFAULT_WELCOME_TEXT = `تـنـبـيه قـبل دخـول الإمـتـحـان🫰🏻🤍\n\n1.الشاشه هتبقا في الـوضـع الـكامل يـعـنـۍ مـش هـتـعـرف تـخـرج مـن الإمـتـحـان إلا لـما تـخـلص خـالص و تـسـلم الإمـتـحـان\n\n2.لـو عـمـلـت تـحـديـث للـصـفـحة او خـرجـت مـن الـمـنـصة و دخـلـت تـانـۍ الإمـتـحـان هـيـتـسلم تـلقـائۍ حـتـا لـو مـحـلـتش حـاجـه\n\n3.تـاكـد مـن اجـاباتـك قـبـل تـسـلـيم الإمـتـحـان لـتـجـنب الأخـطاء\n\nبـس كـده حـل بـتـركـيز و مـتـنساش ادعـيـة الإمـتـحـان و مـتـنساش تـصـلـۍ عـلـۍ الـنـبـۍ (لـو مـسـيحۍ كـلـنا اخـوات و كـل مـن لـيه نـبـۍ يـصلـۍ عـلـيه) مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق🫰🏻🤍`;
 
-        const DEFAULT_END_TEXT = `عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍\n\nانـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀\n\nمـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀\n\nو مـتـنساش مـحدش بـيحاول و بـيجـيب صـفر👀🤍\n\n(ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) \n\nالـمهم فـا الاهـم مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق 🫰🏻👀🤍`;
+        const DEFAULT_END_TEXT = `عـاش يـا بـطـل انـا شـاكر لـجهـودك🫰🏻🤍\n\nانـت عـملـت اللـۍ عـليـك و الـباقـۍ عـلـۍ ربـنـا🤲🏻🫀\n\nمـتـنساش ادعـيـة بـعد الإمـتـحـان يـحـب🤲🏻👀\n\nو مـتـنساش مـحدش بـيحاول و بـيج-يب صـفر👀🤍\n\n(ولو جبت صفر المشكلة مش فيك ربنا كاتبلك كده تقبل الوضع و حاول مره و اتنين و تلاته لحد ما تبقي قدام مصيرك و هتنفع و هترجع تقول كان عندك حق✨👀) \n\nالـمهم فـا الاهـم مـع اطـيـب تـمـنـياتـۍ لـكم بـ النـجـاح و الـتـوفـيق 🫰🏻👀🤍`;
 
         function loadExamsFromCacheInstant() {
             let cached = sessionStorage.getItem('cachedExamsListForSettings');
@@ -391,7 +406,13 @@
             document.getElementById('settingInstantResult').checked = s.instantResult !== false;
             document.getElementById('settingFullScreen').checked = !!s.fullScreen;
             document.getElementById('settingAntiCheat').checked = !!s.antiCheat;
-            document.getElementById('settingFullMarkCongrats').checked = s.fullMarkCongrats !== false;
+
+            // إعدادات درجات التقفيل والدرجات العادية
+            let enableBonus = s.enableBonus === true;
+            document.getElementById('settingEnableBonus').checked = enableBonus;
+            toggleBonusPointsInputs(enableBonus);
+            document.getElementById('settingNormalPoints').value = s.normalPoints !== undefined ? s.normalPoints : 10;
+            document.getElementById('settingBonusPoints').value = s.bonusPoints !== undefined ? s.bonusPoints : 15;
 
             let hasCert = s.hasCertificate === true;
             document.getElementById('settingHasCertificate').checked = hasCert;
@@ -442,6 +463,12 @@
             else group.classList.add('hidden');
         };
 
+        window.toggleBonusPointsInputs = function(isChecked) {
+            let section = document.getElementById('bonusPointsSection');
+            if (isChecked) section.classList.remove('hidden');
+            else section.classList.add('hidden');
+        };
+
         window.toggleCertUploadBox = function(isChecked) {
             let section = document.getElementById('certUploadSection');
             if (isChecked) section.classList.remove('hidden');
@@ -466,6 +493,7 @@
             if (!selectedId) { alert('يرجى اختيار امتحان أولاً من القائمة!'); return; }
 
             let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
+            let enableBonusChecked = document.getElementById('settingEnableBonus').checked;
             let hasCertChecked = document.getElementById('settingHasCertificate').checked;
             let certImageUrlVal = document.getElementById('settingCertImageUrl').value.trim();
 
@@ -483,7 +511,9 @@
                 instantResult: document.getElementById('settingInstantResult').checked,
                 fullScreen: document.getElementById('settingFullScreen').checked,
                 antiCheat: document.getElementById('settingAntiCheat').checked,
-                fullMarkCongrats: document.getElementById('settingFullMarkCongrats').checked,
+                enableBonus: enableBonusChecked,
+                normalPoints: enableBonusChecked ? (parseInt(document.getElementById('settingNormalPoints').value) || 10) : 10,
+                bonusPoints: enableBonusChecked ? (parseInt(document.getElementById('settingBonusPoints').value) || 15) : 10,
                 hasCertificate: hasCertChecked,
                 certImageUrl: certImageUrlVal,
                 welcomeToggle: document.getElementById('settingWelcomeToggle').checked,
@@ -506,7 +536,7 @@
                     sessionStorage.setItem('cachedExamsListForSettings', JSON.stringify(globalExamsList));
                 }
 
-                alert('✔ تم حفظ وتفعيل إعدادات الامتحان والشهادة بنجاح في السحابة!');
+                alert('✔ تم حفظ وتفعيل إعدادات الامتحان والدرجات بنجاح في السحابة!');
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء حفظ الإعدادات في السحابة.");
