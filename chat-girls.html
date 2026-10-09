@@ -139,20 +139,21 @@
         .header-settings-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .header-settings-btn svg { width: 12px; height: 12px; fill: currentColor; }
 
+        /* جعل أزرار الغرف متساوية وتأخذ عرض الشاشة بالتساوي */
         .rooms-selector-bar {
             display: flex;
             gap: 5px;
             width: 100%;
             max-width: 850px;
             margin-bottom: 3px;
-            overflow-x: auto;
             flex-shrink: 0;
         }
         .room-tab-btn {
+            flex: 1;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             color: var(--text-sub);
-            padding: 3px 8px;
+            padding: 5px 8px;
             border-radius: 8px;
             font-size: 0.73rem;
             font-weight: bold;
@@ -160,7 +161,9 @@
             white-space: nowrap;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
+            text-align: center;
         }
         .room-tab-btn.active {
             background: var(--primary);
@@ -648,14 +651,12 @@
     </div>
     <div class="chat-container">
         <div class="chat-sub-bar">
-            <div class="online-counter-badge">
-                <div class="online-dot"></div>
-                <span id="onlineCountText">متصلات: 1</span>
-            </div>
+            <!-- نقل زر الإعدادات ليحل محل خانة عدد المتصلين -->
             <button class="header-settings-btn" onclick="openSettingsModal()" title="إعدادات الشات والخصوصية">
                 <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c-.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6-3.6 3.6z"/></svg>
                 الإعدادات
             </button>
+            <div class="online-counter-badge" style="display:none;"><span id="onlineCountText">1</span></div>
             <div class="streak-right-group">
                 <span class="streak-info-text">الاستريك:</span>
                 <div class="core-reactor-wrapper" onclick="openStreakTreeModal()" title="انقري لعرض تفاصيل شجرتك الدراسية ونموها">
@@ -772,7 +773,7 @@
         </div>
     </div>
 
-    <!-- نافذة إعدادات الخصوصية والأمان (محدثة بدون اسم المستخدم والرتبة) -->
+    <!-- نافذة إعدادات الخصوصية والأمان -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-card">
             <h3>⚙️ إعدادات شات الطالبات والخصوصية</h3>
@@ -847,7 +848,7 @@
         </div>
     </div>
 
-    <!-- نافذة عرض البروفايل (بثيم التأثيرات الموحد مع تطابق الإطار والصورة) -->
+    <!-- نافذة عرض البروفايل -->
     <div class="modal-overlay" id="userProfileModal" onclick="if(event.target===this) closeUserProfileModal()">
         <div class="modal-card" style="text-align: center; align-items: center;">
             <div class="avatar-with-frame" style="margin-bottom: 6px;">
@@ -920,7 +921,6 @@
     <div id="imageModalViewer" onclick="closeImageViewer()">
         <img id="fullSizeImageViewer" src="" alt="صورة مكبرة">
     </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -1004,10 +1004,10 @@
                     let data = docSnap.data();
                     currentUser.name = data.fullName || data.name || currentUser.name;
                     currentUser.studentId = data.studentId || data.id || currentUser.studentId;
-                    currentUser.points = data.points !== undefined ? parseInt(data.points) : currentUser.points;
-                    currentUser.rank = determineRankByPoints(currentUser.points);
+                    currentUser.points = data.points !== undefined ? parseInt(data.points) : (data.totalScore !== undefined ? parseInt(data.totalScore) : currentUser.points);
+                    currentUser.rank = calculateRankByPoints(currentUser.points).rankKey;
                     currentUser.avatar = data.profileImage || data.avatar || currentUser.avatar;
-                    currentUser.frame = determineFrameByRank(currentUser.rank);
+                    currentUser.frame = calculateRankByPoints(currentUser.points).frameClass;
                     currentUser.email = data.email || currentUser.email;
                     currentUser.phone = data.phone || data.studentPhone || data.parentPhone || currentUser.phone;
                     if(data.streak !== undefined) currentUser.streak = parseInt(data.streak);
@@ -1021,26 +1021,23 @@
                     localStorage.setItem('chat_streak', currentUser.streak);
                 }
             } catch(e) {
-                console.error("خطأ في جلب بيانات الطالبة من student-service:", e);
+                console.error("خطأ في جلب بيانات الطالبة:", e);
             }
             updateUserProfileUI();
         }
 
-        function determineRankByPoints(pts) {
-            if(pts >= 500) return 'legendary';
-            if(pts >= 300) return 'very-strong';
-            if(pts >= 150) return 'strong';
-            if(pts >= 50) return 'medium';
-            return 'weak';
-        }
-
-        function determineFrameByRank(rankCode) {
-            switch(rankCode) {
-                case 'legendary': return 'frame-legendary';
-                case 'very-strong': return 'frame-legendary';
-                case 'strong': return 'frame-strong';
-                case 'medium': return 'frame-medium';
-                default: return 'frame-weak';
+        function calculateRankByPoints(score) {
+            let pts = score || 0;
+            if (pts >= 5000) {
+                return { rankKey: 'legendary', title: 'أسطوري', frameClass: 'frame-legendary', badgeClass: 'badge-legendary' };
+            } else if (pts >= 3000) {
+                return { rankKey: 'very-strong', title: 'قوي جداً', frameClass: 'frame-legendary', badgeClass: 'badge-very-strong' };
+            } else if (pts >= 1500) {
+                return { rankKey: 'strong', title: 'قوي', frameClass: 'frame-strong', badgeClass: 'badge-strong' };
+            } else if (pts >= 500) {
+                return { rankKey: 'medium', title: 'متوسط', frameClass: 'frame-medium', badgeClass: 'badge-medium' };
+            } else {
+                return { rankKey: 'weak', title: 'مبتدئ (ضعيف)', frameClass: 'frame-weak', badgeClass: 'badge-weak' };
             }
         }
 
@@ -1079,8 +1076,6 @@
 
         function updateOnlinePresence() {
             if(currentUser.stealthMode) {
-                document.getElementById('onlineCountText').innerText = `متصلات: مخفية`;
-                // في وضع التخفي الحقيقي نزيل الحضور من قاعدة البيانات
                 db.collection('rooms').doc(currentRoomId).collection('presence').doc(currentUser.uid).delete().catch(()=>{});
                 return;
             }
@@ -1090,21 +1085,6 @@
                 name: currentUser.name,
                 lastSeen: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(() => {});
-
-            db.collection('rooms').doc(currentRoomId).collection('presence').get().then(snapshot => {
-                let activeCount = 0;
-                let now = new Date().getTime();
-                snapshot.forEach(doc => {
-                    let data = doc.data();
-                    if(data.lastSeen) {
-                        let diff = now - data.lastSeen.toDate().getTime();
-                        if(diff < 60000) activeCount++;
-                    } else { activeCount++; }
-                });
-                document.getElementById('onlineCountText').innerText = `متصلات: ${Math.max(activeCount, 1)}`;
-            }).catch(() => {
-                document.getElementById('onlineCountText').innerText = `متصلات: 1`;
-            });
         }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -1181,9 +1161,9 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = `message-item ${isMe ? 'me' : ''}`;
 
-            const rankCode = msg.rank || 'weak';
-            const rankClass = `rank-${rankCode}`;
-            const rankLabel = getRankArabicName(rankCode);
+            const rankInfo = calculateRankByPoints(msg.points || 10);
+            const rankClass = `rank-${rankInfo.rankKey}`;
+            const rankLabel = rankInfo.title;
             const ptsVal = msg.points !== undefined ? msg.points : 10;
             const timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'الآن';
 
@@ -1268,7 +1248,7 @@
             if(msg.reactions && Object.keys(msg.reactions).length > 0) {
                 reactionsHtml = `<div class="msg-reactions-row">`;
                 for(let emoji in msg.reactions) {
-                    reactionsHtml += `<span class="reaction-chip">${emoji} ${msg.reactions[emoji].length}</span>`;
+                    reactionsHtml += `<span class="reaction-chip" onclick="sendReaction('${emoji}', '${msg.id}')">${emoji} ${msg.reactions[emoji].length}</span>`;
                 }
                 reactionsHtml += `</div>`;
             }
@@ -1281,12 +1261,11 @@
                 </svg>
             </span>`;
 
-            // ملاحظة: تم إزالة عرض النقاط من الشات بناءً على طلبك تماماً
             itemDiv.innerHTML = `
-                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankCode}', '${msg.avatar}', '${msg.frame}', ${ptsVal})">
+                <img src="${msg.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}" class="msg-avatar" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankInfo.rankKey}', '${msg.avatar}', '${rankInfo.frameClass}', ${ptsVal})">
                 <div class="msg-content-box">
                     <div class="msg-info">
-                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankCode}', '${msg.avatar}', '${msg.frame}', ${ptsVal})">${msg.name} ${femaleSvg}</span>
+                        <span class="msg-name" onclick="showUserProfile('${msg.uid}', '${msg.name}', '${rankInfo.rankKey}', '${msg.avatar}', '${rankInfo.frameClass}', ${ptsVal})">${msg.name} ${femaleSvg}</span>
                         <span class="rank-tag ${rankClass}">${rankLabel}</span>
                     </div>
                     <div class="msg-bubble-container">
@@ -1392,9 +1371,9 @@
             pop.classList.add('active');
         }
 
-        function sendReaction(emoji) {
+        function sendReaction(emoji, targetMsgId = null) {
             const pop = document.getElementById('quickEmojiPopup');
-            const msgId = pop.dataset.targetMsgId;
+            const msgId = targetMsgId || pop.dataset.targetMsgId;
             if(!msgId) return;
 
             const msgRef = db.collection('rooms').doc(currentRoomId).collection('messages').doc(msgId);
@@ -1405,12 +1384,16 @@
                     let reactions = data.reactions || {};
                     if(!reactions[emoji]) reactions[emoji] = [];
                     
-                    for(let em in reactions) {
-                        reactions[em] = reactions[em].filter(u => u !== currentUser.uid);
-                        if(reactions[em].length === 0) delete reactions[em];
+                    if(reactions[emoji].includes(currentUser.uid)) {
+                        reactions[emoji] = reactions[emoji].filter(u => u !== currentUser.uid);
+                        if(reactions[emoji].length === 0) delete reactions[emoji];
+                    } else {
+                        for(let em in reactions) {
+                            reactions[em] = reactions[em].filter(u => u !== currentUser.uid);
+                            if(reactions[em].length === 0) delete reactions[em];
+                        }
+                        reactions[emoji].push(currentUser.uid);
                     }
-                    
-                    reactions[emoji].push(currentUser.uid);
                     transaction.update(msgRef, { reactions: reactions });
                 });
             }).catch(err => console.error(err));
@@ -1424,7 +1407,7 @@
                 sendReaction(customEmoji.trim());
             }
         }
-
+    <script>
         function handleMainAction() {
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
@@ -1697,7 +1680,6 @@
         }
 
         function triggerGroupMention() {
-            // التحقق الحقيقي من تقييد المنشن
             if(currentUser.mentionRestrict && !currentUser.isAdmin) {
                 alert('عذراً، تفعيل تقييد المنشن يمنع استخدام منشن الكل للأعضاء.');
                 return;
@@ -1751,7 +1733,6 @@
         }
 
         async function showUserProfile(targetUid, fallbackName, fallbackRank, fallbackAvatar, fallbackFrame, fallbackPoints) {
-            // الفحص الحقيقي لمنع دخول البروفايل إذا كان مقفلاً
             if(targetUid !== currentUser.uid && !currentUser.isAdmin) {
                 try {
                     let docSnap = await db.collection('students').doc(targetUid).get();
@@ -1767,9 +1748,10 @@
             let profileEmail = currentUser.email || 'student.girl@gmail.com';
             let profilePhone = currentUser.phone || '01012345678';
             let profilePoints = fallbackPoints !== undefined ? fallbackPoints : 10;
-            let profileRank = determineRankByPoints(profilePoints);
+            let rankInfo = calculateRankByPoints(profilePoints);
+            let profileRank = rankInfo.rankKey;
             let profileAvatar = fallbackAvatar;
-            let profileFrame = determineFrameByRank(profileRank);
+            let profileFrame = rankInfo.frameClass;
 
             try {
                 let docSnap = await db.collection('students').doc(targetUid).get();
@@ -1783,21 +1765,18 @@
                     if(data.studentId || data.id) profileStudentId = data.studentId || data.id;
                     if(data.email) profileEmail = data.email;
                     if(data.phone || data.studentPhone) profilePhone = data.phone || data.studentPhone;
-                    if(data.points !== undefined) {
-                        profilePoints = parseInt(data.points);
-                        profileRank = determineRankByPoints(profilePoints);
-                        profileFrame = determineFrameByRank(profileRank);
-                    } else if(data.rank) {
-                        profileRank = data.rank;
-                        profileFrame = determineFrameByRank(profileRank);
+                    if(data.points !== undefined || data.totalScore !== undefined) {
+                        profilePoints = data.points !== undefined ? parseInt(data.points) : parseInt(data.totalScore);
+                        let updatedRank = calculateRankByPoints(profilePoints);
+                        profileRank = updatedRank.rankKey;
+                        profileFrame = updatedRank.frameClass;
                     }
                     if(data.profileImage || data.avatar) profileAvatar = data.profileImage || data.avatar;
                 }
             } catch(e) {}
 
             document.getElementById('profileModalName').textContent = profileName;
-            // عرض النقاط في البروفايل فقط بجانب الرتبة
-            document.getElementById('profileModalRankTag').textContent = `${getRankArabicName(profileRank)} (${profilePoints} نقطة)`;
+            document.getElementById('profileModalRankTag').textContent = `${calculateRankByPoints(profilePoints).title} (${profilePoints} نقطة)`;
             document.getElementById('profileModalRankTag').className = `rank-tag rank-${profileRank}`;
             document.getElementById('profileModalAvatar').src = profileAvatar;
             document.getElementById('profileModalStudentId').textContent = profileStudentId;
@@ -1851,17 +1830,6 @@
 
         function closeUserProfileModal() {
             document.getElementById('userProfileModal').classList.remove('active');
-        }
-
-        function getRankArabicName(rankCode) {
-            const ranks = {
-                'weak': 'ضعيف',
-                'medium': 'متوسط',
-                'strong': 'قوي',
-                'very-strong': 'قوي جداً',
-                'legendary': 'أسطوري'
-            };
-            return ranks[rankCode] || 'ضعيف';
         }
 
         function openImageViewer(url) {
