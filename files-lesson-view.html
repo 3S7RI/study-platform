@@ -171,7 +171,7 @@
     <div class="modal-overlay" id="examPasswordModal">
         <div class="modal-card">
             <h3>🔑 حماية الامتحان بكلمة مرور</h3>
-            <p id="modalPasswordDesc">هذا الامتحان محمي بكلمة مرور. يجدر إدخالها للمتابعة:</p>
+            <p id="modalPasswordDesc">هذا الامتحان محمي بكلمة مرور. يرجى إدخالها للمتابعة:</p>
             <input type="password" id="examPasswordInput" placeholder="اكتب كلمة المرور هنا...">
             <div class="modal-btns">
                 <button class="modal-btn-confirm" onclick="verifyExamPassword()">تأكيد ودخول 🚀</button>
@@ -209,7 +209,7 @@
         let passwordTimerInterval = null;
         let studentActivityData = {};
 
-        // مراقبة أحداث الصفحة العامة (Event Delegation) لضمان عدم ضياع أي ضغطة زر مهما تغير محتوى الـ DOM
+        // مراقبة أحداث الصفحة العامة (Event Delegation)
         document.addEventListener('click', function(e) {
             let actionBtn = e.target.closest('[data-action-type]');
             if (actionBtn) {
@@ -276,7 +276,6 @@
                             let lessonsActivity = userData.lessonsActivity || {};
                             studentActivityData = lessonsActivity[lessonId] || {};
 
-                            // دمج مع الـ LocalStorage كخط دفاع احتياطي فوري
                             if (localStorage.getItem(`local_notes_${lessonId}`)) studentActivityData.studyNotes = true;
                             if (localStorage.getItem(`local_summary_${lessonId}`)) studentActivityData.summarySeen = true;
                             if (localStorage.getItem(`local_video_${lessonId}`)) studentActivityData.videoWatched = true;
@@ -345,19 +344,15 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
 
-        // دالة تسجيل الفتح للأبد محلياً وفي السحابة
         window.triggerContentOpen = async function(contentType) {
             if (!activeLessonId) return;
 
-            // حفظ فوري في LocalStorage كأمان تام للمتصفح
             localStorage.setItem(`local_${contentType}_${activeLessonId}`, 'true');
 
-            // تحديث حالتنا المحلية فوراً
             if (contentType === 'notes') studentActivityData.studyNotes = true;
             if (contentType === 'summary') studentActivityData.summarySeen = true;
             if (contentType === 'video') studentActivityData.videoWatched = true;
 
-            // تحديث واجهة زر الامتحان فوراً دون انتظار السحابة
             renderLessonPage();
 
             if (!currentUserId) return;
@@ -408,7 +403,6 @@
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات
             if (settings.showVideo !== false) {
                 let videos = item.videosList || [];
                 if (videos.length > 0) {
@@ -447,7 +441,6 @@
                 }
             }
 
-            // 2. قائمة الملازم
             if (settings.showNotes !== false) {
                 let notes = item.notesList || [];
                 if (notes.length > 0) {
@@ -480,7 +473,6 @@
                 }
             }
 
-            // 3. قائمة الملخصات
             if (settings.showSummary !== false) {
                 let summaries = item.summariesList || [];
                 if (summaries.length > 0) {
@@ -513,7 +505,6 @@
                 }
             }
 
-            // 4. امتحان الحصة (الشرط الذكي Smart Lock)
             if (settings.showExamSection !== false) {
                 let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
                 if (hasExam) {
