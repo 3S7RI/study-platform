@@ -324,8 +324,9 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
 
-        // دالة موحدة لتسجيل وتحديث النشاط عند الضغط على أي زر محتوى
+        // دالة تسجيل المشاهدة والفتح مرة واحدة للأبد في السحابة
         window.handleContentClick = async function(contentType, url) {
+            // فتح الرابط فوراً في نافذة جديدة إذا وجد
             if (contentType === 'notes' || contentType === 'summary') {
                 if (url && url.trim() !== '') {
                     window.open(url, '_blank');
@@ -346,7 +347,7 @@
 
                 let rewardKey = `${contentType}_rewarded`;
                 
-                // تحديث حالة النشاط المحلي فوراً
+                // تحديد أن المحتوى تم رؤيته للأبد
                 if (contentType === 'notes') act.studyNotes = true;
                 if (contentType === 'summary') act.summarySeen = true;
                 if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
@@ -357,7 +358,7 @@
                 }
                 
                 lessonsActivity[activeLessonId] = act;
-                studentActivityData = act; // تحديث المتغير المحلي الفوري
+                studentActivityData = act; // تحديث النسخة المحلية
 
                 let updatePayload = { lessonsActivity: lessonsActivity };
                 let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
@@ -368,7 +369,7 @@
 
                 await updateDoc(userRef, updatePayload);
 
-                // تحديث واجهة الكارت بالكامل لفتح الامتحان فوراً
+                // إعادة رسم الواجهة لفتح الامتحان فوراً
                 renderLessonPage();
             } catch(e) { console.log("Reward error:", e); }
         };
@@ -494,13 +495,16 @@
             if (settings.showExamSection !== false) {
                 let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
                 if (hasExam) {
-                    let smartLockActive = settings.smartLock !== false;
+                    // إذا لم يتم تفعيل الشرط الذكي أصلاً، يكون الامتحان مفتوحاً دائماً بدون قيود
+                    let smartLockActive = settings.smartLock === true; 
                     let isUnlocked = true;
                     let lockReasonMsg = "";
 
                     if (smartLockActive) {
                         let watchedVideo = studentActivityData.videoWatched === true;
                         let openedNotes = studentActivityData.studyNotes === true;
+                        
+                        // فحص الشرط فقط إذا كان المدرس قد فَعّل الشرط الذكي
                         if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
                             isUnlocked = false;
                             lockReasonMsg = "ملاحظة: يجب مشاهدة فيديو الشرح أولاً لفتح الامتحان 🔒";
