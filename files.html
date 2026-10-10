@@ -77,27 +77,19 @@
         .file-card {
             background: var(--bg-card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow);
             display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-color);
-            border-top: 3px solid var(--primary); position: relative; overflow: hidden; gap: 12px;
+            border-top: 3px solid var(--primary); position: relative; overflow: hidden;
         }
         .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
 
-        .file-icon { font-size: 2rem; margin-bottom: 4px; }
-        .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 4px; }
-        .file-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; }
+        .file-icon { font-size: 2rem; margin-bottom: 10px; }
+        .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 6px; }
+        .file-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
 
-        /* صف العناصر بتصميم أقصى اليمين وأقصى اليسار (زر فتح المربع) */
-        .content-item-row {
+        .file-meta {
             display: flex; justify-content: space-between; align-items: center;
-            background: var(--th-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);
+            font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;
+            border-top: 1px solid var(--border-color); padding-top: 8px;
         }
-        .content-item-name { font-size: 0.82rem; font-weight: bold; color: var(--text-main); }
-        
-        .btn-open-small {
-            background-color: var(--primary); color: white; border: none; padding: 4px 12px;
-            border-radius: 6px; font-weight: bold; font-size: 0.75rem; cursor: pointer;
-            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
-        }
-        .btn-open-small:hover { background-color: var(--primary-hover); }
 
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
@@ -109,22 +101,7 @@
 
         .countdown-box {
             background: var(--th-bg); border: 1px dashed var(--danger); padding: 8px; border-radius: 8px;
-            text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 8px;
-        }
-
-        /* نافذة إدخال كلمة سر الحصة المنبثقة */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px);
-            display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px;
-        }
-        .modal-card {
-            background: var(--bg-card); width: 100%; max-width: 380px; border-radius: 14px;
-            border: 1px solid var(--border-color); padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); text-align: center;
-        }
-        .modal-card input {
-            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; text-align: center; margin: 12px 0; outline: none;
+            text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
     </style>
 </head>
@@ -143,24 +120,11 @@
         </div>
 
         <div id="filesGrid" class="files-grid">
-            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة الحصص والامتحانات من السحابة...</p>
+            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة الحصص من السحابة...</p>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
             جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
-        </div>
-    </div>
-
-    <!-- نافذة طلب كلمة المرور للحصة -->
-    <div class="modal-overlay" id="passwordModal">
-        <div class="modal-card">
-            <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 6px;">🔐 هذه الحصة محمية بكلمة مرور</h3>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">الرجاء إدخال كلمة المرور المعتمدة لفتح الحصة:</p>
-            <input type="password" id="lessonPasswordInput" placeholder="أدخل كلمة المرور...">
-            <div style="display: flex; gap: 8px;">
-                <button onclick="verifyLessonPassword()" style="background: var(--success); color: white; border: none; padding: 8px; border-radius: 8px; font-weight: bold; flex: 1; cursor: pointer;">دخول 🚀</button>
-                <button onclick="document.getElementById('passwordModal').style.display='none'" style="background: var(--danger); color: white; border: none; padding: 8px; border-radius: 8px; font-weight: bold; flex: 1; cursor: pointer;">إلغاء ✕</button>
-            </div>
         </div>
     </div>
 
@@ -186,8 +150,6 @@
 
         let globalLessonsData = [];
         let countdownIntervals = [];
-        let pendingLessonId = null;
-        let pendingCorrectPassword = "";
 
         onAuthStateChanged(auth, async (user) => {
             await fetchCloudLessons();
@@ -220,27 +182,6 @@
             }
         }
 
-        window.tryOpenLesson = function(lessonId, passwordRequired) {
-            if (passwordRequired && passwordRequired.trim() !== "") {
-                pendingLessonId = lessonId;
-                pendingCorrectPassword = passwordRequired;
-                document.getElementById('lessonPasswordInput').value = "";
-                document.getElementById('passwordModal').style.display = 'flex';
-            } else {
-                window.location.href = `files-lesson-view.html?id=${lessonId}`;
-            }
-        };
-
-        window.verifyLessonPassword = function() {
-            let enteredPass = document.getElementById('lessonPasswordInput').value.trim();
-            if (enteredPass === pendingCorrectPassword) {
-                document.getElementById('passwordModal').style.display = 'none';
-                window.location.href = `files-lesson-view.html?id=${pendingLessonId}`;
-            } else {
-                alert("كلمة المرور غير صحيحة! حاول مرة أخرى.");
-            }
-        };
-
         function renderLessonsList(items) {
             const grid = document.getElementById('filesGrid');
             countdownIntervals.forEach(interval => clearInterval(interval));
@@ -256,7 +197,7 @@
                     <div style="grid-column: 1 / -1; text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
                         <div style="font-size: 2.5rem; margin-bottom: 8px;">📭</div>
                         <h3 style="color: var(--text-main); margin-bottom: 4px; font-size: 0.95rem;">لا توجد حصص متاحة حالياً</h3>
-                        <p style="color: var(--text-muted); font-size: 0.82rem;">ترقبوا.. سيتم نشر أحدث الحصص والملازم والامتحانات قريباً.</p>
+                        <p style="color: var(--text-muted); font-size: 0.82rem;">ترقبوا.. سيتم نشر أحدث الحصص والملازم قريباً.</p>
                     </div>
                 `;
                 return;
@@ -268,7 +209,6 @@
                 let title = item.title || 'حصة دراسية';
                 let subject = item.subject || 'عام';
                 let scheduledAt = item.scheduledAt;
-                let password = s.password || '';
 
                 let now = new Date().getTime();
                 let isLocked = false;
@@ -300,28 +240,14 @@
                         </div>
                     `;
                 } else {
-                    // القوائم والمحتويات (ملازم الشرح، التلخيص، الفيديو، الامتحان) بتصميم أقصى اليمين وأقصى اليسار لزر "فتح"
-                    let notesLabel = item.notesLabelName || 'ملزمة الشرح والتلخيص 📄';
-                    let videoLabel = item.videoLabelName || 'فيديو الشرح والتفاعل 🎬';
-                    let examLabel = item.examLabelName || 'امتحان الحصة 📝';
-
                     cardHtml += `
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
-                            <div class="content-item-row">
-                                <span class="content-item-name">${notesLabel}</span>
-                                <button class="btn-open-small" onclick="tryOpenLesson('${item.id}', '${password}')">فتح</button>
+                        <div>
+                            <div class="file-meta">
+                                <span>📂 المادة: ${subject}</span>
+                                <span>📖 متاح</span>
                             </div>
-                            <div class="content-item-row">
-                                <span class="content-item-name">${videoLabel}</span>
-                                <button class="btn-open-small" onclick="tryOpenLesson('${item.id}', '${password}')">فتح</button>
-                            </div>
-                            <div class="content-item-row">
-                                <span class="content-item-name">${examLabel}</span>
-                                <button class="btn-open-small" onclick="tryOpenLesson('${item.id}', '${password}')">فتح</button>
-                            </div>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <button onclick="tryOpenLesson('${item.id}', '${password}')" class="view-btn">دخول الحصة بالكامل 🚀</button>
+                            <!-- التوجيه لصفحة العرض المستقلة files-lesson-view.html -->
+                            <a href="files-lesson-view.html?id=${item.id}" class="view-btn" style="text-align: center;">دخول الحصة والمحتوى 🚀</a>
                         </div>
                     `;
                 }
