@@ -123,7 +123,7 @@
         .download-svg-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .download-svg-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-        .video-collapse-box { width: 100%; margin-top: 5px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
+        .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .video-collapse-box.show { display: block; }
         video { width: 100%; max-height: 350px; display: block; outline: none; }
 
@@ -232,8 +232,17 @@
                 currentUserId = user.uid;
                 currentUserEmail = user.email || user.displayName || "طالب معتمد";
             }
+            
             const urlParams = new URLSearchParams(window.location.search);
-            const lessonId = urlParams.get('id');
+            let lessonId = urlParams.get('id');
+
+            // فحص إضافي لاستخراج الـ ID من الرابط لو تم نقله بشكل مختلف
+            if (!lessonId) {
+                let parts = window.location.href.split('?id=');
+                if (parts.length > 1) {
+                    lessonId = parts[1].split('&')[0];
+                }
+            }
 
             if (lessonId) {
                 activeLessonId = lessonId;
@@ -249,7 +258,7 @@
 
                 await fetchLessonDetails(lessonId);
             } else {
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، لم يتم تحديد الحصة المطلوبة. يرجى العودة للمكتبة واختيار الحصة من جديد.</p>`;
             }
         });
 
@@ -272,7 +281,7 @@
                 const docSnap = await getDoc(docRef);
 
                 if (!docSnap.exists()) {
-                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، هذه الحصة غير موجودة أو تم حذفها.</p>`;
+                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، هذه الحصة غير موجودة أو تم حذفها من السحابة.</p>`;
                     return;
                 }
 
@@ -306,7 +315,7 @@
                             }
 
                             if (currentAccessCount > accessLimit) {
-                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn">العودة للمكتبة</a></div>`;
+                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn" style="display:inline-block; margin-top:15px; width:auto; padding:10px 20px;">العودة للمكتبة</a></div>`;
                                 return;
                             }
 
@@ -342,7 +351,7 @@
 
             } catch (e) {
                 console.error("خطأ في جلب تفاصيل الحصة:", e);
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
             }
         }
 
