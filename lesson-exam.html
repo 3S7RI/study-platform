@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - امتحان الحصة</title>
+    <title>امتحان الحصة</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -104,12 +104,12 @@
     <div class="container">
         <header class="platform-header">
             <div id="backLinkContainer"><a href="files.html" class="btn-home-link">⬅ العودة</a></div>
-            <div style="font-weight: 700; font-size: 0.95rem;">منصة رحلة دراسية - اختبار الحصة 📝</div>
-            <div><button id="fullscreenBtn" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:bold;">⛶ تفعيل الشاشة الكاملة</button></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">امتحان الحصة 📝</div>
+            <div></div>
         </header>
 
         <div id="examContainer">
-            <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري تحميل الامتحان المرتبط بالحصة وتفعيل الأمان...</div>
+            <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري تحميل الامتحان المرتبط بالحصة وتفعيل إعدادات الأمان والشاشة الكاملة...</div>
         </div>
     </div>
 
@@ -155,25 +155,29 @@
 
             document.getElementById('backLinkContainer').innerHTML = `<a href="lesson-view.html?id=${lessonId}" class="btn-home-link">⬅ العودة للحصة</a>`;
 
-            // منع عمل ريفريش أو الخروج الخطأ
+            // منع عمل ريفريش للخروج العشوائي
             window.addEventListener('beforeunload', function (e) {
                 e.preventDefault();
                 e.returnValue = '';
             });
 
+            // تفعيل الشاشة الكاملة تلقائياً بمجرد الدخول
+            activateFullScreen();
+
             await fetchLessonAndExam(lessonId);
         });
 
-        // تفعيل زر الشاشة الكاملة
-        document.getElementById('fullscreenBtn').addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log("خطأ في تفعيل الشاشة الكاملة:", err);
-                });
-            } else {
-                document.exitFullscreen();
+        function activateFullScreen() {
+            try {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+            } catch(e) {
+                console.log("Full screen handled:", e);
             }
-        });
+        }
 
         window.showPlatformToast = function(title, message) {
             document.getElementById('toastTitle').textContent = title;
@@ -191,14 +195,14 @@
                 const lessonSnap = await getDoc(lessonRef);
 
                 if (!lessonSnap.exists()) {
-                    showPlatformToast("تنبيه هام", "هذه الحصة غير موجودة!");
+                    showPlatformToast("تنبيه هام 🔔", "هذه الحصة غير موجودة!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger);">هذه الحصة غير موجودة.</div>`;
                     return;
                 }
 
                 const lessonData = lessonSnap.data();
                 if (!lessonData.examId) {
-                    showPlatformToast("تنبيه هام", "لا يوجد امتحان مربوط بهذه الحصة حالياً!");
+                    showPlatformToast("تنبيه هام 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger); padding:40px;">عذراً، لا يوجد امتحان مربوط بهذه الحصة حتى الآن.</div>`;
                     return;
                 }
@@ -207,14 +211,14 @@
                 const examSnap = await getDoc(examRef);
 
                 if (!examSnap.exists()) {
-                    showPlatformToast("تنبيه هام", "الامتحان المرتبط غير موجود بالسحابة!");
+                    showPlatformToast("تنبيه هام 🔔", "الامتحان المرتبط غير موجود بالسحابة!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger); padding:40px;">الامتحان المرتبط بهذه الحصة غير موجود أو تم حذفه.</div>`;
                     return;
                 }
 
                 currentExamData = examSnap.data();
                 renderExam(currentExamData);
-                showPlatformToast("بدء الاختبار 🚀", "تم تحميل الامتحان بنجاح. نتمنى لك التوفيق!");
+                showPlatformToast("بدء الاختبار 🚀", "تم تحميل الامتحان بنجاح. نتمنى لك التوفيق والنجاح!");
 
             } catch (e) {
                 console.error(e);
@@ -240,7 +244,6 @@
                             ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%; max-height:220px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color);" alt="صورة توضيحية">` : ''}
                     `;
 
-                    // بناء واجهة السؤال بناءً على نوعه
                     if (q.type === 'tf' || q.type === 'mcq') {
                         if (q.options && q.options.length > 0) {
                             q.options.forEach((opt, oIdx) => {
