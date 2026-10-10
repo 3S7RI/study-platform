@@ -236,7 +236,7 @@
             if (lessonId) {
                 activeLessonId = lessonId;
                 
-                // تحميل لحظي فوري من الذاكرة المؤقتة لو متوفرة لتسريع الفتح تماماً
+                // تحميل لحظي فوري من الذاكرة المؤقتة لتسريع الفتح
                 let cachedLesson = localStorage.getItem(`cache_lesson_${lessonId}`);
                 if (cachedLesson) {
                     try {
@@ -278,7 +278,7 @@
                 activeLessonData = docSnap.data();
                 activeLessonSettings = activeLessonData.settings || {};
                 
-                // حفظ نسخة في الكاش لفتحها بشكل فوري ولحظي في المرات القادمة
+                // تخزين مؤقت فوري
                 localStorage.setItem(`cache_lesson_${lessonId}`, JSON.stringify(activeLessonData));
 
                 if (currentUserId) {
@@ -294,7 +294,8 @@
                             if (localStorage.getItem(`local_summary_${lessonId}`)) studentActivityData.summarySeen = true;
                             if (localStorage.getItem(`local_video_${lessonId}`)) studentActivityData.videoWatched = true;
 
-                            let accessLimit = activeLessonSettings.lessonAttempts || 5;
+                            // عدد محاولات الحصة افتراضياً 5 مرات إذا لم تُحدد
+                            let accessLimit = (activeLessonSettings.lessonAttempts !== undefined && activeLessonSettings.lessonAttempts !== "") ? Number(activeLessonSettings.lessonAttempts) : 5;
                             let currentAccessCount = studentActivityData.accessCount || 0;
                             
                             if (!studentActivityData.countedThisSession) {
@@ -438,7 +439,7 @@
                                             <div class="content-item-row">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">تشاهد 👁️</button>
+                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">فتح 🔽</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -541,6 +542,14 @@
                         }
                     }
 
+                    // التحقق من عدد محاولات الامتحان (الافتراضي 1 محاولة إذا لم تُحدد)
+                    let maxExamAttempts = (settings.examAttempts !== undefined && settings.examAttempts !== "") ? Number(settings.examAttempts) : 1;
+                    let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
+                    if (studentExamSubmissions >= maxExamAttempts) {
+                        isUnlocked = false;
+                        lockReasonMsg = `لقد استنفدت الحد الأقصى لمحاولات الامتحان (${maxExamAttempts} محاولة) 🔒`;
+                    }
+
                     html += `
                         <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                             <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
@@ -577,14 +586,12 @@
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 let isShown = collapseBox.classList.contains('show');
-                
-                // التعديل: لو الفيديو مفتوح ومكتوب "إخفاء" أو عند الضغط مرة تانية بيلم القايمة/الفيديو ويقفل
                 if (isShown) {
                     collapseBox.classList.remove('show');
-                    if(btnElement) btnElement.textContent = 'تشاهد 👁️';
+                    if(btnElement) btnElement.innerHTML = 'فتح 🔽';
                 } else {
                     collapseBox.classList.add('show');
-                    if(btnElement) btnElement.textContent = 'إخفاء ✕';
+                    if(btnElement) btnElement.innerHTML = 'إخفاء ✕';
                     triggerContentOpen('video');
                 }
             }
@@ -624,7 +631,7 @@
 
         window.handleExamStartClick = function(lessonId, isUnlocked) {
             if (!isUnlocked) {
-                alert("عذراً، الامتحان مقفل لحين استكمال مشاهدة المحتوى المطلوب أولاً (الشرط الذكي).");
+                alert("عذراً، الامتحان مقفل أو استنفدت عدد المحاولات المسموحة.");
                 return;
             }
 
