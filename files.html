@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - عرض ومشاهدة الحصة</title>
+    <title>منصة رحلة دراسية - مكتبة الحصص والشروحات</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -38,7 +38,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
         body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 1000px; margin: 0 auto; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -64,105 +64,41 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        .lesson-main-card {
+        .lessons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .lesson-card-item {
             background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
-            padding: 24px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
-            position: relative; overflow: hidden;
+            padding: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            display: flex; flex-direction: column; justify-content: space-between; gap: 14px; position: relative;
         }
 
-        .lesson-title-header { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 8px; }
-        .lesson-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
+        .lesson-card-title { font-size: 1.05rem; font-weight: bold; color: var(--text-main); }
+        .lesson-card-info { font-size: 0.82rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
 
-        .lesson-section-box {
-            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
-            margin-bottom: 14px; overflow: hidden; transition: all 0.3s ease;
-        }
-        
-        .lesson-section-header {
-            padding: 14px 18px; font-size: 0.92rem; font-weight: bold; color: var(--text-main);
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-            background: rgba(99, 102, 241, 0.04); user-select: none; gap: 10px;
-        }
-        .lesson-section-header:hover { background: var(--hover-bg); }
-        
-        .section-left-side { display: flex; align-items: center; gap: 10px; }
-        .arrow-icon { font-size: 0.8rem; transition: transform 0.3s ease; display: inline-block; }
-        .lesson-section-box.active .arrow-icon { transform: rotate(180deg); }
-
-        .lesson-section-content {
-            max-height: 0; overflow: hidden; padding: 0 18px; transition: max-height 0.35s ease-out, padding 0.35s ease;
-            border-top: 1px solid transparent;
-        }
-        .lesson-section-box.active .lesson-section-content {
-            max-height: 2000px; padding: 16px 18px; border-top-color: var(--border-color);
-        }
-
-        .content-item-row {
-            display: flex; flex-direction: column; background: var(--bg-main);
-            padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px; gap: 10px;
-        }
-        .content-item-top {
-            display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;
-        }
-        .content-item-title { font-size: 0.85rem; font-weight: bold; color: var(--text-main); flex: 1; text-align: right; }
-
-        .action-btns-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
-        .view-btn {
+        .lesson-card-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
-            padding: 8px 14px; border-radius: 8px; font-weight: bold; font-size: 0.82rem; display: inline-block;
-            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); white-space: nowrap;
+            padding: 9px 16px; border-radius: 10px; font-weight: bold; font-size: 0.85rem; display: block;
+            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
         }
-        .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
-
-        .download-svg-btn {
-            background-color: var(--success); color: white; text-decoration: none; text-align: center;
-            width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
-            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3); flex-shrink: 0;
-        }
-        .download-svg-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .download-svg-btn svg { width: 18px; height: 18px; fill: currentColor; }
-
-        .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
-        .video-collapse-box.show { display: block; }
-        video { width: 100%; max-height: 350px; display: block; outline: none; }
-
-        .watermark-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-            font-size: 1.4rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
-        }
-
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
-            display: none; justify-content: center; align-items: center; z-index: 3000; padding: 15px;
-        }
-        .modal-card {
-            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
-            width: 100%; max-width: 380px; border-radius: 16px; padding: 22px; text-align: center; box-shadow: var(--shadow);
-        }
-        .modal-card h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 8px; font-weight: 700; }
-        .modal-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4; }
-        .modal-card input {
-            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none; margin-bottom: 15px; text-align: center;
-        }
-        .modal-btns { display: flex; gap: 8px; }
-        .modal-btn-confirm { background: var(--success); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
-        .modal-btn-cancel { background: var(--danger); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
+        .lesson-card-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
 
     <div class="container">
         <header class="platform-header">
-            <div class="header-right-side"><a href="files.html" class="btn-home-link">⬅ العودة للمكتبة</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>غرفة مشاهدة الحصة</span> 🎬</div></div>
+            <div class="header-right-side"><a href="main.html" class="btn-home-link">⬅ الرئيسية</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والشروحات</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <div class="lesson-main-card" id="lessonContainerBox">
-            <div id="loadingText" style="text-align: center; padding: 40px; color: var(--text-muted);">جاري تحميل محتوى الحصة من السحابة...</div>
+        <div id="lessonsGridContainer" class="lessons-grid">
+            <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">جاري تحميل الحصص من السحابة...</div>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
@@ -170,24 +106,11 @@
         </div>
     </div>
 
-    <!-- نافذة إدخال كلمة المرور للامتحان -->
-    <div class="modal-overlay" id="examPasswordModal">
-        <div class="modal-card">
-            <h3>🔑 حماية الامتحان بكلمة مرور</h3>
-            <p id="modalPasswordDesc">هذا الامتحان محمي بكلمة مرور. يرجى إدخالها للمتابعة:</p>
-            <input type="password" id="examPasswordInput" placeholder="اكتب كلمة المرور هنا...">
-            <div class="modal-btns">
-                <button class="modal-btn-confirm" onclick="verifyExamPassword()">تأكيد ودخول 🚀</button>
-                <button class="modal-btn-cancel" onclick="closeExamPasswordModal()">إلغاء ❌</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, increment, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -201,59 +124,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        
-        // تفعيل التخزين المؤقت للسحابة (Firestore Persistence Cache) دون استخدام LocalStorage التقليدي
-        const db = initializeFirestore(app, {
-            localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
-        });
-
-        let currentUserId = null;
-        let currentUserEmail = "طالب زائر";
-        let activeLessonId = null;
-        let activeLessonData = null;
-        let activeExamData = null;
-        let activeLessonSettings = {};
-        let passwordTimerInterval = null;
-        let studentActivityData = {};
-
-        document.addEventListener('click', function(e) {
-            let actionBtn = e.target.closest('[data-action-type]');
-            if (actionBtn) {
-                let type = actionBtn.getAttribute('data-action-type');
-                let url = actionBtn.getAttribute('data-url') || '';
-                
-                if (type === 'notes' || type === 'summary') {
-                    if (url) {
-                        window.open(url, '_blank');
-                    }
-                    triggerContentOpen(type);
-                }
-            }
-        });
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                currentUserEmail = user.email || user.displayName || "طالب معتمد";
-            }
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            let lessonId = urlParams.get('id');
-
-            if (!lessonId) {
-                let parts = window.location.href.split('?id=');
-                if (parts.length > 1) {
-                    lessonId = parts[1].split('&')[0];
-                }
-            }
-
-            if (lessonId) {
-                activeLessonId = lessonId;
-                await fetchLessonDetails(lessonId);
-            } else {
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، لم يتم تحديد الحصة المطلوبة. يرجى العودة للمكتبة واختيار الحصة من جديد.</p>`;
-            }
-        });
+        const db = getFirestore(app);
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
@@ -268,371 +139,56 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        async function fetchLessonDetails(lessonId) {
-            try {
-                const docRef = doc(db, "lessons", lessonId);
-                const docSnap = await getDoc(docRef);
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // إذا لم يكن المستخدم مسجل الدخول، يتم توجيهه لصفحة الدخول أو الاندكس
+                window.location.href = "index.html";
+                return;
+            }
+            await loadLessonsLibrary();
+        });
 
-                if (!docSnap.exists()) {
-                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، هذه الحصة غير موجودة أو تم حذفها من السحابة.</p>`;
+        async function loadLessonsLibrary() {
+            const container = document.getElementById('lessonsGridContainer');
+            try {
+                const q = query(collection(db, "lessons"), orderBy("number", "asc"));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1 / -1; padding:40px;">لا توجد حصص مضافة حتى الآن.</p>`;
                     return;
                 }
 
-                activeLessonData = docSnap.data();
-                activeLessonSettings = activeLessonData.settings || {};
-
-                if (currentUserId) {
-                    try {
-                        let userRef = doc(db, "users", currentUserId);
-                        let userSnap = await getDoc(userRef);
-                        if (userSnap.exists()) {
-                            let userData = userSnap.data();
-                            let lessonsActivity = userData.lessonsActivity || {};
-                            studentActivityData = lessonsActivity[lessonId] || {};
-
-                            let accessLimit = (activeLessonSettings.lessonAttempts !== undefined && activeLessonSettings.lessonAttempts !== "") ? Number(activeLessonSettings.lessonAttempts) : 5;
-                            let currentAccessCount = studentActivityData.accessCount || 0;
-                            
-                            if (!studentActivityData.countedThisSession) {
-                                currentAccessCount++;
-                                studentActivityData.accessCount = currentAccessCount;
-                                studentActivityData.countedThisSession = true;
-                                lessonsActivity[lessonId] = studentActivityData;
-                                await updateDoc(userRef, { lessonsActivity: lessonsActivity });
-                            }
-
-                            if (currentAccessCount > accessLimit) {
-                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn" style="display:inline-block; margin-top:15px; width:auto; padding:10px 20px;">العودة للمكتبة</a></div>`;
-                                return;
-                            }
-
-                            let pts = activeLessonSettings.points || {};
-                            let lessonPts = pts.lesson !== undefined ? pts.lesson : 10;
-                            if (!studentActivityData.lessonOpenedRewarded) {
-                                studentActivityData.lessonOpenedRewarded = true;
-                                lessonsActivity[lessonId] = studentActivityData;
-                                await updateDoc(userRef, {
-                                    points: increment(lessonPts),
-                                    lessonsActivity: lessonsActivity
-                                });
-                            }
-                        }
-                    } catch (userErr) {
-                        console.warn("تنبيه في تحديث بيانات مستخدم السحابة:", userErr);
-                    }
-                }
-                
-                if (activeLessonSettings.showExamSection !== false && activeLessonData.examId && activeLessonData.examId.trim() !== '') {
-                    try {
-                        const examRef = doc(db, "exams", activeLessonData.examId);
-                        const examSnap = await getDoc(examRef);
-                        if (examSnap.exists()) {
-                            activeExamData = examSnap.data();
-                        }
-                    } catch (err) {
-                        console.warn("خطأ في جلب تفاصيل الامتحان المرتبط:", err);
-                    }
-                }
-
-                renderLessonPage();
-
-            } catch (e) {
-                console.error("خطأ في جلب تفاصيل الحصة:", e);
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
-            }
-        }
-
-        function getEmbedYouTubeUrl(url) {
-            if (!url) return '';
-            if (url.includes('embed/')) return url;
-            let videoId = '';
-            if (url.includes('youtu.be/')) {
-                videoId = url.split('youtu.be/')[1].split('?')[0];
-            } else if (url.includes('watch?v=')) {
-                videoId = url.split('watch?v=')[1].split('&')[0];
-            }
-            return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
-        }
-
-        window.triggerContentOpen = async function(contentType) {
-            if (!activeLessonId) return;
-
-            if (contentType === 'notes') studentActivityData.studyNotes = true;
-            if (contentType === 'summary') studentActivityData.summarySeen = true;
-            if (contentType === 'video') studentActivityData.videoWatched = true;
-
-            renderLessonPage();
-
-            if (!currentUserId) return;
-
-            try {
-                let userRef = doc(db, "users", currentUserId);
-                let userSnap = await getDoc(userRef);
-                if (!userSnap.exists()) return;
-                
-                let userData = userSnap.data();
-                let lessonsActivity = userData.lessonsActivity || {};
-                let act = lessonsActivity[activeLessonId] || {};
-                let pts = activeLessonSettings.points || {};
-
-                let rewardKey = `${contentType}_rewarded`;
-                
-                if (contentType === 'notes') act.studyNotes = true;
-                if (contentType === 'summary') act.summarySeen = true;
-                if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
-
-                let shouldAddPoints = !act[rewardKey];
-                if (shouldAddPoints) {
-                    act[rewardKey] = true;
-                }
-                
-                lessonsActivity[activeLessonId] = act;
-
-                let updatePayload = { lessonsActivity: lessonsActivity };
-                let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
-
-                if (shouldAddPoints) {
-                    updatePayload.points = increment(addPts);
-                }
-
-                await updateDoc(userRef, updatePayload);
-            } catch(e) { console.log("Cloud sync warning:", e); }
-        };
-
-        function renderLessonPage() {
-            let item = activeLessonData;
-            if (!item) return;
-            let examData = activeExamData;
-            let settings = item.settings || {};
-            let allowNotesDownload = settings.allowNotesDownload !== false;
-            let allowSummaryDownload = settings.allowSummaryDownload !== false;
-
-            let html = `
-                <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
-                <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
-            `;
-
-            if (settings.showVideo !== false) {
-                let videos = item.videosList || [];
-                if (videos.length > 0) {
-                    html += `
-                        <div class="lesson-section-box" id="sectionVideo">
-                            <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
-                               <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
-                               <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                            </div>
-                            <div class="lesson-section-content">
-                                ${videos.map((v, idx) => {
-                                    let displayName = (v.name && v.name.trim() !== '') ? v.name : 'فيديو الشرح';
-                                    let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
-                                    let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
-                                    let preventFastForward = settings.preventFastForward !== false;
-                                    return `
-                                        <div class="content-item-row">
-                                            <div class="content-item-top">
-                                                <span class="content-item-title">📹 ${displayName}</span>
-                                                <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">فتح 🔽</button>
-                                                </div>
-                                            </div>
-                                            <div class="video-collapse-box" id="vid-collapse-${idx}">
-                                                ${isYouTube ? 
-                                                    `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
-                                                    `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
-                                                }
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            if (settings.showNotes !== false) {
-                let notes = item.notesList || [];
-                if (notes.length > 0) {
-                    html += `
-                        <div class="lesson-section-box" id="sectionNotes">
-                            <div class="lesson-section-header" onclick="toggleAccordion('sectionNotes')">
-                                <span>📚 ثانياً: قائمة ملازم الشرح (${notes.length})</span>
-                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                            </div>
-                            <div class="lesson-section-content">
-                                ${notes.map(n => {
-                                    let displayName = (n.name && n.name.trim() !== '') ? n.name : 'ملزمة الشرح';
-                                    return `
-                                        <div class="content-item-row">
-                                            <div class="content-item-top">
-                                                <span class="content-item-title">📄 ${displayName}</span>
-                                                <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح ↗</button>
-                                                    ${allowNotesDownload ? `
-                                                        <a href="${n.url}" download class="download-svg-btn" data-action-type="notes" data-url="${n.url}" title="تحميل الملف">
-                                                            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                        </a>
-                                                    ` : ''}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            if (settings.showSummary !== false) {
-                let summaries = item.summariesList || [];
-                if (summaries.length > 0) {
-                    html += `
-                        <div class="lesson-section-box" id="sectionSummaries">
-                            <div class="lesson-section-header" onclick="toggleAccordion('sectionSummaries')">
-                                <span>📑 ثالثاً: قائمة ملخصات الدرس (${summaries.length})</span>
-                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                            </div>
-                            <div class="lesson-section-content">
-                                ${summaries.map(sum => {
-                                    let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'ملخص الدرس';
-                                    return `
-                                        <div class="content-item-row">
-                                            <div class="content-item-top">
-                                                <span class="content-item-title">📑 ${displayName}</span>
-                                                <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح ↗</button>
-                                                    ${allowSummaryDownload ? `
-                                                        <a href="${sum.url}" download class="download-svg-btn" data-action-type="summary" data-url="${sum.url}" title="تحميل الملف">
-                                                            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                        </a>
-                                                    ` : ''}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            if (settings.showExamSection !== false) {
-                let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
-                if (hasExam) {
-                    let smartLockActive = settings.smartLock === true; 
-                    let isUnlocked = true;
-                    let lockReasonMsg = "";
-
-                    if (smartLockActive) {
-                        let watchedVideo = studentActivityData.videoWatched === true;
-                        let openedNotes = studentActivityData.studyNotes === true;
-                        
-                        if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
-                            isUnlocked = false;
-                            lockReasonMsg = "ملاحظة: يجب مشاهدة فيديو الشرح أولاً لفتح الامتحان 🔒";
-                        }
-                        if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
-                            isUnlocked = false;
-                            lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملازم الشرح أولاً لفتح الامتحان 🔒";
-                        }
-                    }
-
-                    let maxExamAttempts = (settings.examAttempts !== undefined && settings.examAttempts !== "") ? Number(settings.examAttempts) : 1;
-                    let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
-                    if (studentExamSubmissions >= maxExamAttempts) {
-                        isUnlocked = false;
-                        lockReasonMsg = `لقد استنفدت الحد الأقصى لمحاولات الامتحان (${maxExamAttempts} محاولة) 🔒`;
-                    }
+                let html = "";
+                querySnapshot.forEach((docSnap) => {
+                    let lesson = docSnap.data();
+                    let lessonId = docSnap.id;
+                    let title = lesson.title || 'بدون عنوان';
+                    let number = lesson.number || 1;
+                    let subject = lesson.subject || 'عام';
+                    let targetGroup = lesson.targetGroup || 'عام';
 
                     html += `
-                        <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
-                            <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
-                                <span>📝 رابعاً: امتحان الحصة والتقييم</span>
-                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                            </div>
-                            <div class="lesson-section-content">
-                                <div class="content-item-row">
-                                    <div class="content-item-top">
-                                        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
-                                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
-                                            <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
-                                        </div>
-                                        <div class="action-btns-group">
-                                            <button onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
-                                        </div>
-                                    </div>
+                        <div class="lesson-card-item">
+                            <div>
+                                <div class="lesson-card-title">🎬 الحصة ${number}: ${title}</div>
+                                <div class="lesson-card-info" style="margin-top: 8px;">
+                                    <span>📚 المادة: ${subject}</span>
+                                    <span>👥 الصف: ${targetGroup}</span>
                                 </div>
                             </div>
+                            <a href="files-lesson-view.html?id=${lessonId}" class="lesson-card-btn">دخول الحصة 🚀</a>
                         </div>
                     `;
-                }
-            }
+                });
 
-            html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
-            document.getElementById('lessonContainerBox').innerHTML = html;
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error("خطأ في جلب الحصص:", error);
+                container.innerHTML = `<p style="text-align:center; color:var(--danger); grid-column: 1 / -1; padding:40px;">حدث خطأ أثناء تحميل الحصص من السحابة.</p>`;
+            }
         }
-
-        window.toggleAccordion = function(boxId) {
-            const box = document.getElementById(boxId);
-            box.classList.toggle('active');
-        };
-
-        window.openVideoPlayer = function(collapseId, btnElement) {
-            const collapseBox = document.getElementById(collapseId);
-            if (collapseBox) {
-                let isShown = collapseBox.classList.contains('show');
-                if (isShown) {
-                    collapseBox.classList.remove('show');
-                    if(btnElement) btnElement.innerHTML = 'فتح 🔽';
-                } else {
-                    collapseBox.classList.add('show');
-                    if(btnElement) btnElement.innerHTML = 'إخفاء ✕';
-                    triggerContentOpen('video');
-                }
-            }
-        };
-
-        window.handleVideoSeeking = function(videoEl) {
-            if (activeLessonSettings.preventFastForward !== false) {
-                if (videoEl.currentTime > (videoEl.lastValidTime || 0) + 1.5) {
-                    alert("عذراً، ممنوع تقديم الفيديو! يرجى مشاهدة المحتوى كاملاً.");
-                    videoEl.currentTime = videoEl.lastValidTime || 0;
-                }
-            }
-            videoEl.lastValidTime = videoEl.currentTime;
-        };
-
-        window.handleExamStartClick = function(lessonId, isUnlocked) {
-            if (!isUnlocked) {
-                alert("عذراً، الامتحان مقفل أو استنفدت عدد المحاولات المسموحة.");
-                return;
-            }
-            let passwordRequired = activeLessonSettings.password && activeLessonSettings.password.trim() !== '';
-            if (passwordRequired) {
-                document.getElementById('examPasswordInput').value = '';
-                document.getElementById('examPasswordModal').style.display = 'flex';
-            } else {
-                window.location.href = `lesson-exam.html?id=${activeLessonId}`;
-            }
-        };
-
-        window.closeExamPasswordModal = function() {
-            document.getElementById('examPasswordModal').style.display = 'none';
-        };
-
-        window.verifyExamPassword = function() {
-            let entered = document.getElementById('examPasswordInput').value.trim();
-            let correctPass = activeLessonSettings.password;
-
-            if (entered === correctPass) {
-                closeExamPasswordModal();
-                window.location.href = `lesson-exam.html?id=${activeLessonId}`;
-            } else {
-                alert("كلمة المرور غير صحيحة!");
-            }
-        };
     </script>
 </body>
 </html>
