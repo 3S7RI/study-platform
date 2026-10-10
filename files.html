@@ -103,7 +103,6 @@
             text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
 
-        /* نافذة التنبيهات */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
@@ -157,7 +156,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -234,23 +233,20 @@
                     let userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         let userData = userSnap.data();
-                        let visits = userData.lessonVisits || {};
-                        let currentCount = visits[lessonId] || 0;
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        let lessonAct = lessonsActivity[lessonId] || {};
+                        let currentCount = lessonAct.accessCount || 0;
 
                         if (currentCount >= maxAttempts) {
                             showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
                             return;
                         }
-
-                        visits[lessonId] = currentCount + 1;
-                        await updateDoc(userRef, { lessonVisits: visits });
                     }
                 } catch(e) {
-                    console.log("Error updating visits:", e);
+                    console.log("Error checking attempts:", e);
                 }
             }
 
-            // تم تصحيح اسم الملف هنا ليوجه إلى files-lesson-view.html بدلاً من lesson-view.html
             window.location.href = `files-lesson-view.html?id=${lessonId}`;
         };
 
@@ -299,7 +295,7 @@
                 let cardHtml = `
                     <div>
                         <div class="file-title">الحصة ${item.number || 1}: ${title}</div>
-                        <div class="file-desc">${item.targetGroup || 'الصف الدراسي'} - المادة: ${subject}</div>
+                        <div class="file-desc">${item.targetGroup || 'مستوى التقييم'} - المادة: ${subject}</div>
                     </div>
                 `;
 
