@@ -32,7 +32,7 @@
             --danger: #dc2626;
             --hover-bg: rgba(79, 70, 229, 0.08);
             --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-            --th-bg: rgba(0, 0, 0, 0.03);
+            --th-bg: rgba(0, 0, 0, 0.02);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
@@ -52,6 +52,13 @@
             text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.8rem; cursor: pointer;
         }
         .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .timer-box-ui {
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(99, 102, 241, 0.1);
+            padding: 5px 12px; border-radius: 15px; border: 1px solid var(--primary);
+            color: var(--primary); font-weight: bold; font-size: 0.82rem;
+        }
+        .timer-box-ui svg { width: 16px; height: 16px; fill: currentColor; }
 
         .exam-card {
             background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
@@ -106,7 +113,10 @@
         <header class="platform-header">
             <button onclick="confirmLeaveExam()" class="btn-home-link">⬅ العودة للحصة</button>
             <div style="font-weight: 700; font-size: 0.95rem;">امتحان الحصة 📝</div>
-            <div id="timerDisplay" style="font-weight: bold; color: var(--primary); font-size: 0.82rem;"></div>
+            <div class="timer-box-ui">
+                <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm1-13h-2v6h6v-2h-4z"/></svg>
+                <span id="timerDisplay">جاري التحميل...</span>
+            </div>
         </header>
 
         <div id="examContainer">
@@ -189,6 +199,7 @@
             document.getElementById('platformToastModal').style.display = 'none';
         };
 
+        // زر العودة للحصة مع تنبيه المنصة المخصص
         window.confirmLeaveExam = function() {
             if (isSubmitted) {
                 window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
@@ -197,16 +208,16 @@
 
             let btnsHtml = `
                 <div class="toast-btns-group">
-                    <button class="platform-toast-btn" style="background:var(--danger);" onclick="forceSubmitAndLeave()">نعم، تسليم الرجوع 🚨</button>
-                    <button class="platform-toast-btn" style="background:var(--primary);" onclick="closePlatformToast()">إكمال الامتحان ✍️</button>
+                    <button class="platform-toast-btn" style="background:var(--danger);" onclick="forceSubmitAndLeave()">موافق، تسليم 🚨</button>
+                    <button class="platform-toast-btn" style="background:var(--primary);" onclick="closePlatformToast()">إكمال الحل ✍️</button>
                 </div>
             `;
-            showPlatformToast("تنبيه مغادرة الامتحان ⚠️", "إذا رجعت للحصة سيتم تسليم المحاولة وحسابها تلقائياً. هل أنت متأكد من رغبتك في الرجوع؟", btnsHtml);
+            showPlatformToast("تنبيه مغادرة الامتحان ⚠️", "إذا عدت إلى الحصة سيتم احتساب المحاولة وخصمها منك وستهلك إجاباتك للتصحيح.", btnsHtml);
         };
 
         window.forceSubmitAndLeave = function() {
             closePlatformToast();
-            submitExam(new Event('submit'), true);
+            submitExam(null, true);
         };
 
         async function fetchLessonAndExamSettings(lessonId) {
@@ -237,19 +248,19 @@
 
                 currentExamData = examSnap.data();
 
-                // تفعيل الشاشة الكاملة إذا كانت مفعلة في الإعدادات
-                if (lessonSettings.fullScreen) {
+                // تفعيل الشاشة الكاملة فوراً عند التحميل
+                if (lessonSettings.fullScreen !== false) {
                     activateFullScreen();
                 }
 
-                if (lessonSettings.antiCheat) {
-                    window.addEventListener('beforeunload', function (e) {
+                // منع الريفريش والخروج لمنع الغش
+                window.addEventListener('beforeunload', function (e) {
+                    if (!isSubmitted) {
                         e.preventDefault();
                         e.returnValue = '';
-                    });
-                }
+                    }
+                });
 
-                // عرض رسالة التنبيه المخصصة من الإعدادات قبل البدء
                 if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
                     showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, null, () => {
                         renderExamContent(currentExamData);
@@ -268,16 +279,16 @@
 
         function activateFullScreen() {
             try {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen().catch(() => {});
-                } else if (document.documentElement.webkitRequestFullscreen) {
-                    document.documentElement.webkitRequestFullscreen();
+                let elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
                 }
             } catch(e) {}
         }
 
         function startExamTimer() {
-            if (lessonSettings.timer === false) return;
             let durationMinutes = lessonSettings.duration || 30;
             remainingSeconds = durationMinutes * 60;
 
@@ -286,12 +297,12 @@
                 if (remainingSeconds <= 0) {
                     clearInterval(timerInterval);
                     alert("انتهى وقت الامتحان المخصص! سيتم تسليم الإجابات تلقائياً.");
-                    submitExam(new Event('submit'), true);
+                    submitExam(null, true);
                     return;
                 }
                 let mins = Math.floor(remainingSeconds / 60);
                 let secs = remainingSeconds % 60;
-                timerEl.textContent = `⏱️ الوقت المتبقي: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                timerEl.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
                 remainingSeconds--;
             }, 1000);
         }
@@ -306,13 +317,13 @@
                 <div class="exam-card">
                     <h2 class="exam-title">📝 ${exam.title || 'امتحان الحصة'}</h2>
                     <p class="exam-subtitle">المادة: ${exam.subject || 'عام'} | عدد الأسئلة: ${questions.length}</p>
-                    <form id="examForm" onsubmit="submitExam(event)">
+                    <form id="examForm" onsubmit="handleExamFormSubmit(event)">
             `;
 
             if (questions.length > 0) {
                 questions.forEach((q, qIdx) => {
                     html += `
-                        <div class="question-box">
+                        <div class="question-box" id="q_box_${qIdx}">
                             <div class="question-text">سؤال ${qIdx + 1}: ${q.text} <span style="font-size:0.75rem; background:rgba(99,102,241,0.2); color:var(--primary); padding:2px 6px; border-radius:4px; margin-right:6px;">(${q.marks || 1} درجات)</span></div>
                             ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%; max-height:220px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color);" alt="صورة السؤال">` : ''}
                     `;
@@ -349,8 +360,47 @@
             document.getElementById('examContainer').innerHTML = html;
         }
 
+        window.handleExamFormSubmit = function(event) {
+            event.preventDefault();
+            
+            // فحص هل هناك أسئلة لم تُحل
+            let questions = currentExamData.questions || [];
+            let unansweredCount = 0;
+
+            questions.forEach((q, qIdx) => {
+                let answered = false;
+                if (q.options && q.options.length > 0) {
+                    let checkedInputs = document.querySelectorAll(`input[name="q_${qIdx}"]:checked`);
+                    if (checkedInputs.length > 0) answered = true;
+                } else if (q.type === 'essayImage') {
+                    let textVal = document.querySelector(`textarea[name="q_${qIdx}_text"]`);
+                    if (textVal && textVal.value.trim() !== '') answered = true;
+                } else {
+                    let textVal = document.querySelector(`textarea[name="q_${qIdx}"]`);
+                    if (textVal && textVal.value.trim() !== '') answered = true;
+                }
+                if (!answered) unansweredCount++;
+            });
+
+            if (unansweredCount > 0) {
+                let btnsHtml = `
+                    <div class="toast-btns-group">
+                        <button class="platform-toast-btn" style="background:var(--primary);" onclick="closePlatformToast()">الرجوع للحل ✍️</button>
+                        <button class="platform-toast-btn" style="background:var(--success);" onclick="proceedWithSubmission()">أنا أعلم، تسليم الان 🚀</button>
+                    </div>
+                `;
+                showPlatformToast("تنبيه الأسئلة غير المكتملة ⚠️", `لديك ${unansweredCount} أسئلة لم تقم بالإجابة عليها. هل أنت متأكد من التسليم؟`, btnsHtml);
+            } else {
+                submitExam(event, true);
+            }
+        };
+
+        window.proceedWithSubmission = function() {
+            closePlatformToast();
+            submitExam(null, true);
+        };
+
         window.submitExam = async function(event, isForced = false) {
-            if (event) event.preventDefault();
             if (isSubmitted) return;
             isSubmitted = true;
 
@@ -370,8 +420,15 @@
                 }
             }
 
-            // قراءة رسالة نهاية الامتحان المخصصة من الإعدادات
-            let endMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح، شكراً لجهودك!";
+            // التحقق من تفعيل النتيجة الفورية
+            let instantResultActive = lessonSettings.instantResult !== false;
+            let endMsg = "";
+
+            if (instantResultActive) {
+                endMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح، شكراً لجهودك!";
+            } else {
+                endMsg = "⏳ تم تسليم إجاباتك بنجاح. يرجى الانتظار حتى يتم تصحيح الامتحان من قبل المعلم.";
+            }
             
             showPlatformToast("انتهى الامتحان 🎓", endMsg, null, () => {
                 window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
