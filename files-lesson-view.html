@@ -98,20 +98,31 @@
             max-height: 2000px; padding: 16px 18px; border-top-color: var(--border-color);
         }
 
-        /* عنصر المحتوى الفردي مع زر فتح في أقصى اليسار تماماً */
+        /* عنصر المحتوى الفردي مع أزرار الفتح والتحميل في أقصى اليسار تماماً */
         .content-item-row {
             display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
             padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; gap: 15px; flex-wrap: wrap;
         }
         .content-item-title { font-size: 0.85rem; font-weight: bold; color: var(--text-main); flex: 1; text-align: right; }
 
-        /* زر الفتح في أقصى اليسار */
+        .action-btns-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+        /* زر الفتح */
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
-            padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; display: inline-block;
-            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); white-space: nowrap; margin-left: auto;
+            padding: 8px 14px; border-radius: 8px; font-weight: bold; font-size: 0.82rem; display: inline-block;
+            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); white-space: nowrap;
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
+
+        /* زر التحميل بـ SVG */
+        .download-svg-btn {
+            background-color: var(--success); color: white; text-decoration: none; text-align: center;
+            width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3); flex-shrink: 0;
+        }
+        .download-svg-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .download-svg-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
         /* مشغل الفيديو المنسدل الداخلي */
         .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
@@ -204,9 +215,10 @@
                 }
 
                 let lesson = docSnap.data();
+                let settings = lesson.settings || {};
                 
                 let examData = null;
-                if (lesson.examId && lesson.examId.trim() !== '') {
+                if (settings.showExamSection !== false && lesson.examId && lesson.examId.trim() !== '') {
                     try {
                         const examRef = doc(db, "exams", lesson.examId);
                         const examSnap = await getDoc(examRef);
@@ -226,10 +238,13 @@
                     if (userSnap.exists()) {
                         let userData = userSnap.data();
                         let lessonsActivity = userData.lessonsActivity || {};
+                        let pts = settings.points || {};
+                        let lessonPts = pts.lesson !== undefined ? pts.lesson : 10;
+
                         if (!lessonsActivity[lessonId] || !lessonsActivity[lessonId].watched) {
                             lessonsActivity[lessonId] = { watched: true, studyNotes: true, video: true, summary: true };
                             await updateDoc(userRef, {
-                                points: increment(10),
+                                points: increment(lessonPts),
                                 lessonsActivity: lessonsActivity
                             });
                         }
@@ -254,108 +269,137 @@
         }
 
         function renderLessonPage(lessonId, item, examData) {
+            let settings = item.settings || {};
+            let allowDownload = settings.allowNotesDownload !== false;
+
             let html = `
                 <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات
-            let videos = item.videosList || [];
-            html += `
-                <div class="lesson-section-box" id="sectionVideo">
-                    <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
-                        <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
-                        <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+            // 1. قائمة الفيديوهات (إذا كانت مفعلة)
+            if (settings.showVideo !== false) {
+                let videos = item.videosList || [];
+                html += `
+                    <div class="lesson-section-box" id="sectionVideo">
+                        <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
+                            <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
+                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                        </div>
+                        <div class="lesson-section-content">
+                            ${videos.length > 0 ? videos.map((v, idx) => {
+                                let displayName = (v.name && v.name.trim() !== '') ? v.name : 'لا يوجد اسم';
+                                let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
+                                let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
+                                return `
+                                    <div style="margin-bottom:10px;">
+                                        <div class="content-item-row">
+                                            <span class="content-item-title">📹 ${displayName}</span>
+                                            <div class="action-btns-group">
+                                                <button class="view-btn" onclick="toggleVideoCollapse('vid-collapse-${idx}')">فتح ▼</button>
+                                            </div>
+                                        </div>
+                                        <div class="video-collapse-box" id="vid-collapse-${idx}">
+                                            ${isYouTube ? 
+                                                `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
+                                                `<video controls controlsList="nodownload"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
+                                            }
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد فيديوهات مرفقة لهذه الحصة حالياً.</p>`}
+                        </div>
                     </div>
-                    <div class="lesson-section-content">
-                        ${videos.length > 0 ? videos.map((v, idx) => {
-                            let displayName = (v.name && v.name.trim() !== '') ? v.name : 'لا يوجد اسم';
-                            let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
-                            let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
-                            return `
-                                <div style="margin-bottom:10px;">
+                `;
+            }
+
+            // 2. قائمة الملازم (إذا كانت مفعلة)
+            if (settings.showNotes !== false) {
+                let notes = item.notesList || [];
+                html += `
+                    <div class="lesson-section-box" id="sectionNotes">
+                        <div class="lesson-section-header" onclick="toggleAccordion('sectionNotes')">
+                            <span>📚 ثانياً: قائمة ملازم الشرح (${notes.length})</span>
+                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                        </div>
+                        <div class="lesson-section-content">
+                            ${notes.length > 0 ? notes.map(n => {
+                                let displayName = (n.name && n.name.trim() !== '') ? n.name : 'لا يوجد اسم';
+                                return `
                                     <div class="content-item-row">
-                                        <span class="content-item-title">📹 ${displayName}</span>
-                                        <button class="view-btn" onclick="toggleVideoCollapse('vid-collapse-${idx}')">فتح ▼</button>
+                                        <span class="content-item-title">📄 ${displayName}</span>
+                                        <div class="action-btns-group">
+                                            <a href="${n.url}" target="_blank" class="view-btn">فتح ↗</a>
+                                            ${allowDownload ? `
+                                                <a href="${n.url}" download class="download-svg-btn" title="تحميل الملف">
+                                                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                </a>
+                                            ` : ''}
+                                        </div>
                                     </div>
-                                    <div class="video-collapse-box" id="vid-collapse-${idx}">
-                                        ${isYouTube ? 
-                                            `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
-                                            `<video controls controlsList="nodownload"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
-                                        }
+                                `;
+                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملازم مرفقة لهذه الحصة حالياً.</p>`}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 3. قائمة الملخصات (إذا كانت مفعلة)
+            if (settings.showSummary !== false) {
+                let summaries = item.summariesList || [];
+                html += `
+                    <div class="lesson-section-box" id="sectionSummaries">
+                        <div class="lesson-section-header" onclick="toggleAccordion('sectionSummaries')">
+                            <span>📑 ثالثاً: قائمة ملخصات الدرس (${summaries.length})</span>
+                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                        </div>
+                        <div class="lesson-section-content">
+                            ${summaries.length > 0 ? summaries.map(sum => {
+                                let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'لا يوجد اسم';
+                                return `
+                                    <div class="content-item-row">
+                                        <span class="content-item-title">📑 ${displayName}</span>
+                                        <div class="action-btns-group">
+                                            <a href="${sum.url}" target="_blank" class="view-btn">فتح ↗</a>
+                                            ${allowDownload ? `
+                                                <a href="${sum.url}" download class="download-svg-btn" title="تحميل الملف">
+                                                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                </a>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملخصات مرفقة لهذه الحصة حالياً.</p>`}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 4. امتحان الحصة المرتبط (إذا كان مفعل في الإعدادات)
+            if (settings.showExamSection !== false) {
+                let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
+                html += `
+                    <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
+                        <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
+                            <span>📝 رابعاً: امتحان الحصة والتقييم</span>
+                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                        </div>
+                        <div class="lesson-section-content">
+                            ${hasExam ? `
+                                <div class="content-item-row">
+                                    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
+                                        <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);">عدد الأسئلة: ${examData.questions.length} سؤال</span>
+                                    </div>
+                                    <div class="action-btns-group">
+                                        <a href="lesson-exam.html?id=${lessonId}" class="view-btn">ابدأ</a>
                                     </div>
                                 </div>
-                            `;
-                        }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد فيديوهات مرفقة لهذه الحصة حالياً.</p>`}
+                            ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص أو مربوط بهذه الحصة حالياً.</p>`}
+                        </div>
                     </div>
-                </div>
-            `;
-
-            // 2. قائمة الملازم
-            let notes = item.notesList || [];
-            html += `
-                <div class="lesson-section-box" id="sectionNotes">
-                    <div class="lesson-section-header" onclick="toggleAccordion('sectionNotes')">
-                        <span>📚 ثانياً: قائمة ملازم الشرح (${notes.length})</span>
-                        <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                    </div>
-                    <div class="lesson-section-content">
-                        ${notes.length > 0 ? notes.map(n => {
-                            let displayName = (n.name && n.name.trim() !== '') ? n.name : 'لا يوجد اسم';
-                            return `
-                                <div class="content-item-row">
-                                    <span class="content-item-title">📄 ${displayName}</span>
-                                    <a href="${n.url}" target="_blank" class="view-btn">فتح ↗</a>
-                                </div>
-                            `;
-                        }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملازم مرفقة لهذه الحصة حالياً.</p>`}
-                    </div>
-                </div>
-            `;
-
-            // 3. قائمة الملخصات
-            let summaries = item.summariesList || [];
-            html += `
-                <div class="lesson-section-box" id="sectionSummaries">
-                    <div class="lesson-section-header" onclick="toggleAccordion('sectionSummaries')">
-                        <span>📑 ثالثاً: قائمة ملخصات الدرس (${summaries.length})</span>
-                        <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                    </div>
-                    <div class="lesson-section-content">
-                        ${summaries.length > 0 ? summaries.map(sum => {
-                            let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'لا يوجد اسم';
-                            return `
-                                <div class="content-item-row">
-                                    <span class="content-item-title">📑 ${displayName}</span>
-                                    <a href="${sum.url}" target="_blank" class="view-btn">فتح ↗</a>
-                                </div>
-                            `;
-                        }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملخصات مرفقة لهذه الحصة حالياً.</p>`}
-                    </div>
-                </div>
-            `;
-
-            // 4. امتحان الحصة المرتبط (معدل ليوجه إلى lesson-exam.html برقم الـ lessonId بدلاً من exam.html القديم)
-            let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
-            html += `
-                <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
-                    <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
-                        <span>📝 رابعاً: امتحان الحصة والتقييم</span>
-                        <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                    </div>
-                    <div class="lesson-section-content">
-                        ${hasExam ? `
-                            <div class="content-item-row">
-                                <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
-                                    <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
-                                    <span style="font-size: 0.75rem; color: var(--text-muted);">عدد الأسئلة: ${examData.questions.length} سؤال</span>
-                                </div>
-                                <a href="lesson-exam.html?id=${lessonId}" class="view-btn">ابدأ</a>
-                            </div>
-                        ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص أو مربوط بهذه الحصة حالياً.</p>`}
-                    </div>
-                </div>
-            `;
+                `;
+            }
 
             html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
             document.getElementById('lessonContainerBox').innerHTML = html;
