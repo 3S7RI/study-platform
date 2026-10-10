@@ -98,8 +98,11 @@
         }
 
         .content-item-row {
-            display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
-            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; gap: 15px; flex-wrap: wrap;
+            display: flex; flex-direction: column; background: var(--bg-main);
+            padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px; gap: 10px;
+        }
+        .content-item-top {
+            display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; flex-wrap: wrap;
         }
         .content-item-title { font-size: 0.85rem; font-weight: bold; color: var(--text-main); flex: 1; text-align: right; }
 
@@ -209,7 +212,6 @@
         let passwordTimerInterval = null;
         let studentActivityData = {};
 
-        // مراقبة أحداث الصفحة العامة (Event Delegation)
         document.addEventListener('click', function(e) {
             let actionBtn = e.target.closest('[data-action-type]');
             if (actionBtn) {
@@ -231,12 +233,18 @@
                 currentUserEmail = user.email || user.displayName || "طالب معتمد";
             }
             const urlParams = new URLSearchParams(window.location.search);
-            const lessonId = urlParams.get('id');
+            let lessonId = urlParams.get('id');
+
+            if (!lessonId) {
+                let parts = window.location.href.split('?id=');
+                if (parts.length > 1) {
+                    lessonId = parts[1].split('&')[0];
+                }
+            }
 
             if (lessonId) {
                 activeLessonId = lessonId;
                 
-                // تحميل لحظي فوري من الذاكرة المؤقتة لتسريع الفتح
                 let cachedLesson = localStorage.getItem(`cache_lesson_${lessonId}`);
                 if (cachedLesson) {
                     try {
@@ -248,7 +256,7 @@
 
                 await fetchLessonDetails(lessonId);
             } else {
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
             }
         });
 
@@ -271,14 +279,13 @@
                 const docSnap = await getDoc(docRef);
 
                 if (!docSnap.exists()) {
-                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، هذه الحصة غير موجودة أو تم حذفها.</p>`;
+                    document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، هذه الحصة غير موجودة أو تم حذفها.</p>`;
                     return;
                 }
 
                 activeLessonData = docSnap.data();
                 activeLessonSettings = activeLessonData.settings || {};
                 
-                // تخزين مؤقت فوري
                 localStorage.setItem(`cache_lesson_${lessonId}`, JSON.stringify(activeLessonData));
 
                 if (currentUserId) {
@@ -294,7 +301,6 @@
                             if (localStorage.getItem(`local_summary_${lessonId}`)) studentActivityData.summarySeen = true;
                             if (localStorage.getItem(`local_video_${lessonId}`)) studentActivityData.videoWatched = true;
 
-                            // عدد محاولات الحصة افتراضياً 5 مرات إذا لم تُحدد
                             let accessLimit = (activeLessonSettings.lessonAttempts !== undefined && activeLessonSettings.lessonAttempts !== "") ? Number(activeLessonSettings.lessonAttempts) : 5;
                             let currentAccessCount = studentActivityData.accessCount || 0;
                             
@@ -307,7 +313,7 @@
                             }
 
                             if (currentAccessCount > accessLimit) {
-                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn">العودة للمكتبة</a></div>`;
+                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn" style="display:inline-block; margin-top:15px; width:auto; padding:10px 20px;">العودة للمكتبة</a></div>`;
                                 return;
                             }
 
@@ -343,7 +349,7 @@
 
             } catch (e) {
                 console.error("خطأ في جلب تفاصيل الحصة:", e);
-                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
+                document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
             }
         }
 
@@ -424,22 +430,22 @@
                 if (videos.length > 0) {
                     html += `
                         <div class="lesson-section-box" id="sectionVideo">
-                            <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
-                               <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
-                               <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                            <div class="lesson-section-header" onclick="toggleVideoAccordion(${videos.length})">
+                                <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
+                                <div class="section-left-side"><span class="arrow-icon" id="videoArrowIcon">▼</span></div>
                             </div>
-                            <div class="lesson-section-content">
+                            <div class="lesson-section-content" id="videoSectionContent" style="max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out, padding 0.35s ease; padding: 0 18px;">
                                 ${videos.map((v, idx) => {
                                     let displayName = (v.name && v.name.trim() !== '') ? v.name : 'فيديو الشرح';
                                     let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
                                     let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
                                     let preventFastForward = settings.preventFastForward !== false;
                                     return `
-                                        <div style="margin-bottom:10px;">
-                                            <div class="content-item-row">
+                                        <div class="content-item-row" style="margin-top: 10px;">
+                                            <div class="content-item-top">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">فتح 🔽</button>
+                                                    <button class="view-btn" onclick="toggleVideoItem('vid-collapse-${idx}', this)">تشغيل 🔽</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -471,14 +477,16 @@
                                     let displayName = (n.name && n.name.trim() !== '') ? n.name : 'ملزمة الشرح';
                                     return `
                                         <div class="content-item-row">
-                                            <span class="content-item-title">📄 ${displayName}</span>
-                                            <div class="action-btns-group">
-                                                <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح ↗</button>
-                                                ${allowNotesDownload ? `
-                                                    <a href="${n.url}" download class="download-svg-btn" data-action-type="notes" data-url="${n.url}" title="تحميل الملف">
-                                                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                    </a>
-                                                ` : ''}
+                                            <div class="content-item-top">
+                                                <span class="content-item-title">📄 ${displayName}</span>
+                                                <div class="action-btns-group">
+                                                    <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح ↗</button>
+                                                    ${allowNotesDownload ? `
+                                                        <a href="${n.url}" download class="download-svg-btn" data-action-type="notes" data-url="${n.url}" title="تحميل الملف">
+                                                            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                        </a>
+                                                    ` : ''}
+                                                </div>
                                             </div>
                                         </div>
                                     `;
@@ -503,14 +511,16 @@
                                     let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'ملخص الدرس';
                                     return `
                                         <div class="content-item-row">
-                                            <span class="content-item-title">📑 ${displayName}</span>
-                                            <div class="action-btns-group">
-                                                <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح ↗</button>
-                                                ${allowSummaryDownload ? `
-                                                    <a href="${sum.url}" download class="download-svg-btn" data-action-type="summary" data-url="${sum.url}" title="تحميل الملف">
-                                                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                    </a>
-                                                ` : ''}
+                                            <div class="content-item-top">
+                                                <span class="content-item-title">📑 ${displayName}</span>
+                                                <div class="action-btns-group">
+                                                    <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح ↗</button>
+                                                    ${allowSummaryDownload ? `
+                                                        <a href="${sum.url}" download class="download-svg-btn" data-action-type="summary" data-url="${sum.url}" title="تحميل الملف">
+                                                            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                        </a>
+                                                    ` : ''}
+                                                </div>
                                             </div>
                                         </div>
                                     `;
@@ -542,7 +552,6 @@
                         }
                     }
 
-                    // التحقق من عدد محاولات الامتحان (الافتراضي 1 محاولة إذا لم تُحدد)
                     let maxExamAttempts = (settings.examAttempts !== undefined && settings.examAttempts !== "") ? Number(settings.examAttempts) : 1;
                     let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
                     if (studentExamSubmissions >= maxExamAttempts) {
@@ -558,12 +567,14 @@
                             </div>
                             <div class="lesson-section-content">
                                 <div class="content-item-row">
-                                    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
-                                        <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
-                                        <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
-                                    </div>
-                                    <div class="action-btns-group">
-                                        <button onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
+                                    <div class="content-item-top">
+                                        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
+                                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
+                                            <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
+                                        </div>
+                                        <div class="action-btns-group">
+                                            <button onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -582,13 +593,32 @@
             box.classList.toggle('active');
         };
 
-        window.openVideoPlayer = function(collapseId, btnElement) {
+        window.toggleVideoAccordion = function(videosCount) {
+            const sectionBox = document.getElementById('sectionVideo');
+            const contentBox = document.getElementById('videoSectionContent');
+            const arrowIcon = document.getElementById('videoArrowIcon');
+
+            sectionBox.classList.toggle('active');
+            if (sectionBox.classList.contains('active')) {
+                contentBox.style.maxHeight = (videosCount * 400 + 100) + "px";
+                contentBox.style.padding = "16px 18px";
+                contentBox.style.borderTopColor = "var(--border-color)";
+                if (arrowIcon) arrowIcon.style.transform = "rotate(180deg)";
+            } else {
+                contentBox.style.maxHeight = "0px";
+                contentBox.style.padding = "0 18px";
+                contentBox.style.borderTopColor = "transparent";
+                if (arrowIcon) arrowIcon.style.transform = "rotate(0deg)";
+            }
+        };
+
+        window.toggleVideoItem = function(collapseId, btnElement) {
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 let isShown = collapseBox.classList.contains('show');
                 if (isShown) {
                     collapseBox.classList.remove('show');
-                    if(btnElement) btnElement.innerHTML = 'فتح 🔽';
+                    if(btnElement) btnElement.innerHTML = 'تشغيل 🔽';
                 } else {
                     collapseBox.classList.add('show');
                     if(btnElement) btnElement.innerHTML = 'إخفاء ✕';
