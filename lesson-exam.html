@@ -88,7 +88,6 @@
         }
         .btn-submit:hover { opacity: 0.9; }
 
-        /* نافذة التنبيهات ونظام الـ Modal المنمقة */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
@@ -124,7 +123,6 @@
         </div>
     </div>
 
-    <!-- نافذة التنبيهات والرسائل -->
     <div class="platform-toast-overlay" id="platformToastModal">
         <div class="platform-toast-card" onclick="event.stopPropagation()">
             <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
@@ -139,7 +137,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -157,6 +155,7 @@
 
         let currentUserId = null;
         let activeLessonId = null;
+        let activeExamId = null;
         let lessonSettings = {};
         let currentExamData = null;
         let timerInterval = null;
@@ -199,7 +198,6 @@
             document.getElementById('platformToastModal').style.display = 'none';
         };
 
-        // تفعيل الشاشة الكاملة ومنع الريفريش بعد الضغط على حسناً فهمت وبدء الامتحان
         function enableSecurityFeatures() {
             if (lessonSettings.fullScreen !== false) {
                 activateFullScreen();
@@ -215,7 +213,7 @@
 
         window.confirmLeaveExam = function() {
             if (isSubmitted) {
-                window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
+                window.location.href = `lesson-view.html?id=${activeLessonId}`;
                 return;
             }
 
@@ -225,7 +223,7 @@
                     <button class="platform-toast-btn" style="background:var(--primary);" onclick="closePlatformToast()">إكمال الحل ✍️</button>
                 </div>
             `;
-            showPlatformToast("تنبيه مغادرة الامتحان ⚠️", "إذا عدت إلى الحصة سيتم احتساب المحاولة وخصمها منك وستهلك إجاباتك للتصحيح.", btnsHtml);
+            showPlatformToast("تنبيه مغادرة الامتحان ⚠️", "إذا عدت إلى الحصة سيتم احتساب المحاولة وتسليم الإجابات الحالية.", btnsHtml);
         };
 
         window.forceSubmitAndLeave = function() {
@@ -245,23 +243,23 @@
 
                 const lessonData = lessonSnap.data();
                 lessonSettings = lessonData.settings || {};
+                activeExamId = lessonData.examId;
 
-                if (!lessonData.examId) {
-                    showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
+                if (!activeExamId) {
+                    showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
                     return;
                 }
 
-                const examRef = doc(db, "exams", lessonData.examId);
+                const examRef = doc(db, "exams", activeExamId);
                 const examSnap = await getDoc(examRef);
 
                 if (!examSnap.exists()) {
-                    showPlatformToast("خطأ ❌", "الامتحان المرتبط غير موجود بالسحابة.", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
+                    showPlatformToast("خطأ ❌", "الامتحان المرتبط غير موجود بالسحابة.", null, () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
                     return;
                 }
 
                 currentExamData = examSnap.data();
 
-                // عرض رسالة التعليمات والترحيب أولاً، وبمجرد الضغط على حسناً فهمت يتم تفعيل الشاشة الكاملة والأمان
                 if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
                     showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, null, () => {
                         enableSecurityFeatures();
@@ -345,7 +343,6 @@
                         html += `
                             <div style="margin-top:10px;">
                                 <textarea name="q_${qIdx}_text" rows="3" placeholder="اكتب إجابتك المقالية هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-bottom:8px;"></textarea>
-                                <input type="file" name="q_${qIdx}_image" accept="image/*" style="width:100%; padding:8px; background:var(--bg-main); border:1px dashed var(--primary); border-radius:8px; color:var(--text-main);">
                             </div>
                         `;
                     } else {
@@ -366,7 +363,6 @@
         window.handleExamFormSubmit = function(event) {
             event.preventDefault();
             
-            // فحص هل هناك أسئلة لم تُحل
             let questions = currentExamData.questions || [];
             let unansweredCount = 0;
 
@@ -394,7 +390,7 @@
                 `;
                 showPlatformToast("تنبيه الأسئلة غير المكتملة ⚠️", `لديك ${unansweredCount} أسئلة لم تقم بالإجابة عليها. هل أنت متأكد من التسليم؟`, btnsHtml);
             } else {
-                submitExam(event, true);
+                submitExam(null, true);
             }
         };
 
@@ -409,8 +405,42 @@
 
             if (timerInterval) clearInterval(timerInterval);
 
-            if (currentUserId) {
+            // حساب الدرجات تلقائياً لأسئلة الاختيار من متعدد
+            let totalScore = 0;
+            let maxScore = 0;
+            let questions = currentExamData.questions || [];
+
+            questions.forEach((q, qIdx) => {
+                let qMarks = Number(q.marks || 1);
+                maxScore += qMarks;
+
+                if (q.options && q.options.length > 0) {
+                    let checkedInputs = document.querySelectorAll(`input[name="q_${qIdx}"]:checked`);
+                    if (checkedInputs.length > 0) {
+                        let selectedVal = parseInt(checkedInputs[0].value);
+                        let correctVal = parseInt(q.correctOption !== undefined ? q.correctOption : q.answer);
+                        if (selectedVal === correctVal) {
+                            totalScore += qMarks;
+                        }
+                    }
+                }
+            });
+
+            // حفظ نتيجة الطالب وسجل إجاباته في قاعدة البيانات
+            if (currentUserId && activeLessonId) {
                 try {
+                    let resultId = `${currentUserId}_${activeLessonId}`;
+                    let resultRef = doc(db, "studentExamResults", resultId);
+                    
+                    await setDoc(resultRef, {
+                        userId: currentUserId,
+                        lessonId: activeLessonId,
+                        examId: activeExamId,
+                        score: totalScore,
+                        maxScore: maxScore,
+                        submittedAt: new Date().toISOString()
+                    }, { merge: true });
+
                     let userRef = doc(db, "users", currentUserId);
                     let pts = lessonSettings.points || {};
                     let examPoints = pts.exam !== undefined ? pts.exam : 10;
@@ -419,22 +449,22 @@
                         points: increment(examPoints)
                     });
                 } catch(e) {
-                    console.log("Error awarding points:", e);
+                    console.log("Error saving exam result:", e);
                 }
             }
 
-            // التحقق من تفعيل النتيجة الفورية
             let instantResultActive = lessonSettings.instantResult !== false;
             let endMsg = "";
 
             if (instantResultActive) {
-                endMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح، شكراً لجهودك!";
+                let customMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح!";
+                endMsg = `${customMsg}\n\nنتيجتك: ${totalScore} من ${maxScore}`;
             } else {
-                endMsg = "⏳ تم تسليم إجاباتك بنجاح. يرجى الانتظار حتى يتم تصحيح الامتحان من قبل المعلم.";
+                endMsg = "⏳ تم تسليم إجاباتك بنجاح. يرجى الانتظار حتى يتم مراجعة النتيجة من قبل المعلم.";
             }
             
             showPlatformToast("انتهى الامتحان 🎓", endMsg, null, () => {
-                window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
+                window.location.href = `lesson-view.html?id=${activeLessonId}`;
             });
         };
     </script>
