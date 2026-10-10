@@ -446,7 +446,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" id="vid-btn-${idx}" onclick="openVideoPlayer('vid-collapse-${idx}', this)">فتح <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></button>
+                                                    <button class="view-btn" onclick="toggleVideoPlayer('vid-collapse-${idx}')">فتح ▾</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -542,17 +542,14 @@
                     if (smartLockActive) {
                         let watchedVideo = studentActivityData.videoWatched === true || localStorage.getItem(`local_video_${activeLessonId}`) === 'true';
                         let openedNotes = studentActivityData.studyNotes === true || localStorage.getItem(`local_notes_${activeLessonId}`) === 'true';
-                        let openedSummary = studentActivityData.summarySeen === true || localStorage.getItem(`local_summary_${activeLessonId}`) === 'true';
                         
                         if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
                             isUnlocked = false;
-                            lockReasonMsg = "ملاحظة: يجب فتح وتشغيل فيديو الشرح أولاً لفتح الامتحان 🔒";
-                        } else if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
+                            lockReasonMsg = "ملاحظة: يجب مشاهدة فيديو الشرح أولاً لفتح الامتحان 🔒";
+                        }
+                        if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
                             isUnlocked = false;
                             lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملازم الشرح أولاً لفتح الامتحان 🔒";
-                        } else if (settings.showSummary !== false && (item.summariesList || []).length > 0 && !openedSummary) {
-                            isUnlocked = false;
-                            lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملخصات الدرس أولاً لفتح الامتحان 🔒";
                         }
                     }
 
@@ -597,20 +594,11 @@
             box.classList.toggle('active');
         };
 
-        window.openVideoPlayer = function(collapseId, btnElement) {
+        window.toggleVideoPlayer = function(collapseId) {
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
-                let isShown = collapseBox.classList.contains('show');
-                if (isShown) {
-                    collapseBox.classList.remove('show');
-                    if(btnElement) {
-                        btnElement.innerHTML = 'فتح <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>';
-                    }
-                } else {
-                    collapseBox.classList.add('show');
-                    if(btnElement) {
-                        btnElement.innerHTML = 'إخفاء <svg viewBox="0 0 24 24" style="transform: rotate(180deg);"><path d="M7 10l5 5 5-5z"/></svg>';
-                    }
+                collapseBox.classList.toggle('show');
+                if (collapseBox.classList.contains('show')) {
                     triggerContentOpen('video');
                 }
             }
@@ -650,7 +638,7 @@
 
         window.handleExamStartClick = function(lessonId, isUnlocked) {
             if (!isUnlocked) {
-                alert("عذراً، الامتحان مقفل أو يجب فتح جميع محتويات الحصة أولاً.");
+                alert("عذراً، الامتحان مقفل أو استنفدت عدد المحاولات المسموحة.");
                 return;
             }
 
