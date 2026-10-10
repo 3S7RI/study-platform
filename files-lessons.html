@@ -170,6 +170,13 @@
                 <input type="datetime-local" id="lessonScheduledAt">
             </div>
 
+            <div class="form-group">
+                <label style="color: var(--primary); font-weight: bold;">📝 ربط امتحان جاهز بهذه الحصة (اختياري):</label>
+                <select id="lessonExamSelect">
+                    <option value="">-- جاري تحميل الامتحانات المتاحة... --</option>
+                </select>
+            </div>
+
             <hr style="border:0; border-top:1px solid var(--border-color); margin:15px 0;">
 
             <!-- 1. قائمة الفيديوهات وحدها -->
@@ -279,7 +286,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -296,7 +303,9 @@
         const db = getFirestore(app);
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
+            if (user) {
+                await fetchExamsForDropdown();
+            } else {
                 window.location.href = 'login.html';
             }
         });
@@ -313,6 +322,22 @@
             localStorage.setItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
+
+        async function fetchExamsForDropdown() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "exams"));
+                const select = document.getElementById('lessonExamSelect');
+                let html = '<option value="">-- بدون امتحان (اختياري) --</option>';
+                querySnapshot.forEach((docSnap) => {
+                    let ex = docSnap.data();
+                    html += `<option value="${docSnap.id}">📝 ${ex.title || 'امتحان'} (${ex.subject || 'عام'})</option>`;
+                });
+                select.innerHTML = html;
+            } catch (e) {
+                console.warn("خطأ في جلب الامتحانات:", e);
+                document.getElementById('lessonExamSelect').innerHTML = `<option value="">-- عذراً، حدث خطأ في تحميل الامتحانات --</option>`;
+            }
+        }
 
         window.triggerFileInput = function(btn) {
             let card = btn.closest('.dynamic-item-card');
@@ -478,6 +503,7 @@
             let targetGroup = document.getElementById('lessonTargetGroup').value.trim();
             let number = parseInt(document.getElementById('lessonNumber').value) || 1;
             let scheduledAt = document.getElementById('lessonScheduledAt').value;
+            let examId = document.getElementById('lessonExamSelect').value;
 
             if (!title) { alert('يرجى كتابة عنوان الحصة على الأقل!'); return; }
 
@@ -505,6 +531,7 @@
             let lessonDoc = {
                 title, subject, targetGroup, number,
                 scheduledAt: scheduledAt || '',
+                examId: examId || null,
                 videosList, notesList, summariesList,
                 settings: { generalActive: true, smartLock: true, antiScreenshot: true },
                 createdAt: new Date().toISOString()
@@ -518,6 +545,7 @@
                 document.getElementById('lessonSubject').value = '';
                 document.getElementById('lessonTargetGroup').value = '';
                 document.getElementById('lessonScheduledAt').value = '';
+                document.getElementById('lessonExamSelect').value = '';
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء نشر الحصة في السحابة.");
