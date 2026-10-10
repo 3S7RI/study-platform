@@ -159,7 +159,7 @@
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
-                <a href="files-lessons.html" class="btn-tab">الحصص 📚</a>
+                <a href="files-lessons.html" class="btn-tab">إنشاء الحصص 📚</a>
                 <a href="files-settings.html" class="btn-tab active">الإعدادات ⚙️</a>
                 <a href="files-stats.html" class="btn-tab">الإحصائيات 📊</a>
             </div>
@@ -185,8 +185,15 @@
         <div class="section-box" id="settingsFormBox">
             <div class="section-header"><h2>إعدادات ومحتويات الحصة الشاملة (حقيقية ومفعلة) 🛡️</h2></div>
             
-            <!-- أولاً: إعدادات الامتحان -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:8px; margin-bottom:4px;">أولاً: إعدادات امتحان الحصة 📝</h3>
+            <!-- أولاً: إعدادات الامتحان والربط -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:8px; margin-bottom:4px;">أولاً: إعدادات امتحان الحصة والربط 📝</h3>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label style="color: var(--primary); font-weight: bold;">📝 ربط الحصة بامتحان من كولكشن الامتحانات:</label>
+                <select id="lessonExamSelect" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 0.8rem; outline: none;">
+                    <option value="">-- جاري تحميل الامتحانات... --</option>
+                </select>
+            </div>
+
             <div class="settings-grid">
                 <div class="setting-card"><label for="settingPasswordLock">جعل الامتحان بكلمة مرور خاصة</label><label class="switch"><input type="checkbox" id="settingPasswordLock" onchange="togglePasswordInput()"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI) للمقالي</label><label class="switch"><input type="checkbox" id="settingAIBot" checked><span class="slider"></span></label></div>
@@ -289,10 +296,11 @@
         const db = getFirestore(app);
 
         let globalLessonsList = [];
+        let globalExamsList = [];
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await fetchLessonsDropdown();
+                await fetchCloudData();
             } else {
                 window.location.href = 'login.html';
             }
@@ -311,18 +319,34 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        async function fetchLessonsDropdown() {
+        async function fetchCloudData() {
             try {
-                const querySnapshot = await getDocs(collection(db, "lessons"));
+                const lessonsSnap = await getDocs(collection(db, "lessons"));
                 globalLessonsList = [];
-                querySnapshot.forEach((docSnap) => {
+                lessonsSnap.forEach((docSnap) => {
                     globalLessonsList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                const examsSnap = await getDocs(collection(db, "exams"));
+                globalExamsList = [];
+                examsSnap.forEach((docSnap) => {
+                    globalExamsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 
                 renderCustomDropdown(globalLessonsList);
+                renderExamsDropdown();
             } catch (err) {
-                console.error("خطأ في جلب الحصص:", err);
+                console.error("خطأ في جلب البيانات:", err);
             }
+        }
+
+        function renderExamsDropdown() {
+            const select = document.getElementById('lessonExamSelect');
+            let html = '<option value="">-- بدون امتحان (اختياري) --</option>';
+            globalExamsList.forEach(ex => {
+                html += `<option value="${ex.id}">📝 ${ex.title || 'امتحان'} (${ex.subject || 'عام'})</option>`;
+            });
+            select.innerHTML = html;
         }
 
         function renderCustomDropdown(lessons) {
@@ -373,6 +397,8 @@
 
             let lesson = globalLessonsList.find(l => l.id === selectedId);
             if (!lesson) return;
+
+            document.getElementById('lessonExamSelect').value = lesson.examId || '';
 
             let s = lesson.settings || {};
             
@@ -470,6 +496,7 @@
             let selectedId = document.getElementById('selectedLessonIdHidden').value;
             if (!selectedId) { alert('يرجى اختيار حصة أولاً من القائمة لتحديث إعداداتها!'); return; }
 
+            let examIdVal = document.getElementById('lessonExamSelect').value;
             let isPasswordLocked = document.getElementById('settingPasswordLock').checked;
             let hasCertChecked = document.getElementById('settingHasCertificate').checked;
             let certImageUrlVal = document.getElementById('settingCertImageUrl').value.trim();
@@ -513,10 +540,14 @@
 
             try {
                 const lessonRef = doc(db, "lessons", selectedId);
-                await updateDoc(lessonRef, { settings: newSettings });
+                await updateDoc(lessonRef, { 
+                    examId: examIdVal || null,
+                    settings: newSettings 
+                });
                 
                 let lessonIndex = globalLessonsList.findIndex(l => l.id === selectedId);
                 if (lessonIndex !== -1) {
+                    globalLessonsList[lessonIndex].examId = examIdVal || null;
                     globalLessonsList[lessonIndex].settings = newSettings;
                 }
 
