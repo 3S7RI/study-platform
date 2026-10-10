@@ -162,7 +162,7 @@
         </header>
 
         <div class="lesson-main-card" id="lessonContainerBox">
-            <div id="loadingText" style="text-align: center; padding: 40px; color: var(--text-muted);">جاري تحميل محتوى الحصة وتجهيز القوائم...</div>
+            <div id="loadingText" style="text-align: center; padding: 40px; color: var(--text-muted);">جاري تحميل محتوى الحصة من السحابة...</div>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
@@ -187,7 +187,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -201,7 +201,11 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        
+        // تفعيل التخزين المؤقت للسحابة (Firestore Persistence Cache) دون استخدام LocalStorage التقليدي
+        const db = initializeFirestore(app, {
+            localCache: persistentLocalCache({tabManager: persistentMultipleTabManager()})
+        });
 
         let currentUserId = null;
         let currentUserEmail = "طالب زائر";
@@ -236,7 +240,6 @@
             const urlParams = new URLSearchParams(window.location.search);
             let lessonId = urlParams.get('id');
 
-            // فحص إضافي لاستخراج الـ ID من الرابط لو تم نقله بشكل مختلف
             if (!lessonId) {
                 let parts = window.location.href.split('?id=');
                 if (parts.length > 1) {
@@ -246,16 +249,6 @@
 
             if (lessonId) {
                 activeLessonId = lessonId;
-                
-                let cachedLesson = localStorage.getItem(`cache_lesson_${lessonId}`);
-                if (cachedLesson) {
-                    try {
-                        activeLessonData = JSON.parse(cachedLesson);
-                        activeLessonSettings = activeLessonData.settings || {};
-                        renderLessonPage();
-                    } catch(err) {}
-                }
-
                 await fetchLessonDetails(lessonId);
             } else {
                 document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger); padding:30px;">عذراً، لم يتم تحديد الحصة المطلوبة. يرجى العودة للمكتبة واختيار الحصة من جديد.</p>`;
@@ -287,8 +280,6 @@
 
                 activeLessonData = docSnap.data();
                 activeLessonSettings = activeLessonData.settings || {};
-                
-                localStorage.setItem(`cache_lesson_${lessonId}`, JSON.stringify(activeLessonData));
 
                 if (currentUserId) {
                     try {
@@ -298,10 +289,6 @@
                             let userData = userSnap.data();
                             let lessonsActivity = userData.lessonsActivity || {};
                             studentActivityData = lessonsActivity[lessonId] || {};
-
-                            if (localStorage.getItem(`local_notes_${lessonId}`)) studentActivityData.studyNotes = true;
-                            if (localStorage.getItem(`local_summary_${lessonId}`)) studentActivityData.summarySeen = true;
-                            if (localStorage.getItem(`local_video_${lessonId}`)) studentActivityData.videoWatched = true;
 
                             let accessLimit = (activeLessonSettings.lessonAttempts !== undefined && activeLessonSettings.lessonAttempts !== "") ? Number(activeLessonSettings.lessonAttempts) : 5;
                             let currentAccessCount = studentActivityData.accessCount || 0;
@@ -369,8 +356,6 @@
 
         window.triggerContentOpen = async function(contentType) {
             if (!activeLessonId) return;
-
-            localStorage.setItem(`local_${contentType}_${activeLessonId}`, 'true');
 
             if (contentType === 'notes') studentActivityData.studyNotes = true;
             if (contentType === 'summary') studentActivityData.summarySeen = true;
@@ -541,8 +526,8 @@
                     let lockReasonMsg = "";
 
                     if (smartLockActive) {
-                        let watchedVideo = studentActivityData.videoWatched === true || localStorage.getItem(`local_video_${activeLessonId}`) === 'true';
-                        let openedNotes = studentActivityData.studyNotes === true || localStorage.getItem(`local_notes_${activeLessonId}`) === 'true';
+                        let watchedVideo = studentActivityData.videoWatched === true;
+                        let openedNotes = studentActivityData.studyNotes === true;
                         
                         if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
                             isUnlocked = false;
@@ -587,7 +572,6 @@
 
             html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
             document.getElementById('lessonContainerBox').innerHTML = html;
-            checkLocalStorageLockState();
         }
 
         window.toggleAccordion = function(boxId) {
@@ -620,45 +604,11 @@
             videoEl.lastValidTime = videoEl.currentTime;
         };
 
-        function getLockKey() {
-            return `exam_lock_${activeLessonId}_${currentUserId || 'guest'}`;
-        }
-
-        function getAttemptsKey() {
-            return `exam_attempts_${activeLessonId}_${currentUserId || 'guest'}`;
-        }
-
-        function checkLocalStorageLockState() {
-            let lockData = localStorage.getItem(getLockKey());
-            if (lockData) {
-                let lockUntil = parseInt(lockData);
-                let now = new Date().getTime();
-                if (now < lockUntil) {
-                    lockExamButtonWithCountdown(lockUntil - now);
-                } else {
-                    localStorage.removeItem(getLockKey());
-                    localStorage.setItem(getAttemptsKey(), '0');
-                }
-            }
-        }
-
         window.handleExamStartClick = function(lessonId, isUnlocked) {
             if (!isUnlocked) {
                 alert("عذراً، الامتحان مقفل أو استنفدت عدد المحاولات المسموحة.");
                 return;
             }
-
-            let lockData = localStorage.getItem(getLockKey());
-            if (lockData) {
-                let lockUntil = parseInt(lockData);
-                let now = new Date().getTime();
-                if (now < lockUntil) return;
-                else {
-                    localStorage.removeItem(getLockKey());
-                    localStorage.setItem(getAttemptsKey(), '0');
-                }
-            }
-
             let passwordRequired = activeLessonSettings.password && activeLessonSettings.password.trim() !== '';
             if (passwordRequired) {
                 document.getElementById('examPasswordInput').value = '';
@@ -677,62 +627,12 @@
             let correctPass = activeLessonSettings.password;
 
             if (entered === correctPass) {
-                localStorage.setItem(getAttemptsKey(), '0');
                 closeExamPasswordModal();
                 window.location.href = `lesson-exam.html?id=${activeLessonId}`;
             } else {
-                let attemptsKey = getAttemptsKey();
-                let currentFails = parseInt(localStorage.getItem(attemptsKey) || '0') + 1;
-                localStorage.setItem(attemptsKey, currentFails.toString());
-
-                if (currentFails >= 5) {
-                    closeExamPasswordModal();
-                    let lockDuration = 5 * 60 * 1000;
-                    let lockUntil = new Date().getTime() + lockDuration;
-                    localStorage.setItem(getLockKey(), lockUntil.toString());
-                    lockExamButtonWithCountdown(lockDuration);
-                    alert("لقد أخطأت 5 مرات في كلمة المرور! تم قفل الدخول لمدة 5 دقائق.");
-                } else {
-                    alert(`كلمة المرور غير صحيحة! محاولاتك الفاشلة: ${currentFails} من 5.`);
-                }
+                alert("كلمة المرور غير صحيحة!");
             }
         };
-
-        function lockExamButtonWithCountdown(remainingMs) {
-            let btn = document.getElementById('startExamBtn');
-            let statusTest = document.getElementById('examStatusText');
-            if (!btn) return;
-
-            btn.disabled = true;
-            btn.style.background = 'var(--border-color)';
-            btn.style.color = 'var(--text-muted)';
-            btn.style.cursor = 'not-allowed';
-
-            if (passwordTimerInterval) clearInterval(passwordTimerInterval);
-
-            passwordTimerInterval = setInterval(() => {
-                remainingMs -= 1000;
-                if (remainingMs <= 0) {
-                    clearInterval(passwordTimerInterval);
-                    localStorage.removeItem(getLockKey());
-                    localStorage.setItem(getAttemptsKey(), '0');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.style.background = 'var(--primary)';
-                        btn.style.color = 'white';
-                        btn.style.cursor = 'pointer';
-                        btn.textContent = 'ابدأ 🚀';
-                    }
-                    if (statusTest) statusTest.textContent = 'متاح للدخول الآن';
-                    return;
-                }
-
-                let mins = Math.floor(remainingMs / (1000 * 60));
-                let secs = Math.floor((remainingMs % (1000 * 60)) / 1000);
-                if (statusTest) statusTest.textContent = `⏳ مقفل مؤقتاً. يفتح خلال: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                if (btn) btn.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-            }, 1000);
-        }
     </script>
 </body>
 </html>
