@@ -108,8 +108,8 @@
         /* زر الفتح في أقصى اليسار */
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
-            padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: inline-block;
-            border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); white-space: nowrap; margin-left: auto;
+            padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 0.85rem; display: inline-block;
+            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); white-space: nowrap; margin-left: auto;
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
 
@@ -245,7 +245,7 @@
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات مع مشغل منسدل عند الضغط على زر فتح
+            // 1. قائمة الفيديوهات
             let videos = item.videosList || [];
             html += `
                 <div class="lesson-section-box" id="sectionVideo">
@@ -321,19 +321,24 @@
                 </div>
             `;
 
-            // 4. امتحان الحصة (مع المعالجة الشاملة لأي اسم حقل لربط الامتحان بدون خطأ 404)
-            let examId = item.examId || (item.examData && item.examData.id) || item.exam || null;
+            // 4. امتحان الحصة (بشكل منسق ومرتب وبدون أخطاء 404 نهائياً)
+            let hasExam = !!item.examData && item.examData.questions && item.examData.questions.length > 0;
             html += `
                 <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                         <span>📝 رابعاً: امتحان الحصة والتقييم</span>
                         <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                     </div>
-                    <div class="lesson-section-content" style="text-align: center; padding: 20px;">
-                        ${examId ? `
-                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">يوجد امتحان مخصص لهذه الحصة جاهز للحل.</p>
-                            <a href="exam-solve.html?id=${examId}" class="view-btn" style="display:inline-block; padding: 10px 24px; font-size: 0.9rem; margin-left: 0;">بدء امتحان الحصة الآن 🚀</a>
-                        ` : `<p style="font-size: 0.8rem; color: var(--danger);">لا يوجد امتحان مخصص لهذه الحصة حالياً.</p>`}
+                    <div class="lesson-section-content">
+                        ${hasExam ? `
+                            <div style="background: var(--bg-main); padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <div>
+                                    <h4 style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 4px;">📝 ${item.examData.title || 'امتحان الحصة'}</h4>
+                                    <p style="font-size: 0.78rem; color: var(--text-muted);">عدد الأسئلة: ${item.examData.questions.length} سؤال</p>
+                                </div>
+                                <a href="exam-solve.html?id=${lessonId}" class="view-btn">ابدأ الحل 🚀</a>
+                            </div>
+                        ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص لهذه الحصة حالياً.</p>`}
                     </div>
                 </div>
             `;
