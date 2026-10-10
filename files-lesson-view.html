@@ -73,7 +73,6 @@
         .lesson-title-header { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 8px; }
         .lesson-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
 
-        /* نظام القوائم القابلة للطي (Accordion Lists) */
         .lesson-section-box {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
             margin-bottom: 14px; overflow: hidden; transition: all 0.3s ease;
@@ -130,7 +129,6 @@
             font-size: 1.4rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
         }
 
-        /* تصميم نافذة إدخال كلمة المرور بنظام وثيم المنصة */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
@@ -207,6 +205,7 @@
         let activeLessonId = null;
         let activeLessonSettings = {};
         let passwordTimerInterval = null;
+        let studentActivityData = {};
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -249,6 +248,45 @@
 
                 let lesson = docSnap.data();
                 activeLessonSettings = lesson.settings || {};
+
+                if (currentUserId) {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        studentActivityData = lessonsActivity[lessonId] || {};
+
+                        // التحقق من عدد مرات دخول الحصة المسموحة
+                        let accessLimit = activeLessonSettings.lessonAttempts || 5;
+                        let currentAccessCount = studentActivityData.accessCount || 0;
+                        
+                        if (!studentActivityData.countedThisSession) {
+                            currentAccessCount++;
+                            studentActivityData.accessCount = currentAccessCount;
+                            studentActivityData.countedThisSession = true;
+                            lessonsActivity[lessonId] = studentActivityData;
+                            await updateDoc(userRef, { lessonsActivity: lessonsActivity });
+                        }
+
+                        if (currentAccessCount > accessLimit) {
+                            document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn">العودة للمكتبة</a></div>`;
+                            return;
+                        }
+
+                        // منح نقاط فتح الحصة فوراً بدون تكرار
+                        let pts = activeLessonSettings.points || {};
+                        let lessonPts = pts.lesson !== undefined ? pts.lesson : 10;
+                        if (!studentActivityData.lessonOpenedRewarded) {
+                            studentActivityData.lessonOpenedRewarded = true;
+                            lessonsActivity[lessonId] = studentActivityData;
+                            await updateDoc(userRef, {
+                                points: increment(lessonPts),
+                                lessonsActivity: lessonsActivity
+                            });
+                        }
+                    }
+                }
                 
                 let examData = null;
                 if (activeLessonSettings.showExamSection !== false && lesson.examId && lesson.examId.trim() !== '') {
@@ -265,24 +303,6 @@
 
                 renderLessonPage(lessonId, lesson, examData);
 
-                if (currentUserId) {
-                    let userRef = doc(db, "users", currentUserId);
-                    let userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        let userData = userSnap.data();
-                        let lessonsActivity = userData.lessonsActivity || {};
-                        let pts = activeLessonSettings.points || {};
-                        let lessonPts = pts.lesson !== undefined ? pts.lesson : 10;
-
-                        if (!lessonsActivity[lessonId] || !lessonsActivity[lessonId].watched) {
-                            lessonsActivity[lessonId] = { watched: true, studyNotes: true, video: true, summary: true };
-                            await updateDoc(userRef, {
-                                points: increment(lessonPts),
-                                lessonsActivity: lessonsActivity
-                            });
-                        }
-                    }
-                }
             } catch (e) {
                 console.error("خطأ في جلب تفاصيل الحصة:", e);
                 document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">حدث خطأ أثناء تحميل الحصة من السحابة.</p>`;
@@ -298,140 +318,195 @@
             } else if (url.includes('watch?v=')) {
                 videoId = url.split('watch?v=')[1].split('&')[0];
             }
-            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+            return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
+
+        window.rewardContentItem = async function(contentType) {
+            if (!currentUserId || !activeLessonId) return;
+            try {
+                let userRef = doc(db, "users", currentUserId);
+                let userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) return;
+                
+                let userData = userSnap.data();
+                let lessonsActivity = userData.lessonsActivity || {};
+                let act = lessonsActivity[activeLessonId] || {};
+                let pts = activeLessonSettings.points || {};
+
+                let rewardKey = `${contentType}_rewarded`;
+                if (!act[rewardKey]) {
+                    act[rewardKey] = true;
+                    if (contentType === 'notes') act.studyNotes = true;
+                    if (contentType === 'summary') act.summarySeen = true;
+                    if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
+                    
+                    lessonsActivity[activeLessonId] = act;
+                    let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
+
+                    await updateDoc(userRef, {
+                        points: increment(addPts),
+                        lessonsActivity: lessonsActivity
+                    });
+                }
+            } catch(e) { console.log("Reward error:", e); }
+        };
 
         function renderLessonPage(lessonId, item, examData) {
             let settings = item.settings || {};
-            let allowDownload = settings.allowNotesDownload !== false;
+            let allowNotesDownload = settings.allowNotesDownload !== false;
+            let allowSummaryDownload = settings.allowSummaryDownload !== false;
 
             let html = `
                 <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات
+            // 1. قائمة الفيديوهات (إذا كانت مفعلة فقط)
             if (settings.showVideo !== false) {
                 let videos = item.videosList || [];
-                html += `
-                    <div class="lesson-section-box" id="sectionVideo">
-                        <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
-                            <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
-                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                        </div>
-                        <div class="lesson-section-content">
-                            ${videos.length > 0 ? videos.map((v, idx) => {
-                                let displayName = (v.name && v.name.trim() !== '') ? v.name : 'لا يوجد اسم';
-                                let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
-                                let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
-                                return `
-                                    <div style="margin-bottom:10px;">
-                                        <div class="content-item-row">
-                                            <span class="content-item-title">📹 ${displayName}</span>
-                                            <div class="action-btns-group">
-                                                <button class="view-btn" onclick="toggleVideoCollapse('vid-collapse-${idx}')">فتح ▼</button>
+                if (videos.length > 0) {
+                    html += `
+                        <div class="lesson-section-box" id="sectionVideo">
+                            <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
+                               <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
+                               <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                            </div>
+                            <div class="lesson-section-content">
+                                ${videos.map((v, idx) => {
+                                    let displayName = (v.name && v.name.trim() !== '') ? v.name : 'فيديو الشرح';
+                                    let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
+                                    let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
+                                    let preventFastForward = settings.preventFastForward !== false;
+                                    return `
+                                        <div style="margin-bottom:10px;">
+                                            <div class="content-item-row">
+                                                <span class="content-item-title">📹 ${displayName}</span>
+                                                <div class="action-btns-group">
+                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', '${contentTypeKey('video')}')">تشاهد 👁️</button>
+                                                </div>
+                                            </div>
+                                            <div class="video-collapse-box" id="vid-collapse-${idx}">
+                                                ${isYouTube ? 
+                                                    `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
+                                                    `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
+                                                }
                                             </div>
                                         </div>
-                                        <div class="video-collapse-box" id="vid-collapse-${idx}">
-                                            ${isYouTube ? 
-                                                `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
-                                                `<video controls controlsList="nodownload"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
-                                            }
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد فيديوهات مرفقة لهذه الحصة حالياً.</p>`}
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
-            // 2. قائمة الملازم
+            // 2. قائمة الملازم (إذا كانت مفعلة فقط)
             if (settings.showNotes !== false) {
                 let notes = item.notesList || [];
-                html += `
-                    <div class="lesson-section-box" id="sectionNotes">
-                        <div class="lesson-section-header" onclick="toggleAccordion('sectionNotes')">
-                            <span>📚 ثانياً: قائمة ملازم الشرح (${notes.length})</span>
-                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                        </div>
-                        <div class="lesson-section-content">
-                            ${notes.length > 0 ? notes.map(n => {
-                                let displayName = (n.name && n.name.trim() !== '') ? n.name : 'لا يوجد اسم';
-                                return `
-                                    <div class="content-item-row">
-                                        <span class="content-item-title">📄 ${displayName}</span>
-                                        <div class="action-btns-group">
-                                            <a href="${n.url}" target="_blank" class="view-btn">فتح ↗</a>
-                                            ${allowDownload ? `
-                                                <a href="${n.url}" download class="download-svg-btn" title="تحميل الملف">
-                                                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                </a>
-                                            ` : ''}
+                if (notes.length > 0) {
+                    html += `
+                        <div class="lesson-section-box" id="sectionNotes">
+                            <div class="lesson-section-header" onclick="toggleAccordion('sectionNotes')">
+                                <span>📚 ثانياً: قائمة ملازم الشرح (${notes.length})</span>
+                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                            </div>
+                            <div class="lesson-section-content">
+                                ${notes.map(n => {
+                                    let displayName = (n.name && n.name.trim() !== '') ? n.name : 'ملزمة الشرح';
+                                    return `
+                                        <div class="content-item-row">
+                                            <span class="content-item-title">📄 ${displayName}</span>
+                                            <div class="action-btns-group">
+                                                <a href="${n.url}" target="_blank" class="view-btn" onclick="rewardContentItem('notes')">فتح ↗</a>
+                                                ${allowNotesDownload ? `
+                                                    <a href="${n.url}" download class="download-svg-btn" onclick="rewardContentItem('notes')" title="تحميل الملف">
+                                                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                    </a>
+                                                ` : ''}
+                                            </div>
                                         </div>
-                                    </div>
-                                `;
-                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملازم مرفقة لهذه الحصة حالياً.</p>`}
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
-            // 3. قائمة الملخصات
+            // 3. قائمة الملخصات (إذا كانت مفعلة فقط)
             if (settings.showSummary !== false) {
                 let summaries = item.summariesList || [];
-                html += `
-                    <div class="lesson-section-box" id="sectionSummaries">
-                        <div class="lesson-section-header" onclick="toggleAccordion('sectionSummaries')">
-                            <span>📑 ثالثاً: قائمة ملخصات الدرس (${summaries.length})</span>
-                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                        </div>
-                        <div class="lesson-section-content">
-                            ${summaries.length > 0 ? summaries.map(sum => {
-                                let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'لا يوجد اسم';
-                                return `
-                                    <div class="content-item-row">
-                                        <span class="content-item-title">📑 ${displayName}</span>
-                                        <div class="action-btns-group">
-                                            <a href="${sum.url}" target="_blank" class="view-btn">فتح ↗</a>
-                                            ${allowDownload ? `
-                                                <a href="${sum.url}" download class="download-svg-btn" title="تحميل الملف">
-                                                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                                                </a>
-                                            ` : ''}
+                if (summaries.length > 0) {
+                    html += `
+                        <div class="lesson-section-box" id="sectionSummaries">
+                            <div class="lesson-section-header" onclick="toggleAccordion('sectionSummaries')">
+                                <span>📑 ثالثاً: قائمة ملخصات الدرس (${summaries.length})</span>
+                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                            </div>
+                            <div class="lesson-section-content">
+                                ${summaries.map(sum => {
+                                    let displayName = (sum.name && sum.name.trim() !== '') ? sum.name : 'ملخص الدرس';
+                                    return `
+                                        <div class="content-item-row">
+                                            <span class="content-item-title">📑 ${displayName}</span>
+                                            <div class="action-btns-group">
+                                                <a href="${sum.url}" target="_blank" class="view-btn" onclick="rewardContentItem('summary')">فتح ↗</a>
+                                                ${allowSummaryDownload ? `
+                                                    <a href="${sum.url}" download class="download-svg-btn" onclick="rewardContentItem('summary')" title="تحميل الملف">
+                                                        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                                                    </a>
+                                                ` : ''}
+                                            </div>
                                         </div>
-                                    </div>
-                                `;
-                            }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد ملخصات مرفقة لهذه الحصة حالياً.</p>`}
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
-            // 4. امتحان الحصة المرتبط مع تفعيل فحص كلمة المرور والمحاولات
+            // 4. امتحان الحصة (الشرط الذكي Smart Lock)
             if (settings.showExamSection !== false) {
                 let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
-                html += `
-                    <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
-                        <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
-                            <span>📝 رابعاً: امتحان الحصة والتقييم</span>
-                            <div class="section-left-side"><span class="arrow-icon">▼</span></div>
-                        </div>
-                        <div class="lesson-section-content">
-                            ${hasExam ? `
+                if (hasExam) {
+                    let smartLockActive = settings.smartLock !== false;
+                    let isUnlocked = true;
+                    let lockReasonMsg = "";
+
+                    if (smartLockActive) {
+                        let watchedVideo = studentActivityData.videoWatched === true;
+                        let openedNotes = studentActivityData.studyNotes === true;
+                        if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
+                            isUnlocked = false;
+                            lockReasonMsg = "ملاحظة: يجب مشاهدة فيديو الشرح أولاً لفتح الامتحان 🔒";
+                        }
+                        if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
+                            isUnlocked = false;
+                            lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملازم الشرح أولاً لفتح الامتحان 🔒";
+                        }
+                    }
+
+                    html += `
+                        <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
+                            <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
+                                <span>📝 رابعاً: امتحان الحصة والتقييم</span>
+                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
+                            </div>
+                            <div class="lesson-section-content">
                                 <div class="content-item-row">
                                     <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
                                         <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
-                                        <span style="font-size: 0.75rem; color: var(--text-muted);" id="examStatusText">عدد الأسئلة: ${examData.questions.length} سؤال</span>
+                                        <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
                                     </div>
                                     <div class="action-btns-group">
-                                        <button onclick="handleExamStartClick('${lessonId}')" id="startExamBtn" class="view-btn">ابدأ</button>
+                                        <button onclick="handleExamStartClick('${lessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
                                     </div>
                                 </div>
-                            ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص أو مربوط بهذه الحصة حالياً.</p>`}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
 
             html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
@@ -444,14 +519,25 @@
             box.classList.toggle('active');
         };
 
-        window.toggleVideoCollapse = function(collapseId) {
+        window.openVideoPlayer = function(collapseId, typeKey) {
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 collapseBox.classList.toggle('show');
+                rewardContentItem('video');
             }
         };
 
-        // إدارة التحقق من كلمة المرور وعدد المحاولات (5 محاولات ثم 5 دقائق عد تنازلي)
+        // منع التقديم والتأخير الحقيقي لفيديوهات HTML5
+        window.handleVideoSeeking = function(videoEl) {
+            if (activeLessonSettings.preventFastForward !== false) {
+                if (videoEl.currentTime > (videoEl.lastValidTime || 0) + 1.5) {
+                    alert("عذراً، ممنوع تقديم الفيديو! يرجى مشاهدة المحتوى كاملاً.");
+                    videoEl.currentTime = videoEl.lastValidTime || 0;
+                }
+            }
+            videoEl.lastValidTime = videoEl.currentTime;
+        };
+
         function getLockKey() {
             return `exam_lock_${activeLessonId}_${currentUserId || 'guest'}`;
         }
@@ -474,14 +560,18 @@
             }
         }
 
-        window.handleExamStartClick = function(lessonId) {
+        window.handleExamStartClick = function(lessonId, isUnlocked) {
+            if (!isUnlocked) {
+                alert("عذراً، الامتحان مقفل لحين استكمال مشاهدة المحتوى المطلوب أولاً (الشرط الذكي).");
+                return;
+            }
+
             let lockData = localStorage.getItem(getLockKey());
             if (lockData) {
                 let lockUntil = parseInt(lockData);
                 let now = new Date().getTime();
-                if (now < lockUntil) {
-                    return; // الزر مقفل
-                } else {
+                if (now < lockUntil) return;
+                else {
                     localStorage.removeItem(getLockKey());
                     localStorage.setItem(getAttemptsKey(), '0');
                 }
@@ -515,7 +605,7 @@
 
                 if (currentFails >= 5) {
                     closeExamPasswordModal();
-                    let lockDuration = 5 * 60 * 1000; // 5 دقائق بالمللي ثانية
+                    let lockDuration = 5 * 60 * 1000;
                     let lockUntil = new Date().getTime() + lockDuration;
                     localStorage.setItem(getLockKey(), lockUntil.toString());
                     lockExamButtonWithCountdown(lockDuration);
@@ -549,7 +639,7 @@
                         btn.style.background = 'var(--primary)';
                         btn.style.color = 'white';
                         btn.style.cursor = 'pointer';
-                        btn.textContent = 'ابدأ';
+                        btn.textContent = 'ابدأ 🚀';
                     }
                     if (statusText) statusText.textContent = 'متاح للدخول الآن';
                     return;
@@ -557,12 +647,8 @@
 
                 let mins = Math.floor(remainingMs / (1000 * 60));
                 let secs = Math.floor((remainingMs % (1000 * 60)) / 1000);
-                if (statusText) {
-                    statusText.textContent = `⏳ مقفل مؤقتاً بسبب خطأ كلمة المرور. يفتح خلال: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                }
-                if (btn) {
-                    btn.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                }
+                if (statusText) statusText.textContent = `⏳ مقفل مؤقتاً. يفتح خلال: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                if (btn) btn.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
             }, 1000);
         }
     </script>
