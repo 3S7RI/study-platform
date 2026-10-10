@@ -542,14 +542,17 @@
                     if (smartLockActive) {
                         let watchedVideo = studentActivityData.videoWatched === true || localStorage.getItem(`local_video_${activeLessonId}`) === 'true';
                         let openedNotes = studentActivityData.studyNotes === true || localStorage.getItem(`local_notes_${activeLessonId}`) === 'true';
+                        let openedSummary = studentActivityData.summarySeen === true || localStorage.getItem(`local_summary_${activeLessonId}`) === 'true';
                         
                         if (settings.showVideo !== false && (item.videosList || []).length > 0 && !watchedVideo) {
                             isUnlocked = false;
-                            lockReasonMsg = "ملاحظة: يجب مشاهدة فيديو الشرح أولاً لفتح الامتحان 🔒";
-                        }
-                        if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
+                            lockReasonMsg = "ملاحظة: يجب فتح وتشغيل فيديو الشرح أولاً لفتح الامتحان 🔒";
+                        } else if (settings.showNotes !== false && (item.notesList || []).length > 0 && !openedNotes) {
                             isUnlocked = false;
                             lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملازم الشرح أولاً لفتح الامتحان 🔒";
+                        } else if (settings.showSummary !== false && (item.summariesList || []).length > 0 && !openedSummary) {
+                            isUnlocked = false;
+                            lockReasonMsg = "ملاحظة: يجب فتح والاطلاع على ملخصات الدرس أولاً لفتح الامتحان 🔒";
                         }
                     }
 
@@ -647,7 +650,7 @@
 
         window.handleExamStartClick = function(lessonId, isUnlocked) {
             if (!isUnlocked) {
-                alert("عذراً، الامتحان مقفل أو استنفدت عدد المحاولات المسموحة.");
+                alert("عذراً، الامتحان مقفل أو يجب فتح جميع محتويات الحصة أولاً.");
                 return;
             }
 
