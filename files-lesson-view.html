@@ -87,7 +87,7 @@
         .lesson-section-header:hover { background: var(--hover-bg); }
         
         .section-left-side { display: flex; align-items: center; gap: 10px; }
-        .arrow-icon { font-size: 0.8rem; transition: transform 0.3s ease; }
+        .arrow-icon { font-size: 0.8rem; transition: transform 0.3s ease; display: inline-block; }
         .lesson-section-box.active .arrow-icon { transform: rotate(180deg); }
 
         .lesson-section-content {
@@ -206,7 +206,7 @@
                 let lesson = docSnap.data();
                 
                 let examData = null;
-                if (lesson.examId) {
+                if (lesson.examId && lesson.examId.trim() !== '') {
                     try {
                         const examRef = doc(db, "exams", lesson.examId);
                         const examSnap = await getDoc(examRef);
@@ -336,7 +336,7 @@
             `;
 
             // 4. امتحان الحصة المرتبط (معدل بالتصميم المطلوب وزر ابدا في أقصى اليسار)
-            let hasExam = !!examData && examData.questions && examData.questions.length > 0;
+            let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
             html += `
                 <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
@@ -352,7 +352,7 @@
                                 </div>
                                 <a href="exam.html?id=${item.examId}" class="view-btn">ابدأ</a>
                             </div>
-                        ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص لهذه الحصة حالياً.</p>`}
+                        ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص أو مربوط بهذه الحصة حالياً.</p>`}
                     </div>
                 </div>
             `;
