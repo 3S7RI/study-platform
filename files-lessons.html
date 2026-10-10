@@ -130,6 +130,20 @@
 
         .btn-save { background: var(--success); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 16px; width: 100%; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .btn-republish { background: var(--primary); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 16px; width: 100%; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); display: none; }
+        .btn-republish:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .lesson-card-item {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px;
+            margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+        }
+        .lesson-info-box { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+        .lesson-info-box span:first-child { font-weight: 700; color: var(--text-main); font-size: 0.82rem; }
+        .lesson-info-box span:last-child { font-size: 0.72rem; color: var(--text-muted); }
+        .btn-edit-mode { background: rgba(99, 102, 241, 0.2); color: var(--primary); border: 1px solid var(--primary); padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; white-space: nowrap; }
+        .btn-edit-mode:hover { background: var(--primary); color: white; }
+
         .hidden { display: none !important; }
     </style>
 </head>
@@ -153,8 +167,13 @@
         </nav>
 
         <div class="section-box">
-            <div class="section-header"><h2>إضافة ونشر حصة دراسية جديدة 🎬</h2></div>
+            <div class="section-header">
+                <h2 id="sectionMainTitle">إضافة ونشر حصة دراسية جديدة 🎬</h2>
+                <button id="cancelEditBtn" class="hidden" onclick="cancelEditingMode()" style="background: var(--danger); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">إلغاء التعديل ✕</button>
+            </div>
             
+            <input type="hidden" id="editingLessonId" value="">
+
             <div class="form-row-grid-2">
                 <div class="form-group" style="margin-top:0;"><label>عنوان الحصة (مثال: الحصة الأولى - الباب الأول كيمياء):</label><input type="text" id="lessonTitle" placeholder="اكتب عنوان الحصة هنا..."></div>
                 <div class="form-group" style="margin-top:0;"><label>المادة الدراسية:</label><input type="text" id="lessonSubject" placeholder="كيمياء / فيزياء..."></div>
@@ -278,7 +297,16 @@
                 <button type="button" class="btn-add-item" onclick="addNewSummaryRow()">إضافة ملخص آخر ➕</button>
             </div>
 
-            <button class="btn-save" onclick="publishNewLessonToCloud()">نشر الحصة دراسية بالسحابة الآن 🚀</button>
+            <button class="btn-save" id="publishNewBtn" onclick="publishNewLessonToCloud()">نشر الحصة دراسية بالسحابة الآن 🚀</button>
+            <button class="btn-republish hidden" id="republishBtn" onclick="updateExistingLessonInCloud()">تحديث وإعادة نشر الحصة 🔄</button>
+        </div>
+
+        <!-- خانة قائمة الحصص السابقة للتعديل -->
+        <div class="section-box">
+            <div class="section-header"><h2>📚 قائمة الحصص السابقة (اختر حصة للتعديل وإعادة النشر)</h2></div>
+            <div id="existingLessonsContainer">
+                <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 10px;">جاري جلب الحصص السابقة... ⚡</p>
+            </div>
         </div>
     </div>
 
@@ -286,7 +314,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -302,9 +330,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let globalExamsList = [];
+        let globalLessonsList = [];
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 await fetchExamsForDropdown();
+                await fetchExistingLessonsList();
             } else {
                 window.location.href = 'login.html';
             }
@@ -326,10 +358,12 @@
         async function fetchExamsForDropdown() {
             try {
                 const querySnapshot = await getDocs(collection(db, "exams"));
+                globalExamsList = [];
                 const select = document.getElementById('lessonExamSelect');
                 let html = '<option value="">-- بدون امتحان (اختياري) --</option>';
                 querySnapshot.forEach((docSnap) => {
-                    let ex = docSnap.data();
+                    let ex = { id: docSnap.id, ...docSnap.data() };
+                    globalExamsList.push(ex);
                     html += `<option value="${docSnap.id}">📝 ${ex.title || 'امتحان'} (${ex.subject || 'عام'})</option>`;
                 });
                 select.innerHTML = html;
@@ -338,6 +372,135 @@
                 document.getElementById('lessonExamSelect').innerHTML = `<option value="">-- عذراً، حدث خطأ في تحميل الامتحانات --</option>`;
             }
         }
+
+        async function fetchExistingLessonsList() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "lessons"));
+                globalLessonsList = [];
+                const container = document.getElementById('existingLessonsContainer');
+                let html = '';
+
+                querySnapshot.forEach((docSnap) => {
+                    let les = { id: docSnap.id, ...docSnap.data() };
+                    globalLessonsList.push(les);
+                    html += `
+                        <div class="lesson-card-item">
+                            <div class="lesson-info-box">
+                                <span>📚 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'}</span>
+                                <span>المادة: ${les.subject || 'عام'} | الشعبة: ${les.targetGroup || 'الكل'}</span>
+                            </div>
+                            <button class="btn-edit-mode" onclick="prepareLessonForEditing('${les.id}')">تعديل وإعادة نشر ✏️</button>
+                        </div>`;
+                });
+
+                if (globalLessonsList.length === 0) {
+                    container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 10px;">لا توجد حصص منشورة حتى الآن.</p>`;
+                } else {
+                    container.innerHTML = html;
+                }
+            } catch (e) {
+                console.error("خطأ في جلب الحصص:", e);
+                document.getElementById('existingLessonsContainer').innerHTML = `<p style="color: var(--danger); font-size: 0.8rem; text-align: center; padding: 10px;">حدث خطأ في تحميل الحصص السابقة.</p>`;
+            }
+        }
+
+        window.prepareLessonForEditing = function(lessonId) {
+            let les = globalLessonsList.find(l => l.id === lessonId);
+            if (!les) return;
+
+            document.getElementById('editingLessonId').value = les.id;
+            document.getElementById('lessonTitle').value = les.title || '';
+            document.getElementById('lessonSubject').value = les.subject || '';
+            document.getElementById('lessonTargetGroup').value = les.targetGroup || '';
+            document.getElementById('lessonNumber').value = les.number || 1;
+            document.getElementById('lessonScheduledAt').value = les.scheduledAt || '';
+            document.getElementById('lessonExamSelect').value = les.examId || '';
+
+            // تعبئة الفيديوهات
+            const videosContainer = document.getElementById('videosContainer');
+            videosContainer.innerHTML = '';
+            let vList = les.videosList && les.videosList.length > 0 ? les.videosList : [{name: '', url: ''}];
+            vList.forEach(v => {
+                let div = document.createElement('div');
+                div.className = 'dynamic-item-card';
+                div.innerHTML = `
+                    <button type="button" class="btn-remove-item" onclick="this.closest('.dynamic-item-card').remove()">✕</button>
+                    <div class="form-group" style="margin-top:0;"><label>اسم فيديو الشرح:</label><input type="text" class="video-name-input" value="${v.name || ''}" placeholder="مثال: شرح الدرس"></div>
+                    <div class="form-group"><label>رابط الفيديو أو رفعه من الجهاز:</label>
+                        <div class="input-with-upload">
+                            <input type="url" class="video-url-input" value="${v.url || ''}" placeholder="أدخل رابط يوتيوب أو ارفع فيديو...">
+                            <input type="file" class="hidden video-file-input" accept="video/*" onchange="handleFileSelected(this, 'video')">
+                            <button type="button" class="btn-upload-svg" onclick="triggerFileInput(this)" title="رفع ملف فيديو 📁"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
+                        </div>
+                        <div class="upload-progress-container upload-progress-box"><div class="upload-status-text"><span class="upload-status-label">جاري الرفع...</span><span class="upload-percent-label">0%</span></div><div class="upload-progress-bar-bg"><div class="upload-progress-fill"></div></div></div>
+                    </div>`;
+                videosContainer.appendChild(div);
+            });
+
+            // تعبئة الملازم
+            const notesContainer = document.getElementById('notesContainer');
+            notesContainer.innerHTML = '';
+            let nList = les.notesList && les.notesList.length > 0 ? les.notesList : [{name: '', url: ''}];
+            nList.forEach(n => {
+                let div = document.createElement('div');
+                div.className = 'dynamic-item-card';
+                div.innerHTML = `
+                    <button type="button" class="btn-remove-item" onclick="this.closest('.dynamic-item-card').remove()">✕</button>
+                    <div class="form-group" style="margin-top:0;"><label>اسم الملزمة:</label><input type="text" class="note-name-input" value="${n.name || ''}" placeholder="مثال: ملزمة الشرح"></div>
+                    <div class="form-group"><label>رابط الملزمة أو رفعها من الجهاز (PDF):</label>
+                        <div class="input-with-upload">
+                            <input type="url" class="note-url-input" value="${n.url || ''}" placeholder="أدخل رابط المستند أو ارفع ملف...">
+                            <input type="file" class="hidden note-file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelected(this, 'note')">
+                            <button type="button" class="btn-upload-svg" onclick="triggerFileInput(this)" title="رفع ملف PDF 📁"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
+                        </div>
+                        <div class="upload-progress-container upload-progress-box"><div class="upload-status-text"><span class="upload-status-label">جاري الرفع...</span><span class="upload-percent-label">0%</span></div><div class="upload-progress-bar-bg"><div class="upload-progress-fill"></div></div></div>
+                    </div>`;
+                notesContainer.appendChild(div);
+            });
+
+            // تعبئة الملخصات
+            const summariesContainer = document.getElementById('summariesContainer');
+            summariesContainer.innerHTML = '';
+            let sList = les.summariesList && les.summariesList.length > 0 ? les.summariesList : [{name: '', url: ''}];
+            sList.forEach(s => {
+                let div = document.createElement('div');
+                div.className = 'dynamic-item-card';
+                div.innerHTML = `
+                    <button type="button" class="btn-remove-item" onclick="this.closest('.dynamic-item-card').remove()">✕</button>
+                    <div class="form-group" style="margin-top:0;"><label>اسم الملخص:</label><input type="text" class="summary-name-input" value="${s.name || ''}" placeholder="مثال: ملخص القوانين"></div>
+                    <div class="form-group"><label>رابط الملخص أو رفعه من الجهاز:</label>
+                        <div class="input-with-upload">
+                            <input type="url" class="summary-url-input" value="${s.url || ''}" placeholder="أدخل رابط الملخص أو ارفع ملف...">
+                            <input type="file" class="hidden summary-file-input" accept=".pdf,.doc,.docx" onchange="handleFileSelected(this, 'summary')">
+                            <button type="button" class="btn-upload-svg" onclick="triggerFileInput(this)" title="رفع ملف الملخص 📁"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></button>
+                        </div>
+                        <div class="upload-progress-container upload-progress-box"><div class="upload-status-text"><span class="upload-status-label">جاري الرفع...</span><span class="upload-percent-label">0%</span></div><div class="upload-progress-bar-bg"><div class="upload-progress-fill"></div></div></div>
+                    </div>`;
+                summariesContainer.appendChild(div);
+            });
+
+            document.getElementById('sectionMainTitle').textContent = `تعديل الحصة: ${les.title || ''} ✏️`;
+            document.getElementById('publishNewBtn').classList.add('hidden');
+            document.getElementById('republishBtn').classList.remove('hidden');
+            document.getElementById('cancelEditBtn').classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.cancelEditingMode = function() {
+            document.getElementById('editingLessonId').value = '';
+            document.getElementById('lessonTitle').value = '';
+            document.getElementById('lessonSubject').value = '';
+            document.getElementById('lessonTargetGroup').value = '';
+            document.getElementById('lessonNumber').value = '1';
+            document.getElementById('lessonScheduledAt').value = '';
+            document.getElementById('lessonExamSelect').value = '';
+
+            document.getElementById('sectionMainTitle').textContent = 'إضافة ونشر حصة دراسية جديدة 🎬';
+            document.getElementById('publishNewBtn').classList.remove('hidden');
+            document.getElementById('republishBtn').classList.add('hidden');
+            document.getElementById('cancelEditBtn').classList.add('hidden');
+        };
 
         window.triggerFileInput = function(btn) {
             let card = btn.closest('.dynamic-item-card');
@@ -419,7 +582,7 @@
                     <div class="upload-progress-container upload-progress-box">
                         <div class="upload-status-text">
                             <span class="upload-status-label">جاري الرفع...</span>
-                            <span class="upload-percent-label">0% (0 / 0 ميجابايت)</span>
+                            <span class="upload-percent-label">0%</span>
                         </div>
                         <div class="upload-progress-bar-bg">
                             <div class="upload-progress-fill"></div>
@@ -453,7 +616,7 @@
                     <div class="upload-progress-container upload-progress-box">
                         <div class="upload-status-text">
                             <span class="upload-status-label">جاري الرفع...</span>
-                            <span class="upload-percent-label">0% (0 / 0 ميجابايت)</span>
+                            <span class="upload-percent-label">0%</span>
                         </div>
                         <div class="upload-progress-bar-bg">
                             <div class="upload-progress-fill"></div>
@@ -487,7 +650,7 @@
                     <div class="upload-progress-container upload-progress-box">
                         <div class="upload-status-text">
                             <span class="upload-status-label">جاري الرفع...</span>
-                            <span class="upload-percent-label">0% (0 / 0 ميجابايت)</span>
+                            <span class="upload-percent-label">0%</span>
                         </div>
                         <div class="upload-progress-bar-bg">
                             <div class="upload-progress-fill"></div>
@@ -541,14 +704,69 @@
                 await addDoc(collection(db, "lessons"), lessonDoc);
                 alert('✔ تم نشر الحصة بنجاح في السحابة لجميع الطلاب! 🚀');
                 
-                document.getElementById('lessonTitle').value = '';
-                document.getElementById('lessonSubject').value = '';
-                document.getElementById('lessonTargetGroup').value = '';
-                document.getElementById('lessonScheduledAt').value = '';
-                document.getElementById('lessonExamSelect').value = '';
+                cancelEditingMode();
+                await fetchExistingLessonsList();
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء نشر الحصة في السحابة.");
+            }
+        };
+
+        window.updateExistingLessonInCloud = async function() {
+            let lessonId = document.getElementById('editingLessonId').value;
+            if (!lessonId) { alert('لم يتم اختيار حصة للتعديل!'); return; }
+
+            let title = document.getElementById('lessonTitle').value.trim();
+            let subject = document.getElementById('lessonSubject').value.trim();
+            let targetGroup = document.getElementById('lessonTargetGroup').value.trim();
+            let number = parseInt(document.getElementById('lessonNumber').value) || 1;
+            let scheduledAt = document.getElementById('lessonScheduledAt').value;
+            let examId = document.getElementById('lessonExamSelect').value;
+
+            if (!title) { alert('يرجى كتابة عنوان الحصة على الأقل!'); return; }
+
+            let videosList = [];
+            document.querySelectorAll('#videosContainer .dynamic-item-card').forEach(card => {
+                let name = card.querySelector('.video-name-input').value.trim();
+                let url = card.querySelector('.video-url-input').value.trim();
+                if (url) videosList.push({ name: name || 'فيديو شرح', url });
+            });
+
+            let notesList = [];
+            document.querySelectorAll('#notesContainer .dynamic-item-card').forEach(card => {
+                let name = card.querySelector('.note-name-input').value.trim();
+                let url = card.querySelector('.note-url-input').value.trim();
+                if (url) notesList.push({ name: name || 'ملزمة الشرح', url });
+            });
+
+            let summariesList = [];
+            document.querySelectorAll('#summariesContainer .dynamic-item-card').forEach(card => {
+                let name = card.querySelector('.summary-name-input').value.trim();
+                let url = card.querySelector('.summary-url-input').value.trim();
+                if (url) summariesList.push({ name: name || 'ملخص الدرس', url });
+            });
+
+            try {
+                const lessonRef = doc(db, "lessons", lessonId);
+                let existingLes = globalLessonsList.find(l => l.id === lessonId);
+                let currentSettings = existingLes ? existingLes.settings : { generalActive: true, smartLock: true, antiScreenshot: true };
+
+                await updateDoc(lessonRef, {
+                    title, subject, targetGroup, number,
+                    scheduledAt: scheduledAt || '',
+                    examId: examId || null,
+                    videosList, notesList, summariesList,
+                    settings: currentSettings,
+                    updatedAt: new Date().toISOString()
+                });
+
+                alert('✔ تم تحديث وإعادة نشر الحصة في السحابة بنجاح! 🔄🚀');
+                
+                cancelEditingMode();
+                await fetchExistingLessonsList();
+            } catch (e) {
+                console.error(e);
+                alert("حدث خطأ أثناء تحديث الحصة في السحابة.");
             }
         };
     </script>
