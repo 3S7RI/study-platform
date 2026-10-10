@@ -37,7 +37,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
         .container { max-width: 800px; margin: 0 auto; }
         
         .platform-header {
@@ -65,12 +65,12 @@
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
             padding: 18px; margin-bottom: 16px;
         }
-        .question-text { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 12px; }
+        .question-text { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 12px; text-align: right; }
         
         .option-label {
             display: flex; align-items: center; gap: 10px; background: var(--bg-main);
             padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
-            margin-bottom: 8px; cursor: pointer; font-size: 0.88rem;
+            margin-bottom: 8px; cursor: pointer; font-size: 0.88rem; text-align: right;
         }
         .option-label:hover { background: var(--hover-bg); border-color: var(--primary); }
 
@@ -81,9 +81,21 @@
         }
         .btn-submit:hover { opacity: 0.9; }
 
-        .result-box {
-            background: var(--bg-card); border-radius: 16px; padding: 30px; text-align: center;
-            border: 1px solid var(--border-color); box-shadow: var(--shadow); display: none;
+        /* تذكرة التنبيه المنبثقة */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 360px; border-radius: 14px; padding: 18px; text-align: center; box-shadow: var(--shadow);
+        }
+        .platform-toast-card h3 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 7px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.8rem; cursor: pointer; width: 100%;
         }
     </style>
 </head>
@@ -93,11 +105,20 @@
         <header class="platform-header">
             <div id="backLinkContainer"><a href="files.html" class="btn-home-link">⬅ العودة</a></div>
             <div style="font-weight: 700; font-size: 0.95rem;">منصة رحلة دراسية - اختبار الحصة 📝</div>
-            <div></div>
+            <div><button id="fullscreenBtn" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:bold;">⛶ تفعيل الشاشة الكاملة</button></div>
         </header>
 
         <div id="examContainer">
-            <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري تحميل الامتحان المرتبط بالحصة...</div>
+            <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري تحميل الامتحان المرتبط بالحصة وتفعيل الأمان...</div>
+        </div>
+    </div>
+
+    <!-- نافذة التنبيهات -->
+    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">رسالة التنبيه هنا...</p>
+            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
         </div>
     </div>
 
@@ -132,11 +153,37 @@
                 return;
             }
 
-            // تحديث زر العودة ليرجع لصفحة عرض الحصة الأصلية
             document.getElementById('backLinkContainer').innerHTML = `<a href="lesson-view.html?id=${lessonId}" class="btn-home-link">⬅ العودة للحصة</a>`;
+
+            // منع عمل ريفريش أو الخروج الخطأ
+            window.addEventListener('beforeunload', function (e) {
+                e.preventDefault();
+                e.returnValue = '';
+            });
 
             await fetchLessonAndExam(lessonId);
         });
+
+        // تفعيل زر الشاشة الكاملة
+        document.getElementById('fullscreenBtn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("خطأ في تفعيل الشاشة الكاملة:", err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        window.showPlatformToast = function(title, message) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
 
         async function fetchLessonAndExam(lessonId) {
             try {
@@ -144,30 +191,34 @@
                 const lessonSnap = await getDoc(lessonRef);
 
                 if (!lessonSnap.exists()) {
+                    showPlatformToast("تنبيه هام", "هذه الحصة غير موجودة!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger);">هذه الحصة غير موجودة.</div>`;
                     return;
                 }
 
                 const lessonData = lessonSnap.data();
                 if (!lessonData.examId) {
+                    showPlatformToast("تنبيه هام", "لا يوجد امتحان مربوط بهذه الحصة حالياً!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger); padding:40px;">عذراً، لا يوجد امتحان مربوط بهذه الحصة حتى الآن.</div>`;
                     return;
                 }
 
-                // جلب الامتحان من كولكشن exams
                 const examRef = doc(db, "exams", lessonData.examId);
                 const examSnap = await getDoc(examRef);
 
                 if (!examSnap.exists()) {
+                    showPlatformToast("تنبيه هام", "الامتحان المرتبط غير موجود بالسحابة!");
                     document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger); padding:40px;">الامتحان المرتبط بهذه الحصة غير موجود أو تم حذفه.</div>`;
                     return;
                 }
 
                 currentExamData = examSnap.data();
                 renderExam(currentExamData);
+                showPlatformToast("بدء الاختبار 🚀", "تم تحميل الامتحان بنجاح. نتمنى لك التوفيق!");
 
             } catch (e) {
                 console.error(e);
+                showPlatformToast("خطأ ❌", "حدث خطأ أثناء تحميل بيانات الامتحان.");
                 document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger); padding:40px;">حدث خطأ أثناء تحميل بيانات الامتحان.</div>`;
             }
         }
@@ -182,29 +233,61 @@
 
             if (exam.questions && exam.questions.length > 0) {
                 exam.questions.forEach((q, qIdx) => {
+                    let typeLabel = getTypeNameArabic(q.type);
                     html += `
                         <div class="question-box">
-                            <div class="question-text">سؤال ${qIdx + 1}: ${q.text} (${q.marks || 1} درجة)</div>
-                            ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%; max-height:200px; border-radius:8px; margin-bottom:10px;" alt="صورة السؤال">` : ''}
+                            <div class="question-text">سؤال ${qIdx + 1}: ${q.text} <span style="font-size:0.75rem; background:rgba(99,102,241,0.2); color:var(--primary); padding:2px 6px; border-radius:4px; margin-right:6px;">(${q.marks || 1} درجات - ${typeLabel})</span></div>
+                            ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%; max-height:220px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color);" alt="صورة توضيحية">` : ''}
                     `;
 
-                    if (q.options && q.options.length > 0) {
-                        q.options.forEach((opt, oIdx) => {
-                            let inputType = q.type === 'checkbox' ? 'checkbox' : 'radio';
-                            html += `
-                                <label class="option-label">
-                                    <input type="${inputType}" name="q_${qIdx}" value="${oIdx}" style="cursor:pointer;">
-                                    <span>${opt}</span>
-                                </label>
-                            `;
-                        });
+                    // بناء واجهة السؤال بناءً على نوعه
+                    if (q.type === 'tf' || q.type === 'mcq') {
+                        if (q.options && q.options.length > 0) {
+                            q.options.forEach((opt, oIdx) => {
+                                html += `
+                                    <label class="option-label">
+                                        <input type="radio" name="q_${qIdx}" value="${oIdx}" style="cursor:pointer; width:16px; height:16px;">
+                                        <span>${opt}</span>
+                                    </label>
+                                `;
+                            });
+                        }
+                    } else if (q.type === 'checkbox') {
+                        if (q.options && q.options.length > 0) {
+                            q.options.forEach((opt, oIdx) => {
+                                html += `
+                                    <label class="option-label">
+                                        <input type="checkbox" name="q_${qIdx}" value="${oIdx}" style="cursor:pointer; width:16px; height:16px;">
+                                        <span>${opt}</span>
+                                    </label>
+                                `;
+                            });
+                        }
+                    } else if (q.type === 'short' || q.type === 'long') {
+                        let lines = q.type === 'short' ? 5 : 10;
+                        html += `<textarea name="q_${qIdx}" rows="${lines}" placeholder="اكتب إجابتك هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-top:5px; resize:vertical;"></textarea>`;
+                    } else if (q.type === 'essayImage') {
+                        html += `
+                            <div style="margin-top:10px;">
+                                <textarea name="q_${qIdx}_text" rows="3" placeholder="اكتب إجابتك المقالية هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-bottom:8px;"></textarea>
+                                <label style="font-size:0.78rem; color:var(--text-muted); display:block; margin-bottom:4px;">إرفاق صورة إجابة السؤال:</label>
+                                <input type="file" name="q_${qIdx}_image" accept="image/*" style="width:100%; padding:8px; background:var(--bg-main); border:1px dashed var(--primary); border-radius:8px; color:var(--text-main);">
+                            </div>
+                        `;
+                    } else if (q.type === 'voice') {
+                        html += `
+                            <div style="margin-top:10px; padding:12px; background:var(--bg-main); border-radius:8px; border:1px solid var(--border-color); text-align:center;">
+                                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">🎙️ سؤال إجابة صوتية (تسجيل ريكورد):</p>
+                                <button type="button" onclick="alert('خاصية التسجيل الصوتى مفعلة، جاهز للربط بالميكروفون.')" style="background:var(--primary); color:white; border:none; padding:6px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">بدء التسجيل 🔴</button>
+                            </div>
+                        `;
                     } else {
                         html += `<textarea name="q_${qIdx}" rows="3" placeholder="اكتب إجابتك هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-top:5px;"></textarea>`;
                     }
 
                     html += `</div>`;
                 });
-                html += `<button type="submit" class="btn-submit">إرسال وتسليم الامتحان 🚀</button>`;
+                html += `<button type="submit" class="btn-submit">إرسال وتسليم الامتحان نهائياً 🚀</button>`;
             } else {
                 html += `<p style="text-align:center; color:var(--text-muted);">لا توجد أسئلة في هذا الامتحان.</p>`;
             }
@@ -213,10 +296,25 @@
             document.getElementById('examContainer').innerHTML = html;
         }
 
+        function getTypeNameArabic(type) {
+            switch(type) {
+                case 'mcq': return 'اختياري مفرد';
+                case 'checkbox': return 'اختياري متعدد';
+                case 'tf': return 'صح وخطأ';
+                case 'short': return 'نص قصير';
+                case 'long': return 'نص طويل مقال';
+                case 'essayImage': return 'مقالي مع صورة';
+                case 'voice': return 'تسجيل صوتي';
+                default: return 'سؤال عام';
+            }
+        }
+
         window.submitExam = function(event) {
             event.preventDefault();
-            alert('✔ تم تسليم الامتحان بنجاح! (سيتم إرسال الدرجة والتقرير قريباً)');
-            window.location.href = window.location.href; // إعادة تحميل الصفحة أو توجيه الطالب
+            showPlatformToast("تم التسليم بنجاح 🎓", "✔ تم تسليم الامتحان بنجاح، جاري مراجعة إجاباتك ورصد الدرجات!");
+            setTimeout(() => {
+                window.location.href = window.location.search.includes('id=') ? `lesson-view.html?id=${new URLSearchParams(window.location.search).get('id')}` : 'files.html';
+            }, 3000);
         };
     </script>
 </body>
