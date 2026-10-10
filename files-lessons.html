@@ -118,6 +118,10 @@
         .upload-progress-fill { width: 0%; background: var(--success); height: 100%; transition: width 0.1s linear; }
         .upload-status-text { font-size: 0.75rem; color: var(--success); font-weight: bold; margin-top: 4px; display: flex; justify-content: space-between; }
 
+        .file-info-badge {
+            font-size: 0.72rem; color: var(--success); margin-top: 4px; font-weight: bold; display: block;
+        }
+
         .btn-save { background: var(--success); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.85rem; margin-top: 16px; width: 100%; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
 
@@ -131,18 +135,18 @@
 </head>
 <body data-theme="dark">
     <div class="container">
-        <!-- الهيدر الموحد: الرئيسية بترجع لـ admin.html -->
+        <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إدارة الحصص 📚</span></div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل الموحد والمتصل بجميع الصفحات -->
+        <!-- شريط التنقل الموحد (تم تعديل زر الحصص إلى "إنشاء الحصص") -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
-                <a href="files-lessons.html" class="btn-tab active">الحصص 📚</a>
+                <a href="files-lessons.html" class="btn-tab active">إنشاء الحصص 📚</a>
                 <a href="files-settings.html" class="btn-tab">الإعدادات ⚙️</a>
                 <a href="files-stats.html" class="btn-tab">الإحصائيات 📊</a>
             </div>
@@ -161,7 +165,6 @@
                 <div class="form-group"><label>رقم أو كود الحصة (لتسهيل الترتيب):</label><input type="number" id="lessonNumber" value="1" min="1"></div>
             </div>
 
-            <!-- خانة وقت فتح الحصة تلقائياً -->
             <div class="form-group">
                 <label>⏰ وقت فتح الحصة تلقائياً:</label>
                 <input type="datetime-local" id="lessonScheduledAt">
@@ -171,7 +174,7 @@
 
             <h3 style="color:var(--text-main); font-size: 0.9rem; margin-bottom: 10px;">قائمة محتويات الحصة (الفيديوهات والملازم منفصلة):</h3>
 
-            <!-- القائمة الأولى: رفع وإدارة فيديوهات الشرح -->
+            <!-- القائمة الأولى: فيديو الشرح مع عرض اسم الفيديو -->
             <div style="background: var(--th-bg); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 12px;">
                 <h4 style="color: var(--primary); font-size: 0.82rem; margin-bottom: 6px;">🎬 أولاً: قائمة إدارة وفيديوهات الشرح</h4>
                 <div class="form-group" style="margin-top:0;">
@@ -181,6 +184,7 @@
                         <input type="file" id="fileInputVideo" class="hidden" accept="video/*" onchange="handleDirectVideoUpload(this)">
                         <button type="button" class="btn-clip" onclick="promptVideoSourceChoice()" title="اختيار طريقة رفع الفيديو 📎">📎</button>
                     </div>
+                    <span id="videoFileNameBadge" class="file-info-badge hidden"></span>
                     <div class="upload-progress-container" id="videoUploadProgressBox">
                         <div class="upload-status-text">
                             <span id="videoUploadStatusLabel">جاري رفع الفيديو من الهاتف...</span>
@@ -193,7 +197,7 @@
                 </div>
             </div>
 
-            <!-- القائمة الثانية: رفع الملازم وملخصات الشرح -->
+            <!-- القائمة الثانية: ملازم الشرح وملخصات الدرس مع عرض اسم الملف بجانب زر الفتح -->
             <div style="background: var(--th-bg); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 12px;">
                 <h4 style="color: var(--primary); font-size: 0.82rem; margin-bottom: 6px;">📚 ثانياً: قائمة ملازم الشرح وملخصات الدرس</h4>
                 
@@ -201,18 +205,20 @@
                     <label>ملازم الشرح الرئيسية (PDF):</label>
                     <div class="input-with-clip">
                         <input type="url" id="lessonStudyNotes" placeholder="أدخل رابط الملزمة أو اضغط المشبك للإرفاق...">
-                        <input type="file" id="fileInputStudyNotes" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonStudyNotes')">
+                        <input type="file" id="fileInputStudyNotes" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonStudyNotes', 'studyNotesNameBadge')">
                         <button type="button" class="btn-clip" onclick="document.getElementById('fileInputStudyNotes').click()" title="إرفاق ملف من الجهاز 📎">📎</button>
                     </div>
+                    <span id="studyNotesNameBadge" class="file-info-badge hidden"></span>
                 </div>
 
                 <div class="form-group">
                     <label>ملازم تلخيص الدرس (PDF):</label>
                     <div class="input-with-clip">
                         <input type="url" id="lessonSummaryNotes" placeholder="أدخل رابط التلخيص أو اضغط المشبك للإرفاق...">
-                        <input type="file" id="fileInputSummary" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonSummaryNotes')">
+                        <input type="file" id="fileInputSummary" class="hidden" accept=".pdf,.doc,.docx" onchange="handleFileUpload(this, 'lessonSummaryNotes', 'summaryNameBadge')">
                         <button type="button" class="btn-clip" onclick="document.getElementById('fileInputSummary').click()" title="إرفاق ملخص من الجهاز 📎">📎</button>
                     </div>
+                    <span id="summaryNameBadge" class="file-info-badge hidden"></span>
                 </div>
             </div>
 
@@ -270,7 +276,7 @@
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
         bodyElement.setAttribute('data-theme', savedTheme);
-        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️️' : '🌙';
+        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
 
         themeToggleBtn.addEventListener('click', () => {
             let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -283,7 +289,12 @@
             let choice = prompt("اختر طريقة إدخال الفيديو:\n1. اكتب '1' لإدخال رابط (يوتيوب / مباشر)\n2. اكتب '2' لرفع فيديو صغير من استوديو الهاتف");
             if (choice === '1') {
                 let url = prompt("اكتب رابط الفيديو هنا:");
-                if (url) document.getElementById('lessonVideoUrl').value = url;
+                if (url) {
+                    document.getElementById('lessonVideoUrl').value = url;
+                    let badge = document.getElementById('videoFileNameBadge');
+                    badge.textContent = `✔ رابط الفيديو المرتبط جاهز`;
+                    badge.classList.remove('hidden');
+                }
             } else if (choice === '2') {
                 document.getElementById('fileInputVideo').click();
             }
@@ -297,6 +308,7 @@
             let progressFill = document.getElementById('videoUploadProgressFill');
             let percentLabel = document.getElementById('videoUploadPercentLabel');
             let statusLabel = document.getElementById('videoUploadStatusLabel');
+            let badge = document.getElementById('videoFileNameBadge');
 
             progressBox.style.display = 'block';
             progressFill.style.width = '0%';
@@ -313,6 +325,9 @@
                     clearInterval(uploadInterval);
                     statusLabel.textContent = '✔ تم رفع الفيديو بنجاح وانتهى التحميل!';
                     
+                    badge.textContent = `📄 الملف المرفق بجانب زر الفتح للطالب: ${file.name}`;
+                    badge.classList.remove('hidden');
+
                     let reader = new FileReader();
                     reader.onload = function(e) {
                         document.getElementById('lessonVideoUrl').value = e.target.result;
@@ -322,13 +337,15 @@
             }, 100);
         };
 
-        window.handleFileUpload = function(input, targetInputId) {
+        window.handleFileUpload = function(input, targetInputId, badgeId) {
             let file = input.files[0];
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById(targetInputId).value = e.target.result;
-                    alert(`✔ تم تجهيز وإرفاق الملف (${file.name}) بنجاح.`);
+                    let badge = document.getElementById(badgeId);
+                    badge.textContent = `📄 الملف المرفق بجانب زر الفتح للطالب: ${file.name}`;
+                    badge.classList.remove('hidden');
                 };
                 reader.readAsDataURL(file);
             }
@@ -336,7 +353,6 @@
 
         async function fetchLessonExamsDropdown() {
             try {
-                // جلب الامتحانات المنشورة من كولكشن 'exams' بدلاً من 'lessonExams' لتتوافق تماماً مع صفحة إنشاء الامتحانات
                 const querySnapshot = await getDocs(collection(db, "exams"));
                 const select = document.getElementById('lessonExamSelect');
                 let html = '<option value="">-- اختر امتحان مخصص لهذه الحصة --</option>';
@@ -425,6 +441,9 @@
                 document.getElementById('lessonSummaryNotes').value = '';
                 document.getElementById('lessonExamSelect').value = '';
                 document.getElementById('videoUploadProgressBox').style.display = 'none';
+                document.getElementById('videoFileNameBadge').classList.add('hidden');
+                document.getElementById('studyNotesNameBadge').classList.add('hidden');
+                document.getElementById('summaryNameBadge').classList.add('hidden');
                 
                 fetchLessonsList();
             } catch (e) {
