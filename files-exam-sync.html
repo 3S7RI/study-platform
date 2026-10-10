@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - ربط ومزامنة امتحانات الحصص</title>
+    <title>امتحان الحصة</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -15,7 +15,7 @@
             --primary-hover: #4f46e5;
             --success: #10b981;
             --danger: #ef4444;
-            --hover-bg: rgba(99, 102, 241, 0.08);
+            --hover-bg: rgba(99, 102, 241, 0.12);
             --shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             --th-bg: rgba(255, 255, 255, 0.04);
         }
@@ -30,119 +30,95 @@
             --primary-hover: #4338ca;
             --success: #059669;
             --danger: #dc2626;
-            --hover-bg: rgba(79, 70, 229, 0.05);
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
-            --th-bg: rgba(0, 0, 0, 0.02);
+            --hover-bg: rgba(79, 70, 229, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            --th-bg: rgba(0, 0, 0, 0.03);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.85rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); padding: 12px; min-height: 100vh; }
-        .container { max-width: 900px; margin: 0 auto; }
+        body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
+        .container { max-width: 800px; margin: 0 auto; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
-            background-color: var(--bg-card); padding: 10px 16px; border-radius: 20px;
-            margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
         }
 
-        .header-right-side { display: flex; align-items: center; }
         .btn-home-link {
-            display: inline-flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.05);
-            padding: 5px 12px; border-radius: 15px; border: 1px solid var(--border-color);
-            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.75rem;
+            display: inline-flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color);
+            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.8rem;
         }
         .btn-home-link:hover { background: var(--hover-bg); border-color: var(--primary); }
 
-        .header-center-box { display: flex; align-items: center; justify-content: center; }
-        .platform-title-box { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+        .exam-card {
+            background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
+            padding: 24px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        }
+
+        .exam-title { font-size: 1.3rem; font-weight: bold; color: var(--text-main); margin-bottom: 6px; text-align: center; }
+        .exam-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; text-align: center; }
+
+        .question-box {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
+            padding: 18px; margin-bottom: 16px;
+        }
+        .question-text { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 12px; text-align: right; }
         
-        .header-left-side { display: flex; align-items: center; gap: 8px; }
-        .btn-theme-toggle {
-            background-color: rgba(255, 255, 255, 0.04); color: var(--text-main); border: 1px solid var(--border-color);
-            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+        .option-label {
+            display: flex; align-items: center; gap: 10px; background: var(--bg-main);
+            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+            margin-bottom: 8px; cursor: pointer; font-size: 0.88rem; text-align: right;
         }
-        .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+        .option-label:hover { background: var(--hover-bg); border-color: var(--primary); }
 
-        .section-box {
-            background-color: var(--bg-card); border-radius: 14px; box-shadow: var(--shadow);
-            padding: 20px; margin-bottom: 15px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+        .btn-submit {
+            background-color: var(--success); color: white; border: none; width: 100%;
+            padding: 12px; border-radius: 10px; font-weight: bold; font-size: 1rem;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin-top: 20px;
         }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .section-header h2 { color: var(--text-main); font-size: 1rem; font-weight: 700; }
+        .btn-submit:hover { opacity: 0.9; }
 
-        .form-group { margin-top: 15px; text-align: right; }
-        .form-group label { display: block; font-size: 0.8rem; margin-bottom: 6px; color: var(--text-muted); font-weight: 600; }
-        .form-group select {
-            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; outline: none;
+        /* تذكرة التنبيه المنبثقة */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
         }
-
-        .btn-save { background: var(--success); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; margin-top: 20px; width: 100%; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-        .btn-save:hover { opacity: 0.9; }
-
-        .exams-management-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .exam-manage-card {
-            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px;
-            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 380px; border-radius: 16px; padding: 22px; text-align: center; box-shadow: var(--shadow);
         }
-        .exam-info { display: flex; flex-direction: column; gap: 3px; flex: 1; }
-        .exam-actions { display: flex; gap: 8px; align-items: center; }
-
-        .btn-select-exam { background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 0.78rem; cursor: pointer; }
-        .btn-select-exam:hover { background: var(--primary-hover); }
-
-        .btn-delete-exam { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.78rem; cursor: pointer; }
-        .btn-delete-exam:hover { background: var(--danger); color: white; }
-
-        .lessons-sync-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .sync-item-card {
-            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px;
-            display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+        .platform-toast-card h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 8px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; white-space: pre-line; text-align: right; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 9px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;
         }
     </style>
 </head>
 <body data-theme="dark">
+
     <div class="container">
         <header class="platform-header">
-            <div class="header-right-side"><a href="files-exam-create.html" class="btn-home-link">⬅ العودة لإنشاء الامتحانات</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>مزامنة امتحانات الحصص 🔄</span></div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
+            <div id="backLinkContainer"><a href="files.html" class="btn-home-link">⬅ العودة</a></div>
+            <div style="font-weight: 700; font-size: 0.95rem;">امتحان الحصة 📝</div>
+            <div id="timerDisplay" style="font-weight: bold; color: var(--primary); font-size: 0.85rem;"></div>
         </header>
 
-        <div class="section-box">
-            <div class="section-header"><h2>ربط وتحديث امتحانات الحصص السحابية 📝</h2></div>
-            
-            <div class="form-group" style="margin-top:0;">
-                <label>1. اختر الحصة المستهدفة:</label>
-                <select id="syncLessonSelect">
-                    <option value="">-- جاري تحميل الحصص... --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>2. الامتحان المحدد للربط (يمكنك اختياره بـ "اختيار" من قائمة الامتحانات أدناه أو يدوياً):</label>
-                <select id="syncExamSelect">
-                    <option value="">-- بدون امتحان (إلغاء الربط) --</option>
-                </select>
-            </div>
-
-            <button class="btn-save" onclick="saveLessonExamSync()">حفظ وتحديث الربط في السحابة 🚀</button>
+        <div id="examContainer">
+            <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري فحص إعدادات الحصة ومزامنة الامتحان...</div>
         </div>
+    </div>
 
-        <!-- قسم إدارة وعرض الامتحانات المتاحة مع زري الاختيار والحذف -->
-        <div class="section-box">
-            <div class="section-header"><h2>قائمة الامتحانات المتاحة بالسحابة (إدارة وحذف) 📋</h2></div>
-            <div id="examsManagementContainer" class="exams-management-list">
-                <p style="color: var(--text-muted); text-align: center; padding: 15px;">جاري جلب الامتحانات...</p>
-            </div>
-        </div>
-
-        <div class="section-box">
-            <div class="section-header"><h2>حالة ربط الحصص بالامتحانات الحالية 📊</h2></div>
-            <div id="syncedLessonsListContainer" class="lessons-sync-list">
-                <p style="color: var(--text-muted); text-align: center; padding: 15px;">جاري جلب الحصص...</p>
-            </div>
+    <!-- نافذة التنبيهات والرسائل -->
+    <div class="platform-toast-overlay" id="platformToastModal">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">رسالة التنبيه هنا...</p>
+            <button class="platform-toast-btn" id="toastActionBtn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
         </div>
     </div>
 
@@ -150,7 +126,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -166,153 +142,247 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let lessonsData = [];
-        let examsData = [];
+        let currentUserId = null;
+        let lessonSettings = {};
+        let examData = {};
+        let timerInterval = null;
+        let remainingSeconds = 0;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                await loadCloudData();
-            } else {
-                window.location.href = 'login.html';
+                currentUserId = user.uid;
             }
-        });
+            const urlParams = new URLSearchParams(window.location.search);
+            const lessonId = urlParams.get('id');
 
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const bodyElement = document.body;
-        const savedTheme = localStorage.getItem('platform_theme') || 'dark';
-        bodyElement.setAttribute('data-theme', savedTheme);
-        themeToggleBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
-
-        themeToggleBtn.addEventListener('click', () => {
-            let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            bodyElement.setAttribute('data-theme', nextTheme);
-            localStorage.setItem('platform_theme', nextTheme);
-            themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
-        });
-
-        async function loadCloudData() {
-            try {
-                const lessonsSnap = await getDocs(collection(db, "lessons"));
-                lessonsData = [];
-                lessonsSnap.forEach(d => lessonsData.push({ id: d.id, ...d.data() }));
-
-                const examsSnap = await getDocs(collection(db, "exams"));
-                examsData = [];
-                examsSnap.forEach(d => examsData.push({ id: d.id, ...d.data() }));
-
-                renderDropdowns();
-                renderExamsManagementList();
-                renderSyncedList();
-            } catch (e) {
-                console.error("خطأ في جلب البيانات:", e);
-            }
-        }
-
-        function renderDropdowns() {
-            const lessonSelect = document.getElementById('syncLessonSelect');
-            let lHtml = '<option value="">-- اختر الحصة المستهدفة --</option>';
-            lessonsData.forEach(l => {
-                lHtml += `<option value="${l.id}">🎬 الحصة ${l.number || 1}: ${l.title || 'بدون عنوان'}</option>`;
-            });
-            lessonSelect.innerHTML = lHtml;
-
-            const examSelect = document.getElementById('syncExamSelect');
-            let eHtml = '<option value="">-- بدون امتحان (إلغاء الربط) --</option>';
-            examsData.forEach(e => {
-                eHtml += `<option value="${e.id}">📝 ${e.title || 'امتحان'} (${e.subject || 'عام'})</option>`;
-            });
-            examSelect.innerHTML = eHtml;
-        }
-
-        function renderExamsManagementList() {
-            const container = document.getElementById('examsManagementContainer');
-            if (examsData.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 10px;">لا توجد امتحانات مضافة حتى الآن.</p>';
+            if (!lessonId) {
+                document.getElementById('examContainer').innerHTML = `<div class="exam-card" style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</div>`;
                 return;
             }
 
-            let html = '';
-            examsData.forEach(e => {
-                let qCount = e.questions ? e.questions.length : 0;
-                html += `
-                    <div class="exam-manage-card">
-                        <div class="exam-info">
-                            <h4 style="color: var(--text-main); font-size: 0.88rem; font-weight: 700;">📝 ${e.title || 'بدون عنوان'}</h4>
-                            <p style="font-size: 0.75rem; color: var(--text-muted);">المادة: ${e.subject || 'عام'} | الفئة: ${e.targetGroup || 'الكل'} | عدد الأسئلة: ${qCount} سؤال</p>
-                        </div>
-                        <div class="exam-actions">
-                            <button class="btn-select-exam" onclick="selectExamForSync('${e.id}')">اختيار للربط 🎯</button>
-                            <button class="btn-delete-exam" onclick="deleteExamFromCloud('${e.id}', '${e.title || 'امتحان'}')">حذف 🗑️</button>
-                        </div>
-                    </div>`;
-            });
-            container.innerHTML = html;
-        }
+            document.getElementById('backLinkContainer').innerHTML = `<a href="lesson-view.html?id=${lessonId}" class="btn-home-link">⬅ العودة للحصة</a>`;
 
-        window.selectExamForSync = function(examId) {
-            document.getElementById('syncExamSelect').value = examId;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            alert('✔ تم تحديد الامتحان في قائمة الربط بالأعلى بنجاح! اختر الحصة واضغط حفظ التحديث.');
+            await fetchLessonAndExamSettings(lessonId);
+        });
+
+        window.showPlatformToast = function(title, message, callback = null) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            const btn = document.getElementById('toastActionBtn');
+            
+            // تخصيص الأكشن عند الإغلاق إذا وجد
+            btn.onclick = function() {
+                closePlatformToast();
+                if (callback) callback();
+            };
+
+            document.getElementById('platformToastModal').style.display = 'flex';
         };
 
-        window.deleteExamFromCloud = async function(examId, examTitle) {
-            if (!confirm(`هل أنت متأكد من رغبتك في حذف الامتحان (${examTitle}) نهائياً من السحابة؟`)) return;
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
 
+        async function fetchLessonAndExamSettings(lessonId) {
             try {
-                // حذف الامتحان من كولكشن الامتحانات
-                await deleteDoc(doc(db, "exams", examId));
+                const lessonRef = doc(db, "lessons", lessonId);
+                const lessonSnap = await getDoc(lessonRef);
 
-                // فحص الحصص المرتبطة بهذا الامتحان وفصلها إن وجدت
-                for (let l of lessonsData) {
-                    if (l.examId === examId) {
-                        const lessonRef = doc(db, "lessons", l.id);
-                        await updateDoc(lessonRef, { examId: null });
+                if (!lessonSnap.exists()) {
+                    showPlatformToast("تنبيه 🔔", "هذه الحصة غير موجودة!", () => { window.location.href = 'files.html'; });
+                    return;
+                }
+
+                const lessonData = lessonSnap.data();
+                lessonSettings = lessonData.settings || {};
+
+                // 1. التحقق من إظهار قسم الامتحانات
+                if (lessonSettings.showExamSection === false) {
+                    showPlatformToast("تنبيه 🚫", "قسم الامتحانات مقفل لهذه الحصة بناءً على إعدادات المعلم.", () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
+                    return;
+                }
+
+                if (!lessonData.examId) {
+                    showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
+                    return;
+                }
+
+                // 2. التحقق من عدد محاولات دخول الامتحان للطالب
+                if (currentUserId) {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let examAttempts = userData.examAttempts || {};
+                        let currentAttempts = examAttempts[lessonData.examId] || 0;
+                        let maxAllowedAttempts = lessonSettings.attempts || 1;
+
+                        if (currentAttempts >= maxAllowedAttempts) {
+                            showPlatformToast("انتهت المحاولات 🚫", `لقد استنفدت الحد الأقصى لعدد محاولات هذا الامتحان (${maxAllowedAttempts} محاولة). تم قفل الامتحان.`, () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
+                            return;
+                        }
+
+                        // تسجيل محاولة جديدة فور الدخول
+                        examAttempts[lessonData.examId] = currentAttempts + 1;
+                        await updateDoc(userRef, { examAttempts: examAttempts });
                     }
                 }
 
-                alert('✔ تم حذف الامتحان وتحديث الحصص المرتبطة بنجاح!');
-                await loadCloudData();
+                // 3. التحقق من كلمة المرور إذا كانت مفعلة
+                if (lessonSettings.password && lessonSettings.password.trim() !== '') {
+                    let enteredPass = prompt("هذا الامتحان محمي بكلمة مرور. أرجو إدخال كلمة المرور للمتابعة:");
+                    if (enteredPass !== lessonSettings.password) {
+                        alert("كلمة المرور غير صحيحة!");
+                        window.location.href = `lesson-view.html?id=${lessonId}`;
+                        return;
+                    }
+                }
+
+                // 4. جلب الامتحان من السحابة
+                const examRef = doc(db, "exams", lessonData.examId);
+                const examSnap = await getDoc(examRef);
+
+                if (!examSnap.exists()) {
+                    showPlatformToast("خطأ ❌", "الامتحان المرتبط غير موجود بالسحابة.", () => { window.location.href = `lesson-view.html?id=${lessonId}`; });
+                    return;
+                }
+
+                examData = examSnap.data();
+
+                // 5. تفعيل إعدادات الأمان (الشاشة الكاملة ومنع الريفريش إذا كانت مفعلة)
+                if (lessonSettings.fullScreen) {
+                    try {
+                        if (document.documentElement.requestFullscreen) {
+                            document.documentElement.requestFullscreen().catch(() => {});
+                        }
+                    } catch(e) {}
+                }
+
+                if (lessonSettings.antiCheat) {
+                    window.addEventListener('beforeunload', function (e) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    });
+                }
+
+                // 6. رسالة التنبيه قبل الدخول إذا كانت مفعلة
+                if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
+                    showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, () => {
+                        renderExamContent(examData);
+                        startExamTimer();
+                    });
+                } else {
+                    renderExamContent(examData);
+                    startExamTimer();
+                }
+
             } catch (e) {
                 console.error(e);
-                alert('حدث خطأ أثناء محاولة حذف الامتحان.');
+                showPlatformToast("خطأ ❌", "حدث خطأ أثناء تحميل بيانات الامتحان وإعداداته.");
             }
-        };
-
-        function renderSyncedList() {
-            const container = document.getElementById('syncedLessonsListContainer');
-            let html = '';
-            lessonsData.forEach(l => {
-                let examObj = examsData.find(e => e.id === l.examId);
-                let examTitle = examObj ? examObj.title : 'غير مرتبط';
-
-                html += `
-                    <div class="sync-item-card">
-                        <div>
-                            <h4 style="color:var(--text-main); font-size:0.9rem; margin-bottom:2px;">🎬 الحصة ${l.number || 1}: ${l.title}</h4>
-                            <p style="font-size:0.78rem; color:var(--text-muted);">الامتحان المرتبط: <span style="color:${examObj ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${examTitle}</span></p>
-                        </div>
-                    </div>`;
-            });
-            container.innerHTML = html || '<p style="color:var(--text-muted); text-align:center;">لا توجد حصص مضافة.</p>';
         }
 
-        window.saveLessonExamSync = async function() {
-            let lessonId = document.getElementById('syncLessonSelect').value;
-            let examId = document.getElementById('syncExamSelect').value;
+        function startExamTimer() {
+            if (lessonSettings.timer === false) return;
+            let durationMinutes = lessonSettings.duration || 30;
+            remainingSeconds = durationMinutes * 60;
 
-            if (!lessonId) { alert('يرجى اختيار الحصة أولاً!'); return; }
+            const timerEl = document.getElementById('timerDisplay');
+            timerInterval = setInterval(() => {
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    alert("انتهى وقت الامتحان المخصص! سيتم تسليم الإجابات تلقائياً.");
+                    document.getElementById('examForm').requestSubmit();
+                    return;
+                }
+                let mins = Math.floor(remainingSeconds / 60);
+                let secs = remainingSeconds % 60;
+                timerEl.textContent = `⏱️ الوقت المتبقي: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                remainingSeconds--;
+            }, 1000);
+        }
 
-            try {
-                const lessonRef = doc(db, "lessons", lessonId);
-                await updateDoc(lessonRef, {
-                    examId: examId || null
-                });
-                alert('✔ تم ربط الامتحان بالحصة بنجاح في السحابة وتحديث المزامنة! 🚀');
-                await loadCloudData();
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ أثناء حفظ التحديث.');
+        function renderExamContent(exam) {
+            let questions = exam.questions || [];
+            
+            // خلط الأسئلة إذا كان خيار الـ shuffle مفعل
+            if (lessonSettings.shuffle && questions.length > 1) {
+                questions.sort(() => Math.random() - 0.5);
             }
+
+            let html = `
+                <div class="exam-card">
+                    <h2 class="exam-title">📝 ${exam.title || 'امتحان الحصة'}</h2>
+                    <p class="exam-subtitle">المادة: ${exam.subject || 'عام'} | عدد الأسئلة: ${questions.length}</p>
+                    <form id="examForm" onsubmit="submitExam(event)">
+            `;
+
+            if (questions.length > 0) {
+                questions.forEach((q, qIdx) => {
+                    html += `
+                        <div class="question-box">
+                            <div class="question-text">سؤال ${qIdx + 1}: ${q.text} <span style="font-size:0.75rem; background:rgba(99,102,241,0.2); color:var(--primary); padding:2px 6px; border-radius:4px; margin-right:6px;">(${q.marks || 1} درجات)</span></div>
+                            ${q.imageUrl ? `<img src="${q.imageUrl}" style="max-width:100%; max-height:220px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border-color);" alt="صورة السؤال">` : ''}
+                    `;
+
+                    if (q.options && q.options.length > 0) {
+                        q.options.forEach((opt, oIdx) => {
+                            let inputType = q.type === 'checkbox' ? 'checkbox' : 'radio';
+                            html += `
+                                <label class="option-label">
+                                    <input type="${inputType}" name="q_${qIdx}" value="${oIdx}" style="cursor:pointer; width:16px; height:16px;">
+                                    <span>${opt}</span>
+                                </label>
+                            `;
+                        });
+                    } else if (q.type === 'essayImage') {
+                        html += `
+                            <div style="margin-top:10px;">
+                                <textarea name="q_${qIdx}_text" rows="3" placeholder="اكتب إجابتك المقالية هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-bottom:8px;"></textarea>
+                                <input type="file" name="q_${qIdx}_image" accept="image/*" style="width:100%; padding:8px; background:var(--bg-main); border:1px dashed var(--primary); border-radius:8px; color:var(--text-main);">
+                            </div>
+                        `;
+                    } else {
+                        html += `<textarea name="q_${qIdx}" rows="4" placeholder="اكتب إجابتك هنا..." style="width:100%; padding:10px; border-radius:8px; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-main); margin-top:5px;"></textarea>`;
+                    }
+
+                    html += `</div>`;
+                });
+                html += `<button type="submit" class="btn-submit">إرسال وتسليم الامتحان نهائياً 🚀</button>`;
+            } else {
+                html += `<p style="text-align:center; color:var(--text-muted);">لا توجد أسئلة في هذا الامتحان.</p>`;
+            }
+
+            html += `</form></div>`;
+            document.getElementById('examContainer').innerHTML = html;
+        }
+
+        window.submitExam = async function(event) {
+            event.preventDefault();
+            if (timerInterval) clearInterval(timerInterval);
+
+            // منح النقاط للطالب عند التسليم بناءً على إعدادات الحصة
+            if (currentUserId) {
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let pts = lessonSettings.points || {};
+                    let examPoints = pts.exam !== undefined ? pts.exam : 10;
+
+                    await updateDoc(userRef, {
+                        points: increment(examPoints)
+                    });
+                } catch(e) {
+                    console.log("Error awarding points:", e);
+                }
+            }
+
+            let endMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح، شكراً لجهودك!";
+            
+            showPlatformToast("انتهى الامتحان 🎓", endMsg, () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const lessonId = urlParams.get('id');
+                window.location.href = lessonId ? `lesson-view.html?id=${lessonId}` : 'files.html';
+            });
         };
     </script>
 </body>
