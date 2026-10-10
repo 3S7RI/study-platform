@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - ربط ومزامنة الامتحانات بالحصص</title>
+    <title>صفحة ربط الامتحان</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -63,11 +63,16 @@
 
         .form-group { margin-bottom: 15px; text-align: right; }
         .form-label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.88rem; color: var(--text-main); }
-        .form-select, .form-input {
-            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
-            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none;
+        
+        /* تنسيق القوائم المنسدلة بتثيم المنصة */
+        .form-select {
+            width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none; cursor: pointer;
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat; background-position: left 12px center; background-size: 16px;
         }
-        .form-select:focus, .form-input:focus { border-color: var(--primary); }
+        .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--hover-bg); }
 
         .btn-submit {
             background-color: var(--success); color: white; border: none; width: 100%;
@@ -75,6 +80,18 @@
             cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); margin-top: 10px;
         }
         .btn-submit:hover { opacity: 0.9; }
+
+        /* خريطة عرض الروابط الحالية بالأسفل */
+        .sync-list-container {
+            display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; margin-top: 10px;
+        }
+        .sync-item-row {
+            display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
+            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .sync-item-info { display: flex; flex-direction: column; gap: 2px; text-align: right; flex: 1; }
+        .sync-item-title { font-weight: bold; font-size: 0.88rem; color: var(--text-main); }
+        .sync-item-status { font-size: 0.78rem; color: var(--text-muted); }
 
         /* نافذة التنبيهات المنبثقة */
         .platform-toast-overlay {
@@ -99,10 +116,11 @@
     <div class="container">
         <header class="platform-header">
             <a href="files.html" class="btn-home-link">⬅ العودة للمكتبة</a>
-            <div style="font-weight: 700; font-size: 0.95rem;">مزامنة وربط الامتحانات بالحصص ⚙️</div>
+            <div style="font-weight: 700; font-size: 0.95rem;">صفحة ربط الامتحان 🔗</div>
             <div></div>
         </header>
 
+        <!-- بطاقة التحكم والربط -->
         <div class="card">
             <h2 class="card-title">🔗 ربط امتحان بحصة دراسية</h2>
             <p class="card-subtitle">قم باختيار الحصة المراد تعديلها واختيار الامتحان المناسب لربطه بها.</p>
@@ -125,6 +143,15 @@
                 <button type="submit" class="btn-submit">حفظ ومزامنة الربط 🚀</button>
             </form>
         </div>
+
+        <!-- بطاقة عرض الروابط الحالية (الخانة السفلية) -->
+        <div class="card">
+            <h2 class="card-title">📋 جدول الحصص والامتحانات المرتبطة</h2>
+            <p class="card-subtitle">متابعة فورية لكل حصة وما هو الامتحان المربوط بها حالياً.</p>
+            <div class="sync-list-container" id="syncListContainer">
+                <div style="text-align: center; color: var(--text-muted); padding: 15px;">جاري تحميل تفاصيل الربط...</div>
+            </div>
+        </div>
     </div>
 
     <!-- نافذة التنبيهات -->
@@ -140,7 +167,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -157,11 +184,9 @@
         const db = getFirestore(app);
 
         let lessonsMap = {};
+        let examsMap = {};
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                // إذا لم يكن مسجل دخول، يمكنك توجيهه لتسجيل الدخول أو السماح بالتحكم حسب نظام صلاحياتك
-            }
             await loadLessonsAndExams();
         });
 
@@ -182,28 +207,53 @@
 
         async function loadLessonsAndExams() {
             try {
-                // 1. جلب الحصص
+                // 1. جلب الامتحانات أولاً لتكوين خريطة الأسماء
+                const examsSnap = await getDocs(collection(db, "exams"));
+                examsSnap.forEach((docSnap) => {
+                    examsMap[docSnap.id] = docSnap.data();
+                });
+
+                const examSelect = document.getElementById('examSelect');
+                examSelect.innerHTML = '<option value="">-- اختر الامتحان المرتبط --</option>';
+                for (let examId in examsMap) {
+                    let ex = examsMap[examId];
+                    examSelect.innerHTML += `<option value="${examId}">${ex.title || 'امتحان'} (${ex.subject || 'عام'})</option>`;
+                }
+
+                // 2. جلب الحصص وتعبئة القائمة وجدول العرض السفلي
                 const lessonsSnap = await getDocs(collection(db, "lessons"));
                 const lessonSelect = document.getElementById('lessonSelect');
                 lessonSelect.innerHTML = '<option value="">-- اختر الحصة الدراسية --</option>';
                 
+                let listHtml = "";
                 lessonsSnap.forEach((docSnap) => {
                     let data = docSnap.data();
                     lessonsMap[docSnap.id] = data;
-                    let title = `الحصة ${data.number || ''}: ${data.title || 'بدون عنوان'}`;
-                    lessonSelect.innerHTML += `<option value="${docSnap.id}">${title}</option>`;
+                    let lessonTitle = `الحصة ${data.number || ''}: ${data.title || 'بدون عنوان'}`;
+                    lessonSelect.innerHTML += `<option value="${docSnap.id}">${lessonTitle}</option>`;
+
+                    // بناء خانة العرض السفلي
+                    let linkedExamTitle = "غير مرتبطة بامتجان ❌";
+                    let examBadgeColor = "var(--danger)";
+                    if (data.examId && examsMap[data.examId]) {
+                        linkedExamTitle = `مرتبطة بامتحان: ${examsMap[data.examId].title || 'بدون عنوان'}`;
+                        examBadgeColor = "var(--success)";
+                    }
+
+                    listHtml += `
+                        <div class="sync-item-row">
+                            <div class="sync-item-info">
+                                <span class="sync-item-title">🎬 ${lessonTitle}</span>
+                                <span class="sync-item-status" style="color: ${examBadgeColor};">${linkedExamTitle}</span>
+                            </div>
+                        </div>
+                    `;
                 });
 
-                // 2. جلب الامتحانات المتاحة
-                const examsSnap = await getDocs(collection(db, "exams"));
-                const examSelect = document.getElementById('examSelect');
-                examSelect.innerHTML = '<option value="">-- اختر الامتحان المرتبط --</option>';
-
-                examsSnap.forEach((docSnap) => {
-                    let data = docSnap.data();
-                    let title = `${data.title || 'امتحان'} (${data.subject || 'عام'})`;
-                    examSelect.innerHTML += `<option value="${docSnap.id}">${title}</option>`;
-                });
+                if (!listHtml) {
+                    listHtml = `<div style="text-align: center; color: var(--text-muted); padding: 15px;">لا توجد حصص مضافة حتى الآن.</div>`;
+                }
+                document.getElementById('syncListContainer').innerHTML = listHtml;
 
             } catch (e) {
                 console.error(e);
@@ -239,13 +289,12 @@
                     examId: examId
                 });
 
-                // تحديث الذاكرة المحلية المؤقتة للحصة المحددة
                 if (lessonsMap[lessonId]) {
                     lessonsMap[lessonId].examId = examId;
                 }
 
                 showPlatformToast("نجاح ✅", "تم ربط الامتحان بالحصة بنجاح وتحديث السحابة!", () => {
-                    // اختيار إضافي إذا أردت مسح التحديد أو البقاء
+                    loadLessonsAndExams(); // إعادة تحميل القائمة والجدول السفلي لتحديث الحالة فوراً
                 });
             } catch (e) {
                 console.error(e);
