@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - إنشاء امتحان الحصة</title>
+    <title>منصة رحلة دراسية - إنشاء الامتحانات</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -184,7 +184,7 @@
         <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إنشاء امتحان الحصة 📝</span></div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إنشاء الامتحانات 📝</span></div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
@@ -192,24 +192,16 @@
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab active">إنشاء امتحان 📝</a>
-                <a href="files-lessons.html" class="btn-tab">الحصص 📚</a>
+                <a href="files-lessons.html" class="btn-tab">إنشاء الحصص 📚</a>
                 <a href="files-settings.html" class="btn-tab">الإعدادات ⚙️</a>
                 <a href="files-stats.html" class="btn-tab">الإحصائيات 📊</a>
             </div>
         </nav>
 
         <div class="section-box">
-            <div class="section-header"><h2>إعداد وتصميم امتحان الحصة والأسئلة 📝</h2></div>
+            <div class="section-header"><h2>إعداد وتصميم الامتحان والأسئلة 📝</h2></div>
             
-            <!-- قائمة منسدلة لاختيار الحصة المراد ربط الامتحان بها -->
-            <div class="form-group" style="margin-top:0;">
-                <label style="color: var(--primary); font-weight: bold;">🎯 ربط الامتحان بالحصة (يظهر داخلها حصرياً):</label>
-                <select id="selectedLessonDropdown">
-                    <option value="">-- جاري تحميل الحصص المتاحة... --</option>
-                </select>
-            </div>
-
-            <div class="form-group"><label>عنوان امتحان الحصة:</label><input type="text" id="examTitle" placeholder="مثال: امتحان درس الباب الأول كيمياء"></div>
+            <div class="form-group"><label>عنوان الامتحان:</label><input type="text" id="examTitle" placeholder="مثال: امتحان درس الباب الأول كيمياء"></div>
             <div class="form-row-grid-2">
                 <div class="form-group"><label>المادة الدراسية:</label><input type="text" id="examSubject" placeholder="كيمياء"></div>
                 <div class="form-group"><label>الفئة / الشعبة المستهدفة:</label><input type="text" id="examTargetGroup" placeholder="الصف الثالث الثانوي"></div>
@@ -291,7 +283,7 @@
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
                 </div>
             </div>
-            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ وربط الامتحان داخل الحصة فقط 🚀</button>
+            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن الامتحانات بالسحابة 🚀</button>
         </div>
     </div>
 
@@ -314,7 +306,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -332,12 +324,9 @@
 
         let currentDraftQuestions = [];
         let editingQuestionIndex = null;
-        let globalLessonsList = [];
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                await fetchLessonsForDropdown();
-            } else {
+            if (!user) {
                 window.location.href = 'login.html';
             }
         });
@@ -354,30 +343,6 @@
             localStorage.setItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
-
-        async function fetchLessonsForDropdown() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "lessons"));
-                globalLessonsList = [];
-                querySnapshot.forEach((docSnap) => {
-                    globalLessonsList.push({ id: docSnap.id, ...docSnap.data() });
-                });
-
-                const selectElem = document.getElementById('selectedLessonDropdown');
-                if (globalLessonsList.length === 0) {
-                    selectElem.innerHTML = `<option value="">-- لا توجد حصص منشورة حالياً، أنشئ حصة أولاً --</option>`;
-                    return;
-                }
-
-                let html = `<option value="">-- اختر الحصة المراد ربط الامتحان بها --</option>`;
-                globalLessonsList.forEach((les) => {
-                    html += `<option value="${les.id}">🎬 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'} (${les.subject || 'عام'})</option>`;
-                });
-                selectElem.innerHTML = html;
-            } catch (err) {
-                console.error("خطأ في جلب الحصص:", err);
-            }
-        }
 
         window.showPlatformToast = function(title, message) {
             document.getElementById('toastTitle').textContent = title;
@@ -662,16 +627,14 @@
         };
 
         window.saveFullExamToCloud = async function() {
-            let selectedLessonId = document.getElementById('selectedLessonDropdown').value;
             let title = document.getElementById('examTitle').value.trim();
             let subject = document.getElementById('examSubject').value.trim();
             let targetGroup = document.getElementById('examTargetGroup').value.trim();
 
-            if (!selectedLessonId) { showPlatformToast("تنبيه", "يرجى اختيار الحصة المراد ربط الامتحان بها أولاً!"); return; }
-            if (!title) { showPlatformToast("تنبيه", "يرجى كتابة عنوان امتحان الحصة أولاً!"); return; }
-            if (currentDraftQuestions.length === 0) { showPlatformToast("تنبيه", "يرجى إضافة سؤال واحد على الأقل لامتحان الحصة!"); return; }
+            if (!title) { showPlatformToast("تنبيه", "يرجى كتابة عنوان الامتحان أولاً!"); return; }
+            if (currentDraftQuestions.length === 0) { showPlatformToast("تنبيه", "يرجى إضافة سؤال واحد على الأقل للامتحان!"); return; }
 
-            let examDataObject = {
+            let examDoc = {
                 title: title, 
                 subject: subject, 
                 targetGroup: targetGroup,
@@ -680,23 +643,18 @@
             };
 
             try {
-                const lessonRef = doc(db, "lessons", selectedLessonId);
-                await updateDoc(lessonRef, {
-                    examData: examDataObject,
-                    examId: selectedLessonId
-                });
+                await addDoc(collection(db, "exams"), examDoc);
 
                 currentDraftQuestions = [];
                 editingQuestionIndex = null;
                 document.getElementById('examTitle').value = '';
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
-                document.getElementById('selectedLessonDropdown').value = '';
                 renderQuestionsList();
-                showPlatformToast("تم بنجاح 🚀", "تم حفظ امتحان الحصة وربطه مباشرة بداخل الحصة في السحابة، ولن يظهر في صفحة الامتحانات العامة نهائياً!");
+                showPlatformToast("تم بنجاح 🚀", "تم حفظ الامتحان في كولكشن الامتحانات بالسحابة بنجاح!");
             } catch (e) {
                 console.error(e);
-                showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ امتحان الحصة في السحابة.");
+                showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ الامتحان في السحابة.");
             }
         };
     </script>
