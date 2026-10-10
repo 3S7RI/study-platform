@@ -203,6 +203,8 @@
         let currentUserId = null;
         let currentUserEmail = "طالب زائر";
         let activeLessonId = null;
+        let activeLessonData = null;
+        let activeExamData = null;
         let activeLessonSettings = {};
         let passwordTimerInterval = null;
         let studentActivityData = {};
@@ -246,8 +248,8 @@
                     return;
                 }
 
-                let lesson = docSnap.data();
-                activeLessonSettings = lesson.settings || {};
+                activeLessonData = docSnap.data();
+                activeLessonSettings = activeLessonData.settings || {};
 
                 if (currentUserId) {
                     try {
@@ -290,20 +292,19 @@
                     }
                 }
                 
-                let examData = null;
-                if (activeLessonSettings.showExamSection !== false && lesson.examId && lesson.examId.trim() !== '') {
+                if (activeLessonSettings.showExamSection !== false && activeLessonData.examId && activeLessonData.examId.trim() !== '') {
                     try {
-                        const examRef = doc(db, "exams", lesson.examId);
+                        const examRef = doc(db, "exams", activeLessonData.examId);
                         const examSnap = await getDoc(examRef);
                         if (examSnap.exists()) {
-                            examData = examSnap.data();
+                            activeExamData = examSnap.data();
                         }
                     } catch (err) {
                         console.warn("خطأ في جلب تفاصيل الامتحان المرتبط:", err);
                     }
                 }
 
-                renderLessonPage(lessonId, lesson, examData);
+                renderLessonPage();
 
             } catch (e) {
                 console.error("خطأ في جلب تفاصيل الحصة:", e);
@@ -323,6 +324,7 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
 
+        // تسجيل مشاهدة/فتح المحتوى وإرسال النقاط وتحديث الحالة المحلية فوراً
         window.rewardContentItem = async function(contentType) {
             if (!currentUserId || !activeLessonId) return;
             try {
@@ -336,24 +338,37 @@
                 let pts = activeLessonSettings.points || {};
 
                 let rewardKey = `${contentType}_rewarded`;
-                if (!act[rewardKey]) {
-                    act[rewardKey] = true;
-                    if (contentType === 'notes') act.studyNotes = true;
-                    if (contentType === 'summary') act.summarySeen = true;
-                    if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
-                    
-                    lessonsActivity[activeLessonId] = act;
-                    let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
+                
+                // تحديث المتغير المحلي فوراً
+                if (contentType === 'notes') act.studyNotes = true;
+                if (contentType === 'summary') act.summarySeen = true;
+                if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
 
-                    await updateDoc(userRef, {
-                        points: increment(addPts),
-                        lessonsActivity: lessonsActivity
-                    });
+                let shouldAddPoints = !act[rewardKey];
+                if (shouldAddPoints) {
+                    act[rewardKey] = true;
                 }
+                
+                lessonsActivity[activeLessonId] = act;
+                studentActivityData = act; // تحديث النسخة النشطة محلياً
+
+                let updatePayload = { lessonsActivity: lessonsActivity };
+                let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
+
+                if (shouldAddPoints) {
+                    updatePayload.points = increment(addPts);
+                }
+
+                await updateDoc(userRef, updatePayload);
+
+                // إعادة رسم واجهة الصفحة لتحديث حالة الشرط الذكي وفتح الامتحان فوراً دون إعادة تحميل
+                renderLessonPage();
             } catch(e) { console.log("Reward error:", e); }
         };
 
-        function renderLessonPage(lessonId, item, examData) {
+        function renderLessonPage() {
+            let item = activeLessonData;
+            let examData = activeExamData;
             let settings = item.settings || {};
             let allowNotesDownload = settings.allowNotesDownload !== false;
             let allowSummaryDownload = settings.allowSummaryDownload !== false;
@@ -502,7 +517,7 @@
                                         <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
                                     </div>
                                     <div class="action-btns-group">
-                                        <button onclick="handleExamStartClick('${lessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
+                                        <button onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
                                     </div>
                                 </div>
                             </div>
@@ -583,7 +598,7 @@
                 document.getElementById('examPasswordInput').value = '';
                 document.getElementById('examPasswordModal').style.display = 'flex';
             } else {
-                window.location.href = `lesson-exam.html?id=${lessonId}`;
+                window.location.href = `lesson-exam.html?id=${activeLessonId}`;
             }
         };
 
