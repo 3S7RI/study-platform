@@ -101,7 +101,7 @@
         /* عنصر المحتوى الفردي مع زر فتح في أقصى اليسار تماماً */
         .content-item-row {
             display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
-            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; gap: 10px;
+            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; gap: 10px; flex-wrap: wrap;
         }
         .content-item-title { font-size: 0.85rem; font-weight: bold; color: var(--text-main); flex: 1; text-align: right; }
 
@@ -112,6 +112,11 @@
             border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3); white-space: nowrap; margin-left: auto;
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
+
+        /* مشغل الفيديو المنسدل الداخلي */
+        .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
+        .video-collapse-box.show { display: block; }
+        video { width: 100%; max-height: 350px; display: block; outline: none; }
 
         .watermark-overlay {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
@@ -222,13 +227,25 @@
             }
         }
 
+        function getEmbedYouTubeUrl(url) {
+            if (!url) return '';
+            if (url.includes('embed/')) return url;
+            let videoId = '';
+            if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0];
+            } else if (url.includes('watch?v=')) {
+                videoId = url.split('watch?v=')[1].split('&')[0];
+            }
+            return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+        }
+
         function renderLessonPage(lessonId, item) {
             let html = `
                 <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات (تظهر عند الضغط على فتح مباشرة)
+            // 1. قائمة الفيديوهات مع مشغل منسدل عند الضغط على زر فتح
             let videos = item.videosList || [];
             html += `
                 <div class="lesson-section-box" id="sectionVideo">
@@ -237,12 +254,22 @@
                         <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                     </div>
                     <div class="lesson-section-content">
-                        ${videos.length > 0 ? videos.map(v => {
+                        ${videos.length > 0 ? videos.map((v, idx) => {
                             let displayName = (v.name && v.name.trim() !== '') ? v.name : 'لا يوجد اسم';
+                            let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
+                            let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
                             return `
-                                <div class="content-item-row">
-                                    <span class="content-item-title">📹 ${displayName}</span>
-                                    <a href="${v.url}" target="_blank" class="view-btn">فتح ↗</a>
+                                <div style="margin-bottom:10px;">
+                                    <div class="content-item-row">
+                                        <span class="content-item-title">📹 ${displayName}</span>
+                                        <button class="view-btn" onclick="toggleVideoCollapse('vid-collapse-${idx}')">فتح ▼</button>
+                                    </div>
+                                    <div class="video-collapse-box" id="vid-collapse-${idx}">
+                                        ${isYouTube ? 
+                                            `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
+                                            `<video controls controlsList="nodownload"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
+                                        }
+                                    </div>
                                 </div>
                             `;
                         }).join('') : `<p style="font-size:0.82rem; color:var(--danger);">لا توجد فيديوهات مرفقة لهذه الحصة حالياً.</p>`}
@@ -294,8 +321,8 @@
                 </div>
             `;
 
-            // 4. امتحان الحصة (الارتباط الصحيح لفتح الامتحان المرتبط بالحصة)
-            let hasExam = !!item.examId;
+            // 4. امتحان الحصة (مع المعالجة الشاملة لأي اسم حقل لربط الامتحان بدون خطأ 404)
+            let examId = item.examId || (item.examData && item.examData.id) || item.exam || null;
             html += `
                 <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
@@ -303,9 +330,9 @@
                         <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                     </div>
                     <div class="lesson-section-content" style="text-align: center; padding: 20px;">
-                        ${hasExam ? `
+                        ${examId ? `
                             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">يوجد امتحان مخصص لهذه الحصة جاهز للحل.</p>
-                            <a href="exam-solve.html?id=${item.examId}" class="view-btn" style="display:inline-block; padding: 10px 24px; font-size: 0.9rem; margin-left: 0;">بدء امتحان الحصة الآن 🚀</a>
+                            <a href="exam-solve.html?id=${examId}" class="view-btn" style="display:inline-block; padding: 10px 24px; font-size: 0.9rem; margin-left: 0;">بدء امتحان الحصة الآن 🚀</a>
                         ` : `<p style="font-size: 0.8rem; color: var(--danger);">لا يوجد امتحان مخصص لهذه الحصة حالياً.</p>`}
                     </div>
                 </div>
@@ -318,6 +345,13 @@
         window.toggleAccordion = function(boxId) {
             const box = document.getElementById(boxId);
             box.classList.toggle('active');
+        };
+
+        window.toggleVideoCollapse = function(collapseId) {
+            const collapseBox = document.getElementById(collapseId);
+            if (collapseBox) {
+                collapseBox.classList.toggle('show');
+            }
         };
     </script>
 </body>
