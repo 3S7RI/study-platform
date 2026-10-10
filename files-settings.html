@@ -90,7 +90,7 @@
 
         .form-group { margin-top: 10px; text-align: right; }
         .form-group label { display: block; font-size: 0.78rem; margin-bottom: 4px; color: var(--text-muted); font-weight: 600; }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color);
             background: var(--bg-main); color: var(--text-main); font-size: 0.8rem; outline: none;
         }
@@ -185,8 +185,8 @@
         <div class="section-box" id="settingsFormBox">
             <div class="section-header"><h2>إعدادات ومحتويات الحصة الشاملة (حقيقية ومفعلة) 🛡️</h2></div>
             
-            <!-- أولاً: إعدادات الامتحان والربط -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:8px; margin-bottom:4px;">أولاً: إعدادات امتحان الحصة والربط 📝</h3>
+            <!-- أولاً: إعدادات الامتحان والربط وتخصيص المستوى -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:8px; margin-bottom:4px;">أولاً: إعدادات امتحان الحصة والربط والمستوى 📝</h3>
             <div class="form-group" style="margin-bottom: 12px; position: relative; z-index: 998;">
                 <label style="color: var(--primary); font-weight: bold;">📝 اختيار امتحان الحصة:</label>
                 <div class="custom-select-wrapper" id="customExamSelectWrapper">
@@ -199,6 +199,24 @@
                     </div>
                 </div>
                 <input type="hidden" id="lessonExamSelect" value="">
+            </div>
+
+            <!-- إعداد تخصيص مستوى الحصة والامتحان -->
+            <div class="settings-grid" style="margin-bottom: 10px;">
+                <div class="setting-card" style="border-color: var(--primary);">
+                    <label for="settingLevelCustomToggle" style="color: var(--primary); font-weight: bold;">🎯 تخصيص مستوى الحصة والامتحان (فلترة الصفوف)</label>
+                    <label class="switch"><input type="checkbox" id="settingLevelCustomToggle" onchange="toggleLevelCustomBox(this.checked)"><span class="slider"></span></label>
+                </div>
+            </div>
+
+            <div class="form-group hidden" id="levelCustomSelectBox" style="background: var(--th-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+                <label style="color: var(--primary); font-weight: bold; margin-bottom: 5px;">اختر المستوى الدراسي أو الفئة المستهدفة:</label>
+                <select id="settingTargetLevelSelect">
+                    <option value="الاول الثانوي">الصف الأول الثانوي</option>
+                    <option value="الثاني الثانوي">الصف الثاني الثانوي</option>
+                    <option value="الثالث الثانوي">الصف الثالث الثانوي</option>
+                    <option value="عام">عام / كل الطلاب</option>
+                </select>
             </div>
 
             <div class="settings-grid">
@@ -256,8 +274,8 @@
                 <div class="form-group" style="margin-top:0;"><label>درجة النجاح في الامتحان (%):</label><input type="number" id="settingPassingScore" value="50" min="1" max="100"></div>
             </div>
 
-            <!-- إعدادات النقاط والمكافآت الخاصة بالامتحان والحصة -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">🎁 إعدادات النقاط والمكافآت 🌟</h3>
+            <!-- إعدادات النقاط والمكافآت (فورية وبدون تكرار) -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">🎁 إعدادات النقاط والمكافآت الفورية (بدون تكرار) 🌟</h3>
             <div class="form-row-grid-3" style="margin-top: 5px;">
                 <div class="form-group" style="margin-top:0;"><label>نقاط فتح واستكمال الحصة:</label><input type="number" id="pointsLesson" value="10" min="0"></div>
                 <div class="form-group" style="margin-top:0;"><label>نقاط حل وفتح الامتحان:</label><input type="number" id="pointsExam" value="10" min="0"></div>
@@ -269,27 +287,28 @@
                 <div class="form-group" style="margin-top:0;"><label>نقاط فتح الملخصات:</label><input type="number" id="pointsSummary" value="5" min="0"></div>
             </div>
 
-            <!-- ثانياً: إعدادات الفيديو -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">ثانياً: إعدادات الفيديو 🎬</h3>
+            <!-- ثانياً: إعدادات الفيديو الحقيقية ومنع التقديم -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">ثانياً: إعدادات الفيديو (منع التقديم الحقيقي) 🎬</h3>
             <div class="settings-grid">
                 <div class="setting-card"><label for="settingShowVideo">إظهار وعرض "فيديو الشرح"</label><label class="switch"><input type="checkbox" id="settingShowVideo" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingVideoAutoplay">تشغيل الفيديو تلقائياً عند فتح الحصة 🎥</label><label class="switch"><input type="checkbox" id="settingVideoAutoplay"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingPreventFastForward">منع تقديم أو تسريع الفيديو (إجبار المشاهدة كاملة) 🔒</label><label class="switch"><input type="checkbox" id="settingPreventFastForward" checked><span class="slider"></span></label></div>
             </div>
 
-            <!-- ثالثاً: إعدادات الملازم والملفات -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">ثالثاً: إعدادات الملازم والملفات 📚</h3>
+            <!-- ثالثاً: إعدادات الملازم والملخصات وزر التحميل والطباعة -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">ثالثاً: إعدادات الملازم والملخصات والطباعة 📚</h3>
             <div class="settings-grid">
                 <div class="setting-card"><label for="settingShowNotes">إظهار قسم "ملازم الشرح"</label><label class="switch"><input type="checkbox" id="settingShowNotes" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingShowSummary">إظهار قسم "ملازم التلخيص"</label><label class="switch"><input type="checkbox" id="settingShowSummary" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingAllowNotesDownload">إتاحة تحميل وطباعة الملازم PDF 🖨️</label><label class="switch"><input type="checkbox" id="settingAllowNotesDownload" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingAllowSummaryDownload">إتاحة تحميل وطباعة الملخصات PDF 📥</label><label class="switch"><input type="checkbox" id="settingAllowSummaryDownload" checked><span class="slider"></span></label></div>
             </div>
 
-            <!-- رابعاً: إعدادات عامة للحصة -->
-            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">رابعاً: إعدادات عامة للحصة 🌐</h3>
+            <!-- رابعاً: إعدادات عامة للحصة والشرط الذكي -->
+            <h3 style="color:var(--primary); font-size:0.85rem; margin-top:20px; margin-bottom:4px;">رابعاً: إعدادات عامة للحصة والشرط الذكي 🌐</h3>
             <div class="settings-grid">
                 <div class="setting-card"><label for="settingGeneralActive">حالة الحصة العامة (مفتوحة للجميع)</label><label class="switch"><input type="checkbox" id="settingGeneralActive" checked><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingSmartLock">الشرط الذكي (قفل الامتحان لحين مشاهدة المحتوى)</label><label class="switch"><input type="checkbox" id="settingSmartLock" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingSmartLock">الشرط الذكي (قفل الامتحان لحين مشاهدة المحتوى كاملاً)</label><label class="switch"><input type="checkbox" id="settingSmartLock" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingLessonAccessLimit">تحديد عدد مرات دخول الحصة المسموحة</label>
                     <input type="number" id="settingLessonAttempts" value="5" min="1" style="width: 70px; padding: 4px; text-align: center; border-radius: 6px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-main);">
                 </div>
@@ -461,6 +480,13 @@
 
             let s = lesson.settings || {};
             
+            let customLevelActive = s.customLevelActive === true;
+            document.getElementById('settingLevelCustomToggle').checked = customLevelActive;
+            toggleLevelCustomBox(customLevelActive);
+            if (customLevelActive && s.targetLevel) {
+                document.getElementById('settingTargetLevelSelect').value = s.targetLevel;
+            }
+
             document.getElementById('settingShowExamSection').checked = s.showExamSection !== false;
             document.getElementById('settingPasswordLock').checked = !!s.password;
             document.getElementById('settingPassword').value = s.password || '';
@@ -515,10 +541,17 @@
             document.getElementById('settingShowNotes').checked = s.showNotes !== false;
             document.getElementById('settingShowSummary').checked = s.showSummary !== false;
             document.getElementById('settingAllowNotesDownload').checked = s.allowNotesDownload !== false;
+            document.getElementById('settingAllowSummaryDownload').checked = s.allowSummaryDownload !== false;
 
             document.getElementById('settingGeneralActive').checked = s.generalActive !== false;
             document.getElementById('settingSmartLock').checked = s.smartLock !== false;
             document.getElementById('settingLessonAttempts').value = s.lessonAttempts || 5;
+        };
+
+        window.toggleLevelCustomBox = function(isChecked) {
+            let box = document.getElementById('levelCustomSelectBox');
+            if (isChecked) box.classList.remove('hidden');
+            else box.classList.add('hidden');
         };
 
         window.togglePasswordInput = function() {
@@ -570,6 +603,9 @@
             let hasCertChecked = document.getElementById('settingHasCertificate').checked;
             let certImageUrlVal = document.getElementById('settingCertImageUrl').value.trim();
 
+            let customLevelActive = document.getElementById('settingLevelCustomToggle').checked;
+            let targetLevelVal = customLevelActive ? document.getElementById('settingTargetLevelSelect').value : 'عام';
+
             if (hasCertChecked && !certImageUrlVal) {
                 let existingLesson = globalLessonsList.find(l => l.id === selectedId);
                 certImageUrlVal = existingLesson?.settings?.certImageUrl || '';
@@ -577,6 +613,8 @@
 
             let newSettings = {
                 active: true,
+                customLevelActive: customLevelActive,
+                targetLevel: targetLevelVal,
                 showExamSection: document.getElementById('settingShowExamSection').checked,
                 password: isPasswordLocked ? document.getElementById('settingPassword').value.trim() : '',
                 aiBot: document.getElementById('settingAIBot').checked,
@@ -612,6 +650,7 @@
                 showNotes: document.getElementById('settingShowNotes').checked,
                 showSummary: document.getElementById('settingShowSummary').checked,
                 allowNotesDownload: document.getElementById('settingAllowNotesDownload').checked,
+                allowSummaryDownload: document.getElementById('settingAllowSummaryDownload').checked,
 
                 generalActive: document.getElementById('settingGeneralActive').checked,
                 smartLock: document.getElementById('settingSmartLock').checked,
@@ -622,16 +661,18 @@
                 const lessonRef = doc(db, "lessons", selectedId);
                 await updateDoc(lessonRef, { 
                     examId: examIdVal || null,
+                    targetGroup: targetLevelVal,
                     settings: newSettings 
                 });
                 
                 let lessonIndex = globalLessonsList.findIndex(l => l.id === selectedId);
                 if (lessonIndex !== -1) {
                     globalLessonsList[lessonIndex].examId = examIdVal || null;
+                    globalLessonsList[lessonIndex].targetGroup = targetLevelVal;
                     globalLessonsList[lessonIndex].settings = newSettings;
                 }
 
-                alert('✔ تم حفظ وتحديث إعدادات الحصة والامتحان والنقاط بنجاح في السحابة! 🚀');
+                alert('✔ تم حفظ وتحديث إعدادات الحصة والامتحان والمستوى والنقاط بنجاح في السحابة! 🚀');
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء حفظ الإعدادات في السحابة.");
