@@ -114,15 +114,15 @@
         .student-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
 
         /* نافذة بروفايل الطالب المنبثقة */
-        .modal-overlay {
+        .modal-overlay, .lightbox-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
         }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-overlay.active, .lightbox-overlay.active { opacity: 1; visibility: visible; }
         .modal-card {
-            background: var(--bg-card); width: 100%; max-width: 500px;
+            background: var(--bg-card); width: 100%; max-width: 550px;
             border-radius: 14px; border: 1px solid var(--border-color);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6); overflow: hidden;
             display: flex; flex-direction: column; max-height: 85vh;
@@ -140,14 +140,14 @@
 </head>
 <body data-theme="dark">
     <div class="container">
-        <!-- الهيدر الموحد: الرئيسية بترجع لـ admin.html -->
+        <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إحصائيات ومتابعة الحصص 📊</span></div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل الموحد والمتصل بجميع صفحات الأدمن -->
+        <!-- شريط التنقل الموحد -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab">إنشاء امتحان 📝</a>
@@ -157,7 +157,7 @@
             </div>
         </nav>
 
-        <!-- قائمة الحصص المنشورة مع زر الحذف في أقصى اليسار فوق كل بطاقة -->
+        <!-- قائمة الحصص المنشورة -->
         <div class="section-box">
             <div class="section-header"><h2>قائمة الحصص المتاحة لمتابعة تفاعل الطلاب 📈</h2></div>
             <div id="lessonsCardsContainer" class="lessons-grid">
@@ -165,21 +165,23 @@
             </div>
         </div>
 
-        <!-- جدول تفاعل الطلاب للحصة المحددة -->
+        <!-- جدول تفاعل الطلاب للحصة المحددة (القوائم الثلاث السمباتيك) -->
         <div class="section-box hidden" id="statsTableContainerBox">
             <div class="section-header">
                 <h2 id="statsTableTitle">تقرير تفاعل الطلاب للحصة</h2>
-                <button onclick="document.getElementById('statsTableContainerBox').classList.add('hidden')" style="background:var(--danger); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">إغلاق التقرير ✕</button>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button onclick="promptGradeAllLessonExams()" style="background:var(--primary); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">توزيع درجات امتحانات الكل 🔔</button>
+                    <button onclick="document.getElementById('statsTableContainerBox').classList.add('hidden')" style="background:var(--danger); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">إغلاق التقرير ✕</button>
+                </div>
             </div>
             <div style="overflow-x: auto;">
                 <table id="lessonStatsTable">
                     <thead>
                         <tr>
                             <th>الطالب</th>
-                            <th>ملازم الشرح 📄</th>
-                            <th>فيديو الشرح 🎬</th>
-                            <th>ملازم التلخيص 📑</th>
-                            <th>امتحان الحصة 📝</th>
+                            <th>1. ملازم الشرح والتلخيص 📄</th>
+                            <th>2. فيديو الشرح والتفاعل 🎬</th>
+                            <th>3. امتحان الحصة والدرجة 📝</th>
                         </tr>
                     </thead>
                     <tbody id="lessonStatsTableBody">
@@ -190,16 +192,25 @@
         </div>
     </div>
 
-    <!-- نافذة استعراض بروفايل ومعلومات الطالب -->
+    <!-- نافذة استعراض بروفايل والمعلومات الشخصية للطالب -->
     <div class="modal-overlay" id="studentProfileModal" onclick="if(event.target===this) closeStudentModal()">
         <div class="modal-card">
             <div class="modal-header">
                 <h3 id="modalStudentNameTitle">ملف الطالب الشخصي</h3>
                 <button class="close-modal" onclick="closeStudentModal()">✕</button>
             </div>
-            <div class="modal-body" id="modalStudentBodyContent">
-                <!-- تفاصيل إحصائيات الطالب -->
+            <div class="modal-body" id="modalStudentBodyContent"></div>
+        </div>
+    </div>
+
+    <!-- نافذة معاينة إجابات امتحان الطالب وتصحيحها -->
+    <div class="modal-overlay" id="examAnswersModal" onclick="if(event.target===this) closeAnswersModal()">
+        <div class="modal-card" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3 id="answersModalTitle">📋 تفاصيل إجابات الطالب</h3>
+                <button class="close-modal" onclick="closeAnswersModal()">✕</button>
             </div>
+            <div class="modal-body" id="studentAnswersContainer"></div>
         </div>
     </div>
 
@@ -207,7 +218,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { findStudentDocument, addPointsToStudent } from "./student-service.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -225,6 +237,8 @@
 
         let globalLessonsList = [];
         let globalStudentsList = [];
+        let activeSelectedLessonId = null;
+        let activeSelectedSubmission = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -249,7 +263,6 @@
 
         async function fetchLessonsAndStudents() {
             try {
-                // جلب الحصص من كولكشن 'lessons'
                 const lessonsSnap = await getDocs(collection(db, "lessons"));
                 globalLessonsList = [];
                 const container = document.getElementById('lessonsCardsContainer');
@@ -277,7 +290,6 @@
                 });
                 container.innerHTML = html;
 
-                // جلب الطلاب من كولكشن 'users'
                 const studentsSnap = await getDocs(collection(db, "users"));
                 globalStudentsList = [];
                 studentsSnap.forEach((docSnap) => {
@@ -303,6 +315,7 @@
         };
 
         window.loadLessonStatsData = function(lessonId) {
+            activeSelectedLessonId = lessonId;
             let boxContainer = document.getElementById('statsTableContainerBox');
             let lesson = globalLessonsList.find(l => l.id === lessonId);
             if (!lesson) return;
@@ -311,7 +324,7 @@
             const tbody = document.getElementById('lessonStatsTableBody');
             
             if (globalStudentsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:15px;">لا توجد بيانات طلاب مسجلين حالياً.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px;">لا توجد بيانات طلاب مسجلين حالياً.</td></tr>`;
                 boxContainer.classList.remove('hidden');
                 boxContainer.scrollIntoView({ behavior: 'smooth' });
                 return;
@@ -319,15 +332,32 @@
 
             let html = "";
             globalStudentsList.forEach((student) => {
-                let name = student.name || 'طالب المنصة';
-                let avatar = student.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
+                let name = student.name || student.fullName || 'طالب المنصة';
+                let email = student.email || '';
+                let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
                 
-                let activity = (student.lessonsActivity || {})[lessonId] || { studyNotes: false, video: false, summary: false, watched: false };
+                let activity = (student.lessonsActivity || {})[lessonId] || {};
+                
+                // القائمة الأولى: ملازم الشرح والتلخيص
+                let notesSeen = activity.studyNotes === true || activity.summarySeen === true;
+                let notesBadge = notesSeen ? '<span style="color:var(--success); font-weight:bold;">✔ اطلع عليها</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
 
-                let studyBadge = (activity.studyNotes || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
-                let videoBadge = (activity.video || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ شاهد</span>' : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
-                let summaryBadge = (activity.summary || activity.watched) ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
-                let examBadge = activity.examScore !== null && activity.examScore !== undefined ? `<span style="color:var(--success); font-weight:bold;">✔ ${activity.examScore} درجات</span>` : '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر</span>';
+                // القائمة الثانية: فيديو الشرح والتفاعل
+                let watched = activity.videoWatched === true || activity.watched === true;
+                let watchDuration = activity.watchTimeMinutes || 0;
+                let videoBadge = watched ? `<span style="color:var(--success); font-weight:bold;">✔ شاهد (${watchDuration} دقيقة)</span>` : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
+
+                // القائمة الثالثة: امتحان الحصة
+                let examData = activity.examSubmission || null;
+                let examBadge = '';
+                if (examData) {
+                    let attempts = examData.attemptsCount || 1;
+                    let score = examData.score !== undefined ? examData.score : 0;
+                    let total = examData.totalMarks || 10;
+                    examBadge = `<span style="color:var(--success); font-weight:bold; cursor:pointer;" onclick='openStudentExamModal(${JSON.stringify(lessonId)}, ${JSON.stringify(email)}, ${JSON.stringify(examData)})'>✔ امتحن (${score}/${total}) [محاولات: ${attempts}] 🔍</span>`;
+                } else {
+                    examBadge = '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر بعد</span>';
+                }
 
                 html += `
                     <tr>
@@ -337,9 +367,8 @@
                                 <b>${name}</b>
                             </div>
                         </td>
-                        <td>${studyBadge}</td>
+                        <td>${notesBadge}</td>
                         <td>${videoBadge}</td>
-                        <td>${summaryBadge}</td>
                         <td>${examBadge}</td>
                     </tr>`;
             });
@@ -349,35 +378,119 @@
             boxContainer.scrollIntoView({ behavior: 'smooth' });
         };
 
+        window.openStudentExamModal = function(lessonId, studentEmail, subData) {
+            activeSelectedSubmission = { lessonId, studentEmail, subData };
+            let container = document.getElementById('studentAnswersContainer');
+            document.getElementById('answersModalTitle').textContent = `📋 معاينة إجابات امتحان الحصة`;
+
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; background:var(--th-bg); padding:10px; border-radius:8px;">
+                    <span>درجة الطالب: <strong>${subData.score} / ${subData.totalMarks}</strong></span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span>تعديل الدرجة:</span>
+                        <input type="number" id="manualLessonExamScore" value="${subData.score}" style="width:60px; padding:4px; text-align:center; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:4px;">
+                        <span>من ${subData.totalMarks}</span>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px; font-size:0.8rem; color:var(--text-muted);">إجابات الطالب المسجلة في هذا الامتحان:</div>`;
+
+            let answers = subData.answers || {};
+            if (Object.keys(answers).length === 0) {
+                html += `<p style="text-align:center; color:var(--danger);">لا توجد إجابات تفصيلية مسجلة.</p>`;
+            } else {
+                for (let qKey in answers) {
+                    html += `<div style="background:var(--th-bg); padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border-color);">
+                        <span style="font-weight:bold; color:var(--primary);">السؤال ${parseInt(qKey)+1}:</span>
+                        <span style="color:var(--text-main); margin-right:6px;">${answers[qKey]}</span>
+                    </div>`;
+                }
+            }
+
+            html += `<button onclick="saveManualLessonExamScore()" style="background:var(--success); color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; width:100%; margin-top:10px; cursor:pointer;">حفظ وتوزيع الدرجة والنقاط ✅</button>`;
+
+            container.innerHTML = html;
+            document.getElementById('examAnswersModal').classList.add('active');
+        };
+
+        window.closeAnswersModal = function() {
+            document.getElementById('examAnswersModal').classList.remove('active');
+        };
+
+        window.saveManualLessonExamScore = async function() {
+            if (!activeSelectedSubmission) return;
+            let newScore = parseFloat(document.getElementById('manualLessonExamScore').value) || 0;
+            let { lessonId, studentEmail, subData } = activeSelectedSubmission;
+            
+            subData.score = newScore;
+            let defaultPoints = subData.pointsEarned || 5;
+
+            try {
+                let studentDoc = await findStudentDocument(db, studentEmail);
+                if (studentDoc) {
+                    let studentRef = doc(db, "users", studentDoc.id);
+                    let lessonsAct = studentDoc.data.lessonsActivity || {};
+                    if (lessonsAct[lessonId]) {
+                        lessonsAct[lessonId].examSubmission = subData;
+                        await updateDoc(studentRef, { lessonsActivity: lessonsAct });
+                        await addPointsToStudent(db, studentEmail, defaultPoints);
+                    }
+                }
+                alert("✔ تم تحديث وحفظ درجات الحصة ونقاط الطالب بنجاح!");
+                closeAnswersModal();
+                loadLessonStatsData(lessonId);
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء الحفظ.");
+            }
+        };
+
+        window.promptGradeAllLessonExams = async function() {
+            if (!activeSelectedLessonId) return;
+            if (confirm("هل تريد توزيع درجات وتفعيل نقاط امتحانات هذه الحصة لجميع الطلاب المتقدمين؟")) {
+                try {
+                    for (let student of globalStudentsList) {
+                        let email = student.email;
+                        let lessonsAct = student.lessonsActivity || {};
+                        if (lessonsAct[activeSelectedLessonId] && lessonsAct[activeSelectedLessonId].examSubmission) {
+                            let sub = lessonsAct[activeSelectedLessonId].examSubmission;
+                            if (!sub.published) {
+                                sub.published = true;
+                                let points = sub.pointsEarned || 5;
+                                await addPointsToStudent(db, email, points);
+                            }
+                        }
+                    }
+                    alert("✔ تم توزيع الدرجات وإضافة النقاط لجميع الطلاب بنجاح!");
+                    loadLessonStatsData(activeSelectedLessonId);
+                } catch (e) {
+                    console.error(e);
+                    alert("حدث خطأ أثناء التوزيع الجماعي.");
+                }
+            }
+        };
+
         window.openStudentProfile = function(student) {
-            document.getElementById('modalStudentNameTitle').textContent = `ملف الطالب: ${student.name || 'طالب المنصة'}`;
+            document.getElementById('modalStudentNameTitle').textContent = `ملف الطالب: ${student.name || student.fullName || 'طالب المنصة'}`;
             
             let email = student.email || 'غير متوفر';
-            let phone = student.phone || 'غير متوفر';
-            let totalPoints = student.points || 0;
-            let examsCount = Object.keys(student.examResults || {}).length;
+            let phone = student.phone || student.parentPhone || 'غير متوفر';
+            let totalPoints = student.points || student.totalScore || 0;
 
             let bodyHtml = `
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; background:var(--th-bg); padding:10px; border-radius:10px; border:1px solid var(--border-color);">
-                    <img src="${student.avatar || 'https://www.w3schools.com/howto/img_avatar.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                    <img src="${student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
                     <div>
-                        <h4 style="font-size:0.95rem; color:var(--text-main);">${student.name || 'طالب'}</h4>
+                        <h4 style="font-size:0.95rem; color:var(--text-main);">${student.name || student.fullName || 'طالب'}</h4>
                         <p style="font-size:0.75rem; color:var(--text-muted);">البريد: ${email}</p>
                         <p style="font-size:0.75rem; color:var(--text-muted);">الهاتف: ${phone}</p>
                     </div>
                 </div>
-                <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-bottom:15px;">
-                    <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center;">
-                        <span style="font-size:0.75rem; color:var(--text-muted); display:block;">إجمالي النقاط ⭐</span>
-                        <strong style="font-size:1.1rem; color:var(--primary);">${totalPoints}</strong>
-                    </div>
-                    <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center;">
-                        <span style="font-size:0.75rem; color:var(--text-muted); display:block;">الامتحانات المجتازة 📝</span>
-                        <strong style="font-size:1.1rem; color:var(--success);">${examsCount}</strong>
-                    </div>
+                <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center; margin-bottom:15px;">
+                    <span style="font-size:0.75rem; color:var(--text-muted); display:block;">إجمالي النقاط ⭐</span>
+                    <strong style="font-size:1.1rem; color:var(--primary);">${totalPoints}</strong>
                 </div>
-                <div style="font-weight:bold; margin-bottom:6px; color:var(--text-main);">📌 تفاصيل تفاعل الإحصائيات:</div>
-                <p style="font-size:0.78rem; color:var(--text-muted);">هذا الطالب مسجل بانتظام في المنصة، وتتم متابعة تفاعله مع جميع الحصص والملازم والامتحانات لحظياً من خلال لوحة التحكم الخاصة بك.</p>
+                <div style="font-weight:bold; margin-bottom:6px; color:var(--text-main);">📌 تفاصيل تفاعل الطالب:</div>
+                <p style="font-size:0.78rem; color:var(--text-muted);">هذا الطالب مسجل في المنصة وتتم متابعة تفاعله لحظياً مع الحصص والملازم والامتحانات.</p>
             `;
 
             document.getElementById('modalStudentBodyContent').innerHTML = bodyHtml;
