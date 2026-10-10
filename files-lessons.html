@@ -271,14 +271,6 @@
                 <button type="button" class="btn-add-item" onclick="addNewSummaryRow()">إضافة ملخص آخر ➕</button>
             </div>
 
-            <!-- امتحان الحصة الخاص بها -->
-            <div class="form-group">
-                <label>📝 امتحان الحصة الخاص بهذا الدرس:</label>
-                <select id="lessonExamSelect">
-                    <option value="">-- اختر امتحان مخصص لهذه الحصة --</option>
-                </select>
-            </div>
-
             <button class="btn-save" onclick="publishNewLessonToCloud()">نشر الحصة دراسية بالسحابة الآن 🚀</button>
         </div>
     </div>
@@ -287,7 +279,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -304,9 +296,7 @@
         const db = getFirestore(app);
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                await fetchLessonExamsDropdown();
-            } else {
+            if (!user) {
                 window.location.href = 'login.html';
             }
         });
@@ -482,28 +472,12 @@
             container.appendChild(div);
         };
 
-        async function fetchLessonExamsDropdown() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "exams"));
-                const select = document.getElementById('lessonExamSelect');
-                let html = '<option value="">-- اختر امتحان مخصص لهذه الحصة --</option>';
-                querySnapshot.forEach((docSnap) => {
-                    let ex = docSnap.data();
-                    html += `<option value="${docSnap.id}">📝 ${ex.title || 'امتحان الدرس'} (${ex.subject || 'عام'})</option>`;
-                });
-                select.innerHTML = html;
-            } catch (e) {
-                console.warn("خطأ في جلب الامتحانات:", e);
-            }
-        }
-
         window.publishNewLessonToCloud = async function() {
             let title = document.getElementById('lessonTitle').value.trim();
             let subject = document.getElementById('lessonSubject').value.trim();
             let targetGroup = document.getElementById('lessonTargetGroup').value.trim();
             let number = parseInt(document.getElementById('lessonNumber').value) || 1;
             let scheduledAt = document.getElementById('lessonScheduledAt').value;
-            let examId = document.getElementById('lessonExamSelect').value;
 
             if (!title) { alert('يرجى كتابة عنوان الحصة على الأقل!'); return; }
 
@@ -531,7 +505,7 @@
             let lessonDoc = {
                 title, subject, targetGroup, number,
                 scheduledAt: scheduledAt || '',
-                videosList, notesList, summariesList, examId,
+                videosList, notesList, summariesList,
                 settings: { generalActive: true, smartLock: true, antiScreenshot: true },
                 createdAt: new Date().toISOString()
             };
@@ -544,7 +518,6 @@
                 document.getElementById('lessonSubject').value = '';
                 document.getElementById('lessonTargetGroup').value = '';
                 document.getElementById('lessonScheduledAt').value = '';
-                document.getElementById('lessonExamSelect').value = '';
             } catch (e) {
                 console.error(e);
                 alert("حدث خطأ أثناء نشر الحصة في السحابة.");
