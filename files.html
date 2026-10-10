@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - مكتبة الحصص والشروحات</title>
+    <title>منصة رحلة دراسية - مكتبة الحصص والقاعات</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -38,7 +38,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
         body { background-color: var(--bg-main); color: var(--text-main); padding: 15px; min-height: 100vh; user-select: none; -webkit-user-select: none; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
         
         .platform-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -64,41 +64,79 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        .lessons-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin-bottom: 25px;
-        }
-
-        .lesson-card-item {
+        .page-header {
             background-color: var(--bg-card); border-radius: 16px; box-shadow: var(--shadow);
-            padding: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
-            display: flex; flex-direction: column; justify-content: space-between; gap: 14px; position: relative;
+            padding: 20px; margin-bottom: 20px; border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            text-align: center;
+        }
+        .page-header h1 { color: var(--text-main); font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+        .page-header p { color: var(--text-muted); font-size: 0.85rem; }
+
+        .files-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+
+        .file-card {
+            background: var(--bg-card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-color);
+            border-top: 3px solid var(--primary); position: relative; overflow: hidden;
+        }
+        .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
+
+        .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); margin-bottom: 6px; }
+        .file-desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+
+        .file-meta {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;
+            border-top: 1px solid var(--border-color); padding-top: 8px;
         }
 
-        .lesson-card-title { font-size: 1.05rem; font-weight: bold; color: var(--text-main); }
-        .lesson-card-info { font-size: 0.82rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
-
-        .lesson-card-btn {
+        .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
-            padding: 9px 16px; border-radius: 10px; font-weight: bold; font-size: 0.85rem; display: block;
-            border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+            padding: 10px; border-radius: 10px; font-weight: bold; font-size: 0.85rem; display: block;
+            border: none; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
-        .lesson-card-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
+        .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; transform: translateY(-1px); }
+        .view-btn.locked-btn { background-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; box-shadow: none; }
+
+        .countdown-box {
+            background: var(--th-bg); border: 1px dashed var(--danger); padding: 8px; border-radius: 8px;
+            text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
+        }
+
+        /* نافذة التنبيهات */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 360px; border-radius: 14px; padding: 18px; text-align: center; box-shadow: var(--shadow);
+        }
+        .platform-toast-card h3 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 7px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.8rem; cursor: pointer; width: 100%;
+        }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
 
     <div class="container">
         <header class="platform-header">
-            <div class="header-right-side"><a href="main.html" class="btn-home-link">⬅ الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والشروحات</span> 📚</div></div>
+            <div class="header-right-side"><a href="main.html" class="btn-home-link">🏠 الرئيسية</a></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>مكتبة الحصص والقاعات</span> 📚</div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <div id="lessonsGridContainer" class="lessons-grid">
-            <div style="text-align: center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">جاري تحميل الحصص من السحابة...</div>
+        <div class="page-header">
+            <h1>مرحباً بك في مكتبة الحصص 🫰🏻🤍</h1>
+            <p>تابع حصصك بكل سهولة و أمان مع رحلة دراسية</p>
+        </div>
+
+        <div id="filesGrid" class="files-grid">
+            <p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1; padding: 30px; font-size: 0.85rem;">جاري مزامنة الحصص من السحابة...</p>
         </div>
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
@@ -106,11 +144,20 @@
         </div>
     </div>
 
+    <!-- نافذة التنبيهات -->
+    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">رسالة التنبيه هنا...</p>
+            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
+        </div>
+    </div>
+
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -126,6 +173,17 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        let globalLessonsData = [];
+        let countdownIntervals = [];
+        let currentUserId = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+            }
+            await fetchCloudLessons();
+        });
+
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
         const savedTheme = localStorage.getItem('platform_theme') || 'dark';
@@ -139,55 +197,158 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                // إذا لم يكن المستخدم مسجل الدخول، يتم توجيهه لصفحة الدخول أو الاندكس
-                window.location.href = "index.html";
+        window.showPlatformToast = function(title, message) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
+
+        async function fetchCloudLessons() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "lessons"));
+                globalLessonsData = [];
+                querySnapshot.forEach((docSnap) => {
+                    globalLessonsData.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderLessonsList(globalLessonsData);
+            } catch (err) {
+                console.error("خطأ في جلب الحصص:", err);
+                document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">عذراً، حدث خطأ أثناء الاتصال بالسحابة.</p>`;
+            }
+        }
+
+        window.handleLessonClick = async function(lessonId) {
+            let item = globalLessonsData.find(l => l.id === lessonId);
+            if (!item) return;
+
+            let s = item.settings || {};
+            let maxAttempts = s.lessonAttempts || 5;
+
+            if (currentUserId) {
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let visits = userData.lessonVisits || {};
+                        let currentCount = visits[lessonId] || 0;
+
+                        if (currentCount >= maxAttempts) {
+                            showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
+                            return;
+                        }
+
+                        visits[lessonId] = currentCount + 1;
+                        await updateDoc(userRef, { lessonVisits: visits });
+                    }
+                } catch(e) {
+                    console.log("Error updating visits:", e);
+                }
+            }
+
+            // تم تصحيح اسم الملف هنا ليوجه إلى files-lesson-view.html بدلاً من lesson-view.html
+            window.location.href = `files-lesson-view.html?id=${lessonId}`;
+        };
+
+        function renderLessonsList(items) {
+            const grid = document.getElementById('filesGrid');
+            countdownIntervals.forEach(interval => clearInterval(interval));
+            countdownIntervals = [];
+
+            let activeItems = items.filter(item => {
+                let s = item.settings || {};
+                return s.generalActive !== false;
+            });
+
+            if (activeItems.length === 0) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); box-shadow: var(--shadow);">
+                        <div style="font-size: 2.5rem; margin-bottom: 8px;">📭</div>
+                        <h3 style="color: var(--text-main); margin-bottom: 4px; font-size: 0.95rem;">لا توجد حصص متاحة حالياً</h3>
+                        <p style="color: var(--text-muted); font-size: 0.82rem;">ترقبوا.. سيتم نشر أحدث الحصص والملازم قريباً.</p>
+                    </div>
+                `;
                 return;
             }
-            await loadLessonsLibrary();
-        });
 
-        async function loadLessonsLibrary() {
-            const container = document.getElementById('lessonsGridContainer');
-            try {
-                const q = query(collection(db, "lessons"), orderBy("number", "asc"));
-                const querySnapshot = await getDocs(q);
+            grid.innerHTML = '';
+            activeItems.forEach((item) => {
+                let s = item.settings || {};
+                let title = item.title || 'حصة دراسية';
+                let subject = item.subject || 'عام';
+                let scheduledAt = item.scheduledAt;
 
-                if (querySnapshot.empty) {
-                    container.innerHTML = `<p style="text-align:center; color:var(--text-muted); grid-column: 1 / -1; padding:40px;">لا توجد حصص مضافة حتى الآن.</p>`;
-                    return;
+                let now = new Date().getTime();
+                let isLocked = false;
+                let targetTime = 0;
+
+                if (scheduledAt && scheduledAt.trim() !== "") {
+                    targetTime = new Date(scheduledAt).getTime();
+                    if (now < targetTime) {
+                        isLocked = true;
+                    }
                 }
 
-                let html = "";
-                querySnapshot.forEach((docSnap) => {
-                    let lesson = docSnap.data();
-                    let lessonId = docSnap.id;
-                    let title = lesson.title || 'بدون عنوان';
-                    let number = lesson.number || 1;
-                    let subject = lesson.subject || 'عام';
-                    let targetGroup = lesson.targetGroup || 'عام';
+                let card = document.createElement('div');
+                card.className = isLocked ? 'file-card locked' : 'file-card';
+                
+                let cardHtml = `
+                    <div>
+                        <div class="file-title">الحصة ${item.number || 1}: ${title}</div>
+                        <div class="file-desc">${item.targetGroup || 'الصف الدراسي'} - المادة: ${subject}</div>
+                    </div>
+                `;
 
-                    html += `
-                        <div class="lesson-card-item">
-                            <div>
-                                <div class="lesson-card-title">🎬 الحصة ${number}: ${title}</div>
-                                <div class="lesson-card-info" style="margin-top: 8px;">
-                                    <span>📚 المادة: ${subject}</span>
-                                    <span>👥 الصف: ${targetGroup}</span>
-                                </div>
-                            </div>
-                            <a href="files-lesson-view.html?id=${lessonId}" class="lesson-card-btn">دخول الحصة 🚀</a>
+                if (isLocked) {
+                    cardHtml += `
+                        <div>
+                            <div class="countdown-box" id="countdown-${item.id}">جاري حساب العد التنازلي...</div>
+                            <button class="view-btn locked-btn">الحصة مقفولة مؤقتاً 🔒</button>
                         </div>
                     `;
-                });
+                } else {
+                    cardHtml += `
+                        <div>
+                            <div class="file-meta">
+                                <span>📂 المادة: ${subject}</span>
+                                <span>📖 متاح</span>
+                            </div>
+                            <button onclick="handleLessonClick('${item.id}')" class="view-btn" style="text-align: center;">دخول الحصة 🚀</button>
+                        </div>
+                    `;
+                }
 
-                container.innerHTML = html;
+                card.innerHTML = cardHtml;
+                grid.appendChild(card);
 
-            } catch (error) {
-                console.error("خطأ في جلب الحصص:", error);
-                container.innerHTML = `<p style="text-align:center; color:var(--danger); grid-column: 1 / -1; padding:40px;">حدث خطأ أثناء تحميل الحصص من السحابة.</p>`;
-            }
+                if (isLocked) {
+                    let intervalId = setInterval(() => {
+                        let currentTime = new Date().getTime();
+                        let distance = targetTime - currentTime;
+
+                        if (distance < 0) {
+                            clearInterval(intervalId);
+                            renderLessonsList(globalLessonsData);
+                            return;
+                        }
+
+                        let days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                        let hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        let minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        let seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                        let timerElement = document.getElementById(`countdown-${item.id}`);
+                        if (timerElement) {
+                            timerElement.innerHTML = `⏳ تفتح خلال: ${days > 0 ? days + ' يوم ' : ''}${hours}س ${minutes}د ${seconds}ث`;
+                        }
+                    }, 1000);
+                    countdownIntervals.push(intervalId);
+                }
+            });
         }
     </script>
 </body>
