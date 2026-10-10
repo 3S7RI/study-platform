@@ -73,7 +73,7 @@
         .lesson-title-header { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 8px; }
         .lesson-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; }
 
-        /* نظام القوائم القابلة للطي (Accordion Lists) مع تصميم أقصى اليمين وأقصى اليسار لزر الفتح */
+        /* نظام القوائم القابلة للطي (Accordion Lists) */
         .lesson-section-box {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
             margin-bottom: 14px; overflow: hidden; transition: all 0.3s ease;
@@ -98,23 +98,17 @@
             max-height: 2000px; padding: 16px 18px; border-top-color: var(--border-color);
         }
 
-        /* زر فتح المربع الصغير في أقصى اليسار */
-        .btn-open-small {
-            background-color: var(--primary); color: white; border: none; padding: 4px 14px;
-            border-radius: 6px; font-weight: bold; font-size: 0.78rem; cursor: pointer;
-            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3); flex-shrink: 0;
-        }
-        .btn-open-small:hover { background-color: var(--primary-hover); }
-
+        /* زر الفتح داخل محتوى القائمة */
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
             padding: 11px; border-radius: 10px; font-weight: bold; font-size: 0.88rem; display: block;
             border: none; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            margin-top: 10px;
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; transform: translateY(-1px); }
 
         /* مشغل الفيديو الداخلي المميز */
-        .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; }
+        .video-player-wrapper { position: relative; width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-top: 10px; }
         video { width: 100%; max-height: 400px; display: block; outline: none; }
 
         /* إشعار المنصة البسيط (Toast Notification) */
@@ -328,12 +322,14 @@
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionStudyNotes')">
                         <span>📄 ${notesLabelName}</span>
                         <div class="section-left-side">
-                            <button class="btn-open-small" onclick="event.stopPropagation(); triggerOpenNotes('${item.studyNotes || ''}', ${hasStudyNotes})">فتح</button>
                             <span class="arrow-icon">▼</span>
                         </div>
                     </div>
                     <div class="lesson-section-content">
-                        ${hasStudyNotes ? `<p style="font-size:0.82rem; color:var(--text-muted);">الملزمة متوفرة وجاهزة للاطلاع عليها داخل المنصة.</p>` : `<p style="font-size:0.82rem; color:var(--danger);">الملزمة غير مرفقة حالياً.</p>`}
+                        ${hasStudyNotes ? `
+                            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:8px;">الملزمة متوفرة وجاهزة للاطلاع عليها داخل المنصة.</p>
+                            <button class="view-btn" onclick="triggerOpenNotes('${item.studyNotes}', true)">فتح الملزمة 📄</button>
+                        ` : `<p style="font-size:0.82rem; color:var(--danger);">الملزمة غير مرفقة حالياً.</p>`}
                     </div>
                 </div>
             `;
@@ -350,7 +346,6 @@
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
                         <span>🎬 ${videoLabelName}</span>
                         <div class="section-left-side">
-                            <button class="btn-open-small" onclick="event.stopPropagation(); triggerOpenVideo(${hasVideo})">فتح</button>
                             <span class="arrow-icon">▼</span>
                         </div>
                     </div>
@@ -379,12 +374,14 @@
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionSummary')">
                         <span>📑 ${summaryLabelName}</span>
                         <div class="section-left-side">
-                            <button class="btn-open-small" onclick="event.stopPropagation(); triggerOpenSummary('${item.summaryNotes || ''}', ${hasSummary})">فتح</button>
                             <span class="arrow-icon">▼</span>
                         </div>
                     </div>
                     <div class="lesson-section-content">
-                        ${hasSummary ? `<p style="font-size:0.82rem; color:var(--text-muted);">ملخص الدرس جاهز للاطلاع.</p>` : `<p style="font-size:0.82rem; color:var(--danger);">الملخص غير مرفق حالياً.</p>`}
+                        ${hasSummary ? `
+                            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:8px;">ملخص الدرس جاهز للاطلاع.</p>
+                            <button class="view-btn" onclick="triggerOpenSummary('${item.summaryNotes}', true)">فتح الملخص 📑</button>
+                        ` : `<p style="font-size:0.82rem; color:var(--danger);">الملخص غير مرفق حالياً.</p>`}
                     </div>
                 </div>
             `;
@@ -398,7 +395,6 @@
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                         <span>📝 ${examLabelName}</span>
                         <div class="section-left-side">
-                            <button class="btn-open-small" onclick="event.stopPropagation(); triggerOpenExam(${hasExam})">فتح</button>
                             <span class="arrow-icon">▼</span>
                         </div>
                     </div>
@@ -446,24 +442,13 @@
             return qHtml;
         }
 
-        // الوظائف الخاصة بزر "فتح" الصغير لكل محتوى على حدة
+        // الوظائف الخاصة بفتح الملفات داخل المنصة عند الضغط على زر الفتح الداخلي
         window.triggerOpenNotes = function(fileUrl, isAvailable) {
             if (!isAvailable || !fileUrl) {
                 showPlatformToast("تنبيه المحتوى ⚠️", "ملزمة الشرح الأساسية غير مرفقة لهذه الحصة حالياً.");
                 return;
             }
             openInnerViewer('ملزمة الشرح الأساسية', fileUrl);
-        };
-
-        window.triggerOpenVideo = function(isAvailable) {
-            if (!isAvailable) {
-                showPlatformToast("تنبيه المحتوى ⚠️", "لا يوجد فيديو شرح مرفق لهذه الحصة حالياً.");
-                return;
-            }
-            // فتح قائمة فيديو الشرح تلقائياً عند الضغط على زر فتح
-            const box = document.getElementById('sectionVideo');
-            box.classList.add('active');
-            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         };
 
         window.triggerOpenSummary = function(fileUrl, isAvailable) {
@@ -474,18 +459,7 @@
             openInnerViewer('ملخص الدرس', fileUrl);
         };
 
-        window.triggerOpenExam = function(isAvailable) {
-            if (!isAvailable) {
-                showPlatformToast("تنبيه المحتوى ⚠️", "لا يوجد امتحان مخصص أو مرفق لهذه الحصة حالياً.");
-                return;
-            }
-            // فتح قائمة الامتحان تلقائياً عند الضغط على زر فتح
-            const box = document.getElementById('sectionExam');
-            box.classList.add('active');
-            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        };
-
-        // التحكم في طي وفتح القوائم عند الضغط على العنوان
+        // التحكم في طي وفتح القوائم عند الضغط على العنوان الرئيسي
         window.toggleAccordion = function(boxId) {
             const box = document.getElementById(boxId);
             box.classList.toggle('active');
