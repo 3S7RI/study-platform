@@ -81,7 +81,21 @@
         .btn-save { background: var(--success); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; margin-top: 20px; width: 100%; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
         .btn-save:hover { opacity: 0.9; }
 
-        .lessons-sync-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .exams-management-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .exam-manage-card {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .exam-info { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+        .exam-actions { display: flex; gap: 8px; align-items: center; }
+
+        .btn-select-exam { background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 0.78rem; cursor: pointer; }
+        .btn-select-exam:hover { background: var(--primary-hover); }
+
+        .btn-delete-exam { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.78rem; cursor: pointer; }
+        .btn-delete-exam:hover { background: var(--danger); color: white; }
+
+        .lessons-sync-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
         .sync-item-card {
             background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px;
             display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
@@ -91,7 +105,7 @@
 <body data-theme="dark">
     <div class="container">
         <header class="platform-header">
-            <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
+            <div class="header-right-side"><a href="files-exam-create.html" class="btn-home-link">⬅ العودة لإنشاء الامتحانات</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>مزامنة امتحانات الحصص 🔄</span></div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
@@ -107,19 +121,27 @@
             </div>
 
             <div class="form-group">
-                <label>2. اختر الامتحان المراد ربطه بهذه الحصة (من كولكشن الامتحانات):</label>
+                <label>2. الامتحان المحدد للربط (يمكنك اختياره بـ "اختيار" من قائمة الامتحانات أدناه أو يدوياً):</label>
                 <select id="syncExamSelect">
-                    <option value="">-- اختر الامتحان المناسب --</option>
+                    <option value="">-- بدون امتحان (إلغاء الربط) --</option>
                 </select>
             </div>
 
             <button class="btn-save" onclick="saveLessonExamSync()">حفظ وتحديث الربط في السحابة 🚀</button>
         </div>
 
+        <!-- قسم إدارة وعرض الامتحانات المتاحة مع زري الاختيار والحذف -->
         <div class="section-box">
-            <div class="section-header"><h2>حالة ربط الحصص بالامتحانات 📊</h2></div>
+            <div class="section-header"><h2>قائمة الامتحانات المتاحة بالسحابة (إدارة وحذف) 📋</h2></div>
+            <div id="examsManagementContainer" class="exams-management-list">
+                <p style="color: var(--text-muted); text-align: center; padding: 15px;">جاري جلب الامتحانات...</p>
+            </div>
+        </div>
+
+        <div class="section-box">
+            <div class="section-header"><h2>حالة ربط الحصص بالامتحانات الحالية 📊</h2></div>
             <div id="syncedLessonsListContainer" class="lessons-sync-list">
-                <p style="color: var(--text-muted); text-align: center; padding: 15px;">جاري جلب الحصص والامتحانات...</p>
+                <p style="color: var(--text-muted); text-align: center; padding: 15px;">جاري جلب الحصص...</p>
             </div>
         </div>
     </div>
@@ -128,7 +150,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -179,6 +201,7 @@
                 examsSnap.forEach(d => examsData.push({ id: d.id, ...d.data() }));
 
                 renderDropdowns();
+                renderExamsManagementList();
                 renderSyncedList();
             } catch (e) {
                 console.error("خطأ في جلب البيانات:", e);
@@ -200,6 +223,60 @@
             });
             examSelect.innerHTML = eHtml;
         }
+
+        function renderExamsManagementList() {
+            const container = document.getElementById('examsManagementContainer');
+            if (examsData.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 10px;">لا توجد امتحانات مضافة حتى الآن.</p>';
+                return;
+            }
+
+            let html = '';
+            examsData.forEach(e => {
+                let qCount = e.questions ? e.questions.length : 0;
+                html += `
+                    <div class="exam-manage-card">
+                        <div class="exam-info">
+                            <h4 style="color: var(--text-main); font-size: 0.88rem; font-weight: 700;">📝 ${e.title || 'بدون عنوان'}</h4>
+                            <p style="font-size: 0.75rem; color: var(--text-muted);">المادة: ${e.subject || 'عام'} | الفئة: ${e.targetGroup || 'الكل'} | عدد الأسئلة: ${qCount} سؤال</p>
+                        </div>
+                        <div class="exam-actions">
+                            <button class="btn-select-exam" onclick="selectExamForSync('${e.id}')">اختيار للربط 🎯</button>
+                            <button class="btn-delete-exam" onclick="deleteExamFromCloud('${e.id}', '${e.title || 'امتحان'}')">حذف 🗑️</button>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        window.selectExamForSync = function(examId) {
+            document.getElementById('syncExamSelect').value = examId;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert('✔ تم تحديد الامتحان في قائمة الربط بالأعلى بنجاح! اختر الحصة واضغط حفظ التحديث.');
+        };
+
+        window.deleteExamFromCloud = async function(examId, examTitle) {
+            if (!confirm(`هل أنت متأكد من رغبتك في حذف الامتحان (${examTitle}) نهائياً من السحابة؟`)) return;
+
+            try {
+                // حذف الامتحان من كولكشن الامتحانات
+                await deleteDoc(doc(db, "exams", examId));
+
+                // فحص الحصص المرتبطة بهذا الامتحان وفصلها إن وجدت
+                for (let l of lessonsData) {
+                    if (l.examId === examId) {
+                        const lessonRef = doc(db, "lessons", l.id);
+                        await updateDoc(lessonRef, { examId: null });
+                    }
+                }
+
+                alert('✔ تم حذف الامتحان وتحديث الحصص المرتبطة بنجاح!');
+                await loadCloudData();
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء محاولة حذف الامتحان.');
+            }
+        };
 
         function renderSyncedList() {
             const container = document.getElementById('syncedLessonsListContainer');
