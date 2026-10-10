@@ -98,7 +98,6 @@
             max-height: 2000px; padding: 16px 18px; border-top-color: var(--border-color);
         }
 
-        /* عنصر المحتوى الفردي مع أزرار الفتح والتحميل في أقصى اليسار تماماً */
         .content-item-row {
             display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
             padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 8px; gap: 15px; flex-wrap: wrap;
@@ -107,7 +106,6 @@
 
         .action-btns-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
-        /* زر الفتح */
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
             padding: 8px 14px; border-radius: 8px; font-weight: bold; font-size: 0.82rem; display: inline-block;
@@ -115,7 +113,6 @@
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
 
-        /* زر التحميل بـ SVG */
         .download-svg-btn {
             background-color: var(--success); color: white; text-decoration: none; text-align: center;
             width: 34px; height: 34px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
@@ -124,7 +121,6 @@
         .download-svg-btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .download-svg-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-        /* مشغل الفيديو المنسدل الداخلي */
         .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
         .video-collapse-box.show { display: block; }
         video { width: 100%; max-height: 350px; display: block; outline: none; }
@@ -133,6 +129,26 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
             font-size: 1.4rem; color: rgba(255, 255, 255, 0.05); pointer-events: none; white-space: nowrap; font-weight: bold; z-index: 10;
         }
+
+        /* تصميم نافذة إدخال كلمة المرور بنظام وثيم المنصة */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 3000; padding: 15px;
+        }
+        .modal-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 380px; border-radius: 16px; padding: 22px; text-align: center; box-shadow: var(--shadow);
+        }
+        .modal-card h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 8px; font-weight: 700; }
+        .modal-card p { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4; }
+        .modal-card input {
+            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+            background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none; margin-bottom: 15px; text-align: center;
+        }
+        .modal-btns { display: flex; gap: 8px; }
+        .modal-btn-confirm { background: var(--success); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
+        .modal-btn-cancel { background: var(--danger); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
@@ -150,6 +166,19 @@
 
         <div style="text-align: center; margin-top: 25px; font-size: 0.78rem; color: var(--text-muted);">
             جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - رحلة دراسية
+        </div>
+    </div>
+
+    <!-- نافذة إدخال كلمة المرور للامتحان -->
+    <div class="modal-overlay" id="examPasswordModal">
+        <div class="modal-card">
+            <h3>🔑 حماية الامتحان بكلمة مرور</h3>
+            <p id="modalPasswordDesc">هذا الامتحان محمي بكلمة مرور. يجدر إدخالها للمتابعة:</p>
+            <input type="password" id="examPasswordInput" placeholder="اكتب كلمة المرور هنا...">
+            <div class="modal-btns">
+                <button class="modal-btn-confirm" onclick="verifyExamPassword()">تأكيد ودخول 🚀</button>
+                <button class="modal-btn-cancel" onclick="closeExamPasswordModal()">إلغاء ❌</button>
+            </div>
         </div>
     </div>
 
@@ -175,6 +204,9 @@
 
         let currentUserId = null;
         let currentUserEmail = "طالب زائر";
+        let activeLessonId = null;
+        let activeLessonSettings = {};
+        let passwordTimerInterval = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -185,6 +217,7 @@
             const lessonId = urlParams.get('id');
 
             if (lessonId) {
+                activeLessonId = lessonId;
                 await fetchLessonDetails(lessonId);
             } else {
                 document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
@@ -215,10 +248,10 @@
                 }
 
                 let lesson = docSnap.data();
-                let settings = lesson.settings || {};
+                activeLessonSettings = lesson.settings || {};
                 
                 let examData = null;
-                if (settings.showExamSection !== false && lesson.examId && lesson.examId.trim() !== '') {
+                if (activeLessonSettings.showExamSection !== false && lesson.examId && lesson.examId.trim() !== '') {
                     try {
                         const examRef = doc(db, "exams", lesson.examId);
                         const examSnap = await getDoc(examRef);
@@ -238,7 +271,7 @@
                     if (userSnap.exists()) {
                         let userData = userSnap.data();
                         let lessonsActivity = userData.lessonsActivity || {};
-                        let pts = settings.points || {};
+                        let pts = activeLessonSettings.points || {};
                         let lessonPts = pts.lesson !== undefined ? pts.lesson : 10;
 
                         if (!lessonsActivity[lessonId] || !lessonsActivity[lessonId].watched) {
@@ -277,7 +310,7 @@
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
             `;
 
-            // 1. قائمة الفيديوهات (إذا كانت مفعلة)
+            // 1. قائمة الفيديوهات
             if (settings.showVideo !== false) {
                 let videos = item.videosList || [];
                 html += `
@@ -313,7 +346,7 @@
                 `;
             }
 
-            // 2. قائمة الملازم (إذا كانت مفعلة)
+            // 2. قائمة الملازم
             if (settings.showNotes !== false) {
                 let notes = item.notesList || [];
                 html += `
@@ -344,7 +377,7 @@
                 `;
             }
 
-            // 3. قائمة الملخصات (إذا كانت مفعلة)
+            // 3. قائمة الملخصات
             if (settings.showSummary !== false) {
                 let summaries = item.summariesList || [];
                 html += `
@@ -375,7 +408,7 @@
                 `;
             }
 
-            // 4. امتحان الحصة المرتبط (إذا كان مفعل في الإعدادات)
+            // 4. امتحان الحصة المرتبط مع تفعيل فحص كلمة المرور والمحاولات
             if (settings.showExamSection !== false) {
                 let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
                 html += `
@@ -389,10 +422,10 @@
                                 <div class="content-item-row">
                                     <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
                                         <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
-                                        <span style="font-size: 0.75rem; color: var(--text-muted);">عدد الأسئلة: ${examData.questions.length} سؤال</span>
+                                        <span style="font-size: 0.75rem; color: var(--text-muted);" id="examStatusText">عدد الأسئلة: ${examData.questions.length} سؤال</span>
                                     </div>
                                     <div class="action-btns-group">
-                                        <a href="lesson-exam.html?id=${lessonId}" class="view-btn">ابدأ</a>
+                                        <button onclick="handleExamStartClick('${lessonId}')" id="startExamBtn" class="view-btn">ابدأ</button>
                                     </div>
                                 </div>
                             ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص أو مربوط بهذه الحصة حالياً.</p>`}
@@ -403,6 +436,7 @@
 
             html += `<div class="watermark-overlay">${currentUserEmail}</div>`;
             document.getElementById('lessonContainerBox').innerHTML = html;
+            checkLocalStorageLockState();
         }
 
         window.toggleAccordion = function(boxId) {
@@ -416,6 +450,121 @@
                 collapseBox.classList.toggle('show');
             }
         };
+
+        // إدارة التحقق من كلمة المرور وعدد المحاولات (5 محاولات ثم 5 دقائق عد تنازلي)
+        function getLockKey() {
+            return `exam_lock_${activeLessonId}_${currentUserId || 'guest'}`;
+        }
+
+        function getAttemptsKey() {
+            return `exam_attempts_${activeLessonId}_${currentUserId || 'guest'}`;
+        }
+
+        function checkLocalStorageLockState() {
+            let lockData = localStorage.getItem(getLockKey());
+            if (lockData) {
+                let lockUntil = parseInt(lockData);
+                let now = new Date().getTime();
+                if (now < lockUntil) {
+                    lockExamButtonWithCountdown(lockUntil - now);
+                } else {
+                    localStorage.removeItem(getLockKey());
+                    localStorage.setItem(getAttemptsKey(), '0');
+                }
+            }
+        }
+
+        window.handleExamStartClick = function(lessonId) {
+            let lockData = localStorage.getItem(getLockKey());
+            if (lockData) {
+                let lockUntil = parseInt(lockData);
+                let now = new Date().getTime();
+                if (now < lockUntil) {
+                    return; // الزر مقفل
+                } else {
+                    localStorage.removeItem(getLockKey());
+                    localStorage.setItem(getAttemptsKey(), '0');
+                }
+            }
+
+            let passwordRequired = activeLessonSettings.password && activeLessonSettings.password.trim() !== '';
+            if (passwordRequired) {
+                document.getElementById('examPasswordInput').value = '';
+                document.getElementById('examPasswordModal').style.display = 'flex';
+            } else {
+                window.location.href = `lesson-exam.html?id=${lessonId}`;
+            }
+        };
+
+        window.closeExamPasswordModal = function() {
+            document.getElementById('examPasswordModal').style.display = 'none';
+        };
+
+        window.verifyExamPassword = function() {
+            let entered = document.getElementById('examPasswordInput').value.trim();
+            let correctPass = activeLessonSettings.password;
+
+            if (entered === correctPass) {
+                localStorage.setItem(getAttemptsKey(), '0');
+                closeExamPasswordModal();
+                window.location.href = `lesson-exam.html?id=${activeLessonId}`;
+            } else {
+                let attemptsKey = getAttemptsKey();
+                let currentFails = parseInt(localStorage.getItem(attemptsKey) || '0') + 1;
+                localStorage.setItem(attemptsKey, currentFails.toString());
+
+                if (currentFails >= 5) {
+                    closeExamPasswordModal();
+                    let lockDuration = 5 * 60 * 1000; // 5 دقائق بالمللي ثانية
+                    let lockUntil = new Date().getTime() + lockDuration;
+                    localStorage.setItem(getLockKey(), lockUntil.toString());
+                    lockExamButtonWithCountdown(lockDuration);
+                    alert("لقد أخطأت 5 مرات في كلمة المرور! تم قفل الدخول لمدة 5 دقائق.");
+                } else {
+                    alert(`كلمة المرور غير صحيحة! محاولاتك الفاشلة: ${currentFails} من 5.`);
+                }
+            }
+        };
+
+        function lockExamButtonWithCountdown(remainingMs) {
+            let btn = document.getElementById('startExamBtn');
+            let statusText = document.getElementById('examStatusText');
+            if (!btn) return;
+
+            btn.disabled = true;
+            btn.style.background = 'var(--border-color)';
+            btn.style.color = 'var(--text-muted)';
+            btn.style.cursor = 'not-allowed';
+
+            if (passwordTimerInterval) clearInterval(passwordTimerInterval);
+
+            passwordTimerInterval = setInterval(() => {
+                remainingMs -= 1000;
+                if (remainingMs <= 0) {
+                    clearInterval(passwordTimerInterval);
+                    localStorage.removeItem(getLockKey());
+                    localStorage.setItem(getAttemptsKey(), '0');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.style.background = 'var(--primary)';
+                        btn.style.color = 'white';
+                        btn.style.cursor = 'pointer';
+                        btn.textContent = 'ابدأ';
+                    }
+                    if (statusText) statusText.textContent = 'متاح للدخول الآن';
+                    return;
+                }
+
+                let mins = Math.floor(remainingMs / (1000 * 60));
+                let secs = Math.floor((remainingMs % (1000 * 60)) / 1000);
+                if (statusText) {
+                    statusText.textContent = `⏳ مقفل مؤقتاً بسبب خطأ كلمة المرور. يفتح خلال: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                }
+                if (btn) {
+                    btn.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+                }
+            }, 1000);
+        }
     </script>
 </body>
 </html>
