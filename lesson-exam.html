@@ -199,7 +199,20 @@
             document.getElementById('platformToastModal').style.display = 'none';
         };
 
-        // زر العودة للحصة مع تنبيه المنصة المخصص
+        // تفعيل الشاشة الكاملة ومنع الريفريش بعد الضغط على حسناً فهمت وبدء الامتحان
+        function enableSecurityFeatures() {
+            if (lessonSettings.fullScreen !== false) {
+                activateFullScreen();
+            }
+
+            window.addEventListener('beforeunload', function (e) {
+                if (!isSubmitted) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        }
+
         window.confirmLeaveExam = function() {
             if (isSubmitted) {
                 window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
@@ -248,25 +261,15 @@
 
                 currentExamData = examSnap.data();
 
-                // تفعيل الشاشة الكاملة فوراً عند التحميل
-                if (lessonSettings.fullScreen !== false) {
-                    activateFullScreen();
-                }
-
-                // منع الريفريش والخروج لمنع الغش
-                window.addEventListener('beforeunload', function (e) {
-                    if (!isSubmitted) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                    }
-                });
-
+                // عرض رسالة التعليمات والترحيب أولاً، وبمجرد الضغط على حسناً فهمت يتم تفعيل الشاشة الكاملة والأمان
                 if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
                     showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, null, () => {
+                        enableSecurityFeatures();
                         renderExamContent(currentExamData);
                         startExamTimer();
                     });
                 } else {
+                    enableSecurityFeatures();
                     renderExamContent(currentExamData);
                     startExamTimer();
                 }
