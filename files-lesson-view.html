@@ -235,6 +235,17 @@
 
             if (lessonId) {
                 activeLessonId = lessonId;
+                
+                // تحميل لحظي فوري من الذاكرة المؤقتة لو متوفرة لتسريع الفتح تماماً
+                let cachedLesson = localStorage.getItem(`cache_lesson_${lessonId}`);
+                if (cachedLesson) {
+                    try {
+                        activeLessonData = JSON.parse(cachedLesson);
+                        activeLessonSettings = activeLessonData.settings || {};
+                        renderLessonPage();
+                    } catch(err) {}
+                }
+
                 await fetchLessonDetails(lessonId);
             } else {
                 document.getElementById('lessonContainerBox').innerHTML = `<p style="text-align:center; color:var(--danger);">عذراً، لم يتم تحديد الحصة المطلوبة.</p>`;
@@ -266,6 +277,9 @@
 
                 activeLessonData = docSnap.data();
                 activeLessonSettings = activeLessonData.settings || {};
+                
+                // حفظ نسخة في الكاش لفتحها بشكل فوري ولحظي في المرات القادمة
+                localStorage.setItem(`cache_lesson_${lessonId}`, JSON.stringify(activeLessonData));
 
                 if (currentUserId) {
                     try {
@@ -393,6 +407,7 @@
 
         function renderLessonPage() {
             let item = activeLessonData;
+            if (!item) return;
             let examData = activeExamData;
             let settings = item.settings || {};
             let allowNotesDownload = settings.allowNotesDownload !== false;
@@ -423,7 +438,7 @@
                                             <div class="content-item-row">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}')">تشاهد 👁️</button>
+                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">تشاهد 👁️</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -558,11 +573,20 @@
             box.classList.toggle('active');
         };
 
-        window.openVideoPlayer = function(collapseId) {
+        window.openVideoPlayer = function(collapseId, btnElement) {
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
-                collapseBox.classList.toggle('show');
-                triggerContentOpen('video');
+                let isShown = collapseBox.classList.contains('show');
+                
+                // التعديل: لو الفيديو مفتوح ومكتوب "إخفاء" أو عند الضغط مرة تانية بيلم القايمة/الفيديو ويقفل
+                if (isShown) {
+                    collapseBox.classList.remove('show');
+                    if(btnElement) btnElement.textContent = 'تشاهد 👁️';
+                } else {
+                    collapseBox.classList.add('show');
+                    if(btnElement) btnElement.textContent = 'إخفاء ✕';
+                    triggerContentOpen('video');
+                }
             }
         };
 
