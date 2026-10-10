@@ -324,9 +324,16 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
 
-        // تسجيل مشاهدة/فتح المحتوى وإرسال النقاط وتحديث الحالة المحلية فوراً
-        window.rewardContentItem = async function(contentType) {
+        // دالة موحدة لتسجيل وتحديث النشاط عند الضغط على أي زر محتوى
+        window.handleContentClick = async function(contentType, url) {
+            if (contentType === 'notes' || contentType === 'summary') {
+                if (url && url.trim() !== '') {
+                    window.open(url, '_blank');
+                }
+            }
+
             if (!currentUserId || !activeLessonId) return;
+
             try {
                 let userRef = doc(db, "users", currentUserId);
                 let userSnap = await getDoc(userRef);
@@ -339,7 +346,7 @@
 
                 let rewardKey = `${contentType}_rewarded`;
                 
-                // تحديث المتغير المحلي فوراً
+                // تحديث حالة النشاط المحلي فوراً
                 if (contentType === 'notes') act.studyNotes = true;
                 if (contentType === 'summary') act.summarySeen = true;
                 if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
@@ -350,7 +357,7 @@
                 }
                 
                 lessonsActivity[activeLessonId] = act;
-                studentActivityData = act; // تحديث النسخة النشطة محلياً
+                studentActivityData = act; // تحديث المتغير المحلي الفوري
 
                 let updatePayload = { lessonsActivity: lessonsActivity };
                 let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
@@ -361,7 +368,7 @@
 
                 await updateDoc(userRef, updatePayload);
 
-                // إعادة رسم واجهة الصفحة لتحديث حالة الشرط الذكي وفتح الامتحان فوراً دون إعادة تحميل
+                // تحديث واجهة الكارت بالكامل لفتح الامتحان فوراً
                 renderLessonPage();
             } catch(e) { console.log("Reward error:", e); }
         };
@@ -434,9 +441,9 @@
                                         <div class="content-item-row">
                                             <span class="content-item-title">📄 ${displayName}</span>
                                             <div class="action-btns-group">
-                                                <a href="${n.url}" target="_blank" class="view-btn" onclick="rewardContentItem('notes')">فتح ↗</a>
+                                                <button class="view-btn" onclick="handleContentClick('notes', '${n.url}')">فتح ↗</button>
                                                 ${allowNotesDownload ? `
-                                                    <a href="${n.url}" download class="download-svg-btn" onclick="rewardContentItem('notes')" title="تحميل الملف">
+                                                    <a href="${n.url}" download class="download-svg-btn" onclick="handleContentClick('notes', '')" title="تحميل الملف">
                                                         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                                                     </a>
                                                 ` : ''}
@@ -467,9 +474,9 @@
                                         <div class="content-item-row">
                                             <span class="content-item-title">📑 ${displayName}</span>
                                             <div class="action-btns-group">
-                                                <a href="${sum.url}" target="_blank" class="view-btn" onclick="rewardContentItem('summary')">فتح ↗</a>
+                                                <button class="view-btn" onclick="handleContentClick('summary', '${sum.url}')">فتح ↗</button>
                                                 ${allowSummaryDownload ? `
-                                                    <a href="${sum.url}" download class="download-svg-btn" onclick="rewardContentItem('summary')" title="تحميل الملف">
+                                                    <a href="${sum.url}" download class="download-svg-btn" onclick="handleContentClick('summary', '')" title="تحميل الملف">
                                                         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                                                     </a>
                                                 ` : ''}
@@ -540,7 +547,7 @@
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 collapseBox.classList.toggle('show');
-                rewardContentItem('video');
+                handleContentClick('video', '');
             }
         };
 
