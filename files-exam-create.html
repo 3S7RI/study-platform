@@ -203,7 +203,7 @@
             
             <!-- قائمة منسدلة لاختيار الحصة المراد ربط الامتحان بها -->
             <div class="form-group" style="margin-top:0;">
-                <label style="color: var(--primary); font-weight: bold;">🎯 ربط الامتحان بالحصة:</label>
+                <label style="color: var(--primary); font-weight: bold;">🎯 ربط الامتحان بالحصة (يظهر داخلها حصرياً):</label>
                 <select id="selectedLessonDropdown">
                     <option value="">-- جاري تحميل الحصص المتاحة... --</option>
                 </select>
@@ -291,7 +291,7 @@
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
                 </div>
             </div>
-            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ وربط الامتحان بالحصة في السحابة 🚀</button>
+            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ وربط الامتحان داخل الحصة فقط 🚀</button>
         </div>
     </div>
 
@@ -661,7 +661,7 @@
             renderQuestionsList();
         };
 
-        // تعديل مهم: حفظ وزرع بيانات الامتحان مباشرة داخل مستند الحصة (lessons) بدلاً من كولكشن exams منفصل
+        // حفظ الامتحان داخل مستند الحصة حصرياً ولن يظهر في أي كولكشن عام للامتحانات
         window.saveFullExamToCloud = async function() {
             let selectedLessonId = document.getElementById('selectedLessonDropdown').value;
             let title = document.getElementById('examTitle').value.trim();
@@ -681,11 +681,10 @@
             };
 
             try {
-                // تحديث وثيقة الحصة نفسها في كولكشن 'lessons' وإضافة بيانات الامتحان جواه
                 const lessonRef = doc(db, "lessons", selectedLessonId);
                 await updateDoc(lessonRef, {
                     examData: examDataObject,
-                    examId: selectedLessonId // استخدام معرف الحصة كمرجع للامتحان
+                    examId: selectedLessonId
                 });
 
                 currentDraftQuestions = [];
@@ -695,7 +694,7 @@
                 document.getElementById('examTargetGroup').value = '';
                 document.getElementById('selectedLessonDropdown').value = '';
                 renderQuestionsList();
-                showPlatformToast("تم بنجاح 🚀", "تم حفظ امتحان الحصة وربطه مباشرة بداخل الحصة في السحابة ولن يظهر في صفحة الامتحانات العامة!");
+                showPlatformToast("تم بنجاح 🚀", "تم حفظ امتحان الحصة وربطه مباشرة بداخل الحصة في السحابة، ولن يظهر في صفحة الامتحانات العامة نهائياً!");
             } catch (e) {
                 console.error(e);
                 showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ امتحان الحصة في السحابة.");
