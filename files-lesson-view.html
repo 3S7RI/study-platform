@@ -110,7 +110,7 @@
 
         .view-btn {
             background-color: var(--primary); color: white; text-decoration: none; text-align: center;
-            padding: 8px 14px; border-radius: 8px; font-weight: bold; font-size: 0.82rem; display: inline-block;
+            padding: 8px 14px; border-radius: 8px; font-weight: bold; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;
             border: none; cursor: pointer; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3); white-space: nowrap;
         }
         .view-btn:hover { background-color: var(--primary-hover); opacity: 0.9; }
@@ -430,22 +430,22 @@
                 if (videos.length > 0) {
                     html += `
                         <div class="lesson-section-box" id="sectionVideo">
-                            <div class="lesson-section-header" onclick="toggleVideoAccordion(${videos.length})">
+                            <div class="lesson-section-header" onclick="toggleAccordion('sectionVideo')">
                                 <span>🎬 أولاً: قائمة فيديوهات الشرح (${videos.length})</span>
-                                <div class="section-left-side"><span class="arrow-icon" id="videoArrowIcon">▼</span></div>
+                                <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                             </div>
-                            <div class="lesson-section-content" id="videoSectionContent" style="max-height: 0; overflow: hidden; transition: max-height 0.35s ease-out, padding 0.35s ease; padding: 0 18px;">
+                            <div class="lesson-section-content">
                                 ${videos.map((v, idx) => {
                                     let displayName = (v.name && v.name.trim() !== '') ? v.name : 'فيديو الشرح';
                                     let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
                                     let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
                                     let preventFastForward = settings.preventFastForward !== false;
                                     return `
-                                        <div class="content-item-row" style="margin-top: 10px;">
+                                        <div class="content-item-row">
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="toggleVideoItem('vid-collapse-${idx}', this)">تشغيل 🔽</button>
+                                                    <button class="view-btn" onclick="openVideoPlayer('vid-collapse-${idx}', this)">تشغيل <span>▼</span></button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -480,7 +480,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📄 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح ↗</button>
+                                                    <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح <span>↗</span></button>
                                                     ${allowNotesDownload ? `
                                                         <a href="${n.url}" download class="download-svg-btn" data-action-type="notes" data-url="${n.url}" title="تحميل الملف">
                                                             <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -514,7 +514,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📑 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح ↗</button>
+                                                    <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح <span>↗</span></button>
                                                     ${allowSummaryDownload ? `
                                                         <a href="${sum.url}" download class="download-svg-btn" data-action-type="summary" data-url="${sum.url}" title="تحميل الملف">
                                                             <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -593,35 +593,16 @@
             box.classList.toggle('active');
         };
 
-        window.toggleVideoAccordion = function(videosCount) {
-            const sectionBox = document.getElementById('sectionVideo');
-            const contentBox = document.getElementById('videoSectionContent');
-            const arrowIcon = document.getElementById('videoArrowIcon');
-
-            sectionBox.classList.toggle('active');
-            if (sectionBox.classList.contains('active')) {
-                contentBox.style.maxHeight = (videosCount * 400 + 100) + "px";
-                contentBox.style.padding = "16px 18px";
-                contentBox.style.borderTopColor = "var(--border-color)";
-                if (arrowIcon) arrowIcon.style.transform = "rotate(180deg)";
-            } else {
-                contentBox.style.maxHeight = "0px";
-                contentBox.style.padding = "0 18px";
-                contentBox.style.borderTopColor = "transparent";
-                if (arrowIcon) arrowIcon.style.transform = "rotate(0deg)";
-            }
-        };
-
-        window.toggleVideoItem = function(collapseId, btnElement) {
+        window.openVideoPlayer = function(collapseId, btnElement) {
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 let isShown = collapseBox.classList.contains('show');
                 if (isShown) {
                     collapseBox.classList.remove('show');
-                    if(btnElement) btnElement.innerHTML = 'تشغيل 🔽';
+                    if(btnElement) btnElement.innerHTML = 'تشغيل <span>▼</span>';
                 } else {
                     collapseBox.classList.add('show');
-                    if(btnElement) btnElement.innerHTML = 'إخفاء ✕';
+                    if(btnElement) btnElement.innerHTML = 'إخفاء <span>▲</span>';
                     triggerContentOpen('video');
                 }
             }
