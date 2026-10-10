@@ -69,10 +69,7 @@
             margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
         }
         .admin-tabs-group { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 8px; 
-            width: 100%; 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; 
         }
         @media (min-width: 768px) {
             .admin-tabs-group { grid-template-columns: repeat(4, 1fr); }
@@ -106,22 +103,13 @@
         
         .question-top-row { display: flex; gap: 10px; align-items: stretch; }
         .question-text-wrapper { flex: 1; display: flex; flex-direction: column; }
-        .question-text-wrapper textarea {
-            resize: none; overflow-y: hidden; min-height: 40px; line-height: 1.4; flex: 1;
-        }
+        .question-text-wrapper textarea { resize: none; overflow-y: hidden; min-height: 40px; line-height: 1.4; flex: 1; }
         .question-meta-wrapper { display: flex; flex-direction: column; justify-content: flex-end; flex-shrink: 0; }
 
         .square-mark-input {
-            width: 40px !important;
-            height: 40px !important;
-            padding: 0 !important;
-            text-align: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            border-radius: 8px;
-            background: var(--bg-main);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
+            width: 40px !important; height: 40px !important; padding: 0 !important; text-align: center;
+            font-weight: bold; font-size: 0.9rem; border-radius: 8px; background: var(--bg-main);
+            border: 1px solid var(--border-color); color: var(--text-main);
         }
 
         .option-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
@@ -193,26 +181,35 @@
 </head>
 <body data-theme="dark">
     <div class="container">
-        <!-- الهيدر الموحد: الرئيسية بترجع لـ admin.html -->
+        <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
             <div class="header-center-box"><div class="platform-title-box"><span>إنشاء امتحان الحصة 📝</span></div></div>
-            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️️</button></div>
+            <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
-        <!-- شريط التنقل الموحد والمتصل بجميع الصفحات -->
+        <!-- شريط التنقل الموحد -->
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <a href="files-exam-create.html" class="btn-tab active">إنشاء امتحان 📝</a>
                 <a href="files-lessons.html" class="btn-tab">الحصص 📚</a>
-                <a href="files-settings.html" class="btn-tab">الإعدادات ⚙️️</a>
+                <a href="files-settings.html" class="btn-tab">الإعدادات ⚙️</a>
                 <a href="files-stats.html" class="btn-tab">الإحصائيات 📊</a>
             </div>
         </nav>
 
         <div class="section-box">
             <div class="section-header"><h2>إعداد وتصميم امتحان الحصة والأسئلة 📝</h2></div>
-            <div class="form-group" style="margin-top:0;"><label>عنوان امتحان الحصة:</label><input type="text" id="examTitle" placeholder="مثال: امتحان درس الباب الأول كيمياء"></div>
+            
+            <!-- قائمة منسدلة لاختيار الحصة المراد ربط الامتحان بها -->
+            <div class="form-group" style="margin-top:0;">
+                <label style="color: var(--primary); font-weight: bold;">🎯 ربط الامتحان بالحصة:</label>
+                <select id="selectedLessonDropdown">
+                    <option value="">-- جاري تحميل الحصص المتاحة... --</option>
+                </select>
+            </div>
+
+            <div class="form-group"><label>عنوان امتحان الحصة:</label><input type="text" id="examTitle" placeholder="مثال: امتحان درس الباب الأول كيمياء"></div>
             <div class="form-row-grid-2">
                 <div class="form-group"><label>المادة الدراسية:</label><input type="text" id="examSubject" placeholder="كيمياء"></div>
                 <div class="form-group"><label>الفئة / الشعبة المستهدفة:</label><input type="text" id="examTargetGroup" placeholder="الصف الثالث الثانوي"></div>
@@ -317,7 +314,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -335,9 +332,12 @@
 
         let currentDraftQuestions = [];
         let editingQuestionIndex = null;
+        let globalLessonsList = [];
 
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                await fetchLessonsForDropdown();
+            } else {
                 window.location.href = 'login.html';
             }
         });
@@ -354,6 +354,30 @@
             localStorage.setItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
+
+        async function fetchLessonsForDropdown() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "lessons"));
+                globalLessonsList = [];
+                querySnapshot.forEach((docSnap) => {
+                    globalLessonsList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                const selectElem = document.getElementById('selectedLessonDropdown');
+                if (globalLessonsList.length === 0) {
+                    selectElem.innerHTML = `<option value="">-- لا توجد حصص منشورة حالياً، أنشئ حصة أولاً --</option>`;
+                    return;
+                }
+
+                let html = `<option value="">-- اختر الحصة المراد ربط الامتحان بها --</option>`;
+                globalLessonsList.forEach((les) => {
+                    html += `<option value="${les.id}">🎬 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'} (${les.subject || 'عام'})</option>`;
+                });
+                selectElem.innerHTML = html;
+            } catch (err) {
+                console.error("خطأ في جلب الحصص:", err);
+            }
+        }
 
         window.showPlatformToast = function(title, message) {
             document.getElementById('toastTitle').textContent = title;
@@ -638,10 +662,12 @@
         };
 
         window.saveFullExamToCloud = async function() {
+            let selectedLessonId = document.getElementById('selectedLessonDropdown').value;
             let title = document.getElementById('examTitle').value.trim();
             let subject = document.getElementById('examSubject').value.trim();
             let targetGroup = document.getElementById('examTargetGroup').value.trim();
 
+            if (!selectedLessonId) { showPlatformToast("تنبيه", "يرجى اختيار الحصة المراد ربط الامتحان بها أولاً!"); return; }
             if (!title) { showPlatformToast("تنبيه", "يرجى كتابة عنوان امتحان الحصة أولاً!"); return; }
             if (currentDraftQuestions.length === 0) { showPlatformToast("تنبيه", "يرجى إضافة سؤال واحد على الأقل لامتحان الحصة!"); return; }
 
@@ -651,21 +677,26 @@
             };
 
             let newExamDoc = {
-                title: title, subject: subject, targetGroup: targetGroup,
-                questions: currentDraftQuestions, settings: defaultSettings,
-                examSubmissions: [], createdAt: new Date().toISOString()
+                lessonId: selectedLessonId, // ربط الامتحان بمعرف الحصة المختارة
+                title: title, 
+                subject: subject, 
+                targetGroup: targetGroup,
+                questions: currentDraftQuestions, 
+                settings: defaultSettings,
+                examSubmissions: [], 
+                createdAt: new Date().toISOString()
             };
 
             try {
-                // الحفظ يتم في كولكشن 'exams' ليتطابق تماماً مع صفحة الإعدادات وجلب الامتحانات للحصص
                 await addDoc(collection(db, "exams"), newExamDoc);
                 currentDraftQuestions = [];
                 editingQuestionIndex = null;
                 document.getElementById('examTitle').value = '';
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
+                document.getElementById('selectedLessonDropdown').value = '';
                 renderQuestionsList();
-                showPlatformToast("تم بنجاح 🚀", "تم نشر امتحان الحصة بنجاح في السحابة وأصبح متاحاً للاختيار والربط في الحصص والإعدادات!");
+                showPlatformToast("تم بنجاح 🚀", "تم ربط ونشر امتحان الحصة بنجاح في السحابة وأصبح متاحاً للطلاب!");
             } catch (e) {
                 console.error(e);
                 showPlatformToast("خطأ ❌", "حدث خطأ أثناء نشر امتحان الحصة في السحابة.");
