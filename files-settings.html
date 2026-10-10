@@ -357,11 +357,63 @@
                     globalExamsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 
-                renderCustomDropdown(globalLessonsList, 'customOptionsContainer', 'selectedLessonTitleDisplay', selectLessonOption);
+                renderLessonsDropdown(globalLessonsList);
                 renderExamsDropdown(globalExamsList);
             } catch (err) {
                 console.error("خطأ في جلب البيانات:", err);
             }
+        }
+
+        window.toggleCustomSelectDropdown = function(containerId, event) {
+            event.stopPropagation();
+            document.querySelectorAll('.custom-options-container').forEach(c => {
+                if (c.id !== containerId) c.classList.remove('open');
+            });
+            const container = document.getElementById(containerId);
+            container.classList.toggle('open');
+        };
+
+        window.selectLessonOption = function(lessonId, displayText) {
+            document.getElementById('selectedLessonIdHidden').value = lessonId;
+            document.getElementById('selectedLessonTitleDisplay').textContent = displayText;
+            document.getElementById('customOptionsContainer').classList.remove('open');
+            loadSelectedLessonSettings(lessonId);
+        };
+
+        window.selectExamOption = function(examId, displayText) {
+            document.getElementById('lessonExamSelect').value = examId;
+            document.getElementById('selectedExamTitleDisplay').textContent = displayText;
+            document.getElementById('customExamOptionsContainer').classList.remove('open');
+        };
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-select-wrapper')) {
+                document.querySelectorAll('.custom-options-container').forEach(c => c.classList.remove('open'));
+            }
+        });
+
+        function renderLessonsDropdown(lessons) {
+            const container = document.getElementById('customOptionsContainer');
+            if (lessons.length === 0) {
+                container.innerHTML = `<div class="custom-option" style="justify-content:center;">لا توجد حصص متاحة حالياً</div>`;
+                return;
+            }
+
+            let html = "";
+            lessons.forEach((les) => {
+                let title = les.title || 'حصة بدون عنوان';
+                let subject = les.subject || 'عام';
+                let number = les.number || 1;
+                html += `<div class="custom-option" onclick="selectLessonOption('${les.id}', '📚 الحصة ${number}: ${title} (${subject})')">
+                    <span style="font-size:1.1rem;">📚</span>
+                    <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+                        <span style="font-weight:700; color:var(--text-main);">${title}</span>
+                        <span style="font-size:0.72rem; color:var(--text-muted);">المادة: ${subject} | رقم الحصة: ${number}</span>
+                    </div>
+                    <span style="font-size:0.75rem; background:var(--primary); color:white; padding:3px 8px; border-radius:6px; font-weight: bold;">تعديل ⚙️</span>
+                </div>`;
+            });
+            container.innerHTML = html;
         }
 
         function renderExamsDropdown(exams) {
@@ -391,59 +443,6 @@
             });
             container.innerHTML = html;
         }
-
-        function renderCustomDropdown(lessons, containerId, displayId, selectCallbackName) {
-            const container = document.getElementById(containerId);
-            if (lessons.length === 0) {
-                container.innerHTML = `<div class="custom-option" style="justify-content:center;">لا توجد حصص متاحة حالياً</div>`;
-                return;
-            }
-
-            let html = "";
-            lessons.forEach((les) => {
-                let title = les.title || 'حصة بدون عنوان';
-                let subject = les.subject || 'عام';
-                let number = les.number || 1;
-                html += `<div class="custom-option" onclick="${selectCallbackName.name ? selectCallbackName.name : selectCallbackName}('${les.id}', '📚 الحصة ${number}: ${title} (${subject})')">
-                    <span style="font-size:1.1rem;">📚</span>
-                    <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
-                        <span style="font-weight:700; color:var(--text-main);">${title}</span>
-                        <span style="font-size:0.72rem; color:var(--text-muted);">المادة: ${subject} | رقم الحصة: ${number}</span>
-                    </div>
-                    <span style="font-size:0.75rem; background:var(--primary); color:white; padding:3px 8px; border-radius:6px; font-weight: bold;">تعديل ⚙️</span>
-                </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        window.toggleCustomSelectDropdown = function(containerId, event) {
-            event.stopPropagation();
-            // إغلاق أي قوائم أخرى مفتوحة
-            document.querySelectorAll('.custom-options-container').forEach(c => {
-                if (c.id !== containerId) c.classList.remove('open');
-            });
-            const container = document.getElementById(containerId);
-            container.classList.toggle('open');
-        };
-
-        window.selectLessonOption = function(lessonId, displayText) {
-            document.getElementById('selectedLessonIdHidden').value = lessonId;
-            document.getElementById('selectedLessonTitleDisplay').textContent = displayText;
-            document.getElementById('customOptionsContainer').classList.remove('open');
-            loadSelectedLessonSettings(lessonId);
-        };
-
-        window.selectExamOption = function(examId, displayText) {
-            document.getElementById('lessonExamSelect').value = examId;
-            document.getElementById('selectedExamTitleDisplay').textContent = displayText;
-            document.getElementById('customExamOptionsContainer').classList.remove('open');
-        };
-
-        window.addEventListener('click', function(e) {
-            if (!e.target.closest('.custom-select-wrapper')) {
-                document.querySelectorAll('.custom-options-container').forEach(c => c.classList.remove('open'));
-            }
-        });
 
         window.loadSelectedLessonSettings = function(selectedId) {
             if (!selectedId) return;
