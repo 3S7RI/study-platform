@@ -69,10 +69,7 @@
             margin-bottom: 15px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
         }
         .admin-tabs-group { 
-            display: grid; 
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 8px; 
-            width: 100%; 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; 
         }
         @media (min-width: 768px) {
             .admin-tabs-group { grid-template-columns: repeat(4, 1fr); }
@@ -105,7 +102,20 @@
         }
         .btn-stats-view:hover { background: var(--primary-hover); }
 
-        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 10px; font-size: 0.8rem; white-space: nowrap; }
+        /* الأقسام المنسدلة (Accordions) الثلاثة الكريتيف */
+        .accordion-box {
+            background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px;
+            margin-bottom: 12px; overflow: hidden;
+        }
+        .accordion-header {
+            padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; background: rgba(255,255,255,0.02); font-weight: bold; font-size: 0.9rem;
+        }
+        .accordion-header:hover { background: var(--hover-bg); }
+        .accordion-content { padding: 12px 16px; display: none; border-top: 1px solid var(--border-color); }
+        .accordion-content.open { display: block; }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; margin-top: 8px; font-size: 0.8rem; white-space: nowrap; }
         th, td { padding: 9px 12px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
         th { background: var(--th-bg); color: var(--text-main); font-weight: 700; }
         
@@ -113,14 +123,33 @@
         .student-profile-link:hover { text-decoration: underline; }
         .student-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
 
-        /* نافذة بروفايل الطالب المنبثقة */
-        .modal-overlay, .lightbox-overlay {
+        /* شريط التحميل التفاعلي (Interactive Loader Modal) */
+        .loader-modal {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
+            display: none; align-items: center; justify-content: center; z-index: 11000; padding: 15px;
+        }
+        .loader-card {
+            background: var(--bg-card); width: 100%; max-width: 400px;
+            border-radius: 16px; border: 1px solid var(--border-color);
+            padding: 24px; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+        }
+        .progress-bar-track {
+            width: 100%; height: 10px; background: var(--th-bg); border-radius: 5px;
+            overflow: hidden; border: 1px solid var(--border-color); margin: 15px 0;
+        }
+        .progress-bar-fill {
+            width: 0%; height: 100%; background: var(--success); transition: width 0.2s ease;
+        }
+
+        /* نافذة بروفايل الطالب والنافذة المنبثقة */
+        .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
             display: flex; align-items: center; justify-content: center;
             z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; padding: 15px;
         }
-        .modal-overlay.active, .lightbox-overlay.active { opacity: 1; visibility: visible; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
         .modal-card {
             background: var(--bg-card); width: 100%; max-width: 550px;
             border-radius: 14px; border: 1px solid var(--border-color);
@@ -158,41 +187,107 @@
         </nav>
 
         <!-- قائمة الحصص المنشورة -->
-        <div class="section-box">
+        <div class="section-box" id="lessonsListSection">
             <div class="section-header"><h2>قائمة الحصص المتاحة لمتابعة تفاعل الطلاب 📈</h2></div>
             <div id="lessonsCardsContainer" class="lessons-grid">
                 <p style="text-align: center; opacity: 0.7; padding: 15px; font-size: 0.82rem; grid-column: 1 / -1;">جاري جلب الحصص...</p>
             </div>
         </div>
 
-        <!-- جدول تفاعل الطلاب للحصة المحددة (القوائم الثلاث السمباتيك) -->
-        <div class="section-box hidden" id="statsTableContainerBox">
+        <!-- صفحة تقرير تفاعل الحصة المحددة (تحتوي على القوائم الثلاث المنسدلة وأزرار التوزيع) -->
+        <div class="section-box hidden" id="lessonStatsReportSection">
             <div class="section-header">
-                <h2 id="statsTableTitle">تقرير تفاعل الطلاب للحصة</h2>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button onclick="promptGradeAllLessonExams()" style="background:var(--primary); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">توزيع درجات امتحانات الكل 🔔</button>
-                    <button onclick="document.getElementById('statsTableContainerBox').classList.add('hidden')" style="background:var(--danger); color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">إغلاق التقرير ✕</button>
+                <div>
+                    <button onclick="backToLessonsList()" style="background:#475569; color:white; border:none; padding:5px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem; margin-bottom:6px;">← العودة لقائمة الحصص</button>
+                    <h2 id="statsTableTitle" style="color:var(--primary);">تقرير الحصة</h2>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <!-- الزر الرئيسي لتوزيع نقاط الحصة بالكامل -->
+                    <button onclick="promptDistributeAllLessonPoints()" style="background:var(--success); color:white; border:none; padding:7px 14px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.8rem; box-shadow:0 3px 10px rgba(16,185,129,0.3);">⚡ توزيع نقاط الحصة (الكل)</button>
                 </div>
             </div>
-            <div style="overflow-x: auto;">
-                <table id="lessonStatsTable">
-                    <thead>
-                        <tr>
-                            <th>الطالب</th>
-                            <th>1. ملازم الشرح والتلخيص 📄</th>
-                            <th>2. فيديو الشرح والتفاعل 🎬</th>
-                            <th>3. امتحان الحصة والدرجة 📝</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lessonStatsTableBody">
-                        <!-- يتم ملؤها برمجياً -->
-                    </tbody>
-                </table>
+
+            <!-- 1. قائمة منسدلة: ملازم الشرح والتلخيص -->
+            <div class="accordion-box">
+                <div class="accordion-header" onclick="toggleAccordion('notesAccordionContent')">
+                    <span>📄 1. ملازم الشرح والتلخيص (متابعة اطلاع الطلاب)</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button onclick="event.stopPropagation(); promptDistributeCategoryPoints('notes')" style="background:var(--primary); color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;">توزيع نقاط الملازم 🎁</button>
+                        <span>▼</span>
+                    </div>
+                </div>
+                <div class="accordion-content" id="notesAccordionContent">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>الطالب</th><th>ملازم الشرح 📄</th><th>ملازم التلخيص 📑</th><th>الحالة</th></tr>
+                            </thead>
+                            <tbody id="notesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. قائمة منسدلة: فيديو الشرح والتفاعل -->
+            <div class="accordion-box">
+                <div class="accordion-header" onclick="toggleAccordion('videoAccordionContent')">
+                    <span>🎬 2. فيديو الشرح والتفاعل (مدة المشاهدة)</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button onclick="event.stopPropagation(); promptDistributeCategoryPoints('video')" style="background:var(--primary); color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;">توزيع نقاط الفيديو 🎁</button>
+                        <span>▼</span>
+                    </div>
+                </div>
+                <div class="accordion-content" id="videoAccordionContent">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>الطالب</th><th>شاهد الفيديو؟ 🎬</th><th>مدة المشاهدة</th><th>الحالة</th></tr>
+                            </thead>
+                            <tbody id="videoTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. قائمة منسدلة: امتحان الحصة -->
+            <div class="accordion-box">
+                <div class="accordion-header" onclick="toggleAccordion('examAccordionContent')">
+                    <span>📝 3. امتحان الحصة والدرجات</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button onclick="event.stopPropagation(); promptDistributeCategoryPoints('exam')" style="background:var(--primary); color:white; border:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:bold; cursor:pointer;">توزيع نقاط الامتحان 🎁</button>
+                        <span>▼</span>
+                    </div>
+                </div>
+                <div class="accordion-content" id="examAccordionContent">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr><th>الطالب</th><th>حالة الامتحان 📝</th><th>الدرجة</th><th>الإجابات والمعاينة</th></tr>
+                            </thead>
+                            <tbody id="examTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- نافذة استعراض بروفايل والمعلومات الشخصية للطالب -->
+    <!-- نافذة شريط التحميل التفاعلي (Interactive Loader Modal) -->
+    <div class="loader-modal" id="loaderModal">
+        <div class="loader-card">
+            <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 8px;">⏳ جاري تنفيذ وإرسال النقاط...</h3>
+            <p id="loaderStatusText" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">0 / 0 طالب (0%)</p>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div id="loadingSuccessState" class="hidden" style="margin-top: 10px;">
+                <p style="color: var(--success); font-weight: bold; font-size: 0.85rem; margin-bottom: 10px;">✔ تم التوزيع بنجاح تام!</p>
+                <button onclick="closeLoaderModal()" style="background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">إغلاق ✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة استعراض بروفايل الطالب -->
     <div class="modal-overlay" id="studentProfileModal" onclick="if(event.target===this) closeStudentModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -218,7 +313,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { findStudentDocument, addPointsToStudent } from "./student-service.js";
 
         const firebaseConfig = {
@@ -285,7 +380,7 @@
                                 <h3 style="font-size: 0.88rem; color: var(--text-main); margin-bottom: 4px; padding-left: 45px;">🎬 الحصة ${les.number || 1}: ${les.title || 'بدون عنوان'}</h3>
                                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 10px;">المادة: ${les.subject || 'عام'} | الصف: ${les.targetGroup || 'عام'}</p>
                             </div>
-                            <button class="btn-stats-view" onclick="loadLessonStatsData('${les.id}')">عرض تقرير الطلاب 📊</button>
+                            <button class="btn-stats-view" onclick="openLessonStatsPage('${les.id}')">عرض إحصائيات الحصة 📊</button>
                         </div>`;
                 });
                 container.innerHTML = html;
@@ -306,7 +401,6 @@
                     await deleteDoc(doc(db, "lessons", lessonId));
                     alert("✔ تم حذف الحصة بنجاح.");
                     await fetchLessonsAndStudents();
-                    document.getElementById('statsTableContainerBox').classList.add('hidden');
                 } catch (e) {
                     console.error(e);
                     alert("حدث خطأ أثناء حذف الحصة.");
@@ -314,68 +408,160 @@
             }
         };
 
-        window.loadLessonStatsData = function(lessonId) {
+        window.openLessonStatsPage = function(lessonId) {
             activeSelectedLessonId = lessonId;
-            let boxContainer = document.getElementById('statsTableContainerBox');
             let lesson = globalLessonsList.find(l => l.id === lessonId);
             if (!lesson) return;
 
-            document.getElementById('statsTableTitle').textContent = `تقرير تفاعل الطلاب لحصة: ${lesson.title}`;
-            const tbody = document.getElementById('lessonStatsTableBody');
-            
+            document.getElementById('statsTableTitle').textContent = `تقرير تفاعل الحصة: ${lesson.title}`;
+            document.getElementById('lessonsListSection').classList.add('hidden');
+            document.getElementById('lessonStatsReportSection').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            renderAccordionTables(lessonId);
+        };
+
+        window.backToLessonsList = function() {
+            document.getElementById('lessonStatsReportSection').classList.add('hidden');
+            document.getElementById('lessonsListSection').classList.remove('hidden');
+        };
+
+        window.toggleAccordion = function(contentId) {
+            let content = document.getElementById(contentId);
+            content.classList.toggle('open');
+        };
+
+        function renderAccordionTables(lessonId) {
+            const notesBody = document.getElementById('notesTableBody');
+            const videoBody = document.getElementById('videoTableBody');
+            const examBody = document.getElementById('examTableBody');
+
             if (globalStudentsList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px;">لا توجد بيانات طلاب مسجلين حالياً.</td></tr>`;
-                boxContainer.classList.remove('hidden');
-                boxContainer.scrollIntoView({ behavior: 'smooth' });
+                let noDataHtml = `<tr><td colspan="4" style="text-align:center; padding:15px;">لا توجد بيانات طلاب مسجلين حالياً.</td></tr>`;
+                notesBody.innerHTML = noDataHtml;
+                videoBody.innerHTML = noDataHtml;
+                examBody.innerHTML = noDataHtml;
                 return;
             }
 
-            let html = "";
+            let notesHtml = "", videoHtml = "", examHtml = "";
+
             globalStudentsList.forEach((student) => {
                 let name = student.name || student.fullName || 'طالب المنصة';
                 let email = student.email || '';
                 let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
-                
                 let activity = (student.lessonsActivity || {})[lessonId] || {};
-                
-                // القائمة الأولى: ملازم الشرح والتلخيص
+
+                // 1. الملازم والتلخيص
                 let notesSeen = activity.studyNotes === true || activity.summarySeen === true;
                 let notesBadge = notesSeen ? '<span style="color:var(--success); font-weight:bold;">✔ اطلع عليها</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
+                let summaryBadge = activity.summarySeen === true ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ التلخيص</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
+                notesHtml += `<tr>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td>${notesBadge}</td><td>${summaryBadge}</td>
+                    <td>${notesSeen ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
+                </tr>`;
 
-                // القائمة الثانية: فيديو الشرح والتفاعل
+                // 2. الفيديو
                 let watched = activity.videoWatched === true || activity.watched === true;
                 let watchDuration = activity.watchTimeMinutes || 0;
-                let videoBadge = watched ? `<span style="color:var(--success); font-weight:bold;">✔ شاهد (${watchDuration} دقيقة)</span>` : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
+                let videoBadge = watched ? `<span style="color:var(--success); font-weight:bold;">✔ مشاهدة كاملة (${watchDuration} دقيقة)</span>` : '<span style="color:var(--danger);">❌ لم يشاهد</span>';
+                videoHtml += `<tr>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td>${videoBadge}</td><td>${watchDuration} دقيقة</td>
+                    <td>${watched ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
+                </tr>`;
 
-                // القائمة الثالثة: امتحان الحصة
+                // 3. الامتحان
                 let examData = activity.examSubmission || null;
                 let examBadge = '';
                 if (examData) {
-                    let attempts = examData.attemptsCount || 1;
                     let score = examData.score !== undefined ? examData.score : 0;
                     let total = examData.totalMarks || 10;
-                    examBadge = `<span style="color:var(--success); font-weight:bold; cursor:pointer;" onclick='openStudentExamModal(${JSON.stringify(lessonId)}, ${JSON.stringify(email)}, ${JSON.stringify(examData)})'>✔ امتحن (${score}/${total}) [محاولات: ${attempts}] 🔍</span>`;
+                    examBadge = `<span style="color:var(--success); font-weight:bold; cursor:pointer;" onclick='openStudentExamModal(${JSON.stringify(lessonId)}, ${JSON.stringify(email)}, ${JSON.stringify(examData)})'>✔ امتحن (${score}/${total}) 🔍</span>`;
                 } else {
                     examBadge = '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر بعد</span>';
                 }
-
-                html += `
-                    <tr>
-                        <td>
-                            <div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'>
-                                <img src="${avatar}" class="student-avatar" alt="صورة">
-                                <b>${name}</b>
-                            </div>
-                        </td>
-                        <td>${notesBadge}</td>
-                        <td>${videoBadge}</td>
-                        <td>${examBadge}</td>
-                    </tr>`;
+                examHtml += `<tr>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td>${examData ? '<span style="color:var(--success);">امتحن</span>' : '<span style="color:var(--danger);">لم يختبر</span>'}</td>
+                    <td>${examData ? `${examData.score}/${examData.totalMarks}` : '-'}</td>
+                    <td>${examBadge}</td>
+                </tr>`;
             });
 
-            tbody.innerHTML = html;
-            boxContainer.classList.remove('hidden');
-            boxContainer.scrollIntoView({ behavior: 'smooth' });
+            notesBody.innerHTML = notesHtml;
+            videoBody.innerHTML = videoHtml;
+            examBody.innerHTML = examHtml;
+        }
+
+        // شريط التحميل التفاعلي (Interactive Loader)
+        function runInteractiveLoader(totalStudents, onCompleteTask) {
+            const loaderModal = document.getElementById('loaderModal');
+            const fillBar = document.getElementById('progressBarFill');
+            const statusText = document.getElementById('loaderStatusText');
+            const successState = document.getElementById('loadingSuccessState');
+
+            successState.classList.add('hidden');
+            fillBar.style.width = '0%';
+            loaderModal.style.display = 'flex';
+
+            if (totalStudents < 1) totalStudents = 1;
+            let currentCount = 0;
+            let stepTime = Math.max(120, 700 / totalStudents);
+
+            let loadInterval = setInterval(async () => {
+                currentCount++;
+                if (currentCount >= totalStudents) {
+                    currentCount = totalStudents;
+                    clearInterval(loadInterval);
+                    try { await onCompleteTask(); } catch (err) { console.error(err); }
+                    setTimeout(() => {
+                        successState.classList.remove('hidden');
+                    }, 300);
+                }
+                let percent = Math.floor((currentCount / totalStudents) * 100);
+                fillBar.style.width = percent + '%';
+                statusText.textContent = `${currentCount} / ${totalStudents} طالب (${percent}%)`;
+            }, stepTime);
+        }
+
+        window.closeLoaderModal = function() {
+            document.getElementById('loaderModal').style.display = 'none';
+        };
+
+        // زر توزيع نقاط الملازم والملخصات
+        window.promptDistributeCategoryPoints = function(category) {
+            let catName = category === 'notes' ? 'ملازم الشرح والتلخيص' : (category === 'video' ? 'فيديو الشرح' : 'امتحان الحصة');
+            let pointsDefault = category === 'exam' ? 5 : 10;
+
+            if (confirm(`هل تريد توزيع نقاط (${catName}) بقيمة ${pointsDefault} نقاط لجميع الطلاب؟`)) {
+                runInteractiveLoader(globalStudentsList.length, async () => {
+                    for (let student of globalStudentsList) {
+                        let email = student.email;
+                        if (email) {
+                            await addPointsToStudent(db, email, pointsDefault);
+                        }
+                    }
+                    renderAccordionTables(activeSelectedLessonId);
+                });
+            }
+        };
+
+        // الزر الرئيسي: توزيع نقاط الحصة بالكامل (ملازم + تلخيص + فيديو + امتحان)
+        window.promptDistributeAllLessonPoints = function() {
+            if (confirm("هل تريد توزيع إجمالي نقاط الحصة بالكامل (الملازم والفيديو والامتحان) لجميع الطلاب؟")) {
+                let totalPointsBundle = 25; // 10 ملازم + 10 فيديو + 5 امتحان
+                runInteractiveLoader(globalStudentsList.length, async () => {
+                    for (let student of globalStudentsList) {
+                        let email = student.email;
+                        if (email) {
+                            await addPointsToStudent(db, email, totalPointsBundle);
+                        }
+                    }
+                    renderAccordionTables(activeSelectedLessonId);
+                });
+            }
         };
 
         window.openStudentExamModal = function(lessonId, studentEmail, subData) {
@@ -437,41 +623,15 @@
                 }
                 alert("✔ تم تحديث وحفظ درجات الحصة ونقاط الطالب بنجاح!");
                 closeAnswersModal();
-                loadLessonStatsData(lessonId);
+                renderAccordionTables(lessonId);
             } catch (err) {
                 console.error(err);
                 alert("حدث خطأ أثناء الحفظ.");
             }
         };
 
-        window.promptGradeAllLessonExams = async function() {
-            if (!activeSelectedLessonId) return;
-            if (confirm("هل تريد توزيع درجات وتفعيل نقاط امتحانات هذه الحصة لجميع الطلاب المتقدمين؟")) {
-                try {
-                    for (let student of globalStudentsList) {
-                        let email = student.email;
-                        let lessonsAct = student.lessonsActivity || {};
-                        if (lessonsAct[activeSelectedLessonId] && lessonsAct[activeSelectedLessonId].examSubmission) {
-                            let sub = lessonsAct[activeSelectedLessonId].examSubmission;
-                            if (!sub.published) {
-                                sub.published = true;
-                                let points = sub.pointsEarned || 5;
-                                await addPointsToStudent(db, email, points);
-                            }
-                        }
-                    }
-                    alert("✔ تم توزيع الدرجات وإضافة النقاط لجميع الطلاب بنجاح!");
-                    loadLessonStatsData(activeSelectedLessonId);
-                } catch (e) {
-                    console.error(e);
-                    alert("حدث خطأ أثناء التوزيع الجماعي.");
-                }
-            }
-        };
-
         window.openStudentProfile = function(student) {
             document.getElementById('modalStudentNameTitle').textContent = `ملف الطالب: ${student.name || student.fullName || 'طالب المنصة'}`;
-            
             let email = student.email || 'غير متوفر';
             let phone = student.phone || student.parentPhone || 'غير متوفر';
             let totalPoints = student.points || student.totalScore || 0;
