@@ -102,6 +102,23 @@
             background: var(--th-bg); border: 1px dashed var(--danger); padding: 8px; border-radius: 8px;
             text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
+
+        /* نافذة التنبيهات */
+        .platform-toast-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
+        }
+        .platform-toast-card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
+            width: 100%; max-width: 360px; border-radius: 14px; padding: 18px; text-align: center; box-shadow: var(--shadow);
+        }
+        .platform-toast-card h3 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+        .platform-toast-btn {
+            background: var(--primary); color: white; border: none; padding: 7px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.8rem; cursor: pointer; width: 100%;
+        }
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
@@ -127,11 +144,20 @@
         </div>
     </div>
 
+    <!-- نافذة التنبيهات -->
+    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+        <div class="platform-toast-card" onclick="event.stopPropagation()">
+            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
+            <p id="toastMessage">رسالة التنبيه هنا...</p>
+            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
+        </div>
+    </div>
+
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -149,8 +175,12 @@
 
         let globalLessonsData = [];
         let countdownIntervals = [];
+        let currentUserId = null;
 
         onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+            }
             await fetchCloudLessons();
         });
 
@@ -167,6 +197,16 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        window.showPlatformToast = function(title, message) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.closePlatformToast = function() {
+            document.getElementById('platformToastModal').style.display = 'none';
+        };
+
         async function fetchCloudLessons() {
             try {
                 const querySnapshot = await getDocs(collection(db, "lessons"));
@@ -180,6 +220,38 @@
                 document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">عذراً، حدث خطأ أثناء الاتصال بالسحابة.</p>`;
             }
         }
+
+        window.handleLessonClick = async function(lessonId) {
+            let item = globalLessonsData.find(l => l.id === lessonId);
+            if (!item) return;
+
+            let s = item.settings || {};
+            let maxAttempts = s.lessonAttempts || 5;
+
+            if (currentUserId) {
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let visits = userData.lessonVisits || {};
+                        let currentCount = visits[lessonId] || 0;
+
+                        if (currentCount >= maxAttempts) {
+                            showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
+                            return;
+                        }
+
+                        visits[lessonId] = currentCount + 1;
+                        await updateDoc(userRef, { lessonVisits: visits });
+                    }
+                } catch(e) {
+                    console.log("Error updating visits:", e);
+                }
+            }
+
+            window.location.href = `lesson-view.html?id=${lessonId}`;
+        };
 
         function renderLessonsList(items) {
             const grid = document.getElementById('filesGrid');
@@ -244,7 +316,7 @@
                                 <span>📂 المادة: ${subject}</span>
                                 <span>📖 متاح</span>
                             </div>
-                            <a href="files-lesson-view.html?id=${item.id}" class="view-btn" style="text-align: center;">دخول الحصة والمحتوى 🚀</a>
+                            <button onclick="handleLessonClick('${item.id}')" class="view-btn" style="text-align: center;">دخول الحصة والمحتوى 🚀</button>
                         </div>
                     `;
                 }
