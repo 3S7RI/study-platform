@@ -204,7 +204,22 @@
                 }
 
                 let lesson = docSnap.data();
-                renderLessonPage(lessonId, lesson);
+                
+                // جلب بيانات الامتحان المرتبط إذا وجد examId
+                let examData = null;
+                if (lesson.examId) {
+                    try {
+                        const examRef = doc(db, "exams", lesson.examId);
+                        const examSnap = await getDoc(examRef);
+                        if (examSnap.exists()) {
+                            examData = examSnap.data();
+                        }
+                    } catch (err) {
+                        console.warn("خطأ في جلب تفاصيل الامتحان المرتبط:", err);
+                    }
+                }
+
+                renderLessonPage(lessonId, lesson, examData);
 
                 if (currentUserId) {
                     let userRef = doc(db, "users", currentUserId);
@@ -239,7 +254,7 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
         }
 
-        function renderLessonPage(lessonId, item) {
+        function renderLessonPage(lessonId, item, examData) {
             let html = `
                 <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
                 <div class="lesson-subtitle">المادة: ${item.subject || 'عام'} | الصف الدراسي: ${item.targetGroup || 'عام'}</div>
@@ -321,8 +336,8 @@
                 </div>
             `;
 
-            // 4. امتحان الحصة (بشكل منسق ومرتب وبدون أخطاء 404 نهائياً)
-            let hasExam = !!item.examData && item.examData.questions && item.examData.questions.length > 0;
+            // 4. امتحان الحصة المرتبط
+            let hasExam = !!examData && examData.questions && examData.questions.length > 0;
             html += `
                 <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                     <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
@@ -333,10 +348,10 @@
                         ${hasExam ? `
                             <div style="background: var(--bg-main); padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
                                 <div>
-                                    <h4 style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 4px;">📝 ${item.examData.title || 'امتحان الحصة'}</h4>
-                                    <p style="font-size: 0.78rem; color: var(--text-muted);">عدد الأسئلة: ${item.examData.questions.length} سؤال</p>
+                                    <h4 style="color: var(--text-main); font-size: 0.9rem; margin-bottom: 4px;">📝 ${examData.title || 'امتحان الحصة'}</h4>
+                                    <p style="font-size: 0.78rem; color: var(--text-muted);">عدد الأسئلة: ${examData.questions.length} سؤال</p>
                                 </div>
-                                <a href="exam-solve.html?id=${lessonId}" class="view-btn">ابدأ الحل 🚀</a>
+                                <a href="exam-solve.html?id=${item.examId}" class="view-btn">ابدأ الحل 🚀</a>
                             </div>
                         ` : `<p style="font-size: 0.82rem; color: var(--danger); text-align: center; padding: 10px;">لا يوجد امتحان مخصص لهذه الحصة حالياً.</p>`}
                     </div>
