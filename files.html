@@ -81,29 +81,28 @@
         .file-card {
             background: var(--bg-card); border-radius: 16px; padding: 18px; box-shadow: var(--shadow);
             display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--border-color);
-            border-top: 3px solid var(--primary); position: relative; overflow: hidden;
+            border-top: 3px solid var(--primary); position: relative; overflow: hidden; min-height: 180px;
         }
         .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
 
-        /* طبقة القفل بالسلاسل عند نفاد المحاولات */
+        /* طبقة السلاسل والقفل عند نفاد المحاولات تماماً */
         .chained-lock-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(5px);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10; padding: 20px; text-align: center; gap: 8px;
+            z-index: 10; padding: 15px; text-align: center; gap: 6px;
             border: 2px dashed var(--danger); border-radius: 16px;
         }
         .chains-icon {
-            font-size: 1.8rem; letter-spacing: -4px; color: var(--text-muted); opacity: 0.8;
-            margin-bottom: -4px;
+            font-size: 1.6rem; letter-spacing: -3px; color: var(--text-muted); opacity: 0.9;
         }
         .lock-icon-badge {
-            background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 45px; height: 45px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
-            border: 1px solid var(--danger); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.2); color: var(--danger); width: 42px; height: 42px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            border: 1px solid var(--danger); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
         }
         .locked-message-text {
-            color: var(--danger); font-weight: 700; font-size: 0.95rem; margin-top: 4px;
+            color: var(--danger); font-weight: 700; font-size: 0.95rem; margin-top: 2px;
         }
 
         .file-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
@@ -213,16 +212,20 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUserId = user.uid;
-                try {
-                    let userRef = doc(db, "users", currentUserId);
-                    let userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        currentUserData = userSnap.data();
-                    }
-                } catch(e) {}
+                await fetchUserData(currentUserId);
             }
             await fetchCloudLessons();
         });
+
+        async function fetchUserData(uid) {
+            try {
+                let userRef = doc(db, "users", uid);
+                let userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    currentUserData = userSnap.data();
+                }
+            } catch(e) {}
+        }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const bodyElement = document.body;
@@ -283,11 +286,15 @@
                             return;
                         }
 
-                        // زيادة عدد المحاولات بواقع محاولة واحدة فور الضغط على زر دخول الحصة وتخزينها في السحابة
+                        // زيادة المحاولة وتخزينها فوراً في السحابة
                         lessonAct.accessCount = currentCount + 1;
                         lessonsActivity[lessonId] = lessonAct;
 
                         await updateDoc(userRef, { lessonsActivity: lessonsActivity });
+                        
+                        // تحديث بيانات المستخدم المحلية لتعكس العدد الجديد مباشرة
+                        currentUserData = userData;
+                        currentUserData.lessonsActivity = lessonsActivity;
                     }
                 } catch(e) {
                     console.log("Error updating access count:", e);
@@ -362,7 +369,7 @@
                 `;
 
                 if (isAttemptsExhausted) {
-                    // طبقة السلاسل والقفل المخصصة عند نفاد المحاولات تماماً
+                    // طبقة السلاسل والقفل عند نفاد المحاولات تماماً
                     cardHtml += `
                         <div class="chained-lock-overlay">
                             <div class="chains-icon">⛓️ ⛓️ ⛓️</div>
