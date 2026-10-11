@@ -159,20 +159,46 @@
         .btn-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
+        /* تنسيق نافذة التحميل والنشر المتحركة */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
             display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
         }
         .platform-toast-card {
             background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary);
-            width: 100%; max-width: 360px; border-radius: 14px; padding: 18px; text-align: center; box-shadow: var(--shadow);
+            width: 100%; max-width: 380px; border-radius: 16px; padding: 24px; text-align: center; box-shadow: var(--shadow);
         }
-        .platform-toast-card h3 { font-size: 0.95rem; color: var(--text-main); margin-bottom: 6px; font-weight: 700; }
-        .platform-toast-card p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+        .platform-toast-card h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 12px; font-weight: 700; }
+        .platform-toast-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+        
+        /* شريط التحميل */
+        .progress-bar-container {
+            width: 100%; background: var(--bg-main); border-radius: 10px; height: 10px; overflow: hidden; border: 1px solid var(--border-color); margin-bottom: 15px;
+        }
+        .progress-bar-fill {
+            width: 0%; height: 100%; background: var(--primary); border-radius: 10px; transition: width 0.3s ease;
+        }
+
+        /* علامة الصح المتحركة (SVG Checkmark) */
+        .success-checkmark-box {
+            display: flex; justify-content: center; align-items: center; margin-bottom: 15px;
+        }
+        .checkmark-svg {
+            width: 60px; height: 60px; border-radius: 50%; display: stroke; stroke-width: 3; stroke: var(--success); stroke-miterlimit: 10; box-shadow: inset 0px 0px 0px var(--success); animation: fill 0.4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+        }
+        .checkmark-circle {
+            stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke-miterlimit: 10; stroke: var(--success); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark-check {
+            transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+        }
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+        @keyframes scale { 0%, 100% { transform: none; } 50% { transform: scale3d(1.1, 1.1, 1); } }
+
         .platform-toast-btn {
-            background: var(--primary); color: white; border: none; padding: 7px 16px; border-radius: 8px;
-            font-weight: bold; font-size: 0.8rem; cursor: pointer; width: 100%;
+            background: var(--primary); color: white; border: none; padding: 9px 16px; border-radius: 8px;
+            font-weight: bold; font-size: 0.85rem; cursor: pointer; width: 100%;
         }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
@@ -286,16 +312,22 @@
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
                 </div>
             </div>
-            <!-- زر الحفظ في كولكشن lessonExams باسم الامتحان -->
-            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن lessonExams (باسم الامتحان) 🚀</button>
+            <!-- زر النشر -->
+            <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان 🚀</button>
         </div>
     </div>
 
-    <div class="platform-toast-overlay" id="platformToastModal" onclick="closePlatformToast()">
+    <!-- نافذة التحميل والنشر المنبثقة -->
+    <div class="platform-toast-overlay" id="platformToastModal">
         <div class="platform-toast-card" onclick="event.stopPropagation()">
-            <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
-            <p id="toastMessage">رسالة التنبيه هنا...</p>
-            <button class="platform-toast-btn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
+            <h3 id="toastTitle">جاري نشر الامتحان... ⏳</h3>
+            <div id="toastContentBody">
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBarFill"></div>
+                </div>
+                <p id="toastMessage">يرجى الانتظار بينما يتم رفع الأسئلة إلى السحابة...</p>
+            </div>
+            <button class="platform-toast-btn hidden" id="toastActionBtn" onclick="closePlatformToast()">حسناً فهمت 👍</button>
         </div>
     </div>
 
@@ -328,7 +360,7 @@
 
         let currentDraftQuestions = [];
         let editingQuestionIndex = null;
-        let pendingRedirect = false;
+        let shouldRedirectAfterToast = false;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -349,15 +381,47 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        window.showPlatformToast = function(title, message) {
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
+        window.showToastLoading = function() {
+            document.getElementById('toastTitle').textContent = "جاري نشر الامتحان... ⏳";
+            document.getElementById('toastActionBtn').classList.add('hidden');
+            document.getElementById('toastContentBody').innerHTML = `
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+                </div>
+                <p id="toastMessage">يرجى الانتظار بينما يتم رفع الأسئلة إلى السحابة...</p>
+            `;
             document.getElementById('platformToastModal').style.display = 'flex';
+        };
+
+        window.updateToastProgress = function(percent) {
+            const fill = document.getElementById('progressBarFill');
+            if (fill) fill.style.width = percent + '%';
+        };
+
+        window.showToastSuccess = function() {
+            document.getElementById('toastTitle').textContent = "تم النشر بنجاح 🎉";
+            document.getElementById('toastContentBody').innerHTML = `
+                <div class="success-checkmark-box">
+                    <svg class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                <p id="toastMessage">تم نشر امتحان الحصة بنجاح في كولكشن lessonExams!</p>
+            `;
+            document.getElementById('toastActionBtn').classList.remove('hidden');
+        };
+
+        window.showToastError = function(msg) {
+            document.getElementById('toastTitle').textContent = "خطأ ❌";
+            document.getElementById('toastContentBody').innerHTML = `<p id="toastMessage">${msg}</p>`;
+            document.getElementById('toastActionBtn').classList.remove('hidden');
+            shouldRedirectAfterToast = false;
         };
 
         window.closePlatformToast = function() {
             document.getElementById('platformToastModal').style.display = 'none';
-            if (pendingRedirect) {
+            if (shouldRedirectAfterToast) {
                 window.location.href = 'files-exam-sync.html';
             }
         };
@@ -461,7 +525,7 @@
             const row = btn.closest('.option-row');
             const list = document.getElementById('optionsBuilderList');
             if (list.children.length <= 2) {
-                showPlatformToast("تنبيه", "يجب أن يحتوي السؤال على خيارين على الأقل!");
+                showToastError("يجب أن يحتوي السؤال على خيارين على الأقل!");
                 return;
             }
             row.remove();
@@ -474,7 +538,11 @@
             let imageFileinput = document.getElementById('newQImageFile');
             let modelAnswer = document.getElementById('newModelAnswer').value.trim();
 
-            if (!qText) { showPlatformToast("تنبيه هام", "يرجى كتابة نص السؤال أولاً!"); return; }
+            if (!qText) { 
+                document.getElementById('platformToastModal').style.display = 'flex';
+                showToastError("يرجى كتابة نص السؤال أولاً!");
+                return; 
+            }
 
             let processQuestionWithImage = (imageUrl) => {
                 let options = [];
@@ -639,8 +707,20 @@
             let subject = document.getElementById('examSubject').value.trim();
             let targetGroup = document.getElementById('examTargetGroup').value.trim();
 
-            if (!title) { showPlatformToast("تنبيه", "يرجى كتابة عنوان الامتحان أولاً!"); return; }
-            if (currentDraftQuestions.length === 0) { showPlatformToast("تنبيه", "يرجى إضافة سؤال واحد على الأقل للامتحان!"); return; }
+            if (!title) {
+                document.getElementById('platformToastModal').style.display = 'flex';
+                showToastError("يرجى كتابة عنوان الامتحان أولاً!");
+                return;
+            }
+            if (currentDraftQuestions.length === 0) {
+                document.getElementById('platformToastModal').style.display = 'flex';
+                showToastError("يرجى إضافة سؤال واحد على الأقل للامتحان!");
+                return;
+            }
+
+            // إظهار شريط التحميل
+            showToastLoading();
+            updateToastProgress(30);
 
             let examDoc = {
                 title: title, 
@@ -651,21 +731,26 @@
             };
 
             try {
-                // حفظ الامتحان في كولكشن lessonExams بحيث يكون اسم المستند (Document ID) هو عنوان الامتحان
+                updateToastProgress(70);
+                // حفظ الامتحان في كولكشن lessonExams بحيث يكون اسم المستند هو عنوان الامتحان
                 await setDoc(doc(db, "lessonExams", title), examDoc);
 
-                currentDraftQuestions = [];
-                editingQuestionIndex = null;
-                document.getElementById('examTitle').value = '';
-                document.getElementById('examSubject').value = '';
-                document.getElementById('examTargetGroup').value = '';
-                renderQuestionsList();
-                
-                pendingRedirect = true;
-                showPlatformToast("تم بنجاح 🚀", `تم حفظ الامتحان باسم "${title}" في كولكشن lessonExams بنجاح! سيتم توجيهك لصفحة الربط.`);
+                updateToastProgress(100);
+                setTimeout(() => {
+                    currentDraftQuestions = [];
+                    editingQuestionIndex = null;
+                    document.getElementById('examTitle').value = '';
+                    document.getElementById('examSubject').value = '';
+                    document.getElementById('examTargetGroup').value = '';
+                    renderQuestionsList();
+                    
+                    shouldRedirectAfterToast = true;
+                    showToastSuccess();
+                }, 400);
+
             } catch (e) {
                 console.error(e);
-                showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ الامتحان في السحابة.");
+                showToastError("حدث خطأ أثناء حفظ الامتحان في السحابة.");
             }
         };
     </script>
