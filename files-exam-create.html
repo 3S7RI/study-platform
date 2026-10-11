@@ -286,8 +286,8 @@
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
                 </div>
             </div>
-            <!-- زر الحفظ في كولكشن lessonExams -->
-            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن lessonExams بالسحابة 🚀</button>
+            <!-- زر الحفظ في كولكشن lessonExams باسم الامتحان -->
+            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن lessonExams (باسم الامتحان) 🚀</button>
         </div>
     </div>
 
@@ -310,7 +310,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -651,8 +651,8 @@
             };
 
             try {
-                // حفظ الامتحان في كولكشن lessonExams المخصص لامتحانات الحصص
-                await addDoc(collection(db, "lessonExams"), examDoc);
+                // حفظ الامتحان في كولكشن lessonExams بحيث يكون اسم المستند (Document ID) هو عنوان الامتحان
+                await setDoc(doc(db, "lessonExams", title), examDoc);
 
                 currentDraftQuestions = [];
                 editingQuestionIndex = null;
@@ -662,9 +662,7 @@
                 renderQuestionsList();
                 
                 pendingRedirect = true;
-                showPlatformToast("تم بنجاح 🚀", "تم حفظ امتحان الحصة في كولكشن lessonExams بنجاح! سيتم توجيهك لصفحة الربط.", () => {
-                    window.location.href = 'files-exam-sync.html';
-                });
+                showPlatformToast("تم بنجاح 🚀", `تم حفظ الامتحان باسم "${title}" في كولكشن lessonExams بنجاح! سيتم توجيهك لصفحة الربط.`);
             } catch (e) {
                 console.error(e);
                 showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ الامتحان في السحابة.");
