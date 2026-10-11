@@ -371,7 +371,8 @@
                     globalLessonsList.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                const examsSnap = await getDocs(collection(db, "exams"));
+                // تعديل الجلب ليتم من كولكشن lessonExams الخاص بالامتحانات المنشورة
+                const examsSnap = await getDocs(collection(db, "lessonExams"));
                 globalExamsList = [];
                 examsSnap.forEach((docSnap) => {
                     globalExamsList.push({ id: docSnap.id, ...docSnap.data() });
@@ -439,7 +440,7 @@
         function renderExamsDropdown(exams) {
             const container = document.getElementById('customExamOptionsContainer');
             if (exams.length === 0) {
-                container.innerHTML = `<div class="custom-option" style="justify-content:center;">لا توجد امتحانات متاحة حالياً</div>`;
+                container.innerHTML = `<div class="custom-option" style="justify-content:center;">لا توجد امتحانات منشورة متاحة حالياً</div>`;
                 return;
             }
 
@@ -449,10 +450,10 @@
             </div>`;
 
             exams.forEach((ex) => {
-                let title = ex.title || 'امتحان بدون عنوان';
+                let title = ex.title || ex.id || 'امتحان بدون عنوان';
                 let subject = ex.subject || 'عام';
                 let qCount = ex.questions ? ex.questions.length : 0;
-                html += `<div class="custom-option" onclick="selectExamOption('${ex.id}', '📝 ${title} (${subject})')">
+                html += `<div class="custom-option" onclick="selectExamOption('${title.replace(/'/g, "\\'")}', '📝 ${title} (${subject})')">
                     <span style="font-size:1.1rem;">📝</span>
                     <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
                         <span style="font-weight:700; color:var(--text-main);">${title}</span>
@@ -473,8 +474,8 @@
             let examIdVal = lesson.examId || '';
             document.getElementById('lessonExamSelect').value = examIdVal;
             if (examIdVal) {
-                let foundEx = globalExamsList.find(e => e.id === examIdVal);
-                document.getElementById('selectedExamTitleDisplay').textContent = foundEx ? `📝 ${foundEx.title} (${foundEx.subject})` : '📝 امتحان محدد';
+                let foundEx = globalExamsList.find(e => (e.title === examIdVal || e.id === examIdVal));
+                document.getElementById('selectedExamTitleDisplay').textContent = foundEx ? `📝 ${foundEx.title || examIdVal} (${foundEx.subject || 'عام'})` : `📝 ${examIdVal}`;
             } else {
                 document.getElementById('selectedExamTitleDisplay').textContent = '✨ -- بدون امتحان (إلغاء الاختيار) --';
             }
