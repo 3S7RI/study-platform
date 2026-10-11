@@ -644,36 +644,22 @@
                 let uid = user.uid;
 
                 try {
-                    let adminInfo = null;
+                    let adminResult = null;
                     let targetKey = null;
 
                     if (uid) {
-                        adminInfo = await getAdminData(db, uid);
-                        if (adminInfo) targetKey = uid;
+                        adminResult = await getAdminData(db, uid);
+                        if (adminResult) targetKey = uid;
                     }
-                    if (!adminInfo && emailKey) {
-                        adminInfo = await getAdminData(db, emailKey);
-                        if (adminInfo) targetKey = emailKey;
-                    }
-
-                    if (!adminInfo) {
-                        let docSnap = null;
-                        if (uid) {
-                            docSnap = await getDoc(doc(db, "admins", uid));
-                            if (docSnap.exists()) targetKey = uid;
-                        }
-                        if ((!docSnap || !docSnap.exists()) && emailKey) {
-                            docSnap = await getDoc(doc(db, "admins", emailKey));
-                            if (docSnap.exists()) targetKey = emailKey;
-                        }
-                        if (docSnap && docSnap.exists()) {
-                            adminInfo = docSnap.data();
-                        }
+                    if (!adminResult && emailKey) {
+                        adminResult = await getAdminData(db, emailKey);
+                        if (adminResult) targetKey = emailKey;
                     }
 
-                    if (adminInfo) {
-                        currentAdminData = adminInfo;
-                        currentAdminDocKey = targetKey || emailKey;
+                    if (adminResult) {
+                        currentAdminData = adminResult.data || adminResult;
+                        currentAdminDocKey = adminResult.id || targetKey || emailKey;
+                        
                         sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                         sessionStorage.setItem('adminEmail', emailKey);
                         renderAdminProfile(currentAdminData);
@@ -695,14 +681,9 @@
         function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
             
-            // قراءة الصورة بجميع الاحتمالات الممكنة
-            let avatarUrl = admin.avatar || admin.profileImage || defaultAvatarSvg;
-            
-            // قراءة الاسم بجميع الاحتمالات الممكنة (name أو fullname)
+            let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
             let fullName = admin.name || admin.fullname || "مسؤول النظام";
-            
-            // قراءة الـ ID بحيث يظهر التسلسلي الصحيح (مثل ADM-0001) بدلاً من الإيميل
-            let adminId = admin.adminId || admin.id || "ADM-0001";
+            let adminId = admin.adminId || "ADM-0001";
 
             container.innerHTML = `
                 <div class="profile-header">
@@ -759,7 +740,7 @@
 
         window.openAvatarModal = function() {
             if (!currentAdminData) return;
-            document.getElementById('modalAvatarPreview').src = currentAdminData.avatar || currentAdminData.profileImage || defaultAvatarSvg;
+            document.getElementById('modalAvatarPreview').src = currentAdminData.profileImage || currentAdminData.avatar || defaultAvatarSvg;
             document.getElementById('avatarModal').classList.add('active');
         };
 
@@ -790,13 +771,13 @@
             btn.disabled = true;
 
             try {
-                currentAdminData.avatar = selectedNewAvatarBase64;
                 currentAdminData.profileImage = selectedNewAvatarBase64;
+                currentAdminData.avatar = selectedNewAvatarBase64;
 
                 if (currentAdminDocKey) {
                     await updateAdminData(db, currentAdminDocKey, {
-                        avatar: selectedNewAvatarBase64,
-                        profileImage: selectedNewAvatarBase64
+                        profileImage: selectedNewAvatarBase64,
+                        avatar: selectedNewAvatarBase64
                     });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
@@ -814,13 +795,13 @@
 
         window.removeProfileImage = async function() {
             if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
-            currentAdminData.avatar = "";
             currentAdminData.profileImage = "";
+            currentAdminData.avatar = "";
             try {
                 if (currentAdminDocKey) {
                     await updateAdminData(db, currentAdminDocKey, {
-                        avatar: "",
-                        profileImage: ""
+                        profileImage: "",
+                        avatar: ""
                     });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
