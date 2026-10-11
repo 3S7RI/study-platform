@@ -480,6 +480,7 @@
             }
 
             if (settings.showExamSection !== false && hasExam) {
+                let questionsCount = examData.questions ? examData.questions.length : 0;
                 let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
                 let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
 
@@ -488,7 +489,10 @@
                         <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                             <div class="section-title-group">
                                 <span>📝 امتحان الحصة والتقييم</span>
-                                <span class="section-badge">محاولات الامتحان: ${studentExamSubmissions} / ${maxExamAttempts}</span>
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <span class="section-badge">عدد الأسئلة: ${questionsCount} سؤال</span>
+                                    <span class="section-badge">المحاولات: ${studentExamSubmissions} / ${maxExamAttempts}</span>
+                                </div>
                             </div>
                             <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                         </div>
@@ -579,7 +583,7 @@
             if (examStatusText && startExamBtn) {
                 if (isUnlocked) {
                     examStatusText.style.color = 'var(--success)';
-                    examStatusText.textContent = `عدد الأسئلة: ${activeExamData ? activeExamData.questions.length : 0} سؤال (متبقي محاولات)`;
+                    examStatusText.textContent = 'الامتحان متاح الآن للمحاولة';
                     startExamBtn.disabled = false;
                     startExamBtn.style.background = 'var(--primary)';
                     startExamBtn.style.cursor = 'pointer';
@@ -606,7 +610,6 @@
                 return;
             }
 
-            // احتساب محاولة جديدة لدخول الامتحان وتخزينها في السحابة فور الضغط على زر بدء الامتحان
             if (currentUserId && activeLessonId) {
                 try {
                     let userRef = doc(db, "users", currentUserId);
@@ -629,6 +632,7 @@
                         lessonsActivity[activeLessonId] = lessonAct;
 
                         await updateDoc(userRef, { lessonsActivity: lessonsActivity });
+                        studentActivityData.examSubmissionsCount = lessonAct.examSubmissionsCount;
                     }
                 } catch(e) {
                     console.log("Error updating exam submission count:", e);
