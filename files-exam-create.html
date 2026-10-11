@@ -157,9 +157,23 @@
         .custom-dropdown-item.selected { background: rgba(99, 102, 241, 0.2); color: var(--primary); font-weight: bold; }
 
         .btn-danger { background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: bold; }
+        .btn-edit { background: var(--primary); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; font-weight: bold; }
         .hidden { display: none !important; }
 
-        /* تنسيق نافذة التحميل والنشر المتحركة */
+        /* تنسيق جدول أو قائمة الامتحانات المنشورة أسفل الصفحة */
+        .published-exams-container {
+            display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; margin-top: 10px;
+        }
+        .published-exam-row {
+            display: flex; justify-content: space-between; align-items: center; background: var(--bg-main);
+            padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color); gap: 10px; flex-wrap: wrap;
+        }
+        .published-exam-info { display: flex; flex-direction: column; gap: 2px; text-align: right; flex: 1; }
+        .published-exam-title { font-weight: bold; font-size: 0.88rem; color: var(--text-main); }
+        .published-exam-meta { font-size: 0.75rem; color: var(--text-muted); }
+        .published-actions { display: flex; gap: 6px; align-items: center; }
+
+        /* نافذة التحميل والنشر المنبثقة */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
@@ -315,6 +329,16 @@
             <!-- زر النشر -->
             <button class="btn-save" onclick="saveFullExamToCloud()">نشر الامتحان 🚀</button>
         </div>
+
+        <!-- خانة الامتحانات التي تم نشرها مسبقاً (للتعديل أو الحذف) -->
+        <div class="section-box">
+            <div class="section-header">
+                <h2>📋 الامتحانات المنشورة مسبقاً (إدارة وتعديل)</h2>
+            </div>
+            <div class="published-exams-container" id="publishedExamsContainer">
+                <div style="text-align: center; color: var(--text-muted); padding: 15px;">جاري تحميل الامتحانات المنشورة...</div>
+            </div>
+        </div>
     </div>
 
     <!-- نافذة التحميل والنشر المنبثقة -->
@@ -342,7 +366,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -361,10 +385,13 @@
         let currentDraftQuestions = [];
         let editingQuestionIndex = null;
         let shouldRedirectAfterToast = false;
+        let publishedExamsMap = {};
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 window.location.href = 'login.html';
+            } else {
+                await loadPublishedExams();
             }
         });
 
@@ -380,6 +407,68 @@
             localStorage.setItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
+
+        async function loadPublishedExams() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "lessonExams"));
+                const container = document.getElementById('publishedExamsContainer');
+                publishedExamsMap = {};
+                let html = "";
+
+                querySnapshot.forEach((docSnap) => {
+                    let data = docSnap.data();
+                    let examTitle = docSnap.id;
+                    publishedExamsMap[examTitle] = data;
+
+                    html += `
+                        <div class="published-exam-row">
+                            <div class="published-exam-info">
+                                <span class="published-exam-title">📝 ${examTitle}</span>
+                                <span class="published-exam-meta">المادة: ${data.subject || 'عام'} | الفئة: ${data.targetGroup || 'غير محدد'} | عدد الأسئلة: ${data.questions ? data.questions.length : 0}</span>
+                            </div>
+                            <div class="published-actions">
+                                <button class="btn-edit" onclick="loadExamForEditing('${examTitle.replace(/'/g, "\\'")}')">تعديل ✏️</button>
+                                <button class="btn-danger" onclick="deletePublishedExam('${examTitle.replace(/'/g, "\\'")}')">حذف 🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                if (!html) {
+                    html = `<div style="text-align: center; color: var(--text-muted); padding: 15px;">لا توجد امتحانات منشورة حتى الآن.</div>`;
+                }
+                container.innerHTML = html;
+            } catch (e) {
+                console.error(e);
+                document.getElementById('publishedExamsContainer').innerHTML = `<div style="text-align: center; color: var(--danger); padding: 15px;">خطأ أثناء تحميل الامتحانات المنشورة.</div>`;
+            }
+        }
+
+        window.loadExamForEditing = function(examTitle) {
+            let examData = publishedExamsMap[examTitle];
+            if (!examData) return;
+
+            document.getElementById('examTitle').value = examData.title || examTitle;
+            document.getElementById('examSubject').value = examData.subject || '';
+            document.getElementById('examTargetGroup').value = examData.targetGroup || '';
+            currentDraftQuestions = examData.questions ? [...examData.questions] : [];
+            
+            renderQuestionsList();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToastMessageOnly("وضع التعديل ⚠️", `تم تحميل الامتحان "${examTitle}" للتعديل. عدل ما تريده ثم اضغط على زر "نشر الامتحان" لحفظ التغييرات.`);
+        };
+
+        window.deletePublishedExam = async function(examTitle) {
+            if (!confirm(`هل أنت متأكد من حذف الامتحان "${examTitle}" نهائياً؟`)) return;
+            try {
+                await deleteDoc(doc(db, "lessonExams", examTitle));
+                await loadPublishedExams();
+                showToastMessageOnly("تم الحذف بنجاح 🗑️", `تم حذف الامتحان "${examTitle}" من السحابة.`);
+            } catch (e) {
+                console.error(e);
+                showToastMessageOnly("خطأ ❌", "حدث خطأ أثناء محاولة حذف الامتحان.");
+            }
+        };
 
         window.showToastLoading = function() {
             document.getElementById('toastTitle').textContent = "جاري نشر الامتحان... ⏳";
@@ -417,6 +506,14 @@
             document.getElementById('toastContentBody').innerHTML = `<p id="toastMessage">${msg}</p>`;
             document.getElementById('toastActionBtn').classList.remove('hidden');
             shouldRedirectAfterToast = false;
+        };
+
+        window.showToastMessageOnly = function(title, msg) {
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastContentBody').innerHTML = `<p id="toastMessage">${msg}</p>`;
+            document.getElementById('toastActionBtn').classList.remove('hidden');
+            shouldRedirectAfterToast = false;
+            document.getElementById('platformToastModal').style.display = 'flex';
         };
 
         window.closePlatformToast = function() {
@@ -525,7 +622,7 @@
             const row = btn.closest('.option-row');
             const list = document.getElementById('optionsBuilderList');
             if (list.children.length <= 2) {
-                showToastError("يجب أن يحتوي السؤال على خيارين على الأقل!");
+                showToastMessageOnly("تنبيه", "يجب أن يحتوي السؤال على خيارين على الأقل!");
                 return;
             }
             row.remove();
@@ -539,8 +636,7 @@
             let modelAnswer = document.getElementById('newModelAnswer').value.trim();
 
             if (!qText) { 
-                document.getElementById('platformToastModal').style.display = 'flex';
-                showToastError("يرجى كتابة نص السؤال أولاً!");
+                showToastMessageOnly("تنبيه هام", "يرجى كتابة نص السؤال أولاً!");
                 return; 
             }
 
@@ -642,7 +738,7 @@
                 let imgIndicator = q.imageUrl ? ' 🖼️ (بصورة)' : '';
                 html += `
                     <div style="background: var(--th-bg); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
-                        <div onclick="editQuestion(${idx})" style="cursor: pointer; flex: 1;" title="اضغط للتعديل والمعاينة">
+                        <div onclick="editDraftQuestion(${idx})" style="cursor: pointer; flex: 1;" title="اضغط للتعديل">
                             <p style="font-weight: bold; margin-bottom: 2px;">سؤال ${idx+1}: ${q.text} <span style="font-size:0.68rem; background: rgba(99, 102, 241, 0.15); color: var(--primary); padding: 2px 5px; border-radius: 4px; margin-right: 6px;">(${q.marks} درجات - ${typeLabel}${imgIndicator})</span></p>
                         </div>
                         <button class="btn-danger" onclick="deleteDraftQuestion(${idx}, event)">حذف</button>
@@ -651,7 +747,7 @@
             container.innerHTML = html;
         }
 
-        window.editQuestion = function(idx) {
+        window.editDraftQuestion = function(idx) {
             let q = currentDraftQuestions[idx];
             editingQuestionIndex = idx;
             let textAreaElem = document.getElementById('newQText');
@@ -708,17 +804,14 @@
             let targetGroup = document.getElementById('examTargetGroup').value.trim();
 
             if (!title) {
-                document.getElementById('platformToastModal').style.display = 'flex';
-                showToastError("يرجى كتابة عنوان الامتحان أولاً!");
+                showToastMessageOnly("تنبيه", "يرجى كتابة عنوان الامتحان أولاً!");
                 return;
             }
             if (currentDraftQuestions.length === 0) {
-                document.getElementById('platformToastModal').style.display = 'flex';
-                showToastError("يرجى إضافة سؤال واحد على الأقل للامتحان!");
+                showToastMessageOnly("تنبيه", "يرجى إضافة سؤال واحد على الأقل للامتحان!");
                 return;
             }
 
-            // إظهار شريط التحميل
             showToastLoading();
             updateToastProgress(30);
 
@@ -732,19 +825,19 @@
 
             try {
                 updateToastProgress(70);
-                // حفظ الامتحان في كولكشن lessonExams بحيث يكون اسم المستند هو عنوان الامتحان
                 await setDoc(doc(db, "lessonExams", title), examDoc);
 
                 updateToastProgress(100);
-                setTimeout(() => {
+                setTimeout(async () => {
                     currentDraftQuestions = [];
                     editingQuestionIndex = null;
                     document.getElementById('examTitle').value = '';
                     document.getElementById('examSubject').value = '';
                     document.getElementById('examTargetGroup').value = '';
                     renderQuestionsList();
+                    await loadPublishedExams();
                     
-                    shouldRedirectAfterToast = true;
+                    shouldRedirectAfterToast = false;
                     showToastSuccess();
                 }, 400);
 
