@@ -90,7 +90,7 @@
 
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
             display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px;
         }
         .platform-toast-card {
@@ -112,7 +112,7 @@
         <header class="platform-header">
             <button onclick="confirmLeaveExam()" class="btn-home-link">⬅ العودة للحصة</button>
             <div style="font-weight: 700; font-size: 0.95rem;">امتحان الحصة 📝</div>
-            <div class="timer-box-ui">
+            <div class="timer-box-ui" id="timerContainerBox">
                 <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm1-13h-2v6h6v-2h-4z"/></svg>
                 <span id="timerDisplay">جاري التحميل...</span>
             </div>
@@ -155,7 +155,7 @@
 
         let currentUserId = null;
         let activeLessonId = null;
-        let activeExamId = null;
+        let activeExamTitle = null;
         let lessonSettings = {};
         let currentExamData = null;
         let timerInterval = null;
@@ -199,12 +199,21 @@
         };
 
         function enableSecurityFeatures() {
-            if (lessonSettings.fullScreen !== false) {
-                activateFullScreen();
+            // تفعيل حقيقي لوضع ملء الشاشة إذا كان مفعلاً في الإعدادات
+            if (lessonSettings.fullScreen === true) {
+                try {
+                    let elem = document.documentElement;
+                    if (elem.requestFullscreen) {
+                        elem.requestFullscreen().catch(() => {});
+                    } else if (elem.webkitRequestFullscreen) {
+                        elem.webkitRequestFullscreen();
+                    }
+                } catch(e) {}
             }
 
+            // تفعيل حقيقي لمنع مغادرة الصفحة والـ Refresh إذا كان مفعلاً
             window.addEventListener('beforeunload', function (e) {
-                if (!isSubmitted) {
+                if (!isSubmitted && lessonSettings.antiCheat === true) {
                     e.preventDefault();
                     e.returnValue = '';
                 }
@@ -243,50 +252,56 @@
 
                 const lessonData = lessonSnap.data();
                 lessonSettings = lessonData.settings || {};
-                activeExamId = lessonData.examId;
+                activeExamTitle = lessonData.examId; // اسم الامتحان المخزن في الحصة
 
-                if (!activeExamId) {
+                if (!activeExamTitle) {
                     showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
                     return;
                 }
 
-                const examRef = doc(db, "exams", activeExamId);
+                // التحقق الحقيقي لكلمة المرور الخاصة بالامتحان إن وجدت
+                if (lessonSettings.password && lessonSettings.password.trim() !== "") {
+                    let enteredPass = prompt("هذا الامتحان محمي بكلمة مرور خاصة. يرجى إدخالها للدخول:");
+                    if (enteredPass !== lessonSettings.password) {
+                        alert("كلمة المرور غير صحيحة!");
+                        window.location.href = `files-lesson-view.html?id=${lessonId}`;
+                        return;
+                    }
+                }
+
+                // جلب الامتحان من كولكشن lessonExams (لأنه نفس الكولكشن الذي يتم الحفظ فيه باسم العنوان)
+                const examRef = doc(db, "lessonExams", activeExamTitle);
                 const examSnap = await getDoc(examRef);
 
                 if (!examSnap.exists()) {
-                    showPlatformToast("خطأ ❌", "الامتحان المرتبط غير موجود بالسحابة.", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
+                    showPlatformToast("خطأ ❌", "ملف الامتحان المرتبط غير موجود بالسحابة.", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
                     return;
                 }
 
                 currentExamData = examSnap.data();
 
+                // تفعيل أو إلغاء ظهور المؤقت الزمني حسب إعدادات المعلم
+                if (lessonSettings.timer === false) {
+                    document.getElementById('timerContainerBox').style.display = 'none';
+                }
+
+                // إظهار رسالة التنبيه قبل الامتحان إن كانت مفعلة
                 if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
                     showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, null, () => {
                         enableSecurityFeatures();
                         renderExamContent(currentExamData);
-                        startExamTimer();
+                        if (lessonSettings.timer !== false) startExamTimer();
                     });
                 } else {
                     enableSecurityFeatures();
                     renderExamContent(currentExamData);
-                    startExamTimer();
+                    if (lessonSettings.timer !== false) startExamTimer();
                 }
 
             } catch (e) {
                 console.error(e);
                 showPlatformToast("خطأ ❌", "حدث خطأ أثناء تحميل بيانات الامتحان.");
             }
-        }
-
-        function activateFullScreen() {
-            try {
-                let elem = document.documentElement;
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                }
-            } catch(e) {}
         }
 
         function startExamTimer() {
@@ -310,13 +325,15 @@
 
         function renderExamContent(exam) {
             let questions = exam.questions || [];
-            if (lessonSettings.shuffle && questions.length > 1) {
+            
+            // تفعيل الخلط العشوائي للأسئلة بناءً على إعدادات المعلم
+            if (lessonSettings.shuffle === true && questions.length > 1) {
                 questions.sort(() => Math.random() - 0.5);
             }
 
             let html = `
                 <div class="exam-card">
-                    <h2 class="exam-title">📝 ${exam.title || 'امتحان الحصة'}</h2>
+                    <h2 class="exam-title">📝 ${exam.title || activeExamTitle}</h2>
                     <p class="exam-subtitle">المادة: ${exam.subject || 'عام'} | عدد الأسئلة: ${questions.length}</p>
                     <form id="examForm" onsubmit="handleExamFormSubmit(event)">
             `;
@@ -417,7 +434,7 @@
                     let checkedInputs = document.querySelectorAll(`input[name="q_${qIdx}"]:checked`);
                     if (checkedInputs.length > 0) {
                         let selectedVal = parseInt(checkedInputs[0].value);
-                        let correctVal = parseInt(q.correctOption !== undefined ? q.correctOption : q.answer);
+                        let correctVal = parseInt(q.correct);
                         if (selectedVal === correctVal) {
                             totalScore += qMarks;
                         }
@@ -433,7 +450,7 @@
                     await setDoc(resultRef, {
                         userId: currentUserId,
                         lessonId: activeLessonId,
-                        examId: activeExamId,
+                        examTitle: activeExamTitle,
                         score: totalScore,
                         maxScore: maxScore,
                         submittedAt: new Date().toISOString()
@@ -442,9 +459,16 @@
                     let userRef = doc(db, "users", currentUserId);
                     let pts = lessonSettings.points || {};
                     let examPoints = pts.exam !== undefined ? pts.exam : 10;
+                    let perfectBonus = pts.perfectExam !== undefined ? pts.perfectExam : 15;
+
+                    let pointsToAdd = examPoints;
+                    // مكافأة تقفيل الامتحان إذا حصل على الدرجة النهائية وتفعيل التهنئة
+                    if (totalScore === maxScore && maxScore > 0 && lessonSettings.fullMarkCongrats !== false) {
+                        pointsToAdd += perfectBonus;
+                    }
 
                     await updateDoc(userRef, {
-                        points: increment(examPoints)
+                        points: increment(pointsToAdd)
                     });
                 } catch(e) {
                     console.log("Error saving exam result:", e);
