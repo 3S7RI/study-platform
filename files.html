@@ -103,6 +103,12 @@
             text-align: center; font-size: 0.78rem; color: var(--danger); font-weight: bold; margin-bottom: 10px;
         }
 
+        .attempts-counter-badge {
+            background: rgba(99, 102, 241, 0.1); border: 1px solid var(--primary); color: var(--primary);
+            padding: 5px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: bold; margin-bottom: 10px;
+            text-align: center; display: flex; justify-content: space-between; align-items: center;
+        }
+
         /* نافذة التنبيهات */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -234,7 +240,6 @@
             if (!item) return;
 
             let s = item.settings || {};
-            // مزامنة عدد مرات الدخول من إعدادات الحصة (lessonAttempts) مع القيمة الافتراضية 5
             let maxAttempts = (s.lessonAttempts !== undefined && s.lessonAttempts !== "") ? Number(s.lessonAttempts) : 5;
 
             if (currentUserId) {
@@ -299,12 +304,14 @@
                     }
                 }
 
-                // التحقق من استنفاد محاولات الدخول لعرض حالة القفل للمستخدم من الخارج
                 let maxAttempts = (s.lessonAttempts !== undefined && s.lessonAttempts !== "") ? Number(s.lessonAttempts) : 5;
+                let currentAccessCount = 0;
                 let isAttemptsExhausted = false;
+
                 if (currentUserData && currentUserData.lessonsActivity) {
                     let lessonAct = currentUserData.lessonsActivity[item.id] || {};
-                    if ((lessonAct.accessCount || 0) >= maxAttempts) {
+                    currentAccessCount = lessonAct.accessCount || 0;
+                    if (currentAccessCount >= maxAttempts) {
                         isAttemptsExhausted = true;
                     }
                 }
@@ -316,6 +323,10 @@
                     <div>
                         <div class="file-title">الحصة ${item.number || 1}: ${title}</div>
                         <div class="file-desc">${item.targetGroup || 'الصف الدراسي'} - المادة: ${subject}</div>
+                        <div class="attempts-counter-badge">
+                            <span>🔄 عدد مرات الدخول:</span>
+                            <span><strong>${currentAccessCount}</strong> / ${maxAttempts}</span>
+                        </div>
                     </div>
                 `;
 
