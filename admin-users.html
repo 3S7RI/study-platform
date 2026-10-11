@@ -123,7 +123,6 @@
         .avatar-wrapper { position: relative; width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; padding: 3px; display: flex; align-items: center; justify-content: center; }
         .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
         
-        /* إطارات البروفايل المتطابقة للمستويات وتأثيراتها */
         .rank-frame-weak { background: linear-gradient(45deg, #ef4444, #991b1b); box-shadow: 0 0 18px rgba(239, 68, 68, 0.7); }
         .rank-frame-medium { background: linear-gradient(45deg, #f59e0b, #b45309); box-shadow: 0 0 20px rgba(245, 158, 11, 0.8); }
         .rank-frame-strong { background: linear-gradient(45deg, #eab308, #ca8a04); box-shadow: 0 0 22px rgba(234, 179, 8, 0.9); }
@@ -141,7 +140,6 @@
             100% { background-position: 0% 50%; box-shadow: 0 0 20px rgba(6, 182, 212, 0.8); } 
         }
 
-        /* مستطيل المستوى الموحد المطابق لصفحة البروفايل تماماً */
         .level-badge-box {
             display: inline-flex; align-items: center; justify-content: center; gap: 6px;
             padding: 7px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; margin: 8px auto 12px;
@@ -154,7 +152,6 @@
         .badge-very-strong { background: linear-gradient(135deg, #1e3a8a, #172554); color: #bfdbfe; }
         .badge-legendary { background: linear-gradient(135deg, #4c1d95, #311075, #1e1b4b); color: #e9d5ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5); }
 
-        /* أيقونات النوع SVG الموحدة للأولاد والبنات */
         .gender-icon-badge {
             display: inline-flex; align-items: center; justify-content: center;
             width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 4px;
@@ -189,7 +186,7 @@
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <button class="btn-tab active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
-                <button class="btn-tab" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡</button>
+                <button class="btn-tab" id="btnTabAdmins" onclick="switchTab('admins')">قائمة مشرفين المنصة 🛡️</button>
             </div>
         </nav>
 
@@ -207,31 +204,16 @@
             </div>
         </div>
 
-        <!-- شاشة 2: إدارة المشرفين -->
+        <!-- شاشة 2: قائمة مشرفين المنصة -->
         <div id="tabAdminsContent" class="section-box hidden">
             <div class="section-header">
-                <h2>إدارة المشرفين وصلاحيات لوحة التحكم 🛡️</h2>
+                <h2>قائمة مشرفين المنصة 🛡️</h2>
+                <!-- زر بلص الدائري لإضافة مشرف جديد مطابقة تماماً لإدارة الطلاب -->
+                <button class="btn-add-circle" onclick="openAddAdminModal()" title="إضافة مشرف جديد">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
             </div>
 
-            <div style="background: var(--th-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px;">
-                <h3 style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 10px;">إضافة مشرف جديد:</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="form-group" style="margin-top:0;"><label>الاسم:</label><input type="text" id="newAdminName" placeholder="اسم المشرف"></div>
-                    <div class="form-group" style="margin-top:0;"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="newAdminUsername" placeholder="البريد أو المعرف"></div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-                    <div class="form-group" style="margin-top:0;"><label>كلمة المرور:</label><input type="password" id="newAdminPassword" placeholder="كلمة السر"></div>
-                    <div class="form-group" style="margin-top:0;"><label>الصلاحية:</label>
-                        <select id="newAdminRole">
-                            <option value="full">مشرف عام</option>
-                            <option value="moderator">مساعد / مراقب</option>
-                        </select>
-                    </div>
-                </div>
-                <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف للسحابة 🚀</button>
-            </div>
-
-            <h3 style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 10px;">قائمة المشرفين الحاليين:</h3>
             <div id="adminsTableContainer" class="table-responsive">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل قائمة المشرفين...</p>
             </div>
@@ -260,6 +242,26 @@
         </div>
     </div>
 
+    <!-- نافذة إضافة مشرف جديد (عائمة بـ ثيم المنصة) -->
+    <div class="modal-overlay" id="addAdminModal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 1rem; color: var(--text-main);">إضافة مشرف جديد 🛡️</h3>
+                <button onclick="closeModal('addAdminModal')" style="background:none; border:none; color:var(--text-main); cursor:pointer; font-size:1.1rem;">✕</button>
+            </div>
+            <div class="form-group" style="margin-top:0;"><label>الاسم:</label><input type="text" id="newAdminName" placeholder="اسم المشرف"></div>
+            <div class="form-group"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="newAdminUsername" placeholder="البريد أو المعرف"></div>
+            <div class="form-group"><label>كلمة المرور:</label><input type="password" id="newAdminPassword" placeholder="كلمة السر"></div>
+            <div class="form-group"><label>الصلاحية:</label>
+                <select id="newAdminRole">
+                    <option value="full">مشرف عام</option>
+                    <option value="moderator">مساعد / مراقب</option>
+                </select>
+            </div>
+            <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف للسحابة 🚀</button>
+        </div>
+    </div>
+
     <!-- نافذة بروفايل الطالب المتكاملة -->
     <div class="modal-overlay" id="studentProfileModal">
         <div class="modal-card" style="text-align: center;">
@@ -268,7 +270,6 @@
             </div>
             <h3 id="profileName" style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 2px;">اسم الطالب</h3>
             
-            <!-- مستطيل المستوى الموحد تماماً مثل صفحة البروفايل -->
             <div id="profileRankBadgeBox" class="level-badge-box badge-weak">
                 <span id="profileRankText">ضعيف • 0 نقطة</span>
             </div>
@@ -443,7 +444,6 @@
             return false;
         }
 
-        // دالة توليد أيقونة النوع SVG الموحدة (أزرق للولد وللبنت بينك)
         function getGenderSvgHtml(female) {
             if (female) {
                 return `<span class="gender-icon-badge female" title="أنثى">
@@ -464,7 +464,6 @@
             }
         }
 
-        // دالة تحديد تفاصيل المستوى والإطار والمسمى الموحد بناءً على النقاط
         function getRankDetails(score = 0) {
             if (score < 500) return { key: 'weak', label: 'ضعيف', badgeClass: 'badge-weak', frameClass: 'rank-frame-weak' };
             if (score < 1500) return { key: 'medium', label: 'متوسط', badgeClass: 'badge-medium', frameClass: 'rank-frame-medium' };
@@ -530,7 +529,6 @@
             let points = activeStudentData.totalScore || activeStudentData.points || 0;
             let rankInfo = getRankDetails(points);
 
-            // تحديث إطار ومستطيل المستوى ليتطابق مع صفحة البروفايل تماماً
             const avatarFrame = document.getElementById('profileAvatarFrame');
             avatarFrame.className = `avatar-wrapper ${rankInfo.frame}`;
 
@@ -603,12 +601,10 @@
             }
         }
 
-        // الترقية التلقائية للمستوى التالي مباشرة بناءً على نظام النقاط
         async function upgradeStudentLevelAuto() {
             if (!activeDocId || !activeStudentData) return;
             let currentPoints = activeStudentData.totalScore || activeStudentData.points || 0;
-            let nextThresholds = [0, 500, 1500, 3000, 5000, 7500];
-            let targetPoints = currentPoints + 500; // إضافة نقاط تدفع الطالب للمستوى التالي
+            let targetPoints = currentPoints + 500;
             let rankInfo = getRankDetails(targetPoints);
 
             try {
@@ -751,6 +747,41 @@
             container.innerHTML = html;
         }
 
+        function openAddAdminModal() {
+            document.getElementById('newAdminName').value = '';
+            document.getElementById('newAdminUsername').value = '';
+            document.getElementById('newAdminPassword').value = '';
+            document.getElementById('addAdminModal').style.display = 'flex';
+        }
+
+        async function addNewAdmin() {
+            let name = document.getElementById('newAdminName').value.trim();
+            let username = document.getElementById('newAdminUsername').value.trim();
+            let password = document.getElementById('newAdminPassword').value.trim();
+            let role = document.getElementById('newAdminRole').value;
+
+            if (!name || !username || !password) {
+                alert('يرجى ملء كافة بيانات المشرف!');
+                return;
+            }
+
+            try {
+                await db.collection('admins').doc(username.toLowerCase().trim()).set({
+                    name: name,
+                    username: username,
+                    email: username,
+                    password: password,
+                    role: role
+                });
+                
+                closeModal('addAdminModal');
+                await fetchAdminsFromCloud();
+                alert('تم إضافة المشرف الجديد بنجاح بالسحابة! 🚀');
+            } catch(e) {
+                alert('حدث خطأ أثناء إضافة المشرف.');
+            }
+        }
+
         function openAdminModal(docId) {
             activeDocId = docId;
             let adm = adminsList.find(a => a.id === docId);
@@ -799,37 +830,6 @@
                 closeModal('adminModal');
                 alert('تم تحديث معلومات المشرف بنجاح!');
             } catch(e) { alert('فشل التعديل.'); }
-        }
-
-        async function addNewAdmin() {
-            let name = document.getElementById('newAdminName').value.trim();
-            let username = document.getElementById('newAdminUsername').value.trim();
-            let password = document.getElementById('newAdminPassword').value.trim();
-            let role = document.getElementById('newAdminRole').value;
-
-            if (!name || !username || !password) {
-                alert('يرجى ملء كافة بيانات المشرف!');
-                return;
-            }
-
-            try {
-                await db.collection('admins').doc(username.toLowerCase().trim()).set({
-                    name: name,
-                    username: username,
-                    email: username,
-                    password: password,
-                    role: role
-                });
-                
-                document.getElementById('newAdminName').value = '';
-                document.getElementById('newAdminUsername').value = '';
-                document.getElementById('newAdminPassword').value = '';
-
-                await fetchAdminsFromCloud();
-                alert('تم إضافة المشرف الجديد بنجاح بالسحابة! 🚀');
-            } catch(e) {
-                alert('حدث خطأ أثناء إضافة المشرف.');
-            }
         }
 
         function closeModal(modalId) {
