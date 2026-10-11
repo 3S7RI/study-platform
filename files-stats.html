@@ -113,7 +113,6 @@
         }
         .accordion-header:hover { background: var(--hover-bg); }
         
-        /* تنسيق موحد لأسطر الهيدر والأزرار في سطر واحد */
         .accordion-title-side { display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .accordion-action-side { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
@@ -132,7 +131,9 @@
         
         .student-profile-link { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--primary); font-weight: bold; }
         .student-profile-link:hover { text-decoration: underline; }
-        .student-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
+        .student-avatar-container { position: relative; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+        .student-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+        .student-avatar-frame { position: absolute; top: -2px; left: -2px; width: 32px; height: 32px; pointer-events: none; }
 
         .loader-modal {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -296,7 +297,7 @@
             </div>
             <div id="loadingSuccessState" class="hidden" style="margin-top: 10px;">
                 <p style="color: var(--success); font-weight: bold; font-size: 0.85rem; margin-bottom: 10px;">✔ تم التوزيع بنجاح تام!</p>
-                <button onclick="closeLoaderModal()" style="background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;">إغلاق ✕</button>
+                <button onclick="closeLoaderModal()" style="background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.80rem;">إغلاق ✕</button>
             </div>
         </div>
     </div>
@@ -327,8 +328,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { findStudentDocument, addPointsToStudent } from "./student-service.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { findStudentDocument, addPointsToStudent, updateStudentData } from "./student-service.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -464,7 +465,15 @@
             globalStudentsList.forEach((student) => {
                 let name = student.name || student.fullName || 'طالب المنصة';
                 let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
+                let frameUrl = student.frameUrl || student.selectedFrame || '';
                 let activity = (student.lessonsActivity || {})[lessonId] || {};
+
+                let avatarHtml = `
+                    <div class="student-avatar-container" onclick='openStudentProfile(${JSON.stringify(student)})' style="cursor:pointer;">
+                        <img src="${avatar}" class="student-avatar">
+                        ${frameUrl ? `<img src="${frameUrl}" class="student-avatar-frame">` : ''}
+                    </div>
+                `;
 
                 // 1. الملازم والتلخيص
                 let notesSeen = activity.studyNotes === true;
@@ -472,7 +481,7 @@
                 let notesBadge = notesSeen ? '<span style="color:var(--success); font-weight:bold;">✔ اطلع عليها</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
                 let summaryBadge = summarySeen ? '<span style="color:var(--success); font-weight:bold;">✔ قرأ التلخيص</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
                 notesHtml += `<tr>
-                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'>${avatarHtml}<b>${name}</b></div></td>
                     <td>${notesBadge}</td><td>${summaryBadge}</td>
                     <td>${(notesSeen || summarySeen) ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
                 </tr>`;
@@ -482,7 +491,7 @@
                 let watchDuration = activity.watchTimeMinutes || 0;
                 let videoBadge = watched ? `<span style="color:var(--success); font-weight:bold;">✔ مشاهدة كاملة (${watchDuration} دقيقة)</span>` : (watchDuration > 0 ? `<span style="color:#f59e0b; font-weight:bold;">⏳ شاهد (${watchDuration} دقيقة)</span>` : '<span style="color:var(--danger);">❌ لم يشاهد</span>');
                 videoHtml += `<tr>
-                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'>${avatarHtml}<b>${name}</b></div></td>
                     <td>${videoBadge}</td><td>${watchDuration} دقيقة</td>
                     <td>${(watched || watchDuration > 0) ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
                 </tr>`;
@@ -498,7 +507,7 @@
                     examBadge = '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر بعد</span>';
                 }
                 examHtml += `<tr>
-                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'><img src="${avatar}" class="student-avatar"><b>${name}</b></div></td>
+                    <td><div class="student-profile-link" onclick='openStudentProfile(${JSON.stringify(student)})'>${avatarHtml}<b>${name}</b></div></td>
                     <td>${examData ? '<span style="color:var(--success);">امتحن</span>' : '<span style="color:var(--danger);">لم يختبر</span>'}</td>
                     <td>${examData ? `${examData.score}/${examData.totalMarks}` : '-'}</td>
                     <td>${examBadge}</td>
@@ -647,22 +656,51 @@
             let email = student.email || 'غير متوفر';
             let phone = student.phone || student.parentPhone || 'غير متوفر';
             let totalPoints = student.points || student.totalScore || 0;
+            let levelTitle = student.levelName || student.level || 'المبتدئ';
+            let frameUrl = student.frameUrl || student.selectedFrame || '';
+            let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
 
             let bodyHtml = `
                 <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; background:var(--th-bg); padding:10px; border-radius:10px; border:1px solid var(--border-color);">
-                    <img src="${student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png'}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                    <div style="position:relative; width:60px; height:60px;">
+                        <img src="${avatar}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                        ${frameUrl ? `<img src="${frameUrl}" style="position:absolute; top:-4px; left:-4px; width:68px; height:68px; pointer-events:none;">` : ''}
+                    </div>
                     <div>
                         <h4 style="font-size:0.95rem; color:var(--text-main);">${student.name || student.fullName || 'طالب'}</h4>
                         <p style="font-size:0.75rem; color:var(--text-muted);">البريد: ${email}</p>
                         <p style="font-size:0.75rem; color:var(--text-muted);">الهاتف: ${phone}</p>
+                        <p style="font-size:0.75rem; color:var(--primary); font-weight:bold;">المستوى: ${levelTitle}</p>
                     </div>
                 </div>
-                <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center; margin-bottom:15px;">
-                    <span style="font-size:0.75rem; color:var(--text-muted); display:block;">إجمالي النقاط ⭐</span>
-                    <strong style="font-size:1.1rem; color:var(--primary);">${totalPoints}</strong>
+                
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:15px;">
+                    <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center;">
+                        <span style="font-size:0.75rem; color:var(--text-muted); display:block;">إجمالي النقاط ⭐</span>
+                        <strong style="font-size:1.1rem; color:var(--primary);" id="profilePointsDisplay">${totalPoints}</strong>
+                    </div>
+                    <div style="background:var(--th-bg); padding:10px; border-radius:8px; border:1px solid var(--border-color); text-align:center;">
+                        <span style="font-size:0.75rem; color:var(--text-muted); display:block;">حالة الحساب</span>
+                        <strong style="font-size:0.9rem; color:var(--success);">نشط ومفعل ✅</strong>
+                    </div>
                 </div>
-                <div style="font-weight:bold; margin-bottom:6px; color:var(--text-main);">📌 تفاصيل تفاعل الطالب:</div>
-                <p style="font-size:0.78rem; color:var(--text-muted);">هذا الطالب مسجل في المنصة وتتم متابعة تفاعله لحظياً مع الحصص والملازم والامتحانات.</p>
+
+                <div style="background:var(--th-bg); padding:12px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:12px;">
+                    <h5 style="font-size:0.82rem; margin-bottom:8px; color:var(--text-main);">⚙️ تعديل بيانات ونقاط الطالب:</h5>
+                    <div style="display:flex; gap:6px; margin-bottom:8px;">
+                        <input type="text" id="editStudentNameInput" value="${student.name || student.fullName || ''}" placeholder="اسم الطالب" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;">
+                        <input type="text" id="editStudentPhoneInput" value="${phone !== 'غير متوفر' ? phone : ''}" placeholder="رقم الهاتف" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;">
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <input type="number" id="editStudentPointsInput" value="${totalPoints}" placeholder="النقاط" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.8rem;">
+                        <button onclick="saveStudentProfileEdits('${student.id}', '${email}')" style="background:var(--primary); color:white; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;">حفظ التعديلات 💾</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:8px;">
+                    <button onclick="banStudentAccount('${student.id}', '${email}')" style="flex:1; background:#f59e0b; color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.8rem;">حظر الطالب ⛔</button>
+                    <button onclick="deleteStudentAccount('${student.id}', '${email}')" style="flex:1; background:var(--danger); color:white; border:none; padding:8px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.8rem;">حذف الطالب 🗑️</button>
+                </div>
             `;
 
             document.getElementById('modalStudentBodyContent').innerHTML = bodyHtml;
@@ -671,6 +709,72 @@
 
         window.closeStudentModal = function() {
             document.getElementById('studentProfileModal').classList.remove('active');
+        };
+
+        window.saveStudentProfileEdits = async function(studentId, email) {
+            let newName = document.getElementById('editStudentNameInput').value.trim();
+            let newPhone = document.getElementById('editStudentPhoneInput').value.trim();
+            let newPoints = parseInt(document.getElementById('editStudentPointsInput').value) || 0;
+
+            try {
+                let studentRef = doc(db, "users", studentId);
+                await updateDoc(studentRef, {
+                    name: newName,
+                    fullName: newName,
+                    phone: newPhone,
+                    points: newPoints
+                });
+
+                // تحديث القائمة المحلية
+                let idx = globalStudentsList.findIndex(s => s.id === studentId);
+                if (idx !== -1) {
+                    globalStudentsList[idx].name = newName;
+                    globalStudentsList[idx].fullName = newName;
+                    globalStudentsList[idx].phone = newPhone;
+                    globalStudentsList[idx].points = newPoints;
+                }
+
+                alert("✔ تم تحديث بيانات الطالب بنجاح!");
+                if (activeSelectedLessonId) {
+                    renderAccordionTables(activeSelectedLessonId);
+                }
+                closeStudentModal();
+            } catch (err) {
+                console.error(err);
+                alert("حدث خطأ أثناء حفظ التعديلات.");
+            }
+        };
+
+        window.banStudentAccount = async function(studentId, email) {
+            if (confirm(`هل أنت متأكد من حظر الطالب صاحب البريد (${email})؟`)) {
+                try {
+                    let studentRef = doc(db, "users", studentId);
+                    await updateDoc(studentRef, { isBanned: true });
+                    alert("⛔ تم حظر الطالب بنجاح.");
+                    closeStudentModal();
+                    await fetchLessonsAndStudents();
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء حظر الطالب.");
+                }
+            }
+        };
+
+        window.deleteStudentAccount = async function(studentId, email) {
+            if (confirm(`تحذير شديد: هل تريد حذف حساب الطالب (${email}) نهائياً من قاعدة البيانات؟`)) {
+                try {
+                    await deleteDoc(doc(db, "users", studentId));
+                    alert("🗑️ تم حذف حساب الطالب نهائياً.");
+                    closeStudentModal();
+                    await fetchLessonsAndStudents();
+                    if (activeSelectedLessonId) {
+                        renderAccordionTables(activeSelectedLessonId);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("حدث خطأ أثناء حذف حساب الطالب.");
+                }
+            }
         };
     </script>
 </body>
