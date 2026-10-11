@@ -188,7 +188,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -224,7 +224,9 @@
                 if (userSnap.exists()) {
                     currentUserData = userSnap.data();
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.log("Error fetching user data:", e);
+            }
         }
 
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -274,38 +276,37 @@
             if (currentUserId) {
                 try {
                     let userRef = doc(db, "users", currentUserId);
+                    
+                    // إعادة جلب أحدث بيانات المستخدم للتأكد من تطابق العدادات لحظياً
                     let userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        let userData = userSnap.data();
-                        let lessonsActivity = userData.lessonsActivity || {};
-                        let lessonAct = lessonsActivity[lessonId] || {};
-                        let currentCount = lessonAct.accessCount || 0;
+                    let userData = userSnap.exists() ? userSnap.data() : (currentUserData || {});
+                    
+                    let lessonsActivity = userData.lessonsActivity || {};
+                    let lessonAct = lessonsActivity[lessonId] || {};
+                    let currentCount = lessonAct.accessCount || 0;
 
-                        if (currentCount >= maxAttempts) {
-                            showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
-                            renderLessonsList(globalLessonsData);
-                            return;
-                        }
-
-                        // زيادة العداد بمقدار 1
-                        let newCount = currentCount + 1;
-                        lessonAct.accessCount = newCount;
-                        lessonsActivity[lessonId] = lessonAct;
-
-                        // تحديث دقيق ومباشر لحقل الدخول داخل السحابة
-                        await updateDoc(userRef, { 
-                            [`lessonsActivity.${lessonId}`]: lessonAct 
-                        });
-                        
-                        if (!currentUserData.lessonsActivity) currentUserData.lessonsActivity = {};
-                        currentUserData.lessonsActivity[lessonId] = lessonAct;
+                    if (currentCount >= maxAttempts) {
+                        showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
+                        renderLessonsList(globalLessonsData);
+                        return;
                     }
+
+                    // زيادة العداد بمقدار 1
+                    lessonAct.accessCount = currentCount + 1;
+                    lessonsActivity[lessonId] = lessonAct;
+
+                    // استخدام setDoc مع الدمج (merge: true) لضمان حفظ وتحديث السجل بالكامل بدون أخطاء
+                    await setDoc(userRef, { lessonsActivity: lessonsActivity }, { merge: true });
+                    
+                    if (!currentUserData) currentUserData = {};
+                    currentUserData.lessonsActivity = lessonsActivity;
+
                 } catch(e) {
-                    console.log("Error updating access count:", e);
+                    console.log("Error updating access count via setDoc:", e);
                 }
             }
 
-            // الانتقال بعد ضمان اكتمال حفظ التحديث في السحابة
+            // الانتقال لصفحة الحصة بعد اكتمال الحفظ في السحابة
             window.location.href = `files-lesson-view.html?id=${lessonId}`;
         };
 
@@ -420,7 +421,7 @@
                         let seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
                         let timerElement = document.getElementById(`countdown-${item.id}`);
-                        if (timerElement) {
+                        if, (timerElement) {
                             timerElement.innerHTML = `⏳ تفتح خلال: ${days > 0 ? days + ' يوم ' : ''}${hours}س ${minutes}د ${seconds}ث`;
                         }
                     }, 1000);
