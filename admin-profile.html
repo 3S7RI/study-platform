@@ -575,8 +575,9 @@
             </div>
         </div>
     </div>
-
+    <!-- تضمين مكتبات Firebase SDK وسيرفر الخدمات -->
     <script type="module">
+        import { getAdminData, updateAdminData, deleteAdminAccount } from "./admin-service.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -598,6 +599,7 @@
         let currentAdminData = null;
         let selectedNewAvatarBase64 = null;
         let toastTimeout = null;
+        let currentAdminDocKey = null; // لتخزين مفتاح الدوك الفعلي في قاعدة البيانات
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
         const toastEl = document.getElementById('customToast');
@@ -636,23 +638,45 @@
             }
         };
 
-        // التحقق الصارم المخصص لبروفايل الأدمن فقط (مجموعة admins) ومنع إنشاء أي حساب طالب وهمي
+        // التحقق والاعتماد على admin-service.js وجلب بيانات المشرف بدقة
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 let emailKey = (user.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
                 let uid = user.uid;
 
                 try {
-                    let docSnap = null;
+                    let adminInfo = null;
+                    let targetKey = null;
+
+                    // محاولة جلب البيانات عبر خدمة admin-service إذا توفر الـ uid أو الايميل
                     if (uid) {
-                        docSnap = await getDoc(doc(db, "admins", uid));
+                        adminInfo = await getAdminData(db, uid);
+                        if (adminInfo) targetKey = uid;
                     }
-                    if ((!docSnap || !docSnap.exists()) && emailKey) {
-                        docSnap = await getDoc(doc(db, "admins", emailKey));
+                    if (!adminInfo && emailKey) {
+                        adminInfo = await getAdminData(db, emailKey);
+                        if (adminInfo) targetKey = emailKey;
                     }
 
-                    if (docSnap && docSnap.exists()) {
-                        currentAdminData = docSnap.data();
+                    // تراجع في حال عدم العثور عبر الخدمة مباشرة للبحث المباشر
+                    if (!adminInfo) {
+                        let docSnap = null;
+                        if (uid) {
+                            docSnap = await getDoc(doc(db, "admins", uid));
+                            if (docSnap.exists()) targetKey = uid;
+                        }
+                        if ((!docSnap || !docSnap.exists()) && emailKey) {
+                            docSnap = await getDoc(doc(db, "admins", emailKey));
+                            if (docSnap.exists()) targetKey = emailKey;
+                        }
+                        if (docSnap && docSnap.exists()) {
+                            adminInfo = docSnap.data();
+                        }
+                    }
+
+                    if (adminInfo) {
+                        currentAdminData = adminInfo;
+                        currentAdminDocKey = targetKey || emailKey;
                         sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                         sessionStorage.setItem('adminEmail', emailKey);
                         renderAdminProfile(currentAdminData);
@@ -675,7 +699,7 @@
             const container = document.getElementById('profileContent');
             let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
             let fullName = admin.fullname || admin.name || "مسؤول النظام";
-            let adminId = admin.adminId || "ADM-0001";
+            let adminId = admin.adminId || admin.id || "ADM-0001";
 
             container.innerHTML = `
                 <div class="profile-header">
@@ -691,7 +715,7 @@
                     </div>
                     
                     <div class="admin-id-container">
-                        <span class="id-text-badge">Admin ID: ${adminId}</span>
+                        <span class="id-text-badge">id: ${adminId}</span>
                         <button class="copy-id-btn" onclick="copyAdminId('${adminId}')">نسخ 📋</button>
                     </div>
 
@@ -714,7 +738,7 @@
 
         window.copyAdminId = function(idText) {
             navigator.clipboard.writeText(idText).then(() => {
-                showToast('تم نسخ معرف الأدمن بنجاح!', '📋');
+                showToast('تم نسخ المعرف بنجاح!', '📋');
             });
         };
 
@@ -752,6 +776,7 @@
             }
         };
 
+        // تحديث صورة البروفايل عبر admin-service.js
         window.saveAvatarDirectly = async function() {
             if (!selectedNewAvatarBase64) {
                 showToast('الرجاء اختيار صورة جديدة أولاً!', '⚠️');
@@ -766,9 +791,11 @@
                 currentAdminData.profileImage = selectedNewAvatarBase64;
                 currentAdminData.avatar = selectedNewAvatarBase64;
 
-                let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
-                if (emailKey) {
-                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
+                if (currentAdminDocKey) {
+                    await updateAdminData(db, currentAdminDocKey, {
+                        profileImage: selectedNewAvatarBase64,
+                        avatar: selectedNewAvatarBase64
+                    });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
@@ -787,10 +814,12 @@
             if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
             currentAdminData.profileImage = "";
             currentAdminData.avatar = "";
-            let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (emailKey) {
-                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
+                if (currentAdminDocKey) {
+                    await updateAdminData(db, currentAdminDocKey, {
+                        profileImage: "",
+                        avatar: ""
+                    });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
@@ -802,6 +831,7 @@
             }
         };
 
+        // حفظ وتحديث بيانات الأدمن عبر admin-service.js
         window.saveAdminChanges = async function() {
             let newName = document.getElementById('editAdminName').value.trim();
             let newPhone = document.getElementById('editAdminPhone').value.trim();
@@ -817,10 +847,16 @@
             currentAdminData.phone = newPhone;
             if (newPass) currentAdminData.password = newPass;
 
-            let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
             try {
-                if (emailKey) {
-                    await setDoc(doc(db, "admins", emailKey), currentAdminData, { merge: true });
+                let updatePayload = {
+                    fullname: newName,
+                    name: newName,
+                    phone: newPhone
+                };
+                if (newPass) updatePayload.password = newPass;
+
+                if (currentAdminDocKey) {
+                    await updateAdminData(db, currentAdminDocKey, updatePayload);
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
@@ -832,12 +868,12 @@
             }
         };
 
+        // حذف الحساب عبر admin-service.js
         window.deleteAccountPermanently = async function() {
             if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
             try {
-                let emailKey = (currentAdminData.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
-                if (emailKey) {
-                    await deleteDoc(doc(db, "admins", emailKey));
+                if (currentAdminDocKey) {
+                    await deleteAdminAccount(db, currentAdminDocKey);
                 }
                 sessionStorage.clear();
                 showToast("تم حذف حسابك نهائياً.", "⚠️");
