@@ -1,4 +1,4 @@
-// student-service.js - ملف الخدمات الشامل والموحد لإدارة وتخزين وإنشاء وتعديل بيانات طالب المنصة
+// student-service.js - ملف الخدمات الشامل والموحد لإدارة وجلب وتعديل بيانات طالب المنصة (بدون إنشاء تلقائي)
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
@@ -46,55 +46,61 @@ export async function findStudentDocument(db, identifier) {
 }
 
 /**
- * 2. جلب بيانات الطالب، وإنشاؤه تلقائياً فوراً إذا لم يكن موجوداً في قاعدة البيانات (حفظ وتخزين جديد)
+ * 2. جلب بيانات الطالب فقط (بدون إنشاء تلقائي نهائياً لتأمين المنصة)
  */
-export async function getOrSaveStudentData(db, studentIdentifier, initialData = {}) {
+export async function getStudentData(db, studentIdentifier) {
     let studentObj = await findStudentDocument(db, studentIdentifier);
-    
     if (studentObj) {
         return studentObj; // الطالب موجود بالفعل
     }
+    return null; // لا يتم إنشاء أي حساب تلقائياً
+}
 
-    // إذا لم يكن موجوداً، نقوم بإنشائه وتخزينه في مجموعة students كوثيقة جديدة
+/**
+ * 3. إنشاء طالب جديد رسمياً (يتم استدعاؤها فقط من واجهة التسجيل أو لوحة تحكم المشرفين)
+ */
+export async function createStudentAccount(db, studentIdentifier, studentData = {}) {
     try {
         const cleanId = String(studentIdentifier).toLowerCase().trim();
         const docRef = doc(db, "students", cleanId);
         
-        const defaultData = {
-            email: cleanId.includes('@') ? cleanId : '',
-            name: initialData.name || 'طالبة مكافحة',
-            fullName: initialData.fullName || initialData.name || 'طالبة مكافحة',
-            studentId: initialData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
-            phone: initialData.phone || '',
-            parentPhone: initialData.parentPhone || '',
-            gender: initialData.gender || 'female',
-            totalScore: initialData.totalScore || 10,
-            points: initialData.points || 10,
+        const newStudentData = {
+            email: cleanId.includes('@') ? cleanId : (studentData.email || ''),
+            name: studentData.name || 'طالب المنصة',
+            fullName: studentData.fullName || studentData.name || 'طالب المنصة',
+            studentId: studentData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
+            phone: studentData.phone || '',
+            parentPhone: studentData.parentPhone || studentData.guardianPhone || '',
+            gender: studentData.gender || studentData.type || 'male',
+            type: studentData.gender || studentData.type || 'male',
+            totalScore: 0,
+            points: 0,
             rank: 'weak',
             level: 'weak',
             active: true,
             createdAt: new Date().toISOString()
         };
 
-        await setDoc(docRef, defaultData, { merge: true });
-        console.log("تم إنشاء وتخزين طالبة جديدة بنجاح في السحابة:", cleanId);
-        
-        return { id: cleanId, ref: docRef, data: defaultData, collectionName: 'students' };
+        await setDoc(docRef, newStudentData);
+        console.log("تم إنشاء حساب الطالب رسمياً في السحابة:", cleanId);
+        return { id: cleanId, ref: docRef, data: newStudentData, collectionName: 'students' };
     } catch (e) {
-        console.error("خطأ في إنشاء الطالبة تلقائياً:", e);
+        console.error("خطأ في إنشاء حساب الطالب:", e);
         return null;
     }
 }
 
 /**
- * 3. تعديل وتحديث بيانات الطالب (لو مش موجود بينشئه، ولو موجود بيعدل بياناته ويزامنها)
+ * 4. تعديل وتحديث بيانات الطالب الموجود فعلياً
  */
 export async function updateStudentData(db, studentIdentifier, updateFields = {}) {
     try {
-        let studentObj = await getOrSaveStudentData(db, studentIdentifier, updateFields);
-        if (!studentObj) return false;
+        let studentObj = await findStudentDocument(db, studentIdentifier);
+        if (!studentObj) {
+            console.warn("محاولة تحديث بيانات طالب غير موجود:", studentIdentifier);
+            return false;
+        }
 
-        // دمج التحديثات الجديدة مع الحفاظ على حقل آخر تحديث
         const payload = {
             ...updateFields,
             lastUpdated: new Date().toISOString()
@@ -108,29 +114,28 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
         }
 
         await updateDoc(studentObj.ref, payload);
-        console.log("تم تحديث وتخزين بيانات الطالبة بنجاح!");
+        console.log("تم تحديث بيانات الطالب بنجاح!");
         return true;
     } catch (e) {
-        console.error("خطأ في تحديث بيانات الطالبة:", e);
+        console.error("خطأ في تحديث بيانات الطالب:", e);
         return false;
     }
 }
 
 /**
- * 4. تحديث وإضافة نقاط للطالب وتحديث مستواه فوراً (مع مزامنة totalScore و points)
+ * 5. تحديث وإضافة نقاط للطالب وتحديث مستواه فوراً
  */
 export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
     if (!studentIdentifier || !pointsToAdd || pointsToAdd <= 0) return false;
 
     try {
-        let studentObj = await getOrSaveStudentData(db, studentIdentifier);
+        let studentObj = await findStudentDocument(db, studentIdentifier);
         if (!studentObj) return false;
 
-        const currentScore = studentObj.data.totalScore || studentObj.data.points || 10;
+        const currentScore = studentObj.data.totalScore || studentObj.data.points || 0;
         const newTotalScore = currentScore + pointsToAdd;
         const newRankInfo = calculateStudentRank(newTotalScore);
 
-        // تحديث النقاط والمستوى الجديد فوراً في السحابة
         await updateDoc(studentObj.ref, {
             totalScore: newTotalScore,
             points: increment(pointsToAdd),
@@ -139,16 +144,16 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
             lastUpdated: new Date().toISOString()
         });
 
-        console.log(`تم إضافة ${pointsToAdd} نقطة بنجاح للطالبة. المجموع الجديد: ${newTotalScore} والمستوى: ${newRankInfo.title}`);
+        console.log(`تم إضافة ${pointsToAdd} نقطة بنجاح. المجموع الجديد: ${newTotalScore}`);
         return true;
     } catch (e) {
-        console.error("خطأ في إضافة النقاط للطالبة:", e);
+        console.error("خطأ في إضافة النقاط:", e);
         return false;
     }
 }
 
 /**
- * 5. جلب معلومات المستوى والشارة ودقة المسميات مطابقة لدليل المنصة الرسمي
+ * 6. حساب معلومات المستوى والشارة
  */
 export function calculateStudentRank(totalScore) {
     let score = totalScore || 0;
