@@ -176,10 +176,18 @@
         let globalLessonsData = [];
         let countdownIntervals = [];
         let currentUserId = null;
+        let currentUserData = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUserId = user.uid;
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        currentUserData = userSnap.data();
+                    }
+                } catch(e) {}
             }
             await fetchCloudLessons();
         });
@@ -226,7 +234,8 @@
             if (!item) return;
 
             let s = item.settings || {};
-            let maxAttempts = s.lessonAttempts || 5;
+            // مزامنة عدد مرات الدخول من إعدادات الحصة (lessonAttempts) مع القيمة الافتراضية 5
+            let maxAttempts = (s.lessonAttempts !== undefined && s.lessonAttempts !== "") ? Number(s.lessonAttempts) : 5;
 
             if (currentUserId) {
                 try {
@@ -234,23 +243,20 @@
                     let userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         let userData = userSnap.data();
-                        let visits = userData.lessonVisits || {};
-                        let currentCount = visits[lessonId] || 0;
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        let lessonAct = lessonsActivity[lessonId] || {};
+                        let currentCount = lessonAct.accessCount || 0;
 
                         if (currentCount >= maxAttempts) {
                             showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
                             return;
                         }
-
-                        visits[lessonId] = currentCount + 1;
-                        await updateDoc(userRef, { lessonVisits: visits });
                     }
                 } catch(e) {
-                    console.log("Error updating visits:", e);
+                    console.log("Error checking attempts:", e);
                 }
             }
 
-            // تم تصحيح اسم الملف هنا ليوجه إلى files-lesson-view.html بدلاً من lesson-view.html
             window.location.href = `files-lesson-view.html?id=${lessonId}`;
         };
 
@@ -293,8 +299,18 @@
                     }
                 }
 
+                // التحقق من استنفاد محاولات الدخول لعرض حالة القفل للمستخدم من الخارج
+                let maxAttempts = (s.lessonAttempts !== undefined && s.lessonAttempts !== "") ? Number(s.lessonAttempts) : 5;
+                let isAttemptsExhausted = false;
+                if (currentUserData && currentUserData.lessonsActivity) {
+                    let lessonAct = currentUserData.lessonsActivity[item.id] || {};
+                    if ((lessonAct.accessCount || 0) >= maxAttempts) {
+                        isAttemptsExhausted = true;
+                    }
+                }
+
                 let card = document.createElement('div');
-                card.className = isLocked ? 'file-card locked' : 'file-card';
+                card.className = (isLocked || isAttemptsExhausted) ? 'file-card locked' : 'file-card';
                 
                 let cardHtml = `
                     <div>
@@ -308,6 +324,13 @@
                         <div>
                             <div class="countdown-box" id="countdown-${item.id}">جاري حساب العد التنازلي...</div>
                             <button class="view-btn locked-btn">الحصة مقفولة مؤقتاً 🔒</button>
+                        </div>
+                    `;
+                } else if (isAttemptsExhausted) {
+                    cardHtml += `
+                        <div>
+                            <div class="countdown-box" style="border-color: var(--danger); color: var(--danger);">🚫 استنفدت عدد مرات الدخول (${maxAttempts}/${maxAttempts})</div>
+                            <button class="view-btn locked-btn">تم استنفاد المحاولات 🔒</button>
                         </div>
                     `;
                 } else {
