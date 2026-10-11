@@ -89,7 +89,6 @@
         }
         .lesson-section-header:hover { background: var(--hover-bg); }
         
-        /* تنسيق الجانب الأيمن ليكون متسقاً ومتساوي الأبعاد */
         .section-title-group { display: flex; align-items: center; gap: 12px; flex: 1; }
         .section-badge {
             background-color: var(--badge-bg); color: var(--badge-text);
@@ -285,22 +284,6 @@
                             if (localStorage.getItem(`local_notes_${lessonId}`)) studentActivityData.studyNotes = true;
                             if (localStorage.getItem(`local_summary_${lessonId}`)) studentActivityData.summarySeen = true;
                             if (localStorage.getItem(`local_video_${lessonId}`)) studentActivityData.videoWatched = true;
-
-                            let accessLimit = (activeLessonSettings.lessonAttempts !== undefined && activeLessonSettings.lessonAttempts !== "") ? Number(activeLessonSettings.lessonAttempts) : 5;
-                            let currentAccessCount = studentActivityData.accessCount || 0;
-                            
-                            if (!studentActivityData.countedThisSession) {
-                                currentAccessCount++;
-                                studentActivityData.accessCount = currentAccessCount;
-                                studentActivityData.countedThisSession = true;
-                                lessonsActivity[lessonId] = studentActivityData;
-                                await updateDoc(userRef, { lessonsActivity: lessonsActivity });
-                            }
-
-                            if (currentAccessCount > accessLimit) {
-                                document.getElementById('lessonContainerBox').innerHTML = `<div style="text-align:center; padding:50px;"><h3 style="color:var(--danger); margin-bottom:10px;">عذراً، لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${accessLimit} مرات).</h3><a href="files.html" class="view-btn" style="display:inline-block; margin-top:15px; width:auto; padding:10px 20px;">العودة للمكتبة</a></div>`;
-                                return;
-                            }
                         }
                     } catch (userErr) {}
                 }
@@ -497,12 +480,15 @@
             }
 
             if (settings.showExamSection !== false && hasExam) {
+                let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
+                let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
+
                 html += `
                     <div class="lesson-section-box" id="sectionExam" style="border-color: var(--primary);">
                         <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                             <div class="section-title-group">
                                 <span>📝 امتحان الحصة والتقييم</span>
-                                <span class="section-badge">1 امتحان</span>
+                                <span class="section-badge">محاولات الامتحان: ${studentExamSubmissions} / ${maxExamAttempts}</span>
                             </div>
                             <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                         </div>
@@ -593,7 +579,7 @@
             if (examStatusText && startExamBtn) {
                 if (isUnlocked) {
                     examStatusText.style.color = 'var(--success)';
-                    examStatusText.textContent = `عدد الأسئلة: ${activeExamData ? activeExamData.questions.length : 0} سؤال`;
+                    examStatusText.textContent = `عدد الأسئلة: ${activeExamData ? activeExamData.questions.length : 0} سؤال (متبقي محاولات)`;
                     startExamBtn.disabled = false;
                     startExamBtn.style.background = 'var(--primary)';
                     startExamBtn.style.cursor = 'pointer';
@@ -611,13 +597,42 @@
             }
         }
 
-        window.handleExamStartClick = function(lessonId) {
+        window.handleExamStartClick = async function(lessonId) {
             let startExamBtn = document.getElementById('startExamBtn');
             let isUnlocked = startExamBtn ? startExamBtn.getAttribute('data-unlocked') === 'true' : true;
 
             if (!isUnlocked) {
                 alert("عذراً، الامتحان مقفل. يجب استيفاء شروط الحصة أولاً أو استنفدت محاولاتك.");
                 return;
+            }
+
+            // احتساب محاولة جديدة لدخول الامتحان وتخزينها في السحابة فور الضغط على زر بدء الامتحان
+            if (currentUserId && activeLessonId) {
+                try {
+                    let userRef = doc(db, "users", currentUserId);
+                    let userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        let userData = userSnap.data();
+                        let lessonsActivity = userData.lessonsActivity || {};
+                        let lessonAct = lessonsActivity[activeLessonId] || {};
+                        
+                        let settings = activeLessonData.settings || {};
+                        let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
+                        let currentExamSubmissions = lessonAct.examSubmissionsCount || 0;
+
+                        if (currentExamSubmissions >= maxExamAttempts) {
+                            alert(`لقد استنفدت الحد الأقصى لمحاولات الامتحان (${maxExamAttempts} محاولة).`);
+                            return;
+                        }
+
+                        lessonAct.examSubmissionsCount = currentExamSubmissions + 1;
+                        lessonsActivity[activeLessonId] = lessonAct;
+
+                        await updateDoc(userRef, { lessonsActivity: lessonsActivity });
+                    }
+                } catch(e) {
+                    console.log("Error updating exam submission count:", e);
+                }
             }
 
             window.location.href = `lesson-exam.html?id=${activeLessonId}`;
