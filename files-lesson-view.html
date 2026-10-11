@@ -89,10 +89,11 @@
         }
         .lesson-section-header:hover { background: var(--hover-bg); }
         
-        .section-title-group { display: flex; align-items: center; gap: 10px; }
+        /* تنسيق الجانب الأيمن ليكون متسقاً ومتساوي الأبعاد */
+        .section-title-group { display: flex; align-items: center; gap: 12px; flex: 1; }
         .section-badge {
             background-color: var(--badge-bg); color: var(--badge-text);
-            padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
         }
 
         .section-left-side { display: flex; align-items: center; gap: 10px; }
@@ -228,7 +229,6 @@
                         activeLessonData = JSON.parse(cachedLesson);
                         activeLessonSettings = activeLessonData.settings || {};
                         
-                        // محاولة جلب بيانات الامتحان المرتبط مسبقاً إن وجد في الكاش أو السحابة
                         if (activeLessonData.examId) {
                             let cachedExam = localStorage.getItem(`cache_exam_${activeLessonData.examId}`);
                             if (cachedExam) {
@@ -305,7 +305,6 @@
                     } catch (userErr) {}
                 }
                 
-                // جلب تفاصيل الامتحان بشكل متزامن وسريع
                 if (activeLessonSettings.showExamSection !== false && activeLessonData.examId && activeLessonData.examId.trim() !== '') {
                     try {
                         const examRef = doc(db, "lessonExams", activeLessonData.examId);
@@ -343,7 +342,6 @@
             if (contentType === 'summary') studentActivityData.summarySeen = true;
             if (contentType === 'video') studentActivityData.videoWatched = true;
 
-            // تحديث حالة قفل الامتحان فوراً دون الحاجة لعمل Refresh للصفحة
             checkLocalStorageLockState();
 
             if (!currentUserId) return;
@@ -386,7 +384,6 @@
             let notes = item.notesList || [];
             let summaries = item.summariesList || [];
             let hasExam = !!examData && examData.questions && examData.questions.length > 0 && !!item.examId;
-            let examQuestionsCount = hasExam ? examData.questions.length : 0;
 
             let html = `
                 <div class="lesson-title-header">🎬 الحصة ${item.number || 1}: ${item.title || 'بدون عنوان'}</div>
@@ -505,7 +502,7 @@
                         <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                             <div class="section-title-group">
                                 <span>📝 امتحان الحصة والتقييم</span>
-                                <span class="section-badge">${examQuestionsCount} سؤال</span>
+                                <span class="section-badge">1 امتحان</span>
                             </div>
                             <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                         </div>
@@ -605,7 +602,7 @@
                 } else {
                     examStatusText.style.color = 'var(--danger)';
                     examStatusText.textContent = lockReasonMsg;
-                    startExamBtn.disabled = false; // نجعل الزر قابلاً للنقر لإظهار رسالة التنبيه للطالب
+                    startExamBtn.disabled = false;
                     startExamBtn.style.background = 'var(--border-color)';
                     startExamBtn.style.cursor = 'pointer';
                     startExamBtn.textContent = 'مقفل 🔒';
