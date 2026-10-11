@@ -386,21 +386,22 @@
                         <div class="lesson-section-content">
                             ${videos.map((v, idx) => {
                                 let displayName = (v.name && v.name.trim() !== '') ? v.name : 'فيديو الشرح';
-                                let isYouTube = v.url.includes('youtube.com') || v.url.includes('youtu.be');
-                                let embedUrl = isYouTube ? getEmbedYouTubeUrl(v.url) : v.url;
+                                let vUrl = v.url || '';
+                                let isYouTube = vUrl.includes('youtube.com') || vUrl.includes('youtu.be');
+                                let embedUrl = isYouTube ? getEmbedYouTubeUrl(vUrl) : vUrl;
                                 let preventFastForward = settings.preventFastForward !== false;
                                 return `
                                     <div class="content-item-row">
                                         <div class="content-item-top">
                                             <span class="content-item-title">📹 ${displayName}</span>
                                             <div class="action-btns-group">
-                                                <button type="button" class="view-btn" onclick="toggleVideoPlayerDirect(event, 'vid-collapse-${idx}')">فتح ▾</button>
+                                                <button type="button" class="view-btn" onclick="toggleVideoPlayerDirect(event, 'vid-collapse-${idx}')">مشاهدة ▾</button>
                                             </div>
                                         </div>
                                         <div class="video-collapse-box" id="vid-collapse-${idx}">
                                             ${isYouTube ? 
                                                 `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
-                                                `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)"><source src="${v.url}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
+                                                `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)"><source src="${vUrl}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
                                             }
                                         </div>
                                     </div>
@@ -489,19 +490,18 @@
                         <div class="lesson-section-header" onclick="toggleAccordion('sectionExam')">
                             <div class="section-title-group">
                                 <span>📝 امتحان الحصة والتقييم</span>
-                                <div style="display: flex; flex-direction: column; gap: 2px;">
-                                    <span class="section-badge">عدد الأسئلة: ${questionsCount} سؤال</span>
-                                    <span class="section-badge">المحاولات: ${studentExamSubmissions} / ${maxExamAttempts}</span>
-                                </div>
+                                <span class="section-badge">1 امتحان</span>
                             </div>
                             <div class="section-left-side"><span class="arrow-icon">▼</span></div>
                         </div>
                         <div class="lesson-section-content">
                             <div class="content-item-row">
                                 <div class="content-item-top">
-                                    <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
-                                        <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || item.examId}</span>
-                                        <span style="font-size: 0.75rem;" id="examStatusText">جاري فحص حالة القفل...</span>
+                                    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; text-align: right;">
+                                        <span style="font-weight: 700; color: var(--text-main); font-size: 0.88rem;">📝 ${examData.title || item.examId}</span>
+                                        <span style="font-size: 0.78rem; color: var(--text-muted);">📋 عدد الأسئلة: ${questionsCount} سؤال</span>
+                                        <span style="font-size: 0.78rem; color: var(--text-muted);">🔄 عدد المحاولات: ${studentExamSubmissions} / ${maxExamAttempts}</span>
+                                        <span style="font-size: 0.78rem; font-weight: bold;" id="examStatusText">جاري فحص حالة القفل...</span>
                                     </div>
                                     <div class="action-btns-group">
                                         <button type="button" onclick="handleExamStartClick('${item.id || activeLessonId}')" id="startExamBtn" class="view-btn">جاري التحقق...</button>
@@ -583,7 +583,7 @@
             if (examStatusText && startExamBtn) {
                 if (isUnlocked) {
                     examStatusText.style.color = 'var(--success)';
-                    examStatusText.textContent = 'الامتحان متاح الآن للمحاولة';
+                    examStatusText.textContent = 'حالة الامتحان: متاح الآن للمحاولة 👍';
                     startExamBtn.disabled = false;
                     startExamBtn.style.background = 'var(--primary)';
                     startExamBtn.style.cursor = 'pointer';
