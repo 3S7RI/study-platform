@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة رحلة دراسية - إنشاء الامتحانات</title>
+    <title>منصة رحلة دراسية - إنشاء امتحانات الحصص</title>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -184,7 +184,7 @@
         <!-- الهيدر الموحد -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">🏠 الرئيسية</a></div>
-            <div class="header-center-box"><div class="platform-title-box"><span>إنشاء الامتحانات 📝</span></div></div>
+            <div class="header-center-box"><div class="platform-title-box"><span>إنشاء امتحانات الحصص 📝</span></div></div>
             <div class="header-left-side"><button class="btn-theme-toggle" id="themeToggleBtn" title="تغيير الوضع">☀️</button></div>
         </header>
 
@@ -200,8 +200,8 @@
 
         <div class="section-box">
             <div class="section-header">
-                <h2>إنشاء الامتحانات 📝</h2>
-                <a href="files-exam-sync.html" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--primary); padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 0.78rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">🔗 إدارة وربط الامتحانات</a>
+                <h2>إنشاء امتحان حصة جديد 📝</h2>
+                <a href="files-exam-sync.html" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); border: 1px solid var(--primary); padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 0.78rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">🔗 الانتقال لصفحة ربط الامتحانات</a>
             </div>
             
             <div class="form-group"><label>عنوان الامتحان:</label><input type="text" id="examTitle" placeholder="مثال: امتحان درس الباب الأول كيمياء"></div>
@@ -286,7 +286,8 @@
                     <button class="btn-add-ques" id="addOrUpdateBtn" onclick="addNewQuestionToExam()">إضافة السؤال للامتحان ✅</button>
                 </div>
             </div>
-            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن الامتحانات بالسحابة 🚀</button>
+            <!-- زر الحفظ في كولكشن lessonExams -->
+            <button class="btn-save" onclick="saveFullExamToCloud()">حفظ الامتحان في كولكشن lessonExams بالسحابة 🚀</button>
         </div>
     </div>
 
@@ -327,6 +328,7 @@
 
         let currentDraftQuestions = [];
         let editingQuestionIndex = null;
+        let pendingRedirect = false;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -355,6 +357,9 @@
 
         window.closePlatformToast = function() {
             document.getElementById('platformToastModal').style.display = 'none';
+            if (pendingRedirect) {
+                window.location.href = 'files-exam-sync.html';
+            }
         };
 
         window.autoGrowTextarea = function(element) {
@@ -646,7 +651,8 @@
             };
 
             try {
-                await addDoc(collection(db, "exams"), examDoc);
+                // حفظ الامتحان في كولكشن lessonExams المخصص لامتحانات الحصص
+                await addDoc(collection(db, "lessonExams"), examDoc);
 
                 currentDraftQuestions = [];
                 editingQuestionIndex = null;
@@ -654,7 +660,11 @@
                 document.getElementById('examSubject').value = '';
                 document.getElementById('examTargetGroup').value = '';
                 renderQuestionsList();
-                showPlatformToast("تم بنجاح 🚀", "تم حفظ الامتحان في كولكشن الامتحانات بالسحابة بنجاح!");
+                
+                pendingRedirect = true;
+                showPlatformToast("تم بنجاح 🚀", "تم حفظ امتحان الحصة في كولكشن lessonExams بنجاح! سيتم توجيهك لصفحة الربط.", () => {
+                    window.location.href = 'files-exam-sync.html';
+                });
             } catch (e) {
                 console.error(e);
                 showPlatformToast("خطأ ❌", "حدث خطأ أثناء حفظ الامتحان في السحابة.");
