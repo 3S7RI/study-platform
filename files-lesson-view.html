@@ -165,7 +165,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -351,7 +351,7 @@
                 let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
                 if (shouldAddPoints) updatePayload.points = increment(addPts);
 
-                await updateDoc(userRef, updatePayload);
+                await setDoc(userRef, updatePayload, { merge: true });
             } catch(e) {}
         };
 
@@ -614,26 +614,26 @@
                 try {
                     let userRef = doc(db, "users", currentUserId);
                     let userSnap = await getDoc(userRef);
-                    if (userSnap.exists()) {
-                        let userData = userSnap.data();
-                        let lessonsActivity = userData.lessonsActivity || {};
-                        let lessonAct = lessonsActivity[activeLessonId] || {};
-                        
-                        let settings = activeLessonData.settings || {};
-                        let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
-                        let currentExamSubmissions = lessonAct.examSubmissionsCount || 0;
+                    let userData = userSnap.exists() ? userSnap.data() : {};
+                    let lessonsActivity = userData.lessonsActivity || {};
+                    let lessonAct = lessonsActivity[activeLessonId] || {};
+                    
+                    let settings = activeLessonData.settings || {};
+                    let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
+                    let currentExamSubmissions = lessonAct.examSubmissionsCount || 0;
 
-                        if (currentExamSubmissions >= maxExamAttempts) {
-                            alert(`لقد استنفدت الحد الأقصى لمحاولات الامتحان (${maxExamAttempts} محاولة).`);
-                            return;
-                        }
-
-                        lessonAct.examSubmissionsCount = currentExamSubmissions + 1;
-                        lessonsActivity[activeLessonId] = lessonAct;
-
-                        await updateDoc(userRef, { lessonsActivity: lessonsActivity });
-                        studentActivityData.examSubmissionsCount = lessonAct.examSubmissionsCount;
+                    if (currentExamSubmissions >= maxExamAttempts) {
+                        alert(`لقد استنفدت الحد الأقصى لمحاولات الامتحان (${maxExamAttempts} محاولة).`);
+                        return;
                     }
+
+                    // زيادة عدد المحاولات بمقدار 1 والحفظ الفوري المضمون
+                    lessonAct.examSubmissionsCount = currentExamSubmissions + 1;
+                    lessonsActivity[activeLessonId] = lessonAct;
+
+                    await setDoc(userRef, { lessonsActivity: lessonsActivity }, { merge: true });
+                    studentActivityData.examSubmissionsCount = lessonAct.examSubmissionsCount;
+
                 } catch(e) {
                     console.log("Error updating exam submission count:", e);
                 }
