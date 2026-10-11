@@ -85,6 +85,27 @@
         }
         .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
 
+        /* طبقة القفل بالسلاسل عند نفاد المحاولات */
+        .chained-lock-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(4px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 10; padding: 20px; text-align: center; gap: 8px;
+            border: 2px dashed var(--danger); border-radius: 16px;
+        }
+        .chains-icon {
+            font-size: 1.8rem; letter-spacing: -4px; color: var(--text-muted); opacity: 0.8;
+            margin-bottom: -4px;
+        }
+        .lock-icon-badge {
+            background: rgba(239, 68, 68, 0.15); color: var(--danger); width: 45px; height: 45px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+            border: 1px solid var(--danger); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+        .locked-message-text {
+            color: var(--danger); font-weight: 700; font-size: 0.95rem; margin-top: 4px;
+        }
+
         .file-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
         .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); flex: 1; }
         
@@ -340,18 +361,20 @@
                     </div>
                 `;
 
-                if (isLocked) {
+                if (isAttemptsExhausted) {
+                    // طبقة السلاسل والقفل المخصصة عند نفاد المحاولات تماماً
+                    cardHtml += `
+                        <div class="chained-lock-overlay">
+                            <div class="chains-icon">⛓️ ⛓️ ⛓️</div>
+                            <div class="lock-icon-badge">🔒</div>
+                            <div class="locked-message-text">نَفّذت المحاولات</div>
+                        </div>
+                    `;
+                } else if (isLocked) {
                     cardHtml += `
                         <div>
                             <div class="countdown-box" id="countdown-${item.id}">جاري حساب العد التنازلي...</div>
                             <button class="view-btn locked-btn">الحصة مقفولة مؤقتاً 🔒</button>
-                        </div>
-                    `;
-                } else if (isAttemptsExhausted) {
-                    cardHtml += `
-                        <div>
-                            <div class="countdown-box" style="border-color: var(--danger); color: var(--danger);">🚫 استنفدت عدد مرات الدخول (${maxAttempts}/${maxAttempts})</div>
-                            <button class="view-btn locked-btn">تم استنفاد المحاولات 🔒</button>
                         </div>
                     `;
                 } else {
