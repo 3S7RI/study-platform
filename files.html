@@ -277,7 +277,6 @@
                 try {
                     let userRef = doc(db, "users", currentUserId);
                     
-                    // إعادة جلب أحدث بيانات المستخدم للتأكد من تطابق العدادات لحظياً
                     let userSnap = await getDoc(userRef);
                     let userData = userSnap.exists() ? userSnap.data() : (currentUserData || {});
                     
@@ -291,11 +290,9 @@
                         return;
                     }
 
-                    // زيادة العداد بمقدار 1
                     lessonAct.accessCount = currentCount + 1;
                     lessonsActivity[lessonId] = lessonAct;
 
-                    // استخدام setDoc مع الدمج (merge: true) لضمان حفظ وتحديث السجل بالكامل بدون أخطاء
                     await setDoc(userRef, { lessonsActivity: lessonsActivity }, { merge: true });
                     
                     if (!currentUserData) currentUserData = {};
@@ -306,7 +303,6 @@
                 }
             }
 
-            // الانتقال لصفحة الحصة بعد اكتمال الحفظ في السحابة
             window.location.href = `files-lesson-view.html?id=${lessonId}`;
         };
 
@@ -421,7 +417,7 @@
                         let seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
                         let timerElement = document.getElementById(`countdown-${item.id}`);
-                        if, (timerElement) {
+                        if (timerElement) {
                             timerElement.innerHTML = `⏳ تفتح خلال: ${days > 0 ? days + ' يوم ' : ''}${hours}س ${minutes}د ${seconds}ث`;
                         }
                     }, 1000);
