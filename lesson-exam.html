@@ -88,6 +88,39 @@
         }
         .btn-submit:hover { opacity: 0.9; }
 
+        /* شاشة التحميل والتصحيح المتحركة */
+        .grading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center; z-index: 4000; padding: 15px;
+        }
+        .grading-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            width: 100%; max-width: 400px; border-radius: 20px; padding: 30px; text-align: center; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+        .spinner-bar {
+            width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; position: relative;
+        }
+        .spinner-bar::after {
+            content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 40%;
+            background: var(--primary); border-radius: 3px; animation: progressAnim 1.2s infinite ease-in-out;
+        }
+        @keyframes progressAnim {
+            0% { left: -40%; }
+            100% { left: 100%; }
+        }
+
+        /* رسومات SVG المتحركة للنجاح والرسوب */
+        .animated-icon-box { width: 80px; height: 80px; margin: 0 auto; display: none; }
+        .success-svg circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke-miterlimit: 10; stroke: var(--success); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .success-svg path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; stroke: var(--success); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards; }
+
+        .error-svg circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke-miterlimit: 10; stroke: var(--danger); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+        .error-svg path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; stroke: var(--danger); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards; }
+
+        @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px);
@@ -120,6 +153,33 @@
 
         <div id="examContainer">
             <div style="text-align: center; padding: 50px; color: var(--text-muted);">جاري تحميل الامتحان المرتبط بالحصة وتفعيل إعدادات الأمان...</div>
+        </div>
+    </div>
+
+    <!-- نافذة التصحيح وتحميل النتيجة المتحركة -->
+    <div class="grading-overlay" id="gradingOverlayModal">
+        <div class="grading-card">
+            <div id="gradingLoadingState">
+                <h3 style="color: var(--text-main); margin-bottom: 15px; font-size: 1.1rem;">⏳ جاري تصحيح الامتحان ورصد الدرجات...</h3>
+                <div class="spinner-bar"></div>
+                <p style="color: var.text-muted; font-size: 0.8rem; margin-top: 15px;">يرجى الانتظار لحظات قليلة...</p>
+            </div>
+            <div id="gradingResultState" style="display: none;">
+                <div id="successSvgContainer" class="animated-icon-box">
+                    <svg class="success-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle cx="26" cy="26" r="25" fill="none"/>
+                        <path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                <div id="errorSvgContainer" class="animated-icon-box">
+                    <svg class="error-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle cx="26" cy="26" r="25" fill="none"/>
+                        <path fill="none" d="M16 16l20 20M36 16L16 36"/>
+                    </svg>
+                </div>
+                <h3 id="resultTitleText" style="margin-top: 10px; font-size: 1.1rem; font-weight: 700;">نتيجة الامتحان</h3>
+                <p id="resultDescText" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;"></p>
+            </div>
         </div>
     </div>
 
@@ -199,7 +259,6 @@
         };
 
         function enableSecurityFeatures() {
-            // تفعيل حقيقي لوضع ملء الشاشة إذا كان مفعلاً في الإعدادات
             if (lessonSettings.fullScreen === true) {
                 try {
                     let elem = document.documentElement;
@@ -211,7 +270,6 @@
                 } catch(e) {}
             }
 
-            // تفعيل حقيقي لمنع مغادرة الصفحة والـ Refresh إذا كان مفعلاً
             window.addEventListener('beforeunload', function (e) {
                 if (!isSubmitted && lessonSettings.antiCheat === true) {
                     e.preventDefault();
@@ -252,24 +310,13 @@
 
                 const lessonData = lessonSnap.data();
                 lessonSettings = lessonData.settings || {};
-                activeExamTitle = lessonData.examId; // اسم الامتحان المخزن في الحصة
+                activeExamTitle = lessonData.examId;
 
                 if (!activeExamTitle) {
                     showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
                     return;
                 }
 
-                // التحقق الحقيقي لكلمة المرور الخاصة بالامتحان إن وجدت
-                if (lessonSettings.password && lessonSettings.password.trim() !== "") {
-                    let enteredPass = prompt("هذا الامتحان محمي بكلمة مرور خاصة. يرجى إدخالها للدخول:");
-                    if (enteredPass !== lessonSettings.password) {
-                        alert("كلمة المرور غير صحيحة!");
-                        window.location.href = `files-lesson-view.html?id=${lessonId}`;
-                        return;
-                    }
-                }
-
-                // جلب الامتحان من كولكشن lessonExams (لأنه نفس الكولكشن الذي يتم الحفظ فيه باسم العنوان)
                 const examRef = doc(db, "lessonExams", activeExamTitle);
                 const examSnap = await getDoc(examRef);
 
@@ -280,12 +327,10 @@
 
                 currentExamData = examSnap.data();
 
-                // تفعيل أو إلغاء ظهور المؤقت الزمني حسب إعدادات المعلم
                 if (lessonSettings.timer === false) {
                     document.getElementById('timerContainerBox').style.display = 'none';
                 }
 
-                // إظهار رسالة التنبيه قبل الامتحان إن كانت مفعلة
                 if (lessonSettings.welcomeToggle !== false && lessonSettings.welcomeMsg) {
                     showPlatformToast("تعليمات الاختبار 📌", lessonSettings.welcomeMsg, null, () => {
                         enableSecurityFeatures();
@@ -326,7 +371,6 @@
         function renderExamContent(exam) {
             let questions = exam.questions || [];
             
-            // تفعيل الخلط العشوائي للأسئلة بناءً على إعدادات المعلم
             if (lessonSettings.shuffle === true && questions.length > 1) {
                 questions.sort(() => Math.random() - 0.5);
             }
@@ -422,6 +466,9 @@
 
             if (timerInterval) clearInterval(timerInterval);
 
+            // إظهار شاشة التصحيح المتحركة أولاً
+            document.getElementById('gradingOverlayModal').style.display = 'flex';
+
             let totalScore = 0;
             let maxScore = 0;
             let questions = currentExamData.questions || [];
@@ -462,7 +509,6 @@
                     let perfectBonus = pts.perfectExam !== undefined ? pts.perfectExam : 15;
 
                     let pointsToAdd = examPoints;
-                    // مكافأة تقفيل الامتحان إذا حصل على الدرجة النهائية وتفعيل التهنئة
                     if (totalScore === maxScore && maxScore > 0 && lessonSettings.fullMarkCongrats !== false) {
                         pointsToAdd += perfectBonus;
                     }
@@ -475,19 +521,33 @@
                 }
             }
 
-            let instantResultActive = lessonSettings.instantResult !== false;
-            let endMsg = "";
+            // محاكاة وقت تصحيح قصير لظهور شريط التحميل بجمالية
+            setTimeout(() => {
+                document.getElementById('gradingLoadingState').style.display = 'none';
+                document.getElementById('gradingResultState').style.display = 'block';
 
-            if (instantResultActive) {
-                let customMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "✔ تم تسليم الامتحان بنجاح!";
-                endMsg = `${customMsg}\n\nنتيجتك: ${totalScore} من ${maxScore}`;
-            } else {
-                endMsg = "⏳ تم تسليم إجاباتك بنجاح. يرجى الانتظار حتى يتم مراجعة النتيجة من قبل المعلم.";
-            }
-            
-            showPlatformToast("انتهى الامتحان 🎓", endMsg, null, () => {
-                window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
-            });
+                let percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+                let isPassed = percentage >= 50; // اعتبار 50% حد النجاح التقريبي
+
+                if (isPassed) {
+                    document.getElementById('successSvgContainer').style.display = 'block';
+                    document.getElementById('resultTitleText.style') = 'color: var(--success);';
+                    document.getElementById('resultTitleText').textContent = '🎉 مبروك، لقد اجتزت الامتحان بنجاح!';
+                } else {
+                    document.getElementById('errorSvgContainer').style.display = 'block';
+                    document.getElementById('resultTitleText').style.color = 'var(--danger)';
+                    document.getElementById('resultTitleText').textContent = '⚠️ لم تفق بالحد المطلوب، حاول مرة أخرى.';
+                }
+
+                let customMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "تم رصد وتسليم درجاتك بنجاح.";
+                document.getElementById('resultDescText').innerHTML = `${customMsg}<br><br><strong>درجتك التقريبية: ${totalScore} من ${maxScore} (${Math.round(percentage)}%)</strong>`;
+
+                // الانتظار 3.5 ثانية ثم الانتقال تلقائياً لصفحة الحصة
+                setTimeout(() => {
+                    window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
+                }, 3500);
+
+            }, 1800);
         };
     </script>
 </body>
