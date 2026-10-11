@@ -324,7 +324,7 @@
             </div>
             
             <div class="unified-info-box">
-                <div class="unified-info-row"><span style="color:var(--text-muted);">Admin ID:</span><span id="adminProfileIdCode" style="font-family:monospace; color:var(--primary); font-weight:bold;">---</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">id:</span><span id="adminProfileIdCode" style="font-family:monospace; color:var(--primary); font-weight:bold;">---</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">البريد / المعرف:</span><span id="adminProfileUsername" style="direction:ltr;">---</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">رقم الهاتف:</span><span id="adminProfilePhone">---</span></div>
                 <div class="unified-info-row" id="adminPasswordRow"><span style="color:var(--text-muted);">كلمة المرور:</span><span id="adminProfilePassword" style="font-family:monospace;">******</span></div>
@@ -385,7 +385,7 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <!-- ربط ملفات الخدمات (Services) -->
+    <!-- ربط ملفات الخدمات (Services) واستخدام الدوال المحدثة -->
     <script type="module">
         import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
 
@@ -466,6 +466,7 @@
                 const snapshot = await db.collection('admins').get();
                 adminsList = [];
                 snapshot.forEach(doc => {
+                    // استخراج البيانات مع الحفاظ على هيكل الـ Service الصحيح
                     adminsList.push({ id: doc.id, ...doc.data() });
                 });
                 renderAdminsTable();
@@ -782,7 +783,7 @@
                         </td>
                         <td>
                             <div style="cursor:pointer; display:flex; align-items:center; gap:2px;" onclick="openAdminProfile('${adm.id}')">
-                                <b>🛡️ ${adm.name || 'مشرف'}</b> ${verifiedBadgeHtml}
+                                <b>🛡️ ${adm.name || adm.fullname || 'مشرف'}</b> ${verifiedBadgeHtml}
                             </div>
                         </td>
                         <td style="font-family:monospace; direction:ltr;">${adm.username || adm.email || '---'}</td>
@@ -805,8 +806,9 @@
             let isVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
             let verifiedBadgeHtml = isVerified ? `<span class="verified-badge" title="حساب موثق"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>` : '';
 
-            document.getElementById('adminProfileName').textContent = activeAdminData.name || 'مشرف المنصة';
+            document.getElementById('adminProfileName').textContent = activeAdminData.name || activeAdminData.fullname || 'مشرف المنصة';
             document.getElementById('adminProfileBadgeContainer').innerHTML = verifiedBadgeHtml;
+            // تعديل ليعرض الـ id بدلاً من Admin id بصورة صحيحة
             document.getElementById('adminProfileIdCode').textContent = activeAdminData.adminId || activeAdminData.id || '---';
             document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
             document.getElementById('adminProfilePhone').textContent = activeAdminData.phone || '---';
@@ -834,6 +836,8 @@
 
             if (activeAdminData.profileImage || activeAdminData.avatar) {
                 document.getElementById('adminProfileAvatar').src = activeAdminData.profileImage || activeAdminData.avatar;
+            } else {
+                document.getElementById('adminProfileAvatar').src = 'https://www.w3schools.com/howto/img_avatar.png';
             }
 
             document.getElementById('adminProfileModal').style.display = 'flex';
@@ -847,7 +851,7 @@
                 return;
             }
 
-            document.getElementById('editAdminNameInput').value = activeAdminData.name || '';
+            document.getElementById('editAdminNameInput').value = activeAdminData.name || activeAdminData.fullname || '';
             document.getElementById('editAdminUsernameInput').value = activeAdminData.username || activeAdminData.email || '';
             document.getElementById('editAdminPhoneInput').value = activeAdminData.phone || '';
             
@@ -868,8 +872,10 @@
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
+            // استخدام دالة updateAdminData من admin-service.js لضمان التحديث السحابي الصحيح
             let success = await updateAdminData(db, activeDocId, {
                 name: name,
+                fullname: name,
                 username: username,
                 email: username,
                 phone: phone
@@ -983,8 +989,10 @@
                 return;
             }
 
+            // استخدام دالة createAdminAccount الموحدة من admin-service.js لإنشاء المشرف بالـ ID التسلسلي الصحيح
             let result = await createAdminAccount(db, username, {
                 name: name,
+                fullname: name,
                 username: username,
                 email: username,
                 password: password,
