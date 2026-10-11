@@ -88,7 +88,6 @@
         .file-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
         .file-title { font-size: 0.95rem; font-weight: bold; color: var(--text-main); flex: 1; }
         
-        /* خانة عدد المحاولات الصغيرة في أقصى اليسار */
         .attempts-counter-badge {
             background-color: var(--badge-bg); color: var(--badge-text);
             padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
@@ -262,9 +261,15 @@
                             showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
                             return;
                         }
+
+                        // زيادة عدد المحاولات بواقع محاولة واحدة فور الضغط على زر دخول الحصة وتخزينها في السحابة
+                        lessonAct.accessCount = currentCount + 1;
+                        lessonsActivity[lessonId] = lessonAct;
+
+                        await updateDoc(userRef, { lessonsActivity: lessonsActivity });
                     }
                 } catch(e) {
-                    console.log("Error checking attempts:", e);
+                    console.log("Error updating access count:", e);
                 }
             }
 
