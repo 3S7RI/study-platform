@@ -64,7 +64,6 @@
         .form-group { margin-bottom: 15px; text-align: right; }
         .form-label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.88rem; color: var(--text-main); }
         
-        /* تنسيق القوائم المنسدلة بتثيم المنصة */
         .form-select {
             width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-color);
             background: var(--bg-main); color: var(--text-main); font-size: 0.9rem; outline: none; cursor: pointer;
@@ -81,7 +80,6 @@
         }
         .btn-submit:hover { opacity: 0.9; }
 
-        /* خريطة عرض الروابط الحالية بالأسفل */
         .sync-list-container {
             display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; margin-top: 10px;
         }
@@ -93,7 +91,6 @@
         .sync-item-title { font-weight: bold; font-size: 0.88rem; color: var(--text-main); }
         .sync-item-status { font-size: 0.78rem; color: var(--text-muted); }
 
-        /* نافذة التنبيهات المنبثقة */
         .platform-toast-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px);
@@ -115,13 +112,11 @@
 
     <div class="container">
         <header class="platform-header">
-            <!-- تم تعديل الرابط هنا ليرجع إلى صفحة إنشاء الامتحان -->
             <a href="files-exam-create.html" class="btn-home-link">⬅ العودة لإنشاء الامتحان</a>
             <div style="font-weight: 700; font-size: 0.95rem;">صفحة ربط الامتحان 🔗</div>
             <div></div>
         </header>
 
-        <!-- بطاقة التحكم والربط -->
         <div class="card">
             <h2 class="card-title">🔗 ربط امتحان بحصة دراسية</h2>
             <p class="card-subtitle">قم باختيار الحصة المراد تعديلها واختيار الامتحان المناسب لربطه بها.</p>
@@ -145,7 +140,6 @@
             </form>
         </div>
 
-        <!-- بطاقة عرض الروابط الحالية (الخانة السفلية) -->
         <div class="card">
             <h2 class="card-title">📋 جدول الحصص والامتحانات المرتبطة</h2>
             <p class="card-subtitle">متابعة فورية لكل حصة وما هو الامتحان المربوط بها حالياً.</p>
@@ -155,7 +149,6 @@
         </div>
     </div>
 
-    <!-- نافذة التنبيهات -->
     <div class="platform-toast-overlay" id="platformToastModal">
         <div class="platform-toast-card" onclick="event.stopPropagation()">
             <h3 id="toastTitle">تنبيه المنصة 🔔</h3>
@@ -208,8 +201,8 @@
 
         async function loadLessonsAndExams() {
             try {
-                // 1. جلب الامتحانات أولاً لتكوين خريطة الأسماء
-                const examsSnap = await getDocs(collection(db, "exams"));
+                // 1. جلب الامتحانات من كولكشن lessonExams المخصص للحصص
+                const examsSnap = await getDocs(collection(db, "lessonExams"));
                 examsSnap.forEach((docSnap) => {
                     examsMap[docSnap.id] = docSnap.data();
                 });
@@ -233,7 +226,6 @@
                     let lessonTitle = `الحصة ${data.number || ''}: ${data.title || 'بدون عنوان'}`;
                     lessonSelect.innerHTML += `<option value="${docSnap.id}">${lessonTitle}</option>`;
 
-                    // بناء خانة العرض السفلي
                     let linkedExamTitle = "غير مرتبطة بامتحان ❌";
                     let examBadgeColor = "var(--danger)";
                     if (data.examId && examsMap[data.examId]) {
@@ -295,7 +287,7 @@
                 }
 
                 showPlatformToast("نجاح ✅", "تم ربط الامتحان بالحصة بنجاح وتحديث السحابة!", () => {
-                    loadLessonsAndExams(); // إعادة تحميل القائمة والجدول السفلي لتحديث الحالة فوراً
+                    loadLessonsAndExams();
                 });
             } catch (e) {
                 console.error(e);
