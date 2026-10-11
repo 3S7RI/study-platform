@@ -307,20 +307,18 @@
         </div>
     </div>
 
-    <!-- نافذة بروفايل المشرف المتكاملة (بالترتيب الجديد والألوان المتناسقة) -->
+    <!-- نافذة بروفايل المشرف المتكاملة -->
     <div class="modal-overlay" id="adminProfileModal">
         <div class="modal-card" style="text-align: center;">
             <div class="avatar-wrapper rank-frame-legendary" id="adminProfileAvatarFrame">
                 <img id="adminProfileAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="صورة المشرف">
             </div>
             
-            <!-- اسم المشرف وعلامة التوثيق الموحدة 100% بجانبه -->
             <div style="display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 2px;">
                 <h3 id="adminProfileName" style="color: var(--text-main); font-size: 1.05rem;">اسم المشرف</h3>
                 <span id="adminProfileBadgeContainer"></span>
             </div>
             
-            <!-- مستطيل المستوى تحت الاسم مباشرة -->
             <div id="adminProfileRoleBadge" class="level-badge-box badge-legendary">
                 <span id="adminProfileRoleText">مشرف عام 👑</span>
             </div>
@@ -329,13 +327,11 @@
                 <div class="unified-info-row"><span style="color:var(--text-muted);">Admin ID:</span><span id="adminProfileIdCode" style="font-family:monospace; color:var(--primary); font-weight:bold;">---</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">البريد / المعرف:</span><span id="adminProfileUsername" style="direction:ltr;">---</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">رقم الهاتف:</span><span id="adminProfilePhone">---</span></div>
-                <!-- كلمة السر تظهر للمشرف العام فقط -->
                 <div class="unified-info-row" id="adminPasswordRow"><span style="color:var(--text-muted);">كلمة المرور:</span><span id="adminProfilePassword" style="font-family:monospace;">******</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">حالة التوثيق:</span><span id="adminProfileVerifiedStatus" style="color:#38bdf8;">غير موثق ❌</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">حالة الصلاحية:</span><span id="adminProfileStatus" style="color:var(--success);">نشط ومصرح 🛡️</span></div>
             </div>
 
-            <!-- أزرار التحكم بالترتيب المطلوب والألوان المتناسقة -->
             <div class="profile-actions-grid" style="grid-template-columns: 1fr 1fr; margin-top: 15px;">
                 <button class="btn-ctrl" style="background: var(--primary);" onclick="openEditAdminModalFromProfile()">✏️ تعديل البيانات</button>
                 <button class="btn-ctrl" style="background: var(--warning);" id="btnToggleRoleText" onclick="toggleAdminRoleFromProfile()">⭐ ترقية الأدمن</button>
@@ -365,7 +361,7 @@
         </div>
     </div>
 
-    <!-- نافذة تعديل بيانات المشرف (بدون كلمة المرور أو خانة الصلاحية أو التوثيق) -->
+    <!-- نافذة تعديل بيانات المشرف -->
     <div class="modal-overlay" id="editAdminModal">
         <div class="modal-card">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
@@ -389,7 +385,10 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <script>
+    <!-- ربط ملفات الخدمات (Services) -->
+    <script type="module">
+        import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
             authDomain: "study-trip-1.firebaseapp.com",
@@ -410,7 +409,6 @@
         let activeStudentData = null;
         let activeAdminData = null;
 
-        // تحديد صلاحية الأدمن الحالي
         let currentLoggedInAdmin = { role: 'full' }; 
 
         const bodyElement = document.getElementById('pageBody');
@@ -427,7 +425,7 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
-        function switchTab(tab) {
+        window.switchTab = function(tab) {
             document.getElementById('btnTabStudents').classList.remove('active');
             document.getElementById('btnTabAdmins').classList.remove('active');
             document.getElementById('tabStudentsContent').classList.add('hidden');
@@ -554,7 +552,7 @@
             container.innerHTML = html;
         }
 
-        function openStudentProfile(docId) {
+        window.openStudentProfile = function(docId) {
             activeDocId = docId;
             activeStudentData = studentsList.find(s => s.id === docId);
             if (!activeStudentData) return;
@@ -593,7 +591,7 @@
             document.getElementById('studentProfileModal').style.display = 'flex';
         }
 
-        function openEditStudentModal() {
+        window.openEditStudentModal = function() {
             if (!activeStudentData) return;
             let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || '';
             document.getElementById('editStudentName').value = rawName.includes('@') ? rawName.split('@')[0] : rawName;
@@ -605,7 +603,7 @@
             document.getElementById('editStudentModal').style.display = 'flex';
         }
 
-        async function saveStudentEdits() {
+        window.saveStudentEdits = async function() {
             if (!activeDocId) return;
             let name = document.getElementById('editStudentName').value.trim();
             let email = document.getElementById('editStudentEmail').value.trim();
@@ -641,7 +639,7 @@
             }
         }
 
-        async function upgradeStudentLevelAuto() {
+        window.upgradeStudentLevelAuto = async function() {
             if (!activeDocId || !activeStudentData) return;
             let currentPoints = activeStudentData.totalScore || activeStudentData.points || 0;
             let targetPoints = currentPoints + 500;
@@ -662,7 +660,7 @@
             }
         }
 
-        function openAddStudentModal() {
+        window.openAddStudentModal = function() {
             document.getElementById('addStuName').value = '';
             document.getElementById('addStuEmail').value = '';
             document.getElementById('addStuPass').value = '';
@@ -671,7 +669,7 @@
             document.getElementById('addStudentModal').style.display = 'flex';
         }
 
-        async function saveNewStudent() {
+        window.saveNewStudent = async function() {
             let name = document.getElementById('addStuName').value.trim();
             let email = document.getElementById('addStuEmail').value.trim().toLowerCase();
             let pass = document.getElementById('addStuPass').value.trim();
@@ -711,7 +709,7 @@
             }
         }
 
-        async function openStudentLogs() {
+        window.openStudentLogs = async function() {
             if (!activeStudentData) return;
             const container = document.getElementById('studentLogsContent');
             let female = isFemaleStudent(activeStudentData);
@@ -745,11 +743,11 @@
             }
         }
 
-        function banStudent() {
+        window.banStudent = function() {
             window.location.href = '404.html';
         }
 
-        async function deleteStudentAccount() {
+        window.deleteStudentAccount = async function() {
             if (!activeDocId) return;
             if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً من سحابة فايربيز؟')) return;
             try {
@@ -775,7 +773,6 @@
                 let avatarUrl = adm.profileImage || adm.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let isVerified = adm.isVerified === true || adm.verified === true;
                 
-                // علامة التوثيق الموحدة 100% بجانب الاسم
                 let verifiedBadgeHtml = isVerified ? `<span class="verified-badge" title="حساب موثق"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>` : '';
 
                 html += `
@@ -800,7 +797,7 @@
             container.innerHTML = html;
         }
 
-        function openAdminProfile(docId) {
+        window.openAdminProfile = function(docId) {
             activeDocId = docId;
             activeAdminData = adminsList.find(a => a.id === docId);
             if (!activeAdminData) return;
@@ -814,7 +811,6 @@
             document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
             document.getElementById('adminProfilePhone').textContent = activeAdminData.phone || '---';
             
-            // إظهار كلمة المرور للمشرف العام فقط وإخفائها عن المساعد والمراقب
             if (currentLoggedInAdmin.role === 'full') {
                 document.getElementById('adminPasswordRow').style.display = 'flex';
                 document.getElementById('adminProfilePassword').textContent = activeAdminData.password || '******';
@@ -826,7 +822,6 @@
             document.getElementById('adminProfileRoleText').textContent = isFull ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
             document.getElementById('adminProfileVerifiedStatus').innerHTML = isVerified ? 'موثق رسمياً ✔️' : 'غير موثق ❌';
 
-            // تعديل نص وزر التوثيق (توثيق أو إلغاء التوثيق مع أيقونة SVG)
             const verifyBtn = document.getElementById('btnToggleVerifyText');
             if (isVerified) {
                 verifyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor; vertical-align:middle; margin-left:4px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> إلغاء التوثيق`;
@@ -834,7 +829,6 @@
                 verifyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor; vertical-align:middle; margin-left:4px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> توثيق`;
             }
 
-            // تعديل نص زر ترقية / خفض الأدمن
             const roleBtn = document.getElementById('btnToggleRoleText');
             roleBtn.textContent = isFull ? '⭐ خفض الأدمن' : '⭐ ترقية الأدمن';
 
@@ -845,7 +839,7 @@
             document.getElementById('adminProfileModal').style.display = 'flex';
         }
 
-        function openEditAdminModalFromProfile() {
+        window.openEditAdminModalFromProfile = function() {
             if (!activeAdminData) return;
 
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
@@ -860,7 +854,7 @@
             document.getElementById('editAdminModal').style.display = 'flex';
         }
 
-        async function saveAdminEditsFromProfile() {
+        window.saveAdminEditsFromProfile = async function() {
             if (!activeDocId) return;
 
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
@@ -874,23 +868,24 @@
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
-            try {
-                await db.collection('admins').doc(activeDocId).update({
-                    name: name,
-                    username: username,
-                    email: username,
-                    phone: phone
-                });
+            let success = await updateAdminData(db, activeDocId, {
+                name: name,
+                username: username,
+                email: username,
+                phone: phone
+            });
+
+            if (success) {
                 await fetchAdminsFromCloud();
                 closeModal('editAdminModal');
                 closeModal('adminProfileModal');
                 alert('تم تحديث بيانات المشرف سحابياً بنجاح! ⭐');
-            } catch(e) {
+            } else {
                 alert('فشل حفظ التعديلات في السحابة.');
             }
         }
 
-        async function toggleAdminRoleFromProfile() {
+        window.toggleAdminRoleFromProfile = async function() {
             if (!activeDocId || !activeAdminData) return;
 
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
@@ -899,17 +894,18 @@
             }
 
             let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
-            try {
-                await db.collection('admins').doc(activeDocId).update({ role: newRole });
+            let success = await updateAdminData(db, activeDocId, { role: newRole });
+
+            if (success) {
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
                 alert('تم تحديث مستوى صلاحية المشرف سحابياً بنجاح! 🔄');
-            } catch(e) {
+            } else {
                 alert('حدث خطأ أثناء التحديث.');
             }
         }
 
-        async function toggleAdminVerification() {
+        window.toggleAdminVerification = async function() {
             if (!activeDocId || !activeAdminData) return;
 
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
@@ -920,20 +916,21 @@
             let currentVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
             let newStatus = !currentVerified;
 
-            try {
-                await db.collection('admins').doc(activeDocId).update({
-                    isVerified: newStatus,
-                    verified: newStatus
-                });
+            let success = await updateAdminData(db, activeDocId, {
+                isVerified: newStatus,
+                verified: newStatus
+            });
+
+            if (success) {
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
                 alert('تم تحديث حالة التوثيق سحابياً بنجاح! ✔️');
-            } catch(e) {
+            } else {
                 alert('حدث خطأ أثناء تحديث التوثيق.');
             }
         }
 
-        function banAdminFromProfile() {
+        window.banAdminFromProfile = function() {
             if (!activeAdminData) return;
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
                 alert('غير مسموح لك بحظر مشرف عام! 🚫');
@@ -944,7 +941,7 @@
             }
         }
 
-        async function deleteAdminFromProfile() {
+        window.deleteAdminFromProfile = async function() {
             if (!activeDocId) return;
 
             if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
@@ -953,17 +950,18 @@
             }
 
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
-            try {
-                await db.collection('admins').doc(activeDocId).delete();
+            
+            let success = await deleteAdminAccount(db, activeDocId);
+            if (success) {
                 closeModal('adminProfileModal');
                 await fetchAdminsFromCloud();
                 alert('تم حذف المشرف من السحابة بنجاح!');
-            } catch(e) {
+            } else {
                 alert('حدث خطأ أثناء الحذف.');
             }
         }
 
-        function openAddAdminModal() {
+        window.openAddAdminModal = function() {
             document.getElementById('newAdminName').value = '';
             document.getElementById('newAdminUsername').value = '';
             document.getElementById('newAdminPassword').value = '';
@@ -972,7 +970,7 @@
             document.getElementById('addAdminModal').style.display = 'flex';
         }
 
-        async function addNewAdmin() {
+        window.addNewAdmin = async function() {
             let name = document.getElementById('newAdminName').value.trim();
             let username = document.getElementById('newAdminUsername').value.trim();
             let password = document.getElementById('newAdminPassword').value.trim();
@@ -985,28 +983,27 @@
                 return;
             }
 
-            try {
-                await db.collection('admins').doc(username.toLowerCase().trim()).set({
-                    name: name,
-                    username: username,
-                    email: username,
-                    password: password,
-                    phone: phone,
-                    role: role,
-                    isVerified: isVerified,
-                    verified: isVerified,
-                    createdAt: Date.now()
-                });
-                
+            let result = await createAdminAccount(db, username, {
+                name: name,
+                username: username,
+                email: username,
+                password: password,
+                phone: phone,
+                role: role,
+                isVerified: isVerified,
+                verified: isVerified
+            });
+
+            if (result) {
                 closeModal('addAdminModal');
                 await fetchAdminsFromCloud();
                 alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
-            } catch(e) {
+            } else {
                 alert('حدث خطأ أثناء إضافة المشرف.');
             }
         }
 
-        function closeModal(modalId) {
+        window.closeModal = function(modalId) {
             document.getElementById(modalId).style.display = 'none';
         }
     </script>
