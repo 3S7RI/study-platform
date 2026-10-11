@@ -110,6 +110,9 @@
         .student-table-row-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); cursor: pointer; transition: transform 0.2s; }
         .student-table-row-avatar:hover { transform: scale(1.1); }
 
+        .verified-badge { color: #38bdf8; display: inline-flex; align-items: center; margin-right: 4px; vertical-align: middle; }
+        .verified-badge svg { width: 16px; height: 16px; fill: #38bdf8; }
+
         .online-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; }
         .online-badge.online { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
         .online-badge.offline { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.3); }
@@ -208,7 +211,7 @@
         <div id="tabAdminsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>قائمة مشرفين المنصة 🛡️</h2>
-                <!-- زر بلص الدائري لإضافة مشرف جديد مطابقة تماماً لإدارة الطلاب -->
+                <!-- زر بلص الدائري لإضافة مشرف جديد -->
                 <button class="btn-add-circle" onclick="openAddAdminModal()" title="إضافة مشرف جديد">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
@@ -242,7 +245,7 @@
         </div>
     </div>
 
-    <!-- نافذة إضافة مشرف جديد (عائمة بـ ثيم المنصة) -->
+    <!-- نافذة إضافة مشرف جديد (عائمة بـ ثيم المنصة مع مزامنة رقم الهاتف وحالة التوثيق) -->
     <div class="modal-overlay" id="addAdminModal">
         <div class="modal-card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -252,11 +255,16 @@
             <div class="form-group" style="margin-top:0;"><label>الاسم:</label><input type="text" id="newAdminName" placeholder="اسم المشرف"></div>
             <div class="form-group"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="newAdminUsername" placeholder="البريد أو المعرف"></div>
             <div class="form-group"><label>كلمة المرور:</label><input type="password" id="newAdminPassword" placeholder="كلمة السر"></div>
+            <div class="form-group"><label>رقم الهاتف:</label><input type="text" id="newAdminPhone" placeholder="010xxxxxxxx"></div>
             <div class="form-group"><label>الصلاحية:</label>
                 <select id="newAdminRole">
                     <option value="full">مشرف عام</option>
                     <option value="moderator">مساعد / مراقب</option>
                 </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                <input type="checkbox" id="newAdminVerified" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="newAdminVerified" style="margin-bottom: 0; cursor: pointer; color: var(--text-main); font-weight: bold;">توحيد وحساب موثق (Verified Admin) ✔️</label>
             </div>
             <button class="btn-save" onclick="addNewAdmin()">إضافة المشرف للسحابة 🚀</button>
         </div>
@@ -297,7 +305,7 @@
         </div>
     </div>
 
-    <!-- نافذة بروفايل المشرف المتكاملة -->
+    <!-- نافذة بروفايل المشرف المتكاملة (مع دعم علامة التوثيق ورقم الهاتف) -->
     <div class="modal-overlay" id="adminProfileModal">
         <div class="modal-card" style="text-align: center;">
             <div class="avatar-wrapper rank-frame-legendary" id="adminProfileAvatarFrame">
@@ -311,7 +319,9 @@
             
             <div class="unified-info-box">
                 <div class="unified-info-row"><span style="color:var(--text-muted);">البريد / المعرف:</span><span id="adminProfileUsername" style="direction:ltr;">---</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">رقم الهاتف:</span><span id="adminProfilePhone">---</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">كلمة المرور:</span><span id="adminProfilePassword" style="font-family:monospace;">******</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">حالة التوثيق:</span><span id="adminProfileVerifiedStatus" style="color:#38bdf8;">غير موثق ❌</span></div>
                 <div class="unified-info-row"><span style="color:var(--text-muted);">حالة الصلاحية:</span><span id="adminProfileStatus" style="color:var(--success);">نشط ومصرح 🛡️</span></div>
             </div>
 
@@ -322,6 +332,10 @@
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button class="btn-ctrl" style="background: var(--danger); flex: 1;" onclick="deleteAdminFromProfile()">🗑️ حذف المشرف</button>
                 <button class="btn-ctrl" style="background: #f59e0b; flex: 1;" onclick="toggleAdminRoleFromProfile()">⭐ تبديل الصلاحية</button>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <button class="btn-ctrl" style="background: #38bdf8; color: #0f172a;" onclick="toggleAdminVerification()">✔️ تبديل حالة التوثيق</button>
             </div>
 
             <button onclick="closeModal('adminProfileModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
@@ -345,18 +359,23 @@
         </div>
     </div>
 
-    <!-- نافذة تعديل بيانات المشرف المتكاملة -->
+    <!-- نافذة تعديل بيانات المشرف المتكاملة (مع الحماية للأدمن العام ورقم الهاتف وزر التوثيق) -->
     <div class="modal-overlay" id="editAdminModal">
         <div class="modal-card">
             <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
             <div class="form-group"><label>اسم المشرف:</label><input type="text" id="editAdminNameInput"></div>
             <div class="form-group"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="editAdminUsernameInput"></div>
             <div class="form-group"><label>كلمة المرور:</label><input type="text" id="editAdminPasswordInput"></div>
+            <div class="form-group"><label>رقم الهاتف:</label><input type="text" id="editAdminPhoneInput"></div>
             <div class="form-group"><label>الصلاحية:</label>
                 <select id="editAdminRoleSelect">
                     <option value="full">مشرف عام</option>
                     <option value="moderator">مساعد / مراقب</option>
                 </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                <input type="checkbox" id="editAdminVerifiedInput" style="width: 20px; height: 20px; cursor: pointer;">
+                <label for="editAdminVerifiedInput" style="margin-bottom: 0; cursor: pointer; color: var(--text-main); font-weight: bold;">حساب موثق (Verified Admin) ✔️</label>
             </div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveAdminEditsFromProfile()">حفظ التعديلات</button>
@@ -396,6 +415,9 @@
         let activeDocId = null;
         let activeStudentData = null;
         let activeAdminData = null;
+
+        // لنفترض أننا نتعرف على الأدمن الحالي (يمكنك ربطه بنظام الـ Auth أو localStorage لديك)
+        let currentLoggedInAdmin = { role: 'full' }; // قم بتعديلها حسب نظام تسجيل الدخول لديك إذا لزم الأمر
 
         const bodyElement = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -754,17 +776,21 @@
                 return;
             }
 
-            let html = `<table><thead><tr><th>الصورة</th><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>الصورة</th><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الهاتف</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
             adminsList.forEach((adm) => {
                 let roleName = adm.role === 'full' ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
                 let avatarUrl = adm.profileImage || adm.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
+                let isVerified = adm.isVerified === true || adm.verified === true;
+                let verifiedBadgeHtml = isVerified ? `<span class="verified-badge" title="حساب موثق"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>` : '';
+
                 html += `
                     <tr>
                         <td>
                             <img src="${avatarUrl}" class="student-table-row-avatar" alt="صورة المشرف" onclick="openAdminProfile('${adm.id}')" title="فتح البروفايل">
                         </td>
-                        <td><b style="cursor:pointer;" onclick="openAdminProfile('${adm.id}')">🛡️ ${adm.name || 'مشرف'}</b></td>
+                        <td><b style="cursor:pointer; display:inline-flex; align-items:center;" onclick="openAdminProfile('${adm.id}')">🛡️ ${adm.name || 'مشرف'} ${verifiedBadgeHtml}</b></td>
                         <td style="font-family:monospace; direction:ltr;">${adm.username || adm.email || '---'}</td>
+                        <td style="direction:ltr;">${adm.phone || '---'}</td>
                         <td>${roleName}</td>
                         <td>
                             <button class="btn-ctrl" onclick="openAdminProfile('${adm.id}')" style="width: auto; padding: 6px 12px;">ملف المشرف ⚙️</button>
@@ -780,12 +806,17 @@
             activeAdminData = adminsList.find(a => a.id === docId);
             if (!activeAdminData) return;
 
-            document.getElementById('adminProfileName').textContent = activeAdminData.name || 'مشرف المنصة';
+            let isVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
+            let verifiedBadgeHtml = isVerified ? `<span class="verified-badge" title="حساب موثق"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>` : '';
+
+            document.getElementById('adminProfileName').innerHTML = `${activeAdminData.name || 'مشرف المنصة'} ${verifiedBadgeHtml}`;
             document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
+            document.getElementById('adminProfilePhone').textContent = activeAdminData.phone || '---';
             document.getElementById('adminProfilePassword').textContent = activeAdminData.password || '******';
             
             let isFull = activeAdminData.role === 'full';
             document.getElementById('adminProfileRoleText').textContent = isFull ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
+            document.getElementById('adminProfileVerifiedStatus').innerHTML = isVerified ? 'موثق رسمياً ✔️' : 'غير موثق ❌';
 
             if (activeAdminData.profileImage || activeAdminData.avatar) {
                 document.getElementById('adminProfileAvatar').src = activeAdminData.profileImage || activeAdminData.avatar;
@@ -796,19 +827,37 @@
 
         function openEditAdminModalFromProfile() {
             if (!activeAdminData) return;
+
+            // حماية التعديل: إذا كان الحساب المراد تعديله "مشرف عام" والمستخدم الحالي "مساعد أو مراقب" يمنع تماماً
+            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
+                alert('غير مسموح لمساعد أو مراقب بتعديل بيانات مشرف عام! 🚫');
+                return;
+            }
+
             document.getElementById('editAdminNameInput').value = activeAdminData.name || '';
             document.getElementById('editAdminUsernameInput').value = activeAdminData.username || activeAdminData.email || '';
             document.getElementById('editAdminPasswordInput').value = activeAdminData.password || '';
+            document.getElementById('editAdminPhoneInput').value = activeAdminData.phone || '';
             document.getElementById('editAdminRoleSelect').value = activeAdminData.role || 'moderator';
+            document.getElementById('editAdminVerifiedInput').checked = activeAdminData.isVerified === true || activeAdminData.verified === true;
+            
             document.getElementById('editAdminModal').style.display = 'flex';
         }
 
         async function saveAdminEditsFromProfile() {
             if (!activeDocId) return;
+
+            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
+                alert('غير مسموح لك بتعديل هذا المشرف العام! 🚫');
+                return;
+            }
+
             let name = document.getElementById('editAdminNameInput').value.trim();
             let username = document.getElementById('editAdminUsernameInput').value.trim();
             let password = document.getElementById('editAdminPasswordInput').value.trim();
+            let phone = document.getElementById('editAdminPhoneInput').value.trim();
             let role = document.getElementById('editAdminRoleSelect').value;
+            let isVerified = document.getElementById('editAdminVerifiedInput').checked;
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
@@ -818,7 +867,10 @@
                     username: username,
                     email: username,
                     password: password,
-                    role: role
+                    phone: phone,
+                    role: role,
+                    isVerified: isVerified,
+                    verified: isVerified
                 });
                 await fetchAdminsFromCloud();
                 closeModal('editAdminModal');
@@ -831,6 +883,12 @@
 
         async function toggleAdminRoleFromProfile() {
             if (!activeDocId || !activeAdminData) return;
+
+            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
+                alert('غير مسموح لك بتغيير صلاحيات مشرف عام! 🚫');
+                return;
+            }
+
             let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
             try {
                 await db.collection('admins').doc(activeDocId).update({ role: newRole });
@@ -842,8 +900,38 @@
             }
         }
 
+        async function toggleAdminVerification() {
+            if (!activeDocId || !activeAdminData) return;
+
+            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
+                alert('غير مسموح لك بتعديل توثيق مشرف عام! 🚫');
+                return;
+            }
+
+            let currentVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
+            let newStatus = !currentVerified;
+
+            try {
+                await db.collection('admins').doc(activeDocId).update({
+                    isVerified: newStatus,
+                    verified: newStatus
+                });
+                await fetchAdminsFromCloud();
+                closeModal('adminProfileModal');
+                alert('تم تحديث حالة التوثيق بنجاح! ✔️');
+            } catch(e) {
+                alert('حدث خطأ أثناء تحديث التوثيق.');
+            }
+        }
+
         async function deleteAdminFromProfile() {
             if (!activeDocId) return;
+
+            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
+                alert('غير مسموح لك بحذف مشرف عام! 🚫');
+                return;
+            }
+
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
             try {
                 await db.collection('admins').doc(activeDocId).delete();
@@ -859,6 +947,8 @@
             document.getElementById('newAdminName').value = '';
             document.getElementById('newAdminUsername').value = '';
             document.getElementById('newAdminPassword').value = '';
+            document.getElementById('newAdminPhone').value = '';
+            document.getElementById('newAdminVerified').checked = false;
             document.getElementById('addAdminModal').style.display = 'flex';
         }
 
@@ -866,10 +956,12 @@
             let name = document.getElementById('newAdminName').value.trim();
             let username = document.getElementById('newAdminUsername').value.trim();
             let password = document.getElementById('newAdminPassword').value.trim();
+            let phone = document.getElementById('newAdminPhone').value.trim();
             let role = document.getElementById('newAdminRole').value;
+            let isVerified = document.getElementById('newAdminVerified').checked;
 
             if (!name || !username || !password) {
-                alert('يرجى ملء كافة بيانات المشرف!');
+                alert('يرجى ملء كافة البيانات الأساسية للمشرف!');
                 return;
             }
 
@@ -879,7 +971,10 @@
                     username: username,
                     email: username,
                     password: password,
+                    phone: phone,
                     role: role,
+                    isVerified: isVerified,
+                    verified: isVerified,
                     createdAt: Date.now()
                 });
                 
