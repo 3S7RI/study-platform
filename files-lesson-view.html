@@ -336,7 +336,7 @@
                 
                 if (activeLessonSettings.showExamSection !== false && activeLessonData.examId && activeLessonData.examId.trim() !== '') {
                     try {
-                        const examRef = doc(db, "exams", activeLessonData.examId);
+                        const examRef = doc(db, "lessonExams", activeLessonData.examId);
                         const examSnap = await getDoc(examRef);
                         if (examSnap.exists()) {
                             activeExamData = examSnap.data();
@@ -446,7 +446,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="toggleVideoPlayer('vid-collapse-${idx}')">فتح ▾</button>
+                                                    <button class="view-btn" onclick="toggleVideoPlayer(event, 'vid-collapse-${idx}')">فتح ▾</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -553,7 +553,7 @@
                         }
                     }
 
-                    let maxExamAttempts = (settings.examAttempts !== undefined && settings.examAttempts !== "") ? Number(settings.examAttempts) : 1;
+                    let maxExamAttempts = (settings.attempts !== undefined && settings.attempts !== "") ? Number(settings.attempts) : 1;
                     let studentExamSubmissions = studentActivityData.examSubmissionsCount || 0;
                     if (studentExamSubmissions >= maxExamAttempts) {
                         isUnlocked = false;
@@ -570,7 +570,7 @@
                                 <div class="content-item-row">
                                     <div class="content-item-top">
                                         <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; text-align: right;">
-                                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || 'امتحان الحصة'}</span>
+                                            <span style="font-weight: 700; color: var(--text-main); font-size: 0.85rem;">📝 ${examData.title || item.examId}</span>
                                             <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
                                         </div>
                                         <div class="action-btns-group">
@@ -594,7 +594,9 @@
             box.classList.toggle('active');
         };
 
-        window.toggleVideoPlayer = function(collapseId) {
+        // تعديل دالة فتح الفيديو لتمنع انتشار الحدث وبالتالي لا تغلق القائمة المنسدلة (الأكورديون)
+        window.toggleVideoPlayer = function(event, collapseId) {
+            event.stopPropagation();
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
                 collapseBox.classList.toggle('show');
