@@ -283,24 +283,29 @@
 
                         if (currentCount >= maxAttempts) {
                             showPlatformToast("تنبيه هام 🚫", `لقد استنفدت الحد الأقصى لعدد مرات دخول هذه الحصة (${maxAttempts} مرات).`);
-                            renderLessonsList(globalLessonsData); // إعادة التحديث لإظهار القفل مباشرة
+                            renderLessonsList(globalLessonsData);
                             return;
                         }
 
-                        // خصم المحاولة وزيادة العداد فور الضغط والدخول
-                        lessonAct.accessCount = currentCount + 1;
+                        // زيادة العداد بمقدار 1
+                        let newCount = currentCount + 1;
+                        lessonAct.accessCount = newCount;
                         lessonsActivity[lessonId] = lessonAct;
 
-                        await updateDoc(userRef, { lessonsActivity: lessonsActivity });
+                        // تحديث دقيق ومباشر لحقل الدخول داخل السحابة
+                        await updateDoc(userRef, { 
+                            [`lessonsActivity.${lessonId}`]: lessonAct 
+                        });
                         
-                        // تحديث الكائن المحلي لتنعكس النتيجة فوراً
-                        currentUserData.lessonsActivity = lessonsActivity;
+                        if (!currentUserData.lessonsActivity) currentUserData.lessonsActivity = {};
+                        currentUserData.lessonsActivity[lessonId] = lessonAct;
                     }
                 } catch(e) {
                     console.log("Error updating access count:", e);
                 }
             }
 
+            // الانتقال بعد ضمان اكتمال حفظ التحديث في السحابة
             window.location.href = `files-lesson-view.html?id=${lessonId}`;
         };
 
