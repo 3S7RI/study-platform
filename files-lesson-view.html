@@ -125,7 +125,6 @@
         .download-svg-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
         .video-collapse-box { width: 100%; margin-top: 8px; display: none; background: #000; border-radius: 8px; overflow: hidden; }
-        .video-collapse-box.show { display: block; }
         video { width: 100%; max-height: 350px; display: block; outline: none; }
 
         .watermark-overlay {
@@ -223,7 +222,7 @@
                     if (url) {
                         window.open(url, '_blank');
                     }
-                    triggerContentOpen(type);
+                    recordActivityWithoutRerender(type);
                 }
             }
         });
@@ -366,19 +365,14 @@
             return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
         }
 
-        window.triggerContentOpen = async function(contentType) {
+        window.recordActivityWithoutRerender = async function(contentType) {
             if (!activeLessonId) return;
-
             localStorage.setItem(`local_${contentType}_${activeLessonId}`, 'true');
-
             if (contentType === 'notes') studentActivityData.studyNotes = true;
             if (contentType === 'summary') studentActivityData.summarySeen = true;
             if (contentType === 'video') studentActivityData.videoWatched = true;
 
-            renderLessonPage();
-
             if (!currentUserId) return;
-
             try {
                 let userRef = doc(db, "users", currentUserId);
                 let userSnap = await getDoc(userRef);
@@ -388,7 +382,6 @@
                 let lessonsActivity = userData.lessonsActivity || {};
                 let act = lessonsActivity[activeLessonId] || {};
                 let pts = activeLessonSettings.points || {};
-
                 let rewardKey = `${contentType}_rewarded`;
                 
                 if (contentType === 'notes') act.studyNotes = true;
@@ -396,18 +389,12 @@
                 if (contentType === 'video') { act.videoWatched = true; act.watchTimeMinutes = 10; }
 
                 let shouldAddPoints = !act[rewardKey];
-                if (shouldAddPoints) {
-                    act[rewardKey] = true;
-                }
+                if (shouldAddPoints) act[rewardKey] = true;
                 
                 lessonsActivity[activeLessonId] = act;
-
                 let updatePayload = { lessonsActivity: lessonsActivity };
                 let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
-
-                if (shouldAddPoints) {
-                    updatePayload.points = increment(addPts);
-                }
+                if (shouldAddPoints) updatePayload.points = increment(addPts);
 
                 await updateDoc(userRef, updatePayload);
             } catch(e) { console.log("Cloud sync warning:", e); }
@@ -446,7 +433,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📹 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" onclick="toggleVideoPlayer(event, 'vid-collapse-${idx}')">فتح ▾</button>
+                                                    <button type="button" class="view-btn" onclick="toggleVideoPlayerDirect(event, 'vid-collapse-${idx}')">فتح ▾</button>
                                                 </div>
                                             </div>
                                             <div class="video-collapse-box" id="vid-collapse-${idx}">
@@ -481,7 +468,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📄 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="notes" data-url="${n.url}">فتح <svg viewBox="0 0 24 24"><path d="M7 7h8.58L5.29 17.29l1.41 1.41L17 8.41V17h2V5H7v2z"/></svg></button>
+                                                    <button type="button" class="view-btn" data-action-type="notes" data-url="${n.url}">فتح <svg viewBox="0 0 24 24"><path d="M7 7h8.58L5.29 17.29l1.41 1.41L17 8.41V17h2V5H7v2z"/></svg></button>
                                                     ${allowNotesDownload ? `
                                                         <a href="${n.url}" download class="download-svg-btn" data-action-type="notes" data-url="${n.url}" title="تحميل الملف">
                                                             <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -515,7 +502,7 @@
                                             <div class="content-item-top">
                                                 <span class="content-item-title">📑 ${displayName}</span>
                                                 <div class="action-btns-group">
-                                                    <button class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح <svg viewBox="0 0 24 24"><path d="M7 7h8.58L5.29 17.29l1.41 1.41L17 8.41V17h2V5H7v2z"/></svg></button>
+                                                    <button type="button" class="view-btn" data-action-type="summary" data-url="${sum.url}">فتح <svg viewBox="0 0 24 24"><path d="M7 7h8.58L5.29 17.29l1.41 1.41L17 8.41V17h2V5H7v2z"/></svg></button>
                                                     ${allowSummaryDownload ? `
                                                         <a href="${sum.url}" download class="download-svg-btn" data-action-type="summary" data-url="${sum.url}" title="تحميل الملف">
                                                             <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -574,7 +561,7 @@
                                             <span style="font-size: 0.75rem; color: ${isUnlocked ? 'var(--success)' : 'var(--danger)'};" id="examStatusText">${isUnlocked ? `عدد الأسئلة: ${examData.questions.length} سؤال` : lockReasonMsg}</span>
                                         </div>
                                         <div class="action-btns-group">
-                                            <button onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
+                                            <button type="button" onclick="handleExamStartClick('${item.id || activeLessonId}', ${isUnlocked})" id="startExamBtn" class="view-btn" style="${isUnlocked ? '' : 'background:var(--border-color); cursor:not-allowed;'}">${isUnlocked ? 'ابدأ 🚀' : 'مقفل 🔒'}</button>
                                         </div>
                                     </div>
                                 </div>
@@ -594,14 +581,18 @@
             box.classList.toggle('active');
         };
 
-        // تم إضافة event.stopPropagation() لمنع غلق القائمة المنسدلة عند الضغط على زر فتح الفيديو
-        window.toggleVideoPlayer = function(event, collapseId) {
+        // دالة عرض الفيديو المباشرة بالـ CSS لمنع أي تداخل مع الأكورديون
+        window.toggleVideoPlayerDirect = function(event, collapseId) {
             event.stopPropagation();
+            event.preventDefault();
+            
             const collapseBox = document.getElementById(collapseId);
             if (collapseBox) {
-                collapseBox.classList.toggle('show');
-                if (collapseBox.classList.contains('show')) {
-                    triggerContentOpen('video');
+                if (collapseBox.style.display === 'block') {
+                    collapseBox.style.display = 'none';
+                } else {
+                    collapseBox.style.display = 'block';
+                    recordActivityWithoutRerender('video');
                 }
             }
         };
