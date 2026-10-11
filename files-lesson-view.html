@@ -313,9 +313,11 @@
             if (url.includes('youtu.be/')) {
                 videoId = url.split('youtu.be/')[1].split('?')[0];
             } else if (url.includes('watch?v=')) {
-                videoId = url.split('watch?v=')[1].split('&')[0];
+                videoId = url.split('watch?v=').pop().split('&')[0];
+            } else if (url.includes('shorts/')) {
+                videoId = url.split('shorts/')[1].split('?')[0];
             }
-            return videoId ? `https://www.youtube.com/embed/${videoId}?controls=1&disablekb=1` : url;
+            return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1` : url;
         }
 
         window.recordActivityWithoutRerender = async function(contentType) {
@@ -391,19 +393,14 @@
                                 let embedUrl = isYouTube ? getEmbedYouTubeUrl(vUrl) : vUrl;
                                 let preventFastForward = settings.preventFastForward !== false;
                                 return `
-                                    <div class="content-item-row">
+                                    <div class="content-item-row" data-video-url="${vUrl}" data-is-youtube="${isYouTube}" data-embed-url="${embedUrl}" data-prevent-ff="${preventFastForward}">
                                         <div class="content-item-top">
                                             <span class="content-item-title">📹 ${displayName}</span>
                                             <div class="action-btns-group">
-                                                <button type="button" class="view-btn" onclick="toggleVideoPlayerDirect(event, 'vid-collapse-${idx}')">مشاهدة ▾</button>
+                                                <button type="button" class="view-btn" id="vid-btn-${idx}" onclick="toggleVideoPlayerDynamic(event, ${idx})">مشاهدة ▾</button>
                                             </div>
                                         </div>
-                                        <div class="video-collapse-box" id="vid-collapse-${idx}">
-                                            ${isYouTube ? 
-                                                `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none;" allowfullscreen></iframe>` :
-                                                `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)"><source src="${vUrl}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`
-                                            }
-                                        </div>
+                                        <div class="video-collapse-box" id="vid-collapse-${idx}" style="display: none; padding: 4px;"></div>
                                     </div>
                                 `;
                             }).join('')}
@@ -523,27 +520,42 @@
             box.classList.toggle('active');
         };
 
-        window.toggleVideoPlayerDirect = function(event, collapseId) {
+        // تشغيل الفيديو ديناميكياً لحظة الضغط بدون شاشات رمادية أو أخطاء
+        window.toggleVideoPlayerDynamic = function(event, idx) {
             event.stopPropagation();
             event.preventDefault();
             
-            const collapseBox = document.getElementById(collapseId);
-            if (collapseBox) {
-                if (collapseBox.style.display === 'block') {
-                    collapseBox.style.display = 'none';
+            const collapseBox = document.getElementById(`vid-collapse-${idx}`);
+            const btnEl = document.getElementById(`vid-btn-${idx}`);
+            const parentRow = collapseBox.closest('.content-item-row');
+            
+            let isYouTube = parentRow.getAttribute('data-is-youtube') === 'true';
+            let embedUrl = parentRow.getAttribute('data-embed-url');
+            let videoUrl = parentRow.getAttribute('data-video-url');
+            let preventFastForward = parentRow.getAttribute('data-prevent-ff') === 'true';
+
+            if (collapseBox.style.display === 'block') {
+                collapseBox.style.display = 'none';
+                collapseBox.innerHTML = ''; // تفريغ العناصر لتفريغ الذاكرة ومنع أي تعليق
+                btnEl.textContent = 'مشاهدة ▾';
+            } else {
+                collapseBox.style.display = 'block';
+                btnEl.textContent = 'إخفاء ▴';
+                
+                if (isYouTube) {
+                    collapseBox.innerHTML = `<iframe src="${embedUrl}" style="width:100%; height:320px; border:none; border-radius:6px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
                 } else {
-                    collapseBox.style.display = 'block';
-                    recordActivityWithoutRerender('video');
+                    collapseBox.innerHTML = `<video id="html5Video_${idx}" controls ${preventFastForward ? 'controlsList="nodownload nofullscreen"' : 'controlsList="nodownload"'} onseeking="handleVideoSeeking(this)" style="width:100%; max-height:350px; border-radius:6px;"><source src="${videoUrl}" type="video/mp4">متصفحك لا يدعم تشغيل الفيديو.</video>`;
                 }
+                
+                recordActivityWithoutRerender('video');
             }
         };
 
         window.handleVideoSeeking = function(videoEl) {
-            if (activeLessonSettings.preventFastForward !== false) {
-                if (videoEl.currentTime > (videoEl.lastValidTime || 0) + 1.5) {
-                    alert("عذراً، ممنوع تقديم الفيديو! يرجى مشاهدة المحتوى كاملاً.");
-                    videoEl.currentTime = videoEl.lastValidTime || 0;
-                }
+            if (videoEl.currentTime > (videoEl.lastValidTime || 0) + 1.5) {
+                alert("عذراً، ممنوع تقديم الفيديو! يرجى مشاهدة المحتوى كاملاً.");
+                videoEl.currentTime = videoEl.lastValidTime || 0;
             }
             videoEl.lastValidTime = videoEl.currentTime;
         };
@@ -594,7 +606,7 @@
                     examStatusText.textContent = lockReasonMsg;
                     startExamBtn.disabled = false;
                     startExamBtn.style.background = 'var(--border-color)';
-                    startExamBtn.style.cursor = 'pointer';
+                    startTagBtn.style.cursor = 'pointer';
                     startExamBtn.textContent = 'مقفل 🔒';
                     startExamBtn.setAttribute('data-unlocked', 'false');
                 }
@@ -627,7 +639,6 @@
                         return;
                     }
 
-                    // زيادة عدد المحاولات بمقدار 1 والحفظ الفوري المضمون
                     lessonAct.examSubmissionsCount = currentExamSubmissions + 1;
                     lessonsActivity[activeLessonId] = lessonAct;
 
