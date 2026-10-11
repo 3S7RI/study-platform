@@ -599,7 +599,7 @@
         let currentAdminData = null;
         let selectedNewAvatarBase64 = null;
         let toastTimeout = null;
-        let currentAdminDocKey = null; // لتخزين مفتاح الدوك الفعلي في قاعدة البيانات
+        let currentAdminDocKey = null;
         const defaultAvatarSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%236366f1'/></svg>";
 
         const toastEl = document.getElementById('customToast');
@@ -638,7 +638,6 @@
             }
         };
 
-        // التحقق والاعتماد على admin-service.js وجلب بيانات المشرف بدقة
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 let emailKey = (user.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
@@ -648,7 +647,6 @@
                     let adminInfo = null;
                     let targetKey = null;
 
-                    // محاولة جلب البيانات عبر خدمة admin-service إذا توفر الـ uid أو الايميل
                     if (uid) {
                         adminInfo = await getAdminData(db, uid);
                         if (adminInfo) targetKey = uid;
@@ -658,7 +656,6 @@
                         if (adminInfo) targetKey = emailKey;
                     }
 
-                    // تراجع في حال عدم العثور عبر الخدمة مباشرة للبحث المباشر
                     if (!adminInfo) {
                         let docSnap = null;
                         if (uid) {
@@ -697,8 +694,14 @@
 
         function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
-            let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
-            let fullName = admin.fullname || admin.name || "مسؤول النظام";
+            
+            // قراءة الصورة بجميع الاحتمالات الممكنة
+            let avatarUrl = admin.avatar || admin.profileImage || defaultAvatarSvg;
+            
+            // قراءة الاسم بجميع الاحتمالات الممكنة (name أو fullname)
+            let fullName = admin.name || admin.fullname || "مسؤول النظام";
+            
+            // قراءة الـ ID بحيث يظهر التسلسلي الصحيح (مثل ADM-0001) بدلاً من الإيميل
             let adminId = admin.adminId || admin.id || "ADM-0001";
 
             container.innerHTML = `
@@ -748,7 +751,7 @@
         window.openSettingsModal = function() {
             if (!currentAdminData) return;
             document.getElementById('editEmail').value = currentAdminData.email || sessionStorage.getItem('adminEmail') || '';
-            document.getElementById('editAdminName').value = currentAdminData.fullname || currentAdminData.name || '';
+            document.getElementById('editAdminName').value = currentAdminData.name || currentAdminData.fullname || '';
             document.getElementById('editAdminPhone').value = currentAdminData.phone || '';
             document.getElementById('editAdminPassword').value = '';
             document.getElementById('settingsModal').classList.add('active');
@@ -756,7 +759,7 @@
 
         window.openAvatarModal = function() {
             if (!currentAdminData) return;
-            document.getElementById('modalAvatarPreview').src = currentAdminData.profileImage || currentAdminData.avatar || defaultAvatarSvg;
+            document.getElementById('modalAvatarPreview').src = currentAdminData.avatar || currentAdminData.profileImage || defaultAvatarSvg;
             document.getElementById('avatarModal').classList.add('active');
         };
 
@@ -776,7 +779,6 @@
             }
         };
 
-        // تحديث صورة البروفايل عبر admin-service.js
         window.saveAvatarDirectly = async function() {
             if (!selectedNewAvatarBase64) {
                 showToast('الرجاء اختيار صورة جديدة أولاً!', '⚠️');
@@ -788,13 +790,13 @@
             btn.disabled = true;
 
             try {
-                currentAdminData.profileImage = selectedNewAvatarBase64;
                 currentAdminData.avatar = selectedNewAvatarBase64;
+                currentAdminData.profileImage = selectedNewAvatarBase64;
 
                 if (currentAdminDocKey) {
                     await updateAdminData(db, currentAdminDocKey, {
-                        profileImage: selectedNewAvatarBase64,
-                        avatar: selectedNewAvatarBase64
+                        avatar: selectedNewAvatarBase64,
+                        profileImage: selectedNewAvatarBase64
                     });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
@@ -812,13 +814,13 @@
 
         window.removeProfileImage = async function() {
             if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
-            currentAdminData.profileImage = "";
             currentAdminData.avatar = "";
+            currentAdminData.profileImage = "";
             try {
                 if (currentAdminDocKey) {
                     await updateAdminData(db, currentAdminDocKey, {
-                        profileImage: "",
-                        avatar: ""
+                        avatar: "",
+                        profileImage: ""
                     });
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
@@ -831,7 +833,6 @@
             }
         };
 
-        // حفظ وتحديث بيانات الأدمن عبر admin-service.js
         window.saveAdminChanges = async function() {
             let newName = document.getElementById('editAdminName').value.trim();
             let newPhone = document.getElementById('editAdminPhone').value.trim();
@@ -842,15 +843,15 @@
                 return;
             }
 
-            currentAdminData.fullname = newName;
             currentAdminData.name = newName;
+            currentAdminData.fullname = newName;
             currentAdminData.phone = newPhone;
             if (newPass) currentAdminData.password = newPass;
 
             try {
                 let updatePayload = {
-                    fullname: newName,
                     name: newName,
+                    fullname: newName,
                     phone: newPhone
                 };
                 if (newPass) updatePayload.password = newPass;
@@ -868,7 +869,6 @@
             }
         };
 
-        // حذف الحساب عبر admin-service.js
         window.deleteAccountPermanently = async function() {
             if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
             try {
@@ -900,7 +900,7 @@
                     title: title,
                     message: message,
                     target: targetVal,
-                    sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
+                    sender: currentAdminData ? (currentAdminData.name || currentAdminData.fullname || "الإدارة") : "الإدارة",
                     createdAt: serverTimestamp()
                 });
                 document.getElementById('broadcastTitle').value = '';
@@ -1053,7 +1053,7 @@
                     title: "تنبيه إداري هامة ⚡",
                     message: msgText,
                     target: targetVal,
-                    sender: currentAdminData ? (currentAdminData.fullname || currentAdminData.name || "الإدارة") : "الإدارة",
+                    sender: currentAdminData ? (currentAdminData.name || currentAdminData.fullname || "الإدارة") : "الإدارة",
                     createdAt: serverTimestamp()
                 });
                 closeModal('messageComposerModal');
