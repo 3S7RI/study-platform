@@ -186,7 +186,7 @@
         <nav class="admin-nav-bar">
             <div class="admin-tabs-group">
                 <button class="btn-tab active" id="btnTabStudents" onclick="switchTab('students')">إدارة الطلاب 👨‍🎓</button>
-                <button class="btn-tab" id="btnTabAdmins" onclick="switchTab('admins')">قائمة مشرفين المنصة 🛡️</button>
+                <button class="btn-tab" id="btnTabAdmins" onclick="switchTab('admins')">إدارة المشرفين 🛡️</button>
             </div>
         </nav>
 
@@ -204,7 +204,7 @@
             </div>
         </div>
 
-        <!-- شاشة 2: قائمة مشرفين المنصة -->
+        <!-- شاشة 2: إدارة المشرفين -->
         <div id="tabAdminsContent" class="section-box hidden">
             <div class="section-header">
                 <h2>قائمة مشرفين المنصة 🛡️</h2>
@@ -297,6 +297,37 @@
         </div>
     </div>
 
+    <!-- نافذة بروفايل المشرف المتكاملة -->
+    <div class="modal-overlay" id="adminProfileModal">
+        <div class="modal-card" style="text-align: center;">
+            <div class="avatar-wrapper rank-frame-legendary" id="adminProfileAvatarFrame">
+                <img id="adminProfileAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="صورة المشرف">
+            </div>
+            <h3 id="adminProfileName" style="color: var(--text-main); font-size: 1.05rem; margin-bottom: 2px;">اسم المشرف</h3>
+            
+            <div id="adminProfileRoleBadge" class="level-badge-box badge-legendary">
+                <span id="adminProfileRoleText">مشرف عام 👑</span>
+            </div>
+            
+            <div class="unified-info-box">
+                <div class="unified-info-row"><span style="color:var(--text-muted);">البريد / المعرف:</span><span id="adminProfileUsername" style="direction:ltr;">---</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">كلمة المرور:</span><span id="adminProfilePassword" style="font-family:monospace;">******</span></div>
+                <div class="unified-info-row"><span style="color:var(--text-muted);">حالة الصلاحية:</span><span id="adminProfileStatus" style="color:var(--success);">نشط ومصرح 🛡️</span></div>
+            </div>
+
+            <div class="profile-actions-grid" style="grid-template-columns: 1fr;">
+                <button class="btn-ctrl" style="background: #3b82f6;" onclick="openEditAdminModalFromProfile()">✏️ تعديل بيانات المشرف</button>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-ctrl" style="background: var(--danger); flex: 1;" onclick="deleteAdminFromProfile()">🗑️ حذف المشرف</button>
+                <button class="btn-ctrl" style="background: #f59e0b; flex: 1;" onclick="toggleAdminRoleFromProfile()">⭐ تبديل الصلاحية</button>
+            </div>
+
+            <button onclick="closeModal('adminProfileModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
+        </div>
+    </div>
+
     <!-- نافذة تعديل بيانات الطالب المتكاملة -->
     <div class="modal-overlay" id="editStudentModal">
         <div class="modal-card">
@@ -314,6 +345,26 @@
         </div>
     </div>
 
+    <!-- نافذة تعديل بيانات المشرف المتكاملة -->
+    <div class="modal-overlay" id="editAdminModal">
+        <div class="modal-card">
+            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
+            <div class="form-group"><label>اسم المشرف:</label><input type="text" id="editAdminNameInput"></div>
+            <div class="form-group"><label>البريد الإلكتروني / الـ ID:</label><input type="text" id="editAdminUsernameInput"></div>
+            <div class="form-group"><label>كلمة المرور:</label><input type="text" id="editAdminPasswordInput"></div>
+            <div class="form-group"><label>الصلاحية:</label>
+                <select id="editAdminRoleSelect">
+                    <option value="full">مشرف عام</option>
+                    <option value="moderator">مساعد / مراقب</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveAdminEditsFromProfile()">حفظ التعديلات</button>
+                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editAdminModal')">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة سجل الطالب (درجات وحصص) -->
     <div class="modal-overlay" id="studentLogsModal">
         <div class="modal-card" style="max-width: 500px; text-align: right;">
@@ -322,34 +373,6 @@
                 <p style="text-align: center; opacity: 0.7;">جاري جلب السجل الأكاديمي...</p>
             </div>
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
-        </div>
-    </div>
-
-    <!-- نافذة تحكم المشرف -->
-    <div class="modal-overlay" id="adminModal">
-        <div class="modal-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 id="modalAdminName" style="font-size: 1rem; color: var(--text-main);">إدارة المشرف</h3>
-                <button onclick="closeModal('adminModal')" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;">✕</button>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-ctrl" onclick="adminAction('upgrade')">⭐ ترقية المشرف العام</button>
-                <button class="btn-ctrl" style="background: var(--danger);" onclick="adminAction('delete')">🗑️ حذف المشرف</button>
-                <button class="btn-ctrl" style="background: #3b82f6;" onclick="openEditAdminSubModal()">✏️ تعديل معلومات المشرف</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة تعديل بيانات المشرف الفرعية -->
-    <div class="modal-overlay" id="editAdminSubModal">
-        <div class="modal-card">
-            <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text-main);">تعديل معلومات المشرف</h3>
-            <div class="form-group"><label>الاسم الجديد:</label><input type="text" id="editAdminNameInput"></div>
-            <div class="form-group"><label>البريد الجديد:</label><input type="text" id="editAdminUsernameInput"></div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button class="btn-save" style="flex:1; margin-top:0;" onclick="saveAdminEdits()">حفظ التعديلات</button>
-                <button class="btn-ctrl" style="flex:1; background:#475569;" onclick="closeModal('editAdminSubModal')">إلغاء</button>
-            </div>
         </div>
     </div>
 
@@ -372,6 +395,7 @@
         let adminsList = [];
         let activeDocId = null;
         let activeStudentData = null;
+        let activeAdminData = null;
 
         const bodyElement = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -730,21 +754,105 @@
                 return;
             }
 
-            let html = `<table><thead><tr><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>الصورة</th><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
             adminsList.forEach((adm) => {
                 let roleName = adm.role === 'full' ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
+                let avatarUrl = adm.profileImage || adm.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 html += `
                     <tr>
-                        <td><b>🛡️ ${adm.name || 'مشرف'}</b></td>
+                        <td>
+                            <img src="${avatarUrl}" class="student-table-row-avatar" alt="صورة المشرف" onclick="openAdminProfile('${adm.id}')" title="فتح البروفايل">
+                        </td>
+                        <td><b style="cursor:pointer;" onclick="openAdminProfile('${adm.id}')">🛡️ ${adm.name || 'مشرف'}</b></td>
                         <td style="font-family:monospace; direction:ltr;">${adm.username || adm.email || '---'}</td>
                         <td>${roleName}</td>
                         <td>
-                            <button class="btn-ctrl" onclick="openAdminModal('${adm.id}')" style="width: auto; padding: 6px 12px;">إدارة ⚙️</button>
+                            <button class="btn-ctrl" onclick="openAdminProfile('${adm.id}')" style="width: auto; padding: 6px 12px;">ملف المشرف ⚙️</button>
                         </td>
                     </tr>`;
             });
             html += `</tbody></table>`;
             container.innerHTML = html;
+        }
+
+        function openAdminProfile(docId) {
+            activeDocId = docId;
+            activeAdminData = adminsList.find(a => a.id === docId);
+            if (!activeAdminData) return;
+
+            document.getElementById('adminProfileName').textContent = activeAdminData.name || 'مشرف المنصة';
+            document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
+            document.getElementById('adminProfilePassword').textContent = activeAdminData.password || '******';
+            
+            let isFull = activeAdminData.role === 'full';
+            document.getElementById('adminProfileRoleText').textContent = isFull ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
+
+            if (activeAdminData.profileImage || activeAdminData.avatar) {
+                document.getElementById('adminProfileAvatar').src = activeAdminData.profileImage || activeAdminData.avatar;
+            }
+
+            document.getElementById('adminProfileModal').style.display = 'flex';
+        }
+
+        function openEditAdminModalFromProfile() {
+            if (!activeAdminData) return;
+            document.getElementById('editAdminNameInput').value = activeAdminData.name || '';
+            document.getElementById('editAdminUsernameInput').value = activeAdminData.username || activeAdminData.email || '';
+            document.getElementById('editAdminPasswordInput').value = activeAdminData.password || '';
+            document.getElementById('editAdminRoleSelect').value = activeAdminData.role || 'moderator';
+            document.getElementById('editAdminModal').style.display = 'flex';
+        }
+
+        async function saveAdminEditsFromProfile() {
+            if (!activeDocId) return;
+            let name = document.getElementById('editAdminNameInput').value.trim();
+            let username = document.getElementById('editAdminUsernameInput').value.trim();
+            let password = document.getElementById('editAdminPasswordInput').value.trim();
+            let role = document.getElementById('editAdminRoleSelect').value;
+
+            if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
+
+            try {
+                await db.collection('admins').doc(activeDocId).update({
+                    name: name,
+                    username: username,
+                    email: username,
+                    password: password,
+                    role: role
+                });
+                await fetchAdminsFromCloud();
+                closeModal('editAdminModal');
+                closeModal('adminProfileModal');
+                alert('تم تحديث بيانات المشرف بنجاح! ⭐');
+            } catch(e) {
+                alert('فشل حفظ التعديلات.');
+            }
+        }
+
+        async function toggleAdminRoleFromProfile() {
+            if (!activeDocId || !activeAdminData) return;
+            let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
+            try {
+                await db.collection('admins').doc(activeDocId).update({ role: newRole });
+                await fetchAdminsFromCloud();
+                closeModal('adminProfileModal');
+                alert('تم تبديل صلاحية المشرف بنجاح! 🔄');
+            } catch(e) {
+                alert('حدث خطأ أثناء تبديل الصلاحية.');
+            }
+        }
+
+        async function deleteAdminFromProfile() {
+            if (!activeDocId) return;
+            if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
+            try {
+                await db.collection('admins').doc(activeDocId).delete();
+                closeModal('adminProfileModal');
+                await fetchAdminsFromCloud();
+                alert('تم حذف المشرف بنجاح!');
+            } catch(e) {
+                alert('حدث خطأ أثناء الحذف.');
+            }
         }
 
         function openAddAdminModal() {
@@ -771,7 +879,8 @@
                     username: username,
                     email: username,
                     password: password,
-                    role: role
+                    role: role,
+                    createdAt: Date.now()
                 });
                 
                 closeModal('addAdminModal');
@@ -780,56 +889,6 @@
             } catch(e) {
                 alert('حدث خطأ أثناء إضافة المشرف.');
             }
-        }
-
-        function openAdminModal(docId) {
-            activeDocId = docId;
-            let adm = adminsList.find(a => a.id === docId);
-            if (!adm) return;
-            document.getElementById('modalAdminName').textContent = adm.name || 'مشرف';
-            document.getElementById('adminModal').style.display = 'flex';
-        }
-
-        async function adminAction(action) {
-            if (!activeDocId) return;
-            if (action === 'upgrade') {
-                try {
-                    await db.collection('admins').doc(activeDocId).update({ role: 'full' });
-                    await fetchAdminsFromCloud();
-                    alert('تمت ترقية المشرف لصلاحية مشرف عام! ⭐');
-                } catch(e) { alert('فشل الترقية.'); }
-            } else if (action === 'delete') {
-                if (!confirm('هل تريد حقاً سحب صلاحيات هذا المشرف وحذفه؟')) return;
-                try {
-                    await db.collection('admins').doc(activeDocId).delete();
-                    closeModal('adminModal');
-                    await fetchAdminsFromCloud();
-                    alert('تم حذف المشرف بنجاح!');
-                } catch(e) { alert('فشل الحذف.'); }
-            }
-        }
-
-        function openEditAdminSubModal() {
-            let adm = adminsList.find(a => a.id === activeDocId);
-            if (!adm) return;
-            document.getElementById('editAdminNameInput').value = adm.name || '';
-            document.getElementById('editAdminUsernameInput').value = adm.username || adm.email || '';
-            document.getElementById('editAdminSubModal').style.display = 'flex';
-        }
-
-        async function saveAdminEdits() {
-            if (!activeDocId) return;
-            let name = document.getElementById('editAdminNameInput').value.trim();
-            let username = document.getElementById('editAdminUsernameInput').value.trim();
-            if(!name) return alert('يرجى كتابة الاسم');
-
-            try {
-                await db.collection('admins').doc(activeDocId).update({ name: name, username: username, email: username });
-                await fetchAdminsFromCloud();
-                closeModal('editAdminSubModal');
-                closeModal('adminModal');
-                alert('تم تحديث معلومات المشرف بنجاح!');
-            } catch(e) { alert('فشل التعديل.'); }
         }
 
         function closeModal(modalId) {
