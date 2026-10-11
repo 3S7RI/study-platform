@@ -1,18 +1,23 @@
 // admin-service.js - ملف الخدمات الشامل والموحد لإدارة وتخزين وإنشاء وتعديل بيانات مشرفي المنصة
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * 1. البحث عن وثيقة المشرف في قاعدة البيانات بأي وسيلة (Email, Username, أو ID)
+ * 1. البحث عن وثيقة المشرف في قاعدة البيانات بأي وسيلة (Document ID, Email, Username, أو adminId)
  */
 export async function findAdminDocument(db, identifier) {
     if (!identifier) return null;
     const cleanId = String(identifier).toLowerCase().trim();
 
     try {
-        // البحث المباشر في مجموعة admins
-        let docRef = doc(db, "admins", cleanId);
+        // البحث المباشر بواسطة معرف المستند (Document ID)
+        let docRef = doc(db, "admins", identifier);
         let docSnap = await getDoc(docRef);
         if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'admins' };
+
+        // البحث بالمستند بالاسم المحول لصيغة نظيفة
+        let cleanDocRef = doc(db, "admins", cleanId);
+        let cleanDocSnap = await getDoc(cleanDocRef);
+        if (cleanDocSnap.exists()) return { id: cleanDocSnap.id, ref: cleanDocRef, data: cleanDocSnap.data(), collectionName: 'admins' };
 
         // البحث بواسطة email
         let q = query(collection(db, "admins"), where("email", "==", cleanId));
@@ -24,6 +29,11 @@ export async function findAdminDocument(db, identifier) {
         snap = await getDocs(q);
         if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'admins' };
 
+        // البحث بواسطة adminId (مثل ADM-xxxx)
+        q = query(collection(db, "admins"), where("adminId", "==", identifier));
+        snap = await getDocs(q);
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'admins' };
+
         return null;
     } catch (e) {
         console.error("خطأ أثناء البحث عن المشرف:", e);
@@ -32,18 +42,18 @@ export async function findAdminDocument(db, identifier) {
 }
 
 /**
- * 2. جلب بيانات المشرف فقط (بدون إنشاء تلقائي نهائياً لتأمين المنصة)
+ * 2. جلب بيانات المشرف فقط
  */
 export async function getAdminData(db, adminIdentifier) {
     let adminObj = await findAdminDocument(db, adminIdentifier);
     if (adminObj) {
-        return adminObj; // المشرف موجود بالفعل
+        return adminObj; 
     }
-    return null; // لا يتم إنشاء أي حساب تلقائياً
+    return null; 
 }
 
 /**
- * 3. إنشاء مشرف جديد رسمياً (يتم استدعاؤها فقط من واجهة إنشاء حساب المشرف أو لوحة التحكم)
+ * 3. إنشاء مشرف جديد رسمياً
  */
 export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
     try {
@@ -54,12 +64,13 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
 
         const newAdminData = {
             adminId: adminData.adminId || `ADM-${Math.floor(1000 + Math.random() * 9000)}`,
-            name: adminData.name || 'مشرف المنصة',
+            name: adminData.name || adminData.fullname || 'مشرف المنصة',
+            fullname: adminData.name || adminData.fullname || 'مشرف المنصة',
             username: adminData.username || cleanId,
             email: adminData.email || cleanId,
             password: adminData.password || '',
             phone: adminData.phone || '',
-            role: adminData.role || 'moderator', // full أو moderator
+            role: adminData.role || 'moderator', 
             isVerified: isVerifiedStatus,
             verified: isVerifiedStatus,
             profileImage: adminData.profileImage || adminData.avatar || '',
@@ -77,7 +88,7 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
 }
 
 /**
- * 4. تعديل وتحديث بيانات المشرف الموجود فعلياً (مثل التوثيق، الصلاحية، الاسم، الهاتف، إلخ)
+ * 4. تعديل وتحديث بيانات المشرف الموجود فعلياً
  */
 export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
     try {
@@ -92,6 +103,13 @@ export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
             let verifyVal = updateFields.isVerified === true || updateFields.verified === true;
             updateFields.isVerified = verifyVal;
             updateFields.verified = verifyVal;
+        }
+
+        // مزامنة الاسم لضمان حفظه في الحقلين معاً (name و fullname)
+        if (updateFields.name && !updateFields.fullname) {
+            updateFields.fullname = updateFields.name;
+        } else if (updateFields.fullname && !updateFields.name) {
+            updateFields.name = updateFields.fullname;
         }
 
         const payload = {
@@ -109,14 +127,14 @@ export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
 }
 
 /**
- * 5. حذف حساب المشرف نهائياً من السحابة
+ * 5. حذف حساب المشرف نهائياً من السحابة (تم تصحيح طريقة الحذف بـ deleteDoc)
  */
 export async function deleteAdminAccount(db, adminIdentifier) {
     try {
         let adminObj = await findAdminDocument(db, adminIdentifier);
         if (!adminObj) return false;
 
-        await adminObj.ref.delete();
+        await deleteDoc(adminObj.ref);
         console.log("تم حذف حساب المشرف بنجاح من السحابة.");
         return true;
     } catch (e) {
