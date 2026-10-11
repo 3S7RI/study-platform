@@ -85,24 +85,36 @@
         }
         .file-card.locked { border-top-color: var(--danger); background: rgba(239, 68, 68, 0.03); }
 
-        /* طبقة السلاسل والقفل عند نفاد المحاولات تماماً */
+        /* طبقة السلاسل والقفل بـ SVG وتضليل 5% */
         .chained-lock-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(5px);
+            background: rgba(15, 23, 42, 0.05); /* نسبة تضليل خفيفة جداً 5% لتظهر البيانات خلفها */
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 10; padding: 15px; text-align: center; gap: 6px;
-            border: 2px dashed var(--danger); border-radius: 16px;
+            border-radius: 16px; pointer-events: none; /* للسماح برؤية التفاصيل خلفها */
         }
-        .chains-icon {
-            font-size: 1.6rem; letter-spacing: -3px; color: var(--text-muted); opacity: 0.9;
+        
+        .svg-chains-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none; opacity: 0.45;
         }
+
+        .lock-content-box {
+            position: relative; z-index: 2;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(3px);
+            padding: 12px 18px; border-radius: 12px; border: 1px solid var(--danger);
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            pointer-events: auto;
+        }
+
         .lock-icon-badge {
-            background: rgba(239, 68, 68, 0.2); color: var(--danger); width: 42px; height: 42px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
-            border: 1px solid var(--danger); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            background: rgba(239, 68, 68, 0.2); color: var(--danger); width: 36px; height: 36px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            border: 1px solid var(--danger); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
         }
         .locked-message-text {
-            color: var(--danger); font-weight: 700; font-size: 0.95rem; margin-top: 2px;
+            color: var(--danger); font-weight: 700; font-size: 0.9rem; margin-top: 2px;
         }
 
         .file-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
@@ -368,31 +380,41 @@
                         </div>
                         <div class="file-desc">${item.targetGroup || 'الصف الدراسي'} - المادة: ${subject}</div>
                     </div>
+                    <div>
+                        <div class="file-meta">
+                            <span>📂 المادة: ${subject}</span>
+                            <span>📖 ${isAttemptsExhausted ? 'منتهية المحاولات' : 'متاح'}</span>
+                        </div>
+                        <button onclick="${isAttemptsExhausted ? '' : `handleLessonClick('${item.id}')`}" class="view-btn ${isAttemptsExhausted ? 'locked-btn' : ''}" ${isAttemptsExhausted ? 'disabled' : ''}>${isAttemptsExhausted ? 'الحصة مغلقة 🔒' : 'دخول الحصة 🚀'}</button>
+                    </div>
                 `;
 
                 if (isAttemptsExhausted) {
                     cardHtml += `
                         <div class="chained-lock-overlay">
-                            <div class="chains-icon">⛓️ ⛓️ ⛓️</div>
-                            <div class="lock-icon-badge">🔒</div>
-                            <div class="locked-message-text">نَفّذت المحاولات</div>
+                            <!-- SVG للسلاسل المتقاطعة قطرياً من الزوايا -->
+                            <svg class="svg-chains-bg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <line x1="0" y1="0" x2="100" y2="100" stroke="var(--danger)" stroke-width="4" stroke-dasharray="6,4" opacity="0.8"/>
+                                <line x1="100" y1="0" x2="0" y2="100" stroke="var(--danger)" stroke-width="4" stroke-dasharray="6,4" opacity="0.8"/>
+                            </svg>
+                            <div class="lock-content-box">
+                                <div class="lock-icon-badge">🔒</div>
+                                <div class="locked-message-text">نَفّذت المحاولات</div>
+                            </div>
                         </div>
                     `;
                 } else if (isLocked) {
-                    cardHtml += `
+                    cardHtml = `
+                        <div>
+                            <div class="file-header-top">
+                                <div class="file-title">الحصة ${item.number || 1}: ${title}</div>
+                                <span class="attempts-counter-badge">${currentAccessCount} / ${maxAttempts} محاولات</span>
+                            </div>
+                            <div class="file-desc">${item.targetGroup || 'الصف الدراسي'} - المادة: ${subject}</div>
+                        </div>
                         <div>
                             <div class="countdown-box" id="countdown-${item.id}">جاري حساب العد التنازلي...</div>
                             <button class="view-btn locked-btn">الحصة مقفولة مؤقتاً 🔒</button>
-                        </div>
-                    `;
-                } else {
-                    cardHtml += `
-                        <div>
-                            <div class="file-meta">
-                                <span>📂 المادة: ${subject}</span>
-                                <span>📖 متاح</span>
-                            </div>
-                            <button onclick="handleLessonClick('${item.id}')" class="view-btn" style="text-align: center;">دخول الحصة 🚀</button>
                         </div>
                     `;
                 }
