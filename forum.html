@@ -62,7 +62,7 @@
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
 
-        /* شاشة وضع الصيانة الاحترافية للطالب (شاشة كاملة مع السلاسل والقفل المتقاطع) */
+        /* شاشة وضع الصيانة الاحترافية للطالب (شاشة كاملة مع السلاسل والقفل) */
         #maintenanceOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(15, 23, 42, 0.96); z-index: 99999; overflow: hidden; justify-content: center; align-items: center;
@@ -323,7 +323,7 @@
             <button id="themeToggleBtn" class="btn-theme-toggle" title="تغيير الوضع">☀️</button>
         </header>
 
-        <div class="create-post-card">
+        <div class="create-post-card" id="createPostCardWrapper">
             <textarea id="postContentInput" placeholder="اكتب سؤالك أو استفسارك الدراسي بوضوح تام..."></textarea>
             
             <!-- شريط تسجيل الفويس -->
@@ -355,7 +355,7 @@
                 </div>
             </div>
 
-            <div class="post-tools-row">
+            <div class="post-tools-row" id="postToolsRow">
                 <div class="media-upload-btns">
                     <label class="media-btn">
                         📷 صورة <input type="file" id="postImageInput" accept="image/*" style="display: none;" onchange="previewPostImage(event)">
@@ -390,7 +390,6 @@
             منصة رحلة دراسية التعليمية © 2026 - جميع الحقوق محفوظة للمؤسس <strong>محمد عماد (عشري)</strong>
         </footer>
     </div>
-
     <!-- Firebase SDK & Custom Audio/Image Player Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -419,6 +418,20 @@
         let currentStudentImage = defaultMaleSvg;
         let currentStudentGender = "male";
 
+        let forumSettingsConfig = {
+            isOpen: false,
+            allowNewQuestions: true,
+            allowReplies: true,
+            autoApprove: true,
+            allowLikes: true,
+            allowEmojis: true,
+            blockLinks: false,
+            maxLength: 500,
+            emojisList: "🤍, 👀, 😂, 🔥, 👍",
+            badWords: "",
+            maintenanceMsg: "المنتدى مغلق مؤقتاً للصيانة والتحديث وتطوير التجربة التعليمية، نعود إليكم قريباً! ⚡"
+        };
+
         const isAdminLoggedIn = sessionStorage.getItem('isAdminLoggedIn') === 'true';
         const adminRole = sessionStorage.getItem('adminRole') || 'sub';
         const isUserAdmin = isAdminLoggedIn;
@@ -434,25 +447,35 @@
         let activeCommentChunks = [];
         let activeCommentAudioBase64 = "";
 
-        // فحص حالة صيانة المنتدى وسحب الإعدادات مباشرة من فايربيز
-        async function checkForumMaintenanceStatus() {
+        // فحص حالة صيانة المنتدى وإعداداته مباشرة من فايربيز
+        async function fetchAndApplyForumSettings() {
             try {
                 let docSnap = await getDoc(doc(db, "forumSettings", "config"));
-                let defaultMsg = "المنتدى مغلق مؤقتاً للصيانة والتحديث وتطوير التجربة التعليمية، نعود إليكم قريباً! ⚡";
+                if (docSnap.exists()) {
+                    forumSettingsConfig = docSnap.data();
+                }
+
                 const overlay = document.getElementById('maintenanceOverlay');
                 const textDisplay = document.getElementById('maintenanceTextDisplay');
+                const createCard = document.getElementById('createPostCardWrapper');
 
-                if (docSnap.exists()) {
-                    let s = docSnap.data();
-                    if (s.isOpen === true) {
-                        textDisplay.textContent = s.maintenanceMsg || defaultMsg;
-                        overlay.style.display = 'flex';
-                    } else {
-                        overlay.style.display = 'none';
-                    }
+                // 1. فحص وضع الصيانة
+                if (forumSettingsConfig.isOpen === true && !isUserAdmin) {
+                    textDisplay.textContent = forumSettingsConfig.maintenanceMsg || "المنتدى مغلق للصيانة";
+                    overlay.style.display = 'flex';
+                } else {
+                    overlay.style.display = 'none';
                 }
+
+                // 2. منع استقبال الأسئلة الجديدة
+                if (forumSettingsConfig.allowNewQuestions === false && !isUserAdmin) {
+                    if (createCard) createCard.style.display = 'none';
+                } else {
+                    if (createCard) createCard.style.display = 'block';
+                }
+
             } catch (e) {
-                console.error("خطأ في فحص وضع الصيانة:", e);
+                console.error("خطأ في فحص إعدادات المنتدى:", e);
             }
         }
 
@@ -485,7 +508,7 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
-            await checkForumMaintenanceStatus(); // فحص الصيانة أولاً
+            await fetchAndApplyForumSettings(); 
             if (user) {
                 try {
                     let docSnap = await getDoc(doc(db, "students", user.uid));
@@ -600,12 +623,13 @@
             document.getElementById('audioPreviewContainer').style.display = 'none';
         };
 
-        function showSuccessToast() {
+        function showSuccessToast(msg) {
             const toast = document.getElementById('successToastOverlay');
+            document.getElementById('successToastText').textContent = msg || 'تم نشر السؤال بنجاح!';
             toast.style.display = 'flex';
             setTimeout(() => {
                 toast.style.display = 'none';
-            }, 3000);
+            }, 3500);
         }
 
         window.openLightbox = function(imgSrc) {
@@ -705,6 +729,21 @@
                 return;
             }
 
+            // فحص الحد الأقصى للحروف
+            if (forumSettingsConfig.maxLength && content.length > forumSettingsConfig.maxLength) {
+                alert(`عذراً، تجاوزت الحد الأقصى المسموح به (${forumSettingsConfig.maxLength} حرف)!`);
+                return;
+            }
+
+            // فحص منع الروابط الخارجية إذا كانت مفعلة من الأدمن
+            if (forumSettingsConfig.blockLinks) {
+                let linkRegex = /(http:\/\/|https:\/\/|www\.)[^\s]+/gi;
+                if (linkRegex.test(content)) {
+                    alert('عذراً، إرسال الروابط الخارجية محظور في هذا المنتدى بأوامر الإدارة!');
+                    return;
+                }
+            }
+
             const submitBtn = document.getElementById('postSubmitBtn');
             submitBtn.disabled = true;
 
@@ -727,11 +766,15 @@
             };
 
             try {
-                updateProgress(70, 'جاري النشر في قاعدة البيانات (Firebase)...');
+                // التحقق هل النشر مباشر أم يحتاج مراجعة من الأدمن
+                let isAutoApprove = forumSettingsConfig.autoApprove !== false;
+                let targetCollection = isAutoApprove ? "forumPosts" : "pendingPosts";
 
-                await addDoc(collection(db, "forumPosts"), newPost);
+                updateProgress(70, isAutoApprove ? 'جاري النشر المباشر بالسحابة...' : 'جاري إرسال السؤال للأدمن للمراجعة...');
 
-                updateProgress(100, 'تم النشر بنجاح!');
+                await addDoc(collection(db, targetCollection), newPost);
+
+                updateProgress(100, 'تمت العملية بنجاح!');
                 setTimeout(() => {
                     hideProgress();
                     submitBtn.disabled = false;
@@ -739,14 +782,19 @@
                     removeSelectedImage();
                     removeRecordedVoice();
                     loadForumData();
-                    showSuccessToast();
+                    
+                    if (isAutoApprove) {
+                        showSuccessToast('تم نشر السؤال بنجاح في المنتدى! 🚀');
+                    } else {
+                        showSuccessToast('تم إرسال السؤال بنجاح، بانتظار موافقة الأدمن! ⏳');
+                    }
                 }, 400);
 
             } catch (e) {
                 console.error(e);
                 hideProgress();
                 submitBtn.disabled = false;
-                alert('حدث خطأ أثناء حفظ السؤال في فايربيز: ' + e.message);
+                alert('حدث خطأ أثناء حفظ السؤال: ' + e.message);
             }
         }
 
@@ -838,17 +886,23 @@
                     });
                 }
 
-                let commentBoxHtml = `
+                // صندوق التعليقات يظهر فقط للأدمن أو إذا كان مسموحاً بردود الطلاب بناءً على الإعدادات
+                let allowRepliesSetting = forumSettingsConfig.allowReplies !== false;
+                let showCommentBox = isUserAdmin || allowRepliesSetting;
+
+                let commentBoxHtml = showCommentBox ? `
                     <div class="add-comment-box">
-                        <input type="text" id="commentInput_${post.id}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'الردود مقتصرة على الأدمن فقط'}">
+                        <input type="text" id="commentInput_${post.id}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'اكتب تعليقك على السؤال...'}">
                         ${isUserAdmin ? `
                             <div class="comment-tools">
                                 <button type="button" class="comment-mic-btn" id="commentMicBtn_${post.id}" onclick="toggleCommentVoiceRecording('${post.id}')" title="تسجيل صوت للرد">🎙️</button>
                                 <button type="button" class="send-btn" onclick="submitAdminCommentAction('${post.id}')">إرسال</button>
                             </div>
-                        ` : ''}
+                        ` : `
+                            <button type="button" class="send-btn" onclick="submitStudentCommentAction('${post.id}')">إرسال</button>
+                        `}
                     </div>
-                `;
+                ` : `<p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">التعليقات مغلقة مؤقتاً بواسطة الإدارة.</p>`;
 
                 let audioId = 'aud_' + post.id;
                 let btnId = 'btn_' + post.id;
@@ -936,41 +990,39 @@
                     reader.readAsDataURL(audioBlob);
                     reader.onloadend = async () => {
                         activeCommentAudioBase64 = reader.result;
-                        await addAdminComment(postId);
+                        await addCommentToPost(postId, true);
                     };
                 };
                 activeCommentRecorder.stop();
             } else {
-                addAdminComment(postId);
+                addCommentToPost(postId, true);
             }
         };
 
-        window.deleteQuestionPost = async function(postId) {
-            if (!confirm('هل أنت متأكد من حذف هذا السؤال؟')) return;
-
-            try {
-                await deleteDoc(doc(db, "forumPosts", postId));
-                loadForumData();
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ أثناء حذف السؤال.');
-            }
+        window.submitStudentCommentAction = function(postId) {
+            addCommentToPost(postId, false);
         };
 
-        async function addAdminComment(postId) {
+        async function addCommentToPost(postId, isAdminReply) {
             let input = document.getElementById(`commentInput_${postId}`);
             let text = input.value.trim();
             if (!text && !activeCommentAudioBase64) return;
 
-            let authorName = adminRole === 'master' ? 'محمد عماد (مؤسس المنصة ⚡)' : 'مشرف المنصة المعتمد 🛡️';
+            let authorName = currentStudentName;
+            let role = 'student';
+
+            if (isAdminReply) {
+                authorName = adminRole === 'master' ? 'محمد عماد (مؤسس المنصة ⚡)' : 'مشرف المنصة المعتمد 🛡️';
+                role = adminRole;
+            }
 
             try {
                 const newComment = {
                     authorName: authorName,
                     text: text,
                     audio: activeCommentAudioBase64,
-                    isAdmin: true,
-                    role: adminRole,
+                    isAdmin: isAdminReply,
+                    role: role,
                     createdAt: Date.now()
                 };
 
@@ -984,9 +1036,21 @@
 
             } catch (e) {
                 console.error(e);
-                alert('حدث خطأ أثناء إضافة رد الأدمن.');
+                alert('حدث خطأ أثناء إضافة التعليق.');
             }
         }
+
+        window.deleteQuestionPost = async function(postId) {
+            if (!confirm('هل أنت متأكد من حذف هذا السؤال؟')) return;
+
+            try {
+                await deleteDoc(doc(db, "forumPosts", postId));
+                loadForumData();
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء حذف السؤال.');
+            }
+        };
     </script>
 </body>
 </html>
