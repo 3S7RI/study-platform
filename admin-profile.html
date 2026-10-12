@@ -575,7 +575,7 @@
             </div>
         </div>
     </div>
-    <!-- تضمين مكتبات Firebase SDK وسيرفر الخدمات -->
+    <!-- تضمين مكتبات Firebase SDK وسيرفر الخدمات والمصححة بالكامل -->
     <script type="module">
         import { getAdminData, updateAdminData, deleteAdminAccount } from "./admin-service.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -647,13 +647,13 @@
                     let adminResult = null;
                     let targetKey = null;
 
-                    if (uid) {
-                        adminResult = await getAdminData(db, uid);
-                        if (adminResult) targetKey = uid;
-                    }
-                    if (!adminResult && emailKey) {
+                    if (emailKey) {
                         adminResult = await getAdminData(db, emailKey);
                         if (adminResult) targetKey = emailKey;
+                    }
+                    if (!adminResult && uid) {
+                        adminResult = await getAdminData(db, uid);
+                        if (adminResult) targetKey = uid;
                     }
 
                     if (adminResult) {
@@ -774,8 +774,9 @@
                 currentAdminData.profileImage = selectedNewAvatarBase64;
                 currentAdminData.avatar = selectedNewAvatarBase64;
 
-                if (currentAdminDocKey) {
-                    await updateAdminData(db, currentAdminDocKey, {
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, {
                         profileImage: selectedNewAvatarBase64,
                         avatar: selectedNewAvatarBase64
                     });
@@ -798,8 +799,9 @@
             currentAdminData.profileImage = "";
             currentAdminData.avatar = "";
             try {
-                if (currentAdminDocKey) {
-                    await updateAdminData(db, currentAdminDocKey, {
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, {
                         profileImage: "",
                         avatar: ""
                     });
@@ -837,8 +839,9 @@
                 };
                 if (newPass) updatePayload.password = newPass;
 
-                if (currentAdminDocKey) {
-                    await updateAdminData(db, currentAdminDocKey, updatePayload);
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, updatePayload);
                 }
                 sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
@@ -853,8 +856,9 @@
         window.deleteAccountPermanently = async function() {
             if (!confirm("تحذير خطير: هل أنت متأكد تماماً من حذف حسابك الإداري نهائياً من المنصة؟")) return;
             try {
-                if (currentAdminDocKey) {
-                    await deleteAdminAccount(db, currentAdminDocKey);
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await deleteAdminAccount(db, targetKey);
                 }
                 sessionStorage.clear();
                 showToast("تم حذف حسابك نهائياً.", "⚠️");
