@@ -127,6 +127,24 @@
         .modal-overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
         .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 440px; padding: 20px; box-shadow: var(--shadow); text-align: right; }
 
+        /* ستايل الإشعارات العائمة المتوافقة مع ثيم المنصة */
+        #platformToastContainer {
+            position: fixed; bottom: 20px; left: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px; max-width: 320px; width: 100%; pointer-events: none;
+        }
+        .platform-toast {
+            background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 12px 18px; border-radius: 12px; box-shadow: var(--shadow);
+            display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600;
+            animation: slideInUp 0.3s ease, fadeOut 0.3s ease 2.7s forwards; pointer-events: auto;
+        }
+        .platform-toast.success { border-right: 4px solid var(--success); }
+        .platform-toast.error { border-right: 4px solid var(--danger); }
+        .platform-toast.warning { border-right: 4px solid var(--warning); }
+        
+        @keyframes slideInUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+
         .avatar-wrapper { position: relative; width: 90px; height: 90px; margin: 0 auto 12px; border-radius: 50%; padding: 3px; display: flex; align-items: center; justify-content: center; }
         .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #334155; position: relative; z-index: 2; }
         
@@ -182,6 +200,9 @@
 </head>
 <body id="pageBody" data-theme="dark">
     <div class="container">
+        <!-- حاوية الإشعارات العائمة للمنصة -->
+        <div id="platformToastContainer"></div>
+
         <!-- الهيدر المطور -->
         <header class="platform-header">
             <div class="header-right-side"><a href="admin.html" class="btn-home-link">الرئيسية 🏠</a></div>
@@ -428,6 +449,26 @@
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
+        // 🚀 دالة الإشعارات العائمة المتوافقة مع ثيم المنصة
+        window.showPlatformToast = function(message, type = 'success') {
+            const container = document.getElementById('platformToastContainer');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `platform-toast ${type}`;
+            
+            let icon = '✔️';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        };
+
         window.switchTab = function(tab) {
             document.getElementById('btnTabStudents').classList.remove('active');
             document.getElementById('btnTabAdmins').classList.remove('active');
@@ -457,6 +498,14 @@
                 snapshot.forEach(doc => {
                     studentsList.push({ id: doc.id, ...doc.data() });
                 });
+                
+                // 🚀 ترتيب الطلاب تصاعدياً حسب الـ ID أو studentId
+                studentsList.sort((a, b) => {
+                    let idA = (a.studentId || a.id || "").toString().toLowerCase();
+                    let idB = (b.studentId || b.id || "").toString().toLowerCase();
+                    return idA.localeCompare(idB, undefined, { numeric: true });
+                });
+
                 renderStudentsTable();
             } catch (err) {
                 console.error("خطأ في جلب الطلاب:", err);
@@ -662,7 +711,7 @@
             let parentPhone = document.getElementById('editStudentParentPhone').value.trim();
             let points = parseInt(document.getElementById('editStudentPoints').value) || 0;
 
-            if(!name) return alert('يرجى كتابة اسم الطالب');
+            if(!name) return showPlatformToast('يرجى كتابة اسم الطالب', 'error');
 
             let rankInfo = getRankDetails(points);
 
@@ -683,9 +732,9 @@
                 await fetchStudentsFromCloud();
                 closeModal('editStudentModal');
                 closeModal('studentProfileModal');
-                alert('تم تحديث معلومات الطالب سحابياً بنجاح! ⭐');
+                showPlatformToast('تم تحديث معلومات الطالب سحابياً بنجاح!', 'success');
             } catch(e) {
-                alert('فشل حفظ التعديلات.');
+                showPlatformToast('فشل حفظ التعديلات.', 'error');
             }
         }
 
@@ -704,9 +753,9 @@
                 });
                 await fetchStudentsFromCloud();
                 closeModal('studentProfileModal');
-                alert('تم ترقية مستوى الطالب سحابياً بنجاح! 🚀');
+                showPlatformToast('تم ترقية مستوى الطالب بنجاح!', 'success');
             } catch(e) {
-                alert('حدث خطأ أثناء الترقية.');
+                showPlatformToast('حدث خطأ أثناء الترقية.', 'error');
             }
         }
 
@@ -728,7 +777,7 @@
             let gender = document.getElementById('addStuGender').value;
 
             if (!name || !email || !pass) {
-                alert('يرجى ملء الحقول الأساسية (الاسم، البريد، كلمة المرور)!');
+                showPlatformToast('يرجى ملء الحقول الأساسية!', 'warning');
                 return;
             }
 
@@ -760,9 +809,9 @@
 
                 closeModal('addStudentModal');
                 await fetchStudentsFromCloud();
-                alert(`تم إضافة الطالب الجديد بنجاح في النظام والسحابة برقم المعرف (${smartStudentId}) 🚀`);
+                showPlatformToast(`تم إضافة الطالب بنجاح (${smartStudentId})`, 'success');
             } catch(e) {
-                alert('حدث خطأ أثناء إضافة الطالب: ' + e.message);
+                showPlatformToast('خطأ: ' + e.message, 'error');
             }
         }
 
@@ -801,20 +850,25 @@
         }
 
         window.banStudent = function() {
-            window.location.href = '404.html';
+            showPlatformToast('تم حظر الطالب بنجاح', 'warning');
+            setTimeout(() => { window.location.href = '404.html'; }, 1000);
         }
 
-        // 🚀 حذف الطالب من الكولكشن فوراً وبدون أي طلب كلمات مرور
+        // 🚀 حذف الطالب مع التحديث الفوري للقائمة بدون تحديث الصفحة
         window.deleteStudentAccount = async function() {
             if (!activeDocId) return;
             if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً؟')) return;
             try {
                 await db.collection('students').doc(activeDocId).delete();
+                
+                // تحديث القائمة المحلية فوراً لإزالته من الجدول
+                studentsList = studentsList.filter(s => s.id !== activeDocId);
+                renderStudentsTable();
+
                 closeModal('studentProfileModal');
-                await fetchStudentsFromCloud();
-                alert('تم حذف الحساب نهائياً بنجاح!');
+                showPlatformToast('تم حذف الحساب نهائياً بنجاح!', 'success');
             } catch(e) {
-                alert('حدث خطأ أثناء الحذف.');
+                showPlatformToast('حدث خطأ أثناء الحذف.', 'error');
             }
         }
 
@@ -881,11 +935,7 @@
             document.getElementById('adminProfileVerifiedStatus').innerHTML = isVerified ? 'موثق رسمياً ✔️' : 'غير موثق ❌';
 
             const verifyBtn = document.getElementById('btnToggleVerifyText');
-            if (isVerified) {
-                verifyBtn.innerHTML = `إلغاء التوثيق`;
-            } else {
-                verifyBtn.innerHTML = `توثيق`;
-            }
+            verifyBtn.innerHTML = isVerified ? 'إلغاء التوثيق' : 'توثيق';
 
             const roleBtn = document.getElementById('btnToggleRoleText');
             roleBtn.textContent = isFull ? '⭐ خفض الأدمن' : '⭐ ترقية الأدمن';
@@ -916,7 +966,7 @@
             let username = document.getElementById('editAdminUsernameInput').value.trim();
             let phone = document.getElementById('editAdminPhoneInput').value.trim();
 
-            if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
+            if(!name || !username) return showPlatformToast('يرجى ملء الحقول الأساسية', 'warning');
 
             try {
                 let newData = {
@@ -933,9 +983,9 @@
                 await fetchAdminsFromCloud();
                 closeModal('editAdminModal');
                 closeModal('adminProfileModal');
-                alert('تم تحديث بيانات المشرف وتطبيقها محلياً وسحابياً بنجاح! ⭐');
+                showPlatformToast('تم تحديث بيانات المشرف بنجاح!', 'success');
             } catch (e) {
-                alert('فشل حفظ التعديلات في السحابة.');
+                showPlatformToast('فشل حفظ التعديلات في السحابة.', 'error');
             }
         }
 
@@ -950,9 +1000,9 @@
 
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
-                alert('تم تحديث مستوى صلاحية المشرف بنجاح! 🔄');
+                showPlatformToast('تم ترقية/تحديث صلاحية المشرف بنجاح!', 'success');
             } catch (e) {
-                alert('حدث خطأ أثناء التحديث.');
+                showPlatformToast('حدث خطأ أثناء التحديث.', 'error');
             }
         }
 
@@ -975,20 +1025,19 @@
 
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
-                alert('تم تحديث حالة التوثيق بنجاح! ✔️');
+                showPlatformToast('تم تحديث حالة التوثيق بنجاح!', 'success');
             } catch (e) {
-                alert('حدث خطأ أثناء تحديث التوثيق.');
+                showPlatformToast('حدث خطأ أثناء تحديث التوثيق.', 'error');
             }
         }
 
         window.banAdminFromProfile = function() {
             if (!activeAdminData) return;
-            if (confirm('هل أنت متأكد من حظر هذا المشرف؟ سيتم توجيهه إلى صفحة 404.')) {
-                window.location.href = '404.html';
-            }
+            showPlatformToast('تم حظر المشرف بنجاح', 'warning');
+            setTimeout(() => { window.location.href = '404.html'; }, 1000);
         }
 
-        // 🚀 حذف المشرف من الكولكشن فوراً وبدون أي طلب كلمات مرور
+        // 🚀 حذف المشرف مع التحديث الفوري للقائمة بدون تحديث الصفحة
         window.deleteAdminFromProfile = async function() {
             if (!activeDocId) return;
 
@@ -996,11 +1045,15 @@
             
             try {
                 await db.collection('admins').doc(activeDocId).delete();
+                
+                // تحديث القائمة المحلية فوراً لإزالته من الجدول
+                adminsList = adminsList.filter(a => a.id !== activeDocId);
+                renderAdminsTable();
+
                 closeModal('adminProfileModal');
-                await fetchAdminsFromCloud();
-                alert('تم حذف المشرف من السحابة بنجاح!');
+                showPlatformToast('تم حذف المشرف من السحابة بنجاح!', 'success');
             } catch (e) {
-                alert('حدث خطأ أثناء الحذف.');
+                showPlatformToast('حدث خطأ أثناء الحذف.', 'error');
             }
         }
 
@@ -1022,7 +1075,7 @@
             let isVerified = document.getElementById('newAdminVerified').checked;
 
             if (!name || !username || !password) {
-                alert('يرجى ملء كافة البيانات الأساسية للمشرف!');
+                showPlatformToast('يرجى ملء كافة البيانات الأساسية!', 'warning');
                 return;
             }
 
@@ -1050,9 +1103,9 @@
 
                 closeModal('addAdminModal');
                 await fetchAdminsFromCloud();
-                alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
+                showPlatformToast('تم إضافة المشرف الجديد بنجاح!', 'success');
             } catch (e) {
-                alert('حدث خطأ أثناء إنشاء حساب المصادقة: ' + e.message);
+                showPlatformToast('خطأ: ' + e.message, 'error');
             }
         }
 
