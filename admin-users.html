@@ -387,7 +387,7 @@
     <!-- الجزء البرمجي والخدمات السحابية المحدثة بالكامل -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -804,34 +804,17 @@
             window.location.href = '404.html';
         }
 
-        // 🚀 حذف الطالب نهائياً من قاعدة البيانات ومن نظام المصادقة Auth
+        // 🚀 حذف الطالب من الكولكشن فوراً وبدون أي طلب كلمات مرور
         window.deleteStudentAccount = async function() {
-            if (!activeDocId || !activeStudentData) return;
-            if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً من الكولكشن والمصادقة؟')) return;
+            if (!activeDocId) return;
+            if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً؟')) return;
             try {
-                // محاولة حذف الحساب من Firebase Auth إذا توفر الإيميل والباسورد أو عن طريق تسجيل الدخول المؤقت أو حذف بـ Admin SDK (محدود بالصلاحيات العادية client-side، لكن نقدر نحاول تسجيل الدخول وحذفه أو حذفه من الكولكشن مباشرة)
-                // بما إننا في الـ Client Side، الطريقة المضمونة لحذف حساب الـ Auth تتطلب تسجيل دخول المستخدم أولاً أو حذفه من لوحة التحكم، لكن لو متاح الـ email والـ password نقدر نعمل تسجيل دخول مؤقت ثم deleteUser()
-                let studentEmail = activeStudentData.email;
-                
-                // 1. حذف المستند من كولكشن students
                 await db.collection('students').doc(activeDocId).delete();
-                
-                // 2. محاولة حذف حساب الـ Auth لو أمكن
-                try {
-                    let tempPass = prompt("لإزالة حساب المصادقة (Auth) نهائياً، يرجى كتابة كلمة مرور مؤقتة أو الضغط إلغاء لتخطيط هذه الخطوة:");
-                    if (tempPass) {
-                        const userCred = await signInWithEmailAndPassword(auth, studentEmail, tempPass);
-                        await deleteUser(userCred.user);
-                    }
-                } catch (authDelErr) {
-                    console.log("ملاحظة المصادقة:", authDelErr.message);
-                }
-
                 closeModal('studentProfileModal');
                 await fetchStudentsFromCloud();
-                alert('تم حذف الحساب نهائياً من المنصة وسحابة فايربيز بنجاح!');
+                alert('تم حذف الحساب نهائياً بنجاح!');
             } catch(e) {
-                alert('حدث خطأ أثناء الحذف: ' + e.message);
+                alert('حدث خطأ أثناء الحذف.');
             }
         }
 
@@ -1005,34 +988,19 @@
             }
         }
 
-        // 🚀 حذف المشرف نهائياً من قاعدة البيانات ومن نظام المصادقة Auth
+        // 🚀 حذف المشرف من الكولكشن فوراً وبدون أي طلب كلمات مرور
         window.deleteAdminFromProfile = async function() {
-            if (!activeDocId || !activeAdminData) return;
+            if (!activeDocId) return;
 
-            if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من الكولكشن والمصادقة؟')) return;
+            if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً؟')) return;
             
             try {
-                let adminEmail = activeAdminData.email || activeAdminData.username;
-                
-                // 1. حذف المستند من كولكشن admins
                 await db.collection('admins').doc(activeDocId).delete();
-                
-                // 2. محاولة حذف حساب الـ Auth لو أمكن
-                try {
-                    let tempPass = prompt("لإزالة حساب المصادقة (Auth) نهائياً، يرجى كتابة كلمة مرور المشرف أو الضغط إلغاء لتخطي هذه الخطوة:");
-                    if (tempPass) {
-                        const userCred = await signInWithEmailAndPassword(auth, adminEmail, tempPass);
-                        await deleteUser(userCred.user);
-                    }
-                } catch (authDelErr) {
-                    console.log("ملاحظة المصادقة للأدمن:", authDelErr.message);
-                }
-
                 closeModal('adminProfileModal');
                 await fetchAdminsFromCloud();
-                alert('تم حذف المشرف نهائياً من السحابة بنجاح!');
+                alert('تم حذف المشرف من السحابة بنجاح!');
             } catch (e) {
-                alert('حدث خطأ أثناء الحذف: ' + e.message);
+                alert('حدث خطأ أثناء الحذف.');
             }
         }
 
