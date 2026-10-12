@@ -119,10 +119,9 @@
 
         <div class="welcome-card">
             <h1 id="statsTitle">إحصائيات وتقارير الطالب الشاملة</h1>
-            <p>تابع تحصيلك الدراسي، درجات اختباراتك المنجزة، وإجمالي الوقت المستغرق بدقة مباشرة من سحابة المنصة ⚡</p>
+            <p>تابع تحصيلك الدراسي، درجات اختباراتك المصححة، وإجمالي وقتك الفعلي على المنصة ⚡</p>
         </div>
 
-        <!-- شبكة البطاقات المحدثة بناءً على طلبك -->
         <div class="stats-grid">
             <div class="stat-card" style="border-top: 3px solid #3b82f6;" onclick="scrollToSection('examsSection')">
                 <div class="icon">📝</div>
@@ -146,11 +145,10 @@
             </div>
         </div>
 
-        <!-- قسم سجل الامتحانات المنجزة بالتفاصيل -->
         <div class="details-section" id="examsSection">
-            <h3>📊 سجل الامتحانات المنجزة والتفاصيل</h3>
+            <h3>📊 سجل الامتحانات المصححة</h3>
             <div id="examsHistoryList">
-                <div class="empty-notice">لم تقم بأي امتحانات حتى الآن. ابدأ الآن واختبر مستواك!</div>
+                <div class="empty-notice">لا توجد امتحانات تصححت وظهرت في سجلك حتى الآن.</div>
             </div>
         </div>
 
@@ -226,6 +224,40 @@
             }
         }
 
+        // نظام تتبع الوقت الحقيقي (يعد بالثواني ويحفظ محلياً لحظياً وعند مغادرة الصفحة)
+        let studentKeyForTime = 'student_active_seconds_default';
+        let activeSeconds = 0;
+
+        function initPlatformTimer(identifier) {
+            if (identifier) {
+                studentKeyForTime = `platform_seconds_${identifier.toString().toLowerCase().trim()}`;
+            }
+            activeSeconds = Number(localStorage.getItem(studentKeyForTime)) || 0;
+
+            // تحديث العداد كل ثانية في الواجهة
+            setInterval(() => {
+                activeSeconds++;
+                localStorage.setItem(studentKeyForTime, activeSeconds);
+                updateTimeDisplay(activeSeconds);
+            }, 1000);
+
+            // حفظ الوقت فوراً عند مغادرة الصفحة أو إغلاقها
+            window.addEventListener('beforeunload', () => {
+                localStorage.setItem(studentKeyForTime, activeSeconds);
+            });
+            window.addEventListener('pagehide', () => {
+                localStorage.setItem(studentKeyForTime, activeSeconds);
+            });
+        }
+
+        function updateTimeDisplay(totalSecs) {
+            let totalMins = Math.floor(totalSecs / 60);
+            let hours = Math.floor(totalMins / 60);
+            let mins = totalMins % 60;
+            let timeStr = hours > 0 ? `${hours} ساعة ${mins > 0 ? 'و ' + mins + ' دقيقة' : ''}` : `${totalMins} دقيقة`;
+            document.getElementById('totalTimeCount').innerText = timeStr;
+        }
+
         onAuthStateChanged(auth, async (user) => {
             let localRaw = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || localStorage.getItem('studentUser');
             let studentData = localRaw ? JSON.parse(localRaw) : null;
@@ -235,6 +267,7 @@
                 identifier = studentData.email || studentData.studentId || studentData.id;
             }
 
+            initPlatformTimer(identifier);
             await fetchAndSyncRealStudentData(identifier, studentData, user);
         });
 
@@ -292,39 +325,33 @@
                 document.getElementById('statsTitle').innerText = `إحصائيات وتقارير الطالب: ${firstName}`;
                 document.getElementById('navStudentName').innerHTML = `👤 ${firstName} ${genderSvg}`;
 
-                // جلب الامتحانات والنقاط وإجمالي الوقت الذكي
-                let exams = finalStudent.examsHistory || finalStudent.completedExams || finalStudent.examResults || finalStudent.exams || [];
+                // فلترة الامتحانات المنجزة والمصححة فقط (التي تحتوي على درجة معتمدة من الأدمن)
+                let rawExams = finalStudent.examsHistory || finalStudent.completedExams || finalStudent.examResults || finalStudent.exams || [];
+                let correctedExams = rawExams.filter(ex => {
+                    let hasScore = ex.score !== undefined || ex.grade !== undefined || ex.percentage !== undefined;
+                    let isChecked = ex.status === 'corrected' || ex.graded === true || ex.reviewed === true || hasScore;
+                    return isChecked;
+                });
+
                 let points = Number(finalStudent.totalScore || finalStudent.points || finalStudent.score || finalStudent.totalPoints || 0);
 
-                // حساب الوقت الفعلي بالذكاء (من السجلات أو تتبع الجلسات)
-                let totalMinutes = Number(finalStudent.totalStudyMinutes) || Number(finalStudent.totalTime) || 0;
-                if (totalMinutes === 0) {
-                    // حساب ذكي افتراضي بناءً على عدد الامتحانات والنشاط المسجل
-                    totalMinutes = (exams.length * 20) + Number(localStorage.getItem('platform_active_minutes') || 15);
-                }
-
-                let hours = Math.floor(totalMinutes / 60);
-                let mins = totalMinutes % 60;
-                let timeStr = hours > 0 ? `${hours} ساعة ${mins > 0 ? 'و ' + mins + ' دقيقة' : ''}` : `${mins} دقيقة`;
-
-                // تحديث العدادات في البطاقات العلوية
-                document.getElementById('completedExamsCount').innerText = exams.length;
-                document.getElementById('totalTimeCount').innerText = timeStr;
+                // تحديث العدادات العلوية
+                document.getElementById('completedExamsCount').innerText = correctedExams.length;
                 document.getElementById('totalPointsCount').innerText = points;
 
                 sessionStorage.setItem('studentUser', JSON.stringify(finalStudent));
 
-                // 1. عرض سجل الامتحانات الذكي وتفاصيلها المكتملة
-                if (exams.length > 0) {
-                    let totalScoreSum = exams.reduce((acc, curr) => acc + (Number(curr.score) || Number(curr.grade) || Number(curr.percentage) || 0), 0);
-                    let avg = Math.round(totalScoreSum / exams.length);
+                // عرض سجل الامتحانات المصححة وتفاصيلها وحساب المتوسط الذكي
+                if (correctedExams.length > 0) {
+                    let totalScoreSum = correctedExams.reduce((acc, curr) => acc + (Number(curr.score) || Number(curr.grade) || Number(curr.percentage) || 0), 0);
+                    let avg = Math.round(totalScoreSum / correctedExams.length);
                     document.getElementById('avgScore').innerText = avg + '%';
 
                     let html = '<ul class="history-list">';
-                    exams.forEach(ex => {
+                    correctedExams.forEach(ex => {
                         let scoreVal = ex.score !== undefined ? ex.score : (ex.grade !== undefined ? ex.grade : (ex.percentage || 0));
-                        let examName = ex.examTitle || ex.title || ex.name || 'اختبار دراسي عام';
-                        let examDetails = ex.details || ex.description || `تاريخ الإنجاز: ${ex.date || 'مؤخراً'}`;
+                        let examName = ex.examTitle || ex.title || ex.name || 'اختبار دراسي مصحح';
+                        let examDetails = ex.details || ex.description || `تم التصحيح وتوزيع النقاط بنجاح ✅`;
                         html += `<li class="history-item">
                             <div>
                                 <strong>📝 ${examName}</strong>
