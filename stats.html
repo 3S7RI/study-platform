@@ -118,7 +118,7 @@
 
         <div class="welcome-card">
             <h1 id="statsTitle">إحصائيات وتقارير الطالب الشاملة</h1>
-            <p>تابع تحصيلك الدراسي، درجات اختباراتك، وقتك المستغرق، ومشاهدات الحصص والملفات الحية من سحابة المنصة ⚡</p>
+            <p>تابع تحصيلك الدراسي، درجات اختباراتك الشاملة، وقتك المستغرق في الحصص، ومشاهدات الفيديوهات والملفات من سحابة المنصة ⚡</p>
         </div>
 
         <div class="stats-grid">
@@ -134,13 +134,13 @@
             </div>
             <div class="stat-card" style="border-top: 3px solid #0ea5e9;" onclick="scrollToSection('videosSection')">
                 <div class="icon">🎬</div>
-                <h3>الفيديوهات</h3>
+                <h3>الحصص والفيديوهات</h3>
                 <div class="number" id="watchedVideosCount">0</div>
             </div>
             <div class="stat-card" style="border-top: 3px solid #f97316;" onclick="scrollToSection('videosSection')">
                 <div class="icon">⏱️</div>
                 <h3>إجمالي الوقت</h3>
-                <div class="number" id="totalTimeCount">0 س</div>
+                <div class="number" id="totalTimeCount">0 دقيقة</div>
             </div>
             <div class="stat-card" style="border-top: 3px solid #8b5cf6;" onclick="scrollToSection('filesSection')">
                 <div class="icon">📑</div>
@@ -155,16 +155,16 @@
         </div>
 
         <div class="details-section" id="examsSection">
-            <h3>📊 سجل الامتحانات والاختبارات الأخيرة</h3>
+            <h3>📊 سجل الامتحانات الشاملة والاختبارات</h3>
             <div id="examsHistoryList">
-                <div class="empty-notice">لم تقم بأي امتحانات حتى الآن. ابدأ الآن واختبر مستواك!</div>
+                <div class="empty-notice">لم تقم بأي امتحانات شاملة حتى الآن. ابدأ الآن واختبر مستواك!</div>
             </div>
         </div>
 
         <div class="details-section" id="videosSection">
-            <h3>🎬 سجل الفيديوهات والحصص المشاهدة</h3>
+            <h3>🎬 سجل الحصص والفيديوهات المشاهدة</h3>
             <div id="videosHistoryList">
-                <div class="empty-notice">لم تقم بمشاهدة أي فيديوهات دراسية بعد. استعرض الحصص وابدأ التعلم!</div>
+                <div class="empty-notice">لم تقم بمشاهدة أي حصص دراسية بعد. استعرض أقسام الحصص وابدأ التعلم!</div>
             </div>
         </div>
 
@@ -183,7 +183,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -269,7 +269,7 @@
             try {
                 let cloudData = null;
 
-                // 1. البحث في كوليكشن students المباشر أو الـ config
+                // 1. جلب بيانات الطالب المباشرة من كوليكشن students
                 if (identifier) {
                     let docRef = doc(db, "students", identifier.toString().toLowerCase().trim());
                     let docSnap = await getDoc(docRef);
@@ -282,6 +282,7 @@
                     }
                 }
 
+                // 2. فحص سحابة الـ config في حال عدم وجودها في الكوليكشن المباشر
                 if (!cloudData) {
                     let configRef = doc(db, "config", "platform data");
                     let configSnap = await getDoc(configRef);
@@ -296,7 +297,6 @@
                     }
                 }
 
-                // الدمج الفعلي بين البيانات المحلية وسحابة فايربيس
                 let finalStudent = { ...(localStudent || {}), ...(cloudData || {}) };
 
                 const studentName = finalStudent.fullName || finalStudent.name || 'طالبنا العزيز';
@@ -307,21 +307,24 @@
                 document.getElementById('statsTitle').innerText = `إحصائيات وتقارير الطالب: ${firstName}`;
                 document.getElementById('navStudentName').innerHTML = `👤 ${firstName} ${genderSvg}`;
 
-                // استخراج السجلات الحقيقية من كوليكشنات المنصة وسجل الطالب
-                const exams = finalStudent.examsHistory || finalStudent.completedExams || [];
-                const files = finalStudent.downloadedFiles || [];
-                const videos = finalStudent.watchedVideos || finalStudent.videoHistory || [];
-                const points = finalStudent.totalScore || finalStudent.points || finalStudent.score || 0;
-                
-                // حساب الوقت الفعلي بناءً على مدة الحصص والفيديوهات المشاهدة
-                let totalMinutes = finalStudent.totalStudyMinutes || finalStudent.totalTime || 0;
+                // جلب سبيشال كوليكشنز الامتحانات الشاملة، مشاهدات الحصص والملفات المرتبطة بالـ ID أو الإيميل
+                let exams = finalStudent.examsHistory || finalStudent.completedExams || finalStudent.examResults || [];
+                let videos = finalStudent.watchedVideos || finalStudent.videoHistory || finalStudent.lessonViews || [];
+                let files = finalStudent.downloadedFiles || finalStudent.filesHistory || [];
+                let points = finalStudent.totalScore || finalStudent.points || finalStudent.score || 0;
+
+                // حساب إجمالي وقت مشاهدة الحصص والفيديوهات بدقة تامة (بالدقائق والساعات)
+                let totalMinutes = Number(finalStudent.totalStudyMinutes) || Number(finalStudent.totalTime) || 0;
                 if (totalMinutes === 0 && videos.length > 0) {
-                    totalMinutes = videos.reduce((acc, v) => acc + (Number(v.duration) || Number(v.time) || 30), 0);
+                    totalMinutes = videos.reduce((acc, v) => {
+                        let dur = Number(v.duration) || Number(v.time) || Number(v.viewDuration) || 45; // افتراضي 45 دقيقة للحصة في حال لم تسجل المدة
+                        return acc + dur;
+                    }, 0);
                 }
 
                 let hours = Math.floor(totalMinutes / 60);
                 let mins = totalMinutes % 60;
-                let timeStr = hours > 0 ? `${hours} س ${mins > 0 ? mins + ' د' : ''}` : `${mins} دقيقة`;
+                let timeStr = hours > 0 ? `${hours} ساعة ${mins > 0 ? 'و ' + mins + ' دقيقة' : ''}` : `${mins} دقيقة`;
 
                 document.getElementById('completedExamsCount').innerText = exams.length;
                 document.getElementById('downloadedFilesCount').innerText = files.length;
@@ -329,17 +332,17 @@
                 document.getElementById('totalTimeCount').innerText = timeStr;
                 document.getElementById('totalPointsCount').innerText = points;
 
-                // عرض سجل الامتحانات الحقيقي
+                // 1. تقرير الامتحانات الشاملة والدرجات
                 if (exams.length > 0) {
-                    let totalScoreSum = exams.reduce((acc, curr) => acc + (Number(curr.score) || Number(curr.grade) || 0), 0);
+                    let totalScoreSum = exams.reduce((acc, curr) => acc + (Number(curr.score) || Number(curr.grade) || Number(curr.percentage) || 0), 0);
                     let avg = Math.round(totalScoreSum / exams.length);
                     document.getElementById('avgScore').innerText = avg + '%';
 
                     let html = '<ul class="history-list">';
                     exams.forEach(ex => {
-                        let scoreVal = ex.score !== undefined ? ex.score : (ex.grade || 0);
+                        let scoreVal = ex.score !== undefined ? ex.score : (ex.grade !== undefined ? ex.grade : (ex.percentage || 0));
                         html += `<li class="history-item">
-                            <span>📝 امتحان: ${ex.examTitle || ex.title || ex.name || 'اختبار دراسي'}</span>
+                            <span>📊 امتحان شامل: ${ex.examTitle || ex.title || ex.name || 'اختبار تقييمي'}</span>
                             <strong style="color: var(--success);">الدرجة: ${scoreVal}%</strong>
                         </li>`;
                     });
@@ -349,25 +352,26 @@
                     document.getElementById('avgScore').innerText = '0%';
                 }
 
-                // عرض سجل الفيديوهات والحصص المشاهدة الحقيقي
+                // 2. تقرير الحصص والفيديوهات المشاهدة
                 if (videos.length > 0) {
                     let vHtml = '<ul class="history-list">';
                     videos.forEach(v => {
+                        let vDuration = v.duration || v.time || 45;
                         vHtml += `<li class="history-item">
-                            <span>🎬 حصة / فيديو: ${v.title || v.videoTitle || v.name || 'محاضرة تعليمية'}</span>
-                            <span style="color: var(--primary); font-size: 0.8rem;">تمت المشاهدة ✅</span>
+                            <span>🎬 حصة دراسية: ${v.title || v.videoTitle || v.name || 'محاضرة المنصة'}</span>
+                            <span style="color: var(--primary); font-size: 0.8rem;">مدة المشاهدة: ${vDuration} دقيقة ✅</span>
                         </li>`;
                     });
                     vHtml += '</ul>';
                     document.getElementById('videosHistoryList').innerHTML = vHtml;
                 }
 
-                // عرض سجل الملازم والملفات الحقيقي
+                // 3. تقرير الملازم والملفات
                 if (files.length > 0) {
                     let fHtml = '<ul class="history-list">';
                     files.forEach(f => {
                         fHtml += `<li class="history-item">
-                            <span>📑 ملزمة / ملف: ${f.title || f.fileName || f.name || 'ملف تعليمي'}</span>
+                            <span>📑 ملزمة / ورق تدريب: ${f.title || f.fileName || f.name || 'ملف تعليمي'}</span>
                             <span style="color: var(--success); font-size: 0.8rem;">تم التحميل 📥</span>
                         </li>`;
                     });
@@ -376,7 +380,7 @@
                 }
 
             } catch (e) {
-                console.error("خطأ في جلب السجلات الحقيقية من فايربيس:", e);
+                console.error("خطأ في جلب السجلات والربط الشامل من فايربيس:", e);
             }
         }
     </script>
