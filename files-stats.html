@@ -135,18 +135,13 @@
             display: inline-flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px; width: 100%;
         }
 
-        /* الإطار وتصميم الصورة المماثل لإحصائيات الامتحانات */
         .avatar-wrapper-sm {
             position: relative; width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
         .avatar-wrapper-sm img {
             width: 28px; height: 28px; border-radius: 50%; object-fit: cover; position: relative; z-index: 2;
         }
-        .avatar-wrapper-sm .student-avatar-frame {
-            position: absolute; top: -3px; left: -3px; width: 38px; height: 38px; pointer-events: none; z-index: 3;
-        }
 
-        /* إطارات وتأثيرات المستويات من إحصائيات الامتحانات */
         .rank-frame-weak { background: linear-gradient(45deg, #ef4444, #991b1b); box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); border-radius: 50%; }
         .rank-frame-medium { background: linear-gradient(45deg, #f59e0b, #b45309); box-shadow: 0 0 14px rgba(245, 158, 11, 0.8); border-radius: 50%; }
         .rank-frame-strong { background: linear-gradient(45deg, #eab308, #ca8a04); box-shadow: 0 0 16px rgba(234, 179, 8, 0.9); border-radius: 50%; }
@@ -363,7 +358,7 @@
         </div>
     </div>
 
-    <!-- نافذة بروفايل الطالب المتطورة (مطابقة لإحصائيات الامتحانات) -->
+    <!-- نافذة بروفايل الطالب المتطورة -->
     <div class="modal-overlay" id="studentProfileModal" onclick="if(event.target===this) closeStudentModal()">
         <div class="profile-modal-card">
             <div class="avatar-wrapper-lg rank-frame-legendary" id="modalAvatarFrameWrapper">
@@ -390,7 +385,16 @@
                 </div>
             </div>
 
-            <!-- أزرار التحكم الفعالة (تعديل، حظر، حذف) -->
+            <!-- أزرار ترقية وتخفيض المستويات تدريجياً -->
+            <div style="background:var(--th-bg); padding:10px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:12px; text-align:right;">
+                <h5 style="font-size:0.8rem; margin-bottom:6px; color:var(--text-main);">⭐ ترقية / تخفيض مستوى الطالب:</h5>
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                    <button onclick="adjustStudentRankStep(-500)" style="flex:1; background:#ef4444; color:white; border:none; padding:6px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">تخفيض ⬇️</button>
+                    <button onclick="adjustStudentRankStep(500)" style="flex:1; background:var(--success); color:white; border:none; padding:6px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.75rem;">ترقية ⬆️</button>
+                </div>
+            </div>
+
+            <!-- أزرار تعديل البيانات الفعالة -->
             <div style="background:var(--th-bg); padding:10px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:12px; text-align:right;">
                 <h5 style="font-size:0.8rem; margin-bottom:6px; color:var(--text-main);">⚙️ تعديل بيانات ونقاط الطالب:</h5>
                 <div style="display:flex; gap:6px; margin-bottom:6px;">
@@ -455,7 +459,6 @@
             <div class="modal-body" id="studentAnswersContainer"></div>
         </div>
     </div>
-
     <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -534,11 +537,23 @@
                 });
                 container.innerHTML = html;
 
-                const studentsSnap = await getDocs(collection(db, "users"));
-                globalStudentsList = [];
-                studentsSnap.forEach((docSnap) => {
-                    globalStudentsList.push({ id: docSnap.id, ...docSnap.data() });
-                });
+                // جلب الطلاب الفعليين من مجموعة "students" الأساسية بدلاً من users الوهمية لضمان الدقة
+                let fetchedStudents = [];
+                try {
+                    const studentsColSnap = await getDocs(collection(db, "students"));
+                    studentsColSnap.forEach(d => {
+                        fetchedStudents.push({ id: d.id, ...d.data() });
+                    });
+                } catch(e) {}
+
+                if (fetchedStudents.length === 0) {
+                    const usersSnap = await getDocs(collection(db, "users"));
+                    usersSnap.forEach(d => {
+                        fetchedStudents.push({ id: d.id, ...d.data() });
+                    });
+                }
+                globalStudentsList = fetchedStudents;
+
             } catch (e) {
                 console.error("خطأ في جلب بيانات الإحصائيات:", e);
             }
@@ -598,15 +613,15 @@
             globalStudentsList.forEach((student) => {
                 let name = student.name || student.fullName || 'طالب المنصة';
                 let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
-                let totalScore = student.points || student.totalScore || 0;
+                let totalScore = Number(student.points || student.totalScore || student.score || 0);
                 let rank = calculateStudentRank(totalScore);
                 let activity = (student.lessonsActivity || {})[lessonId] || {};
+                let studentIdentifier = student.email || student.studentId || student.id;
 
                 let avatarHtml = `
-                    <div class="student-row-box" onclick='openStudentProfile(${JSON.stringify(student.email)})' style="cursor:pointer;">
+                    <div class="student-row-box" onclick='openStudentProfile(${JSON.stringify(studentIdentifier)})' style="cursor:pointer;">
                         <div class="avatar-wrapper-sm ${rank.frameClass}">
                             <img src="${avatar}" alt="صورة">
-                            <img src="assets/frame-overlay.png" class="student-avatar-frame" onerror="this.style.display='none'">
                         </div>
                         <span class="student-profile-link"><b>${name}</b></span>
                     </div>
@@ -639,7 +654,7 @@
                 if (examData) {
                     let score = examData.score !== undefined ? examData.score : 0;
                     let total = examData.totalMarks || 10;
-                    examBadge = `<span style="color:var(--success); font-weight:bold; cursor:pointer;" onclick='openStudentExamModal(${JSON.stringify(lessonId)}, ${JSON.stringify(student.email)}, ${JSON.stringify(examData)})'>✔ امتحن (${score}/${total}) 🔍</span>`;
+                    examBadge = `<span style="color:var(--success); font-weight:bold; cursor:pointer;" onclick='openStudentExamModal(${JSON.stringify(lessonId)}, ${JSON.stringify(studentIdentifier)}, ${JSON.stringify(examData)})'>✔ امتحن (${score}/${total}) 🔍</span>`;
                 } else {
                     examBadge = '<span style="color:#f59e0b; font-weight:bold;">⏳ لم يختبر بعد</span>';
                 }
@@ -697,9 +712,9 @@
             if (confirm(`هل تريد توزيع نقاط (${catName}) بقيمة ${pointsDefault} نقاط لجميع الطلاب؟`)) {
                 runInteractiveLoader(globalStudentsList.length, async () => {
                     for (let student of globalStudentsList) {
-                        let email = student.email;
-                        if (email) {
-                            await addPointsToStudent(db, email, pointsDefault);
+                        let identifier = student.email || student.studentId || student.id;
+                        if (identifier) {
+                            await addPointsToStudent(db, identifier, pointsDefault);
                         }
                     }
                     renderAccordionTables(activeSelectedLessonId);
@@ -712,9 +727,9 @@
                 let totalPointsBundle = 25;
                 runInteractiveLoader(globalStudentsList.length, async () => {
                     for (let student of globalStudentsList) {
-                        let email = student.email;
-                        if (email) {
-                            await addPointsToStudent(db, email, totalPointsBundle);
+                        let identifier = student.email || student.studentId || student.id;
+                        if (identifier) {
+                            await addPointsToStudent(db, identifier, totalPointsBundle);
                         }
                     }
                     renderAccordionTables(activeSelectedLessonId);
@@ -722,8 +737,8 @@
             }
         };
 
-        window.openStudentExamModal = function(lessonId, studentEmail, subData) {
-            activeSelectedSubmission = { lessonId, studentEmail, subData };
+        window.openStudentExamModal = function(lessonId, studentIdentifier, subData) {
+            activeSelectedSubmission = { lessonId, studentIdentifier, subData };
             let container = document.getElementById('studentAnswersContainer');
             document.getElementById('answersModalTitle').textContent = `📋 معاينة إجابات امتحان الحصة`;
 
@@ -763,20 +778,20 @@
         window.saveManualLessonExamScore = async function() {
             if (!activeSelectedSubmission) return;
             let newScore = parseFloat(document.getElementById('manualLessonExamScore').value) || 0;
-            let { lessonId, studentEmail, subData } = activeSelectedSubmission;
+            let { lessonId, studentIdentifier, subData } = activeSelectedSubmission;
             
             subData.score = newScore;
             let defaultPoints = subData.pointsEarned || 5;
 
             try {
-                let studentDoc = await findStudentDocument(db, studentEmail);
+                let studentDoc = await findStudentDocument(db, studentIdentifier);
                 if (studentDoc) {
-                    let studentRef = doc(db, "users", studentDoc.id);
+                    let studentRef = doc(db, studentDoc.collectionName || "students", studentDoc.id);
                     let lessonsAct = studentDoc.data.lessonsActivity || {};
                     if (lessonsAct[lessonId]) {
                         lessonsAct[lessonId].examSubmission = subData;
                         await updateDoc(studentRef, { lessonsActivity: lessonsAct });
-                        await addPointsToStudent(db, studentEmail, defaultPoints);
+                        await addPointsToStudent(db, studentIdentifier, defaultPoints);
                     }
                 }
                 alert("✔ تم تحديث وحفظ درجات الحصة ونقاط الطالب بنجاح!");
@@ -809,10 +824,10 @@
                     let data = studentDoc.data;
                     currentEditingStudentId = studentDoc.id;
                     let realId = data.studentId || studentDoc.id.substring(0, 8);
-                    let totalScore = data.points || data.totalScore || 0;
+                    let totalScore = Number(data.points || data.totalScore || data.score || 0);
                     let rank = calculateStudentRank(totalScore);
 
-                    document.getElementById('modalStudentName').textContent = data.name || data.fullName || 'طالب';
+                    document.getElementById('modalStudentName').textContent = data.fullName || data.name || 'طالب';
                     document.getElementById('modalStudentEmail').textContent = data.email || identifier;
                     document.getElementById('modalStudentId').textContent = realId;
                     document.getElementById('modalStudentPhone').textContent = data.phone || data.parentPhone || data.phoneNumber || 'غير متوفر';
@@ -825,7 +840,7 @@
                     avatarFrame.className = `avatar-wrapper-lg ${rank.frameClass}`;
                     levelBadge.className = `level-badge-box ${rank.badgeClass}`;
 
-                    document.getElementById('editStudentNameInput').value = data.name || data.fullName || '';
+                    document.getElementById('editStudentNameInput').value = data.fullName || data.name || '';
                     document.getElementById('editStudentPhoneInput').value = data.phone || data.parentPhone || data.phoneNumber || '';
                     document.getElementById('editStudentPointsInput').value = totalScore;
                 } else {
@@ -841,24 +856,42 @@
             document.getElementById('studentProfileModal').classList.remove('active');
         };
 
-        window.saveStudentProfileEdits = async function() {
+        // ترقية أو تخفيض نقاط الطالب تدريجياً
+        window.adjustStudentRankStep = async function(stepAmount) {
+            let pointsInput = document.getElementById('editStudentPointsInput');
+            let currentPts = parseInt(pointsInput.value) || 0;
+            currentPts = Math.max(0, currentPts + stepAmount);
+            pointsInput.value = currentPts;
+            if (currentEditingStudentId) {
+                await saveStudentProfileEdits(true);
+            }
+        };
+
+        window.saveStudentProfileEdits = async function(isSilent = false) {
             if (!currentEditingStudentId) return;
             let newName = document.getElementById('editStudentNameInput').value.trim();
             let newPhone = document.getElementById('editStudentPhoneInput').value.trim();
             let newPoints = parseInt(document.getElementById('editStudentPointsInput').value) || 0;
 
             try {
-                let studentRef = doc(db, "users", currentEditingStudentId);
+                let studentDoc = await findStudentDocument(db, currentEditingStudentId);
+                let colName = studentDoc ? studentDoc.collectionName : "students";
+                let studentRef = doc(db, colName, currentEditingStudentId);
+
                 await updateDoc(studentRef, {
                     name: newName,
                     fullName: newName,
                     phone: newPhone,
-                    points: newPoints
+                    parentPhone: newPhone,
+                    points: newPoints,
+                    totalScore: newPoints
                 });
 
-                alert("✔ تم تحديث بيانات الطالب بنجاح!");
-                closeStudentModal();
-                const studentsSnap = await getDocs(collection(db, "users"));
+                if (!isSilent) {
+                    alert("✔ تم تحديث بيانات ونقاط الطالب بنجاح!");
+                    closeStudentModal();
+                }
+                const studentsSnap = await getDocs(collection(db, "students"));
                 globalStudentsList = [];
                 studentsSnap.forEach((docSnap) => {
                     globalStudentsList.push({ id: docSnap.id, ...docSnap.data() });
@@ -866,7 +899,7 @@
                 if (activeSelectedLessonId) renderAccordionTables(activeSelectedLessonId);
             } catch (err) {
                 console.error(err);
-                alert("حدث خطأ أثناء حفظ التعديلات.");
+                if (!isSilent) alert("حدث خطأ أثناء حفظ التعديلات.");
             }
         };
 
@@ -874,7 +907,9 @@
             if (!currentEditingStudentId) return;
             if (confirm("هل أنت متأكد من حظر هذا الطالب؟")) {
                 try {
-                    let studentRef = doc(db, "users", currentEditingStudentId);
+                    let studentDoc = await findStudentDocument(db, currentEditingStudentId);
+                    let colName = studentDoc ? studentDoc.collectionName : "students";
+                    let studentRef = doc(db, colName, currentEditingStudentId);
                     await updateDoc(studentRef, { isBanned: true });
                     alert("⛔ تم حظر الطالب بنجاح.");
                     closeStudentModal();
@@ -888,10 +923,12 @@
             if (!currentEditingStudentId) return;
             if (confirm("تحذير: هل تريد حذف حساب هذا الطالب نهائياً؟")) {
                 try {
-                    await deleteDoc(doc(db, "users", currentEditingStudentId));
+                    let studentDoc = await findStudentDocument(db, currentEditingStudentId);
+                    let colName = studentDoc ? studentDoc.collectionName : "students";
+                    await deleteDoc(doc(db, colName, currentEditingStudentId));
                     alert("🗑️ تم حذف حساب الطالب نهائياً.");
                     closeStudentModal();
-                    const studentsSnap = await getDocs(collection(db, "users"));
+                    const studentsSnap = await getDocs(collection(db, "students"));
                     globalStudentsList = [];
                     studentsSnap.forEach((docSnap) => {
                         globalStudentsList.push({ id: docSnap.id, ...docSnap.data() });
