@@ -344,8 +344,7 @@
             <img id="lightboxImg" alt="صورة مكبرة">
         </div>
     </div>
-
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK & Scripts -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -729,14 +728,12 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
-        // دالة مساعدة لحساب النقاط بناءً على الدرجة والتقفيل (10 أساسي + 5 عند التقفيل = 15 كحد أقصى)
         function calculateExamPointsEarned(score, totalMarks) {
             if (score <= 0) return 0;
-            // إذا حصل على الدرجة النهائية كاملة (قفل الامتحان)
             if (score >= totalMarks) {
-                return 15; // 10 نقاط الامتحان + 5 نقاط مكافأة التقفيل
+                return 15;
             }
-            return 10; // الامتحان العادي بـ 10 نقاط
+            return 10;
         }
 
         window.saveManualGradingAndNotify = async function() {
@@ -748,33 +745,45 @@
             if (!exam) return;
 
             let studentSub = exam.examSubmissions[subIdx];
-            let oldScore = studentSub.score || 0;
             
-            // حساب النقاط القديمة والجديدة بناءً على قاعدة التقفيل (10 نقاط أو 15 عند التقفيل)
-            let oldPointsEarned = studentSub.published ? calculateExamPointsEarned(oldScore, studentSub.totalMarks) : 0;
-            let newPointsEarned = calculateExamPointsEarned(newScore, studentSub.totalMarks);
-            let pointsDifference = newPointsEarned - oldPointsEarned;
+            let pointsDifference = 0;
+            if (!studentSub.pointsAwarded) {
+                let earnedPoints = calculateExamPointsEarned(newScore, studentSub.totalMarks);
+                pointsDifference = earnedPoints;
+                studentSub.pointsAwarded = true;
+                studentSub.awardedPointsCount = earnedPoints;
+            } else {
+                pointsDifference = 0;
+            }
 
             studentSub.score = newScore;
             studentSub.published = true;
 
             try {
                 const examRef = doc(db, "exams", examId);
+                let studentIdentifierKey = (studentSub.studentEmail || studentSub.studentId || studentSub.uid || '').toLowerCase().trim();
+                
+                let uniqueSubmissionsMap = {};
+                exam.examSubmissions.forEach(sub => {
+                    let k = (sub.studentEmail || sub.studentId || sub.uid || sub.studentName || '').toLowerCase().trim();
+                    uniqueSubmissionsMap[k] = sub;
+                });
+                exam.examSubmissions = Object.values(uniqueSubmissionsMap);
+
                 await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
 
-                let studentIdentifier = (studentSub.studentEmail || '').toLowerCase().trim();
-                if (studentIdentifier && pointsDifference !== 0) {
-                    await addPointsToStudent(db, studentIdentifier, pointsDifference);
+                if (studentIdentifierKey && pointsDifference > 0) {
+                    await addPointsToStudent(db, studentIdentifierKey, pointsDifference);
                 }
 
-                if (studentIdentifier) {
-                    const cleanEmail = studentIdentifier.replace(/[^a-zA-Z0-9]/g, "_");
+                if (studentIdentifierKey) {
+                    const cleanEmail = studentIdentifierKey.replace(/[^a-zA-Z0-9]/g, "_");
                     const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
                     await setDoc(doc(db, "adminNotifications", notifId), {
                         title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
-                        message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${newScore} من ${studentSub.totalMarks}</b> 🎯 واكتسبت نقاطاً جديدة في حسابك!`,
+                        message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${newScore} من ${studentSub.totalMarks}</b> 🎯 وتم تحديث سجلك الأكاديمي!`,
                         target: "single",
-                        recipientEmail: studentIdentifier,
+                        recipientEmail: studentIdentifierKey,
                         sender: "نظام التصحيح الأكاديمي 📝",
                         createdAt: serverTimestamp()
                     });
@@ -794,33 +803,43 @@
             let exam = exams.find(e => e.id === examId);
             if (!exam || !exam.examSubmissions || exam.examSubmissions.length === 0) return;
 
+            let uniqueSubmissionsMap = {};
+            exam.examSubmissions.forEach(sub => {
+                let k = (sub.studentEmail || sub.studentId || sub.uid || sub.studentName || '').toLowerCase().trim();
+                uniqueSubmissionsMap[k] = sub;
+            });
+            exam.examSubmissions = Object.values(uniqueSubmissionsMap);
+
             for (let sub of exam.examSubmissions) {
-                if (!sub.published) {
-                    sub.published = true;
-                    let studentIdentifier = (sub.studentEmail || '').toLowerCase().trim();
-                    
-                    // حساب النقاط (10 نقاط للحل أو 15 نقطة في حال قفل الامتحان)
-                    let pointsToAdd = calculateExamPointsEarned(sub.score, sub.totalMarks);
+                let studentIdentifier = (sub.studentEmail || sub.studentId || sub.uid || '').toLowerCase().trim();
+                let pointsToAdd = 0;
 
-                    if (studentIdentifier && pointsToAdd > 0) {
-                        await addPointsToStudent(db, studentIdentifier, pointsToAdd);
-                    }
+                if (!sub.pointsAwarded) {
+                    pointsToAdd = calculateExamPointsEarned(sub.score, sub.totalMarks);
+                    sub.pointsAwarded = true;
+                    sub.awardedPointsCount = pointsToAdd;
+                }
 
-                    if (studentIdentifier) {
-                        const cleanEmail = studentIdentifier.replace(/[^a-zA-Z0-9]/g, "_");
-                        const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
-                        try {
-                            await setDoc(doc(db, "adminNotifications", notifId), {
-                                title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
-                                message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯 وتمت إضافة النقاط لحسابك.`,
-                                target: "single",
-                                recipientEmail: studentIdentifier,
-                                sender: "نظام التصحيح الأكاديمي 📝",
-                                createdAt: serverTimestamp()
-                            });
-                        } catch(err) {
-                            console.error("خطأ في إرسال إشعار الطالب:", studentIdentifier, err);
-                        }
+                sub.published = true;
+
+                if (studentIdentifier && pointsToAdd > 0) {
+                    await addPointsToStudent(db, studentIdentifier, pointsToAdd);
+                }
+
+                if (studentIdentifier) {
+                    const cleanEmail = studentIdentifier.replace(/[^a-zA-Z0-9]/g, "_");
+                    const notifId = `exam_grade_${examId}_${cleanEmail}_${Date.now()}`;
+                    try {
+                        await setDoc(doc(db, "adminNotifications", notifId), {
+                            title: `نتيجة امتحان: ${exam.title || 'اختبار إلكتروني'}`,
+                            message: `مبروك يا بطل! تم تصحيح امتحانك وحصلت على درجة: <b>${sub.score} من ${sub.totalMarks}</b> 🎯 وتمت إضافة النقاط لحسابك.`,
+                            target: "single",
+                            recipientEmail: studentIdentifier,
+                            sender: "نظام التصحيح الأكاديمي 📝",
+                            createdAt: serverTimestamp()
+                        });
+                    } catch(err) {
+                        console.error("خطأ في إرسال إشعار الطالب:", studentIdentifier, err);
                     }
                 }
             }
