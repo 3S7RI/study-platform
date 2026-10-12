@@ -2,19 +2,19 @@
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * 1. البحث عن وثيقة المشرف في قاعدة البيانات بأي وسيلة (Document ID, Email, Username, أو adminId)
+ * 1. البحث عن وثيقة المشرف في قاعدة البيانات بأي وسيلة وبأعلى دقة
  */
 export async function findAdminDocument(db, identifier) {
     if (!identifier) return null;
     const cleanId = String(identifier).toLowerCase().trim();
 
     try {
-        // البحث المباشر بواسطة معرف المستند (Document ID)
-        let docRef = doc(db, "admins", identifier);
+        // البحث المباشر بمعرف المستند (Document ID) كما هو
+        let docRef = doc(db, "admins", String(identifier).trim());
         let docSnap = await getDoc(docRef);
         if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'admins' };
 
-        // البحث بالمستند بالاسم المحول لصيغة نظيفة
+        // البحث بمعرف المستند بالحروف الصغيرة
         let cleanDocRef = doc(db, "admins", cleanId);
         let cleanDocSnap = await getDoc(cleanDocRef);
         if (cleanDocSnap.exists()) return { id: cleanDocSnap.id, ref: cleanDocRef, data: cleanDocSnap.data(), collectionName: 'admins' };
@@ -88,7 +88,7 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
 }
 
 /**
- * 4. تعديل وتحديث بيانات المشرف الموجود فعلياً
+ * 4. تعديل وتحديث بيانات المشرف الموجود فعلياً (تم تحسينه للبحث المباشر)
  */
 export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
     try {
@@ -127,9 +127,9 @@ export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
 }
 
 /**
- * 5. حذف حساب المشرف نهائياً من السحابة (تم تصحيح طريقة الحذف بـ deleteDoc)
+ * 5. حذف حساب المشرف نهائياً من السحابة
  */
-export async function deleteAdminAccount(db, adminIdentifier) {
+export async function deleteAdminAdminAccount(db, adminIdentifier) {
     try {
         let adminObj = await findAdminDocument(db, adminIdentifier);
         if (!adminObj) return false;
@@ -142,3 +142,6 @@ export async function deleteAdminAccount(db, adminIdentifier) {
         return false;
     }
 }
+
+// للتوافق مع التسميات القديمة
+export const deleteAdminAccount = deleteAdminAdminAccount;
