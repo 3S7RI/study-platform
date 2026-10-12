@@ -384,9 +384,10 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <!-- ربط ملفات الخدمات واستخدام الدوال المحدثة لتتوافق مع معرّفات المستندات السحابية -->
+    <!-- ربط ملفات الخدمات واستخدام الدوال المحدثة لإنشاء الحسابات في Auth و Firestore معاً -->
     <script type="module">
         import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -401,6 +402,7 @@
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
+        const auth = getAuth();
 
         let studentsList = [];
         let adminsList = [];
@@ -465,7 +467,6 @@
                 const snapshot = await db.collection('admins').get();
                 adminsList = [];
                 snapshot.forEach(doc => {
-                    // حفظ معرف المستند الفعلي (doc.id) بدقة
                     adminsList.push({ id: doc.id, ...doc.data() });
                 });
                 renderAdminsTable();
@@ -601,10 +602,6 @@
                 document.getElementById('profileAvatar').src = activeStudentData.profileImage || activeStudentData.avatar;
             }
 
-            document.getElementById('btnStudentLogText').textContent = female ? '📊 سجل الطالبة' : '📊 سجل الطالب';
-            document.getElementById('btnBanText').textContent = female ? '🚫 حظر الطالبة' : '🚫 حظر الطالب';
-            document.getElementById('btnDeleteText').textContent = female ? '🗑️ حذف الطالبة' : '🗑️ حذف الطالب';
-
             document.getElementById('studentProfileModal').style.display = 'flex';
         }
 
@@ -686,6 +683,7 @@
             document.getElementById('addStudentModal').style.display = 'flex';
         }
 
+        // 🚀 تحديث دالة إضافة الطالب لتسجيله في Auth و Firestore معاً
         window.saveNewStudent = async function() {
             let name = document.getElementById('addStuName').value.trim();
             let email = document.getElementById('addStuEmail').value.trim().toLowerCase();
@@ -700,14 +698,20 @@
             }
 
             try {
+                // 1. إنشاء الحساب في Firebase Auth ليكون له UID رسمي
+                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+
                 let smartStudentId = generateSmartStudentId();
+                
+                // 2. تخزين بيانات الطالب في كولكشن students
                 await db.collection('students').doc(email).set({
+                    uid: user.uid,
                     studentId: smartStudentId,
+                    id: smartStudentId,
                     fullName: name,
                     name: name,
                     email: email,
-                    password: pass,
-                    pass: pass,
                     phone: phone,
                     parentPhone: parentPhone,
                     guardianPhone: parentPhone,
@@ -723,9 +727,9 @@
 
                 closeModal('addStudentModal');
                 await fetchStudentsFromCloud();
-                alert(`تم إضافة الطالب الجديد بنجاح برقم المعرف (${smartStudentId}) 🚀`);
+                alert(`تم إضافة الطالب الجديد بنجاح في النظام والسحابة برقم المعرف (${smartStudentId}) 🚀`);
             } catch(e) {
-                alert('حدث خطأ أثناء إضافة الطالب.');
+                alert('حدث خطأ أثناء إضافة الطالب: ' + e.message);
             }
         }
 
@@ -818,7 +822,6 @@
         }
 
         window.openAdminProfile = function(docId) {
-            // حفظ معرف المستند الفعلي بدقة هنا
             activeDocId = docId;
             activeAdminData = adminsList.find(a => a.id === docId);
             if (!activeAdminData) return;
@@ -965,9 +968,10 @@
             document.getElementById('addAdminModal').style.display = 'flex';
         }
 
+        // 🚀 استخدام خدمة createAdminAccount المضمونة لإنشاء المشرف في Auth و Firestore معاً
         window.addNewAdmin = async function() {
             let name = document.getElementById('newAdminName').value.trim();
-            let username = document.getElementById('newAdminUsername').value.trim();
+            let username = document.getElementById('newAdminUsername').value.trim().toLowerCase();
             let password = document.getElementById('newAdminPassword').value.trim();
             let phone = document.getElementById('newAdminPhone').value.trim();
             let role = document.getElementById('newAdminRole').value;
@@ -978,24 +982,34 @@
                 return;
             }
 
-            let result = await createAdminAccount(db, username, {
-                name: name,
-                fullname: name,
-                username: username,
-                email: username,
-                password: password,
-                phone: phone,
-                role: role,
-                isVerified: isVerified,
-                verified: isVerified
-            });
+            try {
+                // 1. إنشاء الحساب في Firebase Auth ليكون له UID رسمي
+                const userCredential = await createUserWithEmailAndPassword(auth, username, password);
+                const user = userCredential.user;
 
-            if (result) {
-                closeModal('addAdminModal');
-                await fetchAdminsFromCloud();
-                alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
-            } else {
-                alert('حدث خطأ أثناء إضافة المشرف.');
+                // 2. استخدام دالة الخدمة لحفظه في كولكشن admins
+                let result = await createAdminAccount(db, username, {
+                    uid: user.uid,
+                    name: name,
+                    fullname: name,
+                    username: username,
+                    email: username,
+                    password: password,
+                    phone: phone,
+                    role: role,
+                    isVerified: isVerified,
+                    verified: isVerified
+                });
+
+                if (result) {
+                    closeModal('addAdminModal');
+                    await fetchAdminsFromCloud();
+                    alert('تم إضافة المشرف الجديد سحابياً بنجاح مع حساب المصادقة! 🚀');
+                } else {
+                    alert('حدث خطأ أثناء إضافة المشرف في قاعدة البيانات.');
+                }
+            } catch (e) {
+                alert('حدث خطأ أثناء إنشاء حساب المصادقة: ' + e.message);
             }
         }
 
