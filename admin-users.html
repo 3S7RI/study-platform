@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة حسابات المنصة</title>
-    <!-- تضمين مكتبات Firebase SDK المطلوبة للمزامنة السحابية -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- تم إزالة استدعاء مكتبات compat لتوحيد النظام إلى module في الجزء الثاني -->
     <style>
         :root {
             --bg-main: #0f172a;
@@ -384,10 +382,13 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <!-- ربط ملفات الخدمات واستخدام الدوال المحدثة لإنشاء الحسابات في Auth و Firestore معاً -->
+    <!-- الجزء البرمجي والخدمات السحابية المحدثة بالكامل بنظام Module -->
     <script type="module">
-        import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
+        // استيراد مكتبات Firebase بالكامل بنظام Module لحل مشكلة التعارض والأزرار
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -398,19 +399,18 @@
             appId: "1:632096690853:web:f9622d14de73a761dcf34c"
         };
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-        const auth = getAuth();
+        // تهيئة Firebase بالطريقة الجديدة
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        let studentsList = [];
-        let adminsList = [];
-        let activeDocId = null;
-        let activeStudentData = null;
-        let activeAdminData = null;
-
-        let currentLoggedInAdmin = { role: 'full' }; 
+        // جعل المتغيرات الدوال متاحة في نطاق window لتعمل مع أزرار HTML
+        window.studentsList = [];
+        window.adminsList = [];
+        window.activeDocId = null;
+        window.activeStudentData = null;
+        window.activeAdminData = null;
+        window.currentLoggedInAdmin = { role: 'full' }; 
 
         const bodyElement = document.getElementById('pageBody');
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -441,49 +441,48 @@
             }
         }
 
-        initCloudManagement();
+        // تشغيل دوال جلب البيانات عند بدء الصفحة
+        window.initCloudManagement = async function() {
+            await window.fetchStudentsFromCloud();
+            await window.fetchAdminsFromCloud();
+        };
 
-        async function initCloudManagement() {
-            await fetchStudentsFromCloud();
-            await fetchAdminsFromCloud();
-        }
-
-        async function fetchStudentsFromCloud() {
+        window.fetchStudentsFromCloud = async function() {
             try {
-                const snapshot = await db.collection('students').get();
-                studentsList = [];
-                snapshot.forEach(doc => {
-                    studentsList.push({ id: doc.id, ...doc.data() });
+                const querySnapshot = await getDocs(collection(db, "students"));
+                window.studentsList = [];
+                querySnapshot.forEach(doc => {
+                    window.studentsList.push({ id: doc.id, ...doc.data() });
                 });
-                renderStudentsTable();
+                window.renderStudentsTable();
             } catch (err) {
                 console.error("خطأ في جلب الطلاب:", err);
                 document.getElementById('studentsTableContainer').innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">تعذر الاتصال بقاعدة بيانات الطلاب.</p>';
             }
-        }
+        };
 
-        async function fetchAdminsFromCloud() {
+        window.fetchAdminsFromCloud = async function() {
             try {
-                const snapshot = await db.collection('admins').get();
-                adminsList = [];
-                snapshot.forEach(doc => {
-                    adminsList.push({ id: doc.id, ...doc.data() });
+                const querySnapshot = await getDocs(collection(db, "admins"));
+                window.adminsList = [];
+                querySnapshot.forEach(doc => {
+                    window.adminsList.push({ id: doc.id, ...doc.data() });
                 });
-                renderAdminsTable();
+                window.renderAdminsTable();
             } catch (err) {
                 console.error("خطأ في جلب المشرفين:", err);
             }
-        }
+        };
 
-        function isFemaleStudent(stu) {
+        window.isFemaleStudent = function(stu) {
             let gender = (stu.gender || stu.type || '').toLowerCase();
             if (gender === 'female' || gender === 'بنت' || gender === 'طالبة') return true;
             let rawName = (stu.fullName || stu.name || '').toLowerCase();
             if (rawName.includes('ة') && !rawName.includes('محمد') && !rawName.includes('أحمد')) return true;
             return false;
-        }
+        };
 
-        function getGenderSvgHtml(female) {
+        window.getGenderSvgHtml = function(female) {
             if (female) {
                 return `<span class="gender-icon-badge female" title="أنثى">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -501,19 +500,19 @@
                     </svg>
                 </span>`;
             }
-        }
+        };
 
-        function getRankDetails(score = 0) {
+        window.getRankDetails = function(score = 0) {
             if (score < 500) return { key: 'weak', label: 'ضعيف', badgeClass: 'badge-weak', frameClass: 'rank-frame-weak' };
             if (score < 1500) return { key: 'medium', label: 'متوسط', badgeClass: 'badge-medium', frameClass: 'rank-frame-medium' };
             if (score < 3000) return { key: 'strong', label: 'قوي', badgeClass: 'badge-strong', frameClass: 'rank-frame-strong' };
             if (score < 5000) return { key: 'very-strong', label: 'قوي جداً', badgeClass: 'badge-very-strong', frameClass: 'rank-frame-very-strong' };
             return { key: 'legendary', label: 'أسطوري 🌟', badgeClass: 'badge-legendary', frameClass: 'rank-frame-legendary' };
-        }
+        };
 
-        function generateSmartStudentId() {
+        window.generateSmartStudentId = function() {
             let existingNumbers = new Set();
-            studentsList.forEach(stu => {
+            window.studentsList.forEach(stu => {
                 let idStr = stu.studentId || stu.id || "";
                 let match = idStr.match(/STU-(\d+)/i);
                 if (match) {
@@ -526,26 +525,26 @@
                 counter++;
             }
             return `STU-${String(counter).padStart(4, '0')}`;
-        }
+        };
 
-        function renderStudentsTable() {
+        window.renderStudentsTable = function() {
             const container = document.getElementById('studentsTableContainer');
-            if (studentsList.length === 0) {
+            if (window.studentsList.length === 0) {
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد سجلات لطلاب مسجلين حالياً.</p>';
                 return;
             }
 
             let html = `<table><thead><tr><th>الصورة</th><th>اسم الطالب</th><th>المعرف (ID)</th><th>حالة الاتصال</th><th>الرتبة</th><th>الإجراءات</th></tr></thead><tbody>`;
             
-            studentsList.forEach((stu, index) => {
+            window.studentsList.forEach((stu, index) => {
                 let rawName = stu.fullName || stu.name || stu.email || 'طالب المنصة';
                 let name = rawName.includes('@') ? rawName.split('@')[0] : rawName;
                 let sId = stu.studentId || `STU-00${index + 1}`;
                 let avatarUrl = stu.profileImage || stu.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let score = stu.totalScore || stu.points || 0;
-                let rankInfo = getRankDetails(score);
-                let female = isFemaleStudent(stu);
-                let genderSvg = getGenderSvgHtml(female);
+                let rankInfo = window.getRankDetails(score);
+                let female = window.isFemaleStudent(stu);
+                let genderSvg = window.getGenderSvgHtml(female);
 
                 let isOnline = stu.isOnline === true || (stu.lastActive && (Date.now() - stu.lastActive < 300000));
                 let statusBadge = isOnline 
@@ -568,22 +567,22 @@
             });
             html += `</tbody></table>`;
             container.innerHTML = html;
-        }
+        };
 
         window.openStudentProfile = function(docId) {
-            activeDocId = docId;
-            activeStudentData = studentsList.find(s => s.id === docId);
-            if (!activeStudentData) return;
+            window.activeDocId = docId;
+            window.activeStudentData = window.studentsList.find(s => s.id === docId);
+            if (!window.activeStudentData) return;
 
-            let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || 'طالب المنصة';
+            let rawName = window.activeStudentData.fullName || window.activeStudentData.name || window.activeStudentData.email || 'طالب المنصة';
             let cleanName = rawName.includes('@') ? rawName.split('@')[0] : rawName;
-            let female = isFemaleStudent(activeStudentData);
-            let genderSvg = getGenderSvgHtml(female);
+            let female = window.isFemaleStudent(window.activeStudentData);
+            let genderSvg = window.getGenderSvgHtml(female);
 
             document.getElementById('profileName').innerHTML = `${cleanName} ${genderSvg}`;
             
-            let points = activeStudentData.totalScore || activeStudentData.points || 0;
-            let rankInfo = getRankDetails(points);
+            let points = window.activeStudentData.totalScore || window.activeStudentData.points || 0;
+            let rankInfo = window.getRankDetails(points);
 
             const avatarFrame = document.getElementById('profileAvatarFrame');
             avatarFrame.className = `avatar-wrapper ${rankInfo.frame}`;
@@ -592,33 +591,33 @@
             rankBadgeBox.className = `level-badge-box ${rankInfo.badge}`;
             document.getElementById('profileRankText').textContent = `${rankInfo.label} • ${points} نقطة`;
 
-            document.getElementById('profileEmail').textContent = activeStudentData.email || 'غير متوفر';
-            document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id;
-            document.getElementById('profilePhone').textContent = activeStudentData.phone || '---';
-            document.getElementById('profileParentPhone').textContent = activeStudentData.parentPhone || activeStudentData.guardianPhone || '---';
+            document.getElementById('profileEmail').textContent = window.activeStudentData.email || 'غير متوفر';
+            document.getElementById('profileId').textContent = window.activeStudentData.studentId || window.activeStudentData.id;
+            document.getElementById('profilePhone').textContent = window.activeStudentData.phone || '---';
+            document.getElementById('profileParentPhone').textContent = window.activeStudentData.parentPhone || window.activeStudentData.guardianPhone || '---';
             document.getElementById('profilePoints').textContent = points;
             
-            if (activeStudentData.profileImage || activeStudentData.avatar) {
-                document.getElementById('profileAvatar').src = activeStudentData.profileImage || activeStudentData.avatar;
+            if (window.activeStudentData.profileImage || window.activeStudentData.avatar) {
+                document.getElementById('profileAvatar').src = window.activeStudentData.profileImage || window.activeStudentData.avatar;
             }
 
             document.getElementById('studentProfileModal').style.display = 'flex';
-        }
+        };
 
         window.openEditStudentModal = function() {
-            if (!activeStudentData) return;
-            let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || '';
+            if (!window.activeStudentData) return;
+            let rawName = window.activeStudentData.fullName || window.activeStudentData.name || window.activeStudentData.email || '';
             document.getElementById('editStudentName').value = rawName.includes('@') ? rawName.split('@')[0] : rawName;
-            document.getElementById('editStudentEmail').value = activeStudentData.email || '';
-            document.getElementById('editStudentIdInput').value = activeStudentData.studentId || activeStudentData.id || '';
-            document.getElementById('editStudentPhone').value = activeStudentData.phone || '';
-            document.getElementById('editStudentParentPhone').value = activeStudentData.parentPhone || activeStudentData.guardianPhone || '';
-            document.getElementById('editStudentPoints').value = activeStudentData.totalScore || activeStudentData.points || 0;
+            document.getElementById('editStudentEmail').value = window.activeStudentData.email || '';
+            document.getElementById('editStudentIdInput').value = window.activeStudentData.studentId || window.activeStudentData.id || '';
+            document.getElementById('editStudentPhone').value = window.activeStudentData.phone || '';
+            document.getElementById('editStudentParentPhone').value = window.activeStudentData.parentPhone || window.activeStudentData.guardianPhone || '';
+            document.getElementById('editStudentPoints').value = window.activeStudentData.totalScore || window.activeStudentData.points || 0;
             document.getElementById('editStudentModal').style.display = 'flex';
-        }
+        };
 
         window.saveStudentEdits = async function() {
-            if (!activeDocId) return;
+            if (!window.activeDocId) return;
             let name = document.getElementById('editStudentName').value.trim();
             let email = document.getElementById('editStudentEmail').value.trim();
             let studentId = document.getElementById('editStudentIdInput').value.trim();
@@ -628,10 +627,11 @@
 
             if(!name) return alert('يرجى كتابة اسم الطالب');
 
-            let rankInfo = getRankDetails(points);
+            let rankInfo = window.getRankDetails(points);
 
             try {
-                await db.collection('students').doc(activeDocId).update({
+                const docRef = doc(db, 'students', window.activeDocId);
+                await updateDoc(docRef, {
                     fullName: name,
                     name: name,
                     email: email,
@@ -644,35 +644,36 @@
                     rank: rankInfo.key,
                     level: rankInfo.key
                 });
-                await fetchStudentsFromCloud();
-                closeModal('editStudentModal');
-                closeModal('studentProfileModal');
+                await window.fetchStudentsFromCloud();
+                window.closeModal('editStudentModal');
+                window.closeModal('studentProfileModal');
                 alert('تم تحديث معلومات الطالب سحابياً بنجاح! ⭐');
             } catch(e) {
                 alert('فشل حفظ التعديلات.');
             }
-        }
+        };
 
         window.upgradeStudentLevelAuto = async function() {
-            if (!activeDocId || !activeStudentData) return;
-            let currentPoints = activeStudentData.totalScore || activeStudentData.points || 0;
+            if (!window.activeDocId || !window.activeStudentData) return;
+            let currentPoints = window.activeStudentData.totalScore || window.activeStudentData.points || 0;
             let targetPoints = currentPoints + 500;
-            let rankInfo = getRankDetails(targetPoints);
+            let rankInfo = window.getRankDetails(targetPoints);
 
             try {
-                await db.collection('students').doc(activeDocId).update({
+                const docRef = doc(db, 'students', window.activeDocId);
+                await updateDoc(docRef, {
                     totalScore: targetPoints,
                     points: targetPoints,
                     rank: rankInfo.key,
                     level: rankInfo.key
                 });
-                await fetchStudentsFromCloud();
-                closeModal('studentProfileModal');
+                await window.fetchStudentsFromCloud();
+                window.closeModal('studentProfileModal');
                 alert('تم ترقية مستوى الطالب سحابياً بنجاح! 🚀');
             } catch(e) {
                 alert('حدث خطأ أثناء الترقية.');
             }
-        }
+        };
 
         window.openAddStudentModal = function() {
             document.getElementById('addStuName').value = '';
@@ -681,9 +682,8 @@
             document.getElementById('addStuPhone').value = '';
             document.getElementById('addStuParentPhone').value = '';
             document.getElementById('addStudentModal').style.display = 'flex';
-        }
+        };
 
-        // 🚀 تحديث دالة إضافة الطالب لتسجيله في Auth و Firestore معاً
         window.saveNewStudent = async function() {
             let name = document.getElementById('addStuName').value.trim();
             let email = document.getElementById('addStuEmail').value.trim().toLowerCase();
@@ -698,14 +698,12 @@
             }
 
             try {
-                // 1. إنشاء الحساب في Firebase Auth ليكون له UID رسمي
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
                 const user = userCredential.user;
 
-                let smartStudentId = generateSmartStudentId();
+                let smartStudentId = window.generateSmartStudentId();
                 
-                // 2. تخزين بيانات الطالب في كولكشن students
-                await db.collection('students').doc(email).set({
+                await setDoc(doc(db, 'students', email), {
                     uid: user.uid,
                     studentId: smartStudentId,
                     id: smartStudentId,
@@ -725,25 +723,25 @@
                     createdAt: String(Date.now())
                 });
 
-                closeModal('addStudentModal');
-                await fetchStudentsFromCloud();
+                window.closeModal('addStudentModal');
+                await window.fetchStudentsFromCloud();
                 alert(`تم إضافة الطالب الجديد بنجاح في النظام والسحابة برقم المعرف (${smartStudentId}) 🚀`);
             } catch(e) {
                 alert('حدث خطأ أثناء إضافة الطالب: ' + e.message);
             }
-        }
+        };
 
         window.openStudentLogs = async function() {
-            if (!activeStudentData) return;
+            if (!window.activeStudentData) return;
             const container = document.getElementById('studentLogsContent');
-            let female = isFemaleStudent(activeStudentData);
+            let female = window.isFemaleStudent(window.activeStudentData);
             document.getElementById('modalLogTitle').textContent = female ? '📊 سجل درجات طالبة المنصة' : '📊 سجل درجات طالب المنصة';
             container.innerHTML = '<p style="text-align: center; opacity: 0.7;">جاري تحميل السجل الأكاديمي...</p>';
             document.getElementById('studentLogsModal').style.display = 'flex';
 
             try {
-                let email = activeStudentData.email || '';
-                let examsSnap = await db.collection('exams').get();
+                let email = window.activeStudentData.email || '';
+                const examsSnap = await getDocs(collection(db, 'exams'));
                 let logsHtml = `<p style="margin-bottom:8px; font-weight:bold; color:var(--primary);">الامتحانات المجتازة:</p>`;
                 let foundExams = false;
 
@@ -751,7 +749,7 @@
                     let examData = docSnap.data();
                     let subs = examData.examSubmissions || [];
                     subs.forEach(sub => {
-                        if (sub.studentEmail === email || sub.studentName === activeStudentData.name) {
+                        if (sub.studentEmail === email || sub.studentName === window.activeStudentData.name) {
                             foundExams = true;
                             logsHtml += `<div style="background:var(--bg-main); padding:6px 10px; border-radius:6px; margin-bottom:4px;">
                                 🎯 ${examData.title || 'امتحان'} - الدرجة: <b style="color:var(--success);">${sub.score}/${sub.totalMarks}</b>
@@ -765,34 +763,34 @@
             } catch(e) {
                 container.innerHTML = '<p style="color:var(--danger);">تعذر تحميل السجل.</p>';
             }
-        }
+        };
 
         window.banStudent = function() {
             window.location.href = '404.html';
-        }
+        };
 
         window.deleteStudentAccount = async function() {
-            if (!activeDocId) return;
+            if (!window.activeDocId) return;
             if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً من سحابة فايربيز؟')) return;
             try {
-                await db.collection('students').doc(activeDocId).delete();
-                closeModal('studentProfileModal');
-                await fetchStudentsFromCloud();
+                await deleteDoc(doc(db, 'students', window.activeDocId));
+                window.closeModal('studentProfileModal');
+                await window.fetchStudentsFromCloud();
                 alert('تم حذف الحساب سحابياً بنجاح!');
             } catch(e) {
                 alert('حدث خطأ أثناء الحذف.');
             }
-        }
+        };
 
-        function renderAdminsTable() {
+        window.renderAdminsTable = function() {
             const container = document.getElementById('adminsTableContainer');
-            if (adminsList.length === 0) {
+            if (window.adminsList.length === 0) {
                 container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا يوجد مشرفين مضافين حالياً.</p>';
                 return;
             }
 
             let html = `<table><thead><tr><th>الصورة</th><th>اسم المشرف</th><th>المعرف / الإيميل</th><th>الهاتف</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>`;
-            adminsList.forEach((adm) => {
+            window.adminsList.forEach((adm) => {
                 let roleName = adm.role === 'full' ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
                 let avatarUrl = adm.profileImage || adm.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let isVerified = adm.isVerified === true || adm.verified === true;
@@ -819,30 +817,30 @@
             });
             html += `</tbody></table>`;
             container.innerHTML = html;
-        }
+        };
 
         window.openAdminProfile = function(docId) {
-            activeDocId = docId;
-            activeAdminData = adminsList.find(a => a.id === docId);
-            if (!activeAdminData) return;
+            window.activeDocId = docId;
+            window.activeAdminData = window.adminsList.find(a => a.id === docId);
+            if (!window.activeAdminData) return;
 
-            let isVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
+            let isVerified = window.activeAdminData.isVerified === true || window.activeAdminData.verified === true;
             let verifiedBadgeHtml = isVerified ? `<span class="verified-badge" title="حساب موثق"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></span>` : '';
 
-            document.getElementById('adminProfileName').textContent = activeAdminData.name || activeAdminData.fullname || 'مشرف المنصة';
+            document.getElementById('adminProfileName').textContent = window.activeAdminData.name || window.activeAdminData.fullname || 'مشرف المنصة';
             document.getElementById('adminProfileBadgeContainer').innerHTML = verifiedBadgeHtml;
-            document.getElementById('adminProfileIdCode').textContent = activeAdminData.adminId || activeAdminData.id || '---';
-            document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
-            document.getElementById('adminProfilePhone').textContent = activeAdminData.phone || '---';
+            document.getElementById('adminProfileIdCode').textContent = window.activeAdminData.adminId || window.activeAdminData.id || '---';
+            document.getElementById('adminProfileUsername').textContent = window.activeAdminData.username || window.activeAdminData.email || '---';
+            document.getElementById('adminProfilePhone').textContent = window.activeAdminData.phone || '---';
             
-            if (currentLoggedInAdmin.role === 'full') {
+            if (window.currentLoggedInAdmin.role === 'full') {
                 document.getElementById('adminPasswordRow').style.display = 'flex';
-                document.getElementById('adminProfilePassword').textContent = activeAdminData.password || '******';
+                document.getElementById('adminProfilePassword').textContent = window.activeAdminData.password || '******';
             } else {
                 document.getElementById('adminPasswordRow').style.display = 'none';
             }
             
-            let isFull = activeAdminData.role === 'full';
+            let isFull = window.activeAdminData.role === 'full';
             document.getElementById('adminProfileRoleText').textContent = isFull ? 'مشرف عام 👑' : 'مساعد / مراقب 🛡️';
             document.getElementById('adminProfileVerifiedStatus').innerHTML = isVerified ? 'موثق رسمياً ✔️' : 'غير موثق ❌';
 
@@ -856,27 +854,27 @@
             const roleBtn = document.getElementById('btnToggleRoleText');
             roleBtn.textContent = isFull ? '⭐ خفض الأدمن' : '⭐ ترقية الأدمن';
 
-            if (activeAdminData.profileImage || activeAdminData.avatar) {
-                document.getElementById('adminProfileAvatar').src = activeAdminData.profileImage || activeAdminData.avatar;
+            if (window.activeAdminData.profileImage || window.activeAdminData.avatar) {
+                document.getElementById('adminProfileAvatar').src = window.activeAdminData.profileImage || window.activeAdminData.avatar;
             } else {
                 document.getElementById('adminProfileAvatar').src = 'https://www.w3schools.com/howto/img_avatar.png';
             }
 
             document.getElementById('adminProfileModal').style.display = 'flex';
-        }
+        };
 
         window.openEditAdminModalFromProfile = function() {
-            if (!activeAdminData) return;
+            if (!window.activeAdminData) return;
 
-            document.getElementById('editAdminNameInput').value = activeAdminData.name || activeAdminData.fullname || '';
-            document.getElementById('editAdminUsernameInput').value = activeAdminData.username || activeAdminData.email || '';
-            document.getElementById('editAdminPhoneInput').value = activeAdminData.phone || '';
+            document.getElementById('editAdminNameInput').value = window.activeAdminData.name || window.activeAdminData.fullname || '';
+            document.getElementById('editAdminUsernameInput').value = window.activeAdminData.username || window.activeAdminData.email || '';
+            document.getElementById('editAdminPhoneInput').value = window.activeAdminData.phone || '';
             
             document.getElementById('editAdminModal').style.display = 'flex';
-        }
+        };
 
         window.saveAdminEditsFromProfile = async function() {
-            if (!activeDocId) return;
+            if (!window.activeDocId) return;
 
             let name = document.getElementById('editAdminNameInput').value.trim();
             let username = document.getElementById('editAdminUsernameInput').value.trim();
@@ -884,7 +882,7 @@
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
-            let success = await updateAdminData(db, activeDocId, {
+            let success = await updateAdminData(db, window.activeDocId, {
                 name: name,
                 fullname: name,
                 username: username,
@@ -893,71 +891,71 @@
             });
 
             if (success) {
-                await fetchAdminsFromCloud();
-                closeModal('editAdminModal');
-                closeModal('adminProfileModal');
+                await window.fetchAdminsFromCloud();
+                window.closeModal('editAdminModal');
+                window.closeModal('adminProfileModal');
                 alert('تم تحديث بيانات المشرف سحابياً بنجاح! ⭐');
             } else {
                 alert('فشل حفظ التعديلات في السحابة.');
             }
-        }
+        };
 
         window.toggleAdminRoleFromProfile = async function() {
-            if (!activeDocId || !activeAdminData) return;
+            if (!window.activeDocId || !window.activeAdminData) return;
 
-            let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
-            let success = await updateAdminData(db, activeDocId, { role: newRole });
+            let newRole = window.activeAdminData.role === 'full' ? 'moderator' : 'full';
+            let success = await updateAdminData(db, window.activeDocId, { role: newRole });
 
             if (success) {
-                await fetchAdminsFromCloud();
-                closeModal('adminProfileModal');
+                await window.fetchAdminsFromCloud();
+                window.closeModal('adminProfileModal');
                 alert('تم تحديث مستوى صلاحية المشرف سحابياً بنجاح! 🔄');
             } else {
                 alert('حدث خطأ أثناء التحديث.');
             }
-        }
+        };
 
         window.toggleAdminVerification = async function() {
-            if (!activeDocId || !activeAdminData) return;
+            if (!window.activeDocId || !window.activeAdminData) return;
 
-            let currentVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
+            let currentVerified = window.activeAdminData.isVerified === true || window.activeAdminData.verified === true;
             let newStatus = !currentVerified;
 
-            let success = await updateAdminData(db, activeDocId, {
+            let success = await updateAdminData(db, window.activeDocId, {
                 isVerified: newStatus,
                 verified: newStatus
             });
 
             if (success) {
-                await fetchAdminsFromCloud();
-                closeModal('adminProfileModal');
+                await window.fetchAdminsFromCloud();
+                window.closeModal('adminProfileModal');
                 alert('تم تحديث حالة التوثيق سحابياً بنجاح! ✔️');
             } else {
                 alert('حدث خطأ أثناء تحديث التوثيق.');
             }
-        }
+        };
 
         window.banAdminFromProfile = function() {
-            if (!activeAdminData) return;
+            if (!window.activeAdminData) return;
             if (confirm('هل أنت متأكد من حظر هذا المشرف؟ سيتم توجيهه إلى صفحة 404.')) {
                 window.location.href = '404.html';
             }
-        }
+        };
 
         window.deleteAdminFromProfile = async function() {
-            if (!activeDocId) return;
+            if (!window.activeDocId) return;
 
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
             
-            let success = await deleteAdminAccount(db, activeDocId);
+            let success = await deleteAdminAccount(db, window.activeDocId);
             if (success) {
-                closeModal('adminProfileModal');
-                await fetchAdminsFromCloud();
+                window.closeModal('adminProfileModal');
+                await window.fetchAdminsFromCloud();
                 alert('تم حذف المشرف من السحابة بنجاح!');
             } else {
                 alert('حدث خطأ أثناء الحذف.');
             }
-        }
+        };
 
         window.openAddAdminModal = function() {
             document.getElementById('newAdminName').value = '';
@@ -966,9 +964,8 @@
             document.getElementById('newAdminPhone').value = '';
             document.getElementById('newAdminVerified').checked = false;
             document.getElementById('addAdminModal').style.display = 'flex';
-        }
+        };
 
-        // 🚀 استخدام خدمة createAdminAccount المضمونة لإنشاء المشرف في Auth و Firestore معاً
         window.addNewAdmin = async function() {
             let name = document.getElementById('newAdminName').value.trim();
             let username = document.getElementById('newAdminUsername').value.trim().toLowerCase();
@@ -983,11 +980,9 @@
             }
 
             try {
-                // 1. إنشاء الحساب في Firebase Auth ليكون له UID رسمي
                 const userCredential = await createUserWithEmailAndPassword(auth, username, password);
                 const user = userCredential.user;
 
-                // 2. استخدام دالة الخدمة لحفظه في كولكشن admins
                 let result = await createAdminAccount(db, username, {
                     uid: user.uid,
                     name: name,
@@ -1002,8 +997,8 @@
                 });
 
                 if (result) {
-                    closeModal('addAdminModal');
-                    await fetchAdminsFromCloud();
+                    window.closeModal('addAdminModal');
+                    await window.fetchAdminsFromCloud();
                     alert('تم إضافة المشرف الجديد سحابياً بنجاح مع حساب المصادقة! 🚀');
                 } else {
                     alert('حدث خطأ أثناء إضافة المشرف في قاعدة البيانات.');
@@ -1011,11 +1006,17 @@
             } catch (e) {
                 alert('حدث خطأ أثناء إنشاء حساب المصادقة: ' + e.message);
             }
-        }
+        };
 
         window.closeModal = function(modalId) {
             document.getElementById(modalId).style.display = 'none';
-        }
+        };
+
+        // استدعاء دالة التحميل عند تحميل الصفحة
+        window.onload = function() {
+            window.initCloudManagement();
+        };
+
     </script>
 </body>
 </html>
