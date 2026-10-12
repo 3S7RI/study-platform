@@ -384,11 +384,9 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <!-- ربط ملفات الخدمات واستخدام الدوال المحدثة لإنشاء الحسابات في Auth و Firestore معاً -->
+    <!-- الجزء البرمجي والخدمات السحابية المحدثة بالكامل -->
     <script type="module">
-        import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
-        
-        // استيراد initializeApp لحل مشكلة الـ Crash في getAuth
+        // تم الاستغناء عن استدعاء admin-service عشان نتجنب أي تعارض في الحفظ
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -401,13 +399,13 @@
             appId: "1:632096690853:web:f9622d14de73a761dcf34c"
         };
 
-        // تهيئة قواعد البيانات بالنظام القديم (Compat) اللي الكود بتاعك شغال بيه
+        // تهيئة قواعد البيانات بالنظام القديم اللي شغال معاك بدون مشاكل
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
 
-        // تهيئة المصادقة بالنظام الجديد (Module) عشان زر الإضافة يشتغل وميعملش بلوك للصفحة
+        // تهيئة المصادقة لزر الإضافة بس
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app); 
 
@@ -481,6 +479,44 @@
                 console.error("خطأ في جلب المشرفين:", err);
             }
         }
+
+        // --- دالة المزامنة المباشرة مع بروفايل الأدمن (لحل مشكلتك) ---
+        window.syncLocalAdminSession = function(docId, newData) {
+            // هنعدي على كل مفاتيح التخزين المحتملة اللي صفحة البروفايل الرئيسية بتسحب منها الداتا
+            let sessionKeys = ['adminData', 'loggedInAdmin', 'admin_session', 'admin'];
+            sessionKeys.forEach(key => {
+                let localData = localStorage.getItem(key);
+                if (localData) {
+                    try {
+                        let parsed = JSON.parse(localData);
+                        // لو الأدمن اللي بيتعدل دلوقتي هو نفس الأدمن اللي فاتح الحساب
+                        if (parsed.id === docId || parsed.email === docId || parsed.username === docId) {
+                            parsed = { ...parsed, ...newData };
+                            localStorage.setItem(key, JSON.stringify(parsed));
+                        }
+                    } catch(e) {
+                        console.error("خطأ في مزامنة الجلسة المحلية:", e);
+                    }
+                }
+            });
+        };
+
+        // --- دالة توليد رقم معرف الأدمن تلقائياً (مثل ADM-0001) ---
+        window.generateSmartAdminId = function() {
+            let existingNumbers = new Set();
+            adminsList.forEach(adm => {
+                let idStr = adm.adminId || adm.id || "";
+                let match = idStr.match(/ADM-(\d+)/i);
+                if (match) {
+                    existingNumbers.add(parseInt(match[1], 10));
+                }
+            });
+            let counter = 1;
+            while (existingNumbers.has(counter)) {
+                counter++;
+            }
+            return `ADM-${String(counter).padStart(4, '0')}`;
+        };
 
         function isFemaleStudent(stu) {
             let gender = (stu.gender || stu.type || '').toLowerCase();
@@ -690,7 +726,6 @@
             document.getElementById('addStudentModal').style.display = 'flex';
         }
 
-        // 🚀 دالة إضافة الطالب تم تحديثها لتعمل مع تهيئة Auth بشكل سليم
         window.saveNewStudent = async function() {
             let name = document.getElementById('addStuName').value.trim();
             let email = document.getElementById('addStuEmail').value.trim().toLowerCase();
@@ -705,13 +740,11 @@
             }
 
             try {
-                // 1. إنشاء الحساب في Firebase Auth ليكون له UID رسمي
                 const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
                 const user = userCredential.user;
 
                 let smartStudentId = generateSmartStudentId();
                 
-                // 2. تخزين بيانات الطالب في كولكشن students باستخدام db
                 await db.collection('students').doc(email).set({
                     uid: user.uid,
                     studentId: smartStudentId,
@@ -882,6 +915,7 @@
             document.getElementById('editAdminModal').style.display = 'flex';
         }
 
+        // 🚀 تحديث مباشر في الداتا بيز وإجبار المتصفح على تطبيق التعديل
         window.saveAdminEditsFromProfile = async function() {
             if (!activeDocId) return;
 
@@ -891,20 +925,25 @@
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
-            let success = await updateAdminData(db, activeDocId, {
-                name: name,
-                fullname: name,
-                username: username,
-                email: username,
-                phone: phone
-            });
+            try {
+                let newData = {
+                    name: name,
+                    fullname: name,
+                    username: username,
+                    email: username,
+                    phone: phone
+                };
 
-            if (success) {
+                await db.collection('admins').doc(activeDocId).update(newData);
+                
+                // تحديث المتصفح فوراً عشان التغيير يظهر في لوحة التحكم
+                window.syncLocalAdminSession(activeDocId, newData);
+
                 await fetchAdminsFromCloud();
                 closeModal('editAdminModal');
                 closeModal('adminProfileModal');
-                alert('تم تحديث بيانات المشرف سحابياً بنجاح! ⭐');
-            } else {
+                alert('تم تحديث بيانات المشرف وتطبيقها محلياً وسحابياً بنجاح! ⭐');
+            } catch (e) {
                 alert('فشل حفظ التعديلات في السحابة.');
             }
         }
@@ -913,13 +952,17 @@
             if (!activeDocId || !activeAdminData) return;
 
             let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
-            let success = await updateAdminData(db, activeDocId, { role: newRole });
+            
+            try {
+                await db.collection('admins').doc(activeDocId).update({ role: newRole });
+                
+                // تحديث المتصفح فوراً
+                window.syncLocalAdminSession(activeDocId, { role: newRole });
 
-            if (success) {
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
-                alert('تم تحديث مستوى صلاحية المشرف سحابياً بنجاح! 🔄');
-            } else {
+                alert('تم تحديث مستوى صلاحية المشرف بنجاح! 🔄');
+            } catch (e) {
                 alert('حدث خطأ أثناء التحديث.');
             }
         }
@@ -930,16 +973,22 @@
             let currentVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
             let newStatus = !currentVerified;
 
-            let success = await updateAdminData(db, activeDocId, {
-                isVerified: newStatus,
-                verified: newStatus
-            });
+            try {
+                await db.collection('admins').doc(activeDocId).update({
+                    isVerified: newStatus,
+                    verified: newStatus
+                });
+                
+                // تحديث المتصفح فوراً عشان علامة التوثيق تختفي أو تظهر
+                window.syncLocalAdminSession(activeDocId, {
+                    isVerified: newStatus,
+                    verified: newStatus
+                });
 
-            if (success) {
                 await fetchAdminsFromCloud();
                 closeModal('adminProfileModal');
-                alert('تم تحديث حالة التوثيق سحابياً بنجاح! ✔️');
-            } else {
+                alert('تم تحديث حالة التوثيق بنجاح! ✔️');
+            } catch (e) {
                 alert('حدث خطأ أثناء تحديث التوثيق.');
             }
         }
@@ -956,12 +1005,12 @@
 
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
             
-            let success = await deleteAdminAccount(db, activeDocId);
-            if (success) {
+            try {
+                await db.collection('admins').doc(activeDocId).delete();
                 closeModal('adminProfileModal');
                 await fetchAdminsFromCloud();
                 alert('تم حذف المشرف من السحابة بنجاح!');
-            } else {
+            } catch (e) {
                 alert('حدث خطأ أثناء الحذف.');
             }
         }
@@ -975,7 +1024,6 @@
             document.getElementById('addAdminModal').style.display = 'flex';
         }
 
-        // 🚀 دالة إضافة المشرف تم تحديثها لتعمل مع التهيئة السليمة
         window.addNewAdmin = async function() {
             let name = document.getElementById('newAdminName').value.trim();
             let username = document.getElementById('newAdminUsername').value.trim().toLowerCase();
@@ -994,9 +1042,13 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, username, password);
                 const user = userCredential.user;
 
-                // 2. استخدام دالة الخدمة لحفظه في كولكشن admins
-                let result = await createAdminAccount(db, username, {
+                let smartAdminId = window.generateSmartAdminId();
+
+                // 2. الحفظ المباشر والمضمون في قاعدة البيانات
+                await db.collection('admins').doc(username).set({
                     uid: user.uid,
+                    id: username, 
+                    adminId: smartAdminId,
                     name: name,
                     fullname: name,
                     username: username,
@@ -1005,16 +1057,13 @@
                     phone: phone,
                     role: role,
                     isVerified: isVerified,
-                    verified: isVerified
+                    verified: isVerified,
+                    createdAt: String(Date.now())
                 });
 
-                if (result) {
-                    closeModal('addAdminModal');
-                    await fetchAdminsFromCloud();
-                    alert('تم إضافة المشرف الجديد سحابياً بنجاح مع حساب المصادقة! 🚀');
-                } else {
-                    alert('حدث خطأ أثناء إضافة المشرف في قاعدة البيانات.');
-                }
+                closeModal('addAdminModal');
+                await fetchAdminsFromCloud();
+                alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
             } catch (e) {
                 alert('حدث خطأ أثناء إنشاء حساب المصادقة: ' + e.message);
             }
