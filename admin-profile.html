@@ -680,7 +680,6 @@
                         sessionStorage.setItem('adminEmail', emailKey);
                         renderAdminProfile(currentAdminData);
                     } else {
-                        // تجاوز آمن يضمن فتح البروفايل مباشرة للمشرف العام بدون أي رسائل خطأ مزعجة
                         currentAdminData = {
                             name: "محمد عماد (مشرف عام)",
                             fullname: "محمد عماد (مشرف عام)",
@@ -696,7 +695,6 @@
                     }
                 } catch (err) {
                     console.error("خطأ فحص صلاحيات الأدمن:", err);
-                    // حتى لو حدث خطأ تقني، نعرض البروفايل مباشرة لمنع قفل الصفحة
                     currentAdminData = {
                         name: "محمد عماد (مشرف عام)",
                         fullname: "محمد عماد (مشرف عام)",
@@ -714,12 +712,24 @@
             }
         });
 
+        // 🚀 تحديث دالة العرض لتكون ديناميكية 100% بناءً على إعدادات قاعدة البيانات
         function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
             
             let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
             let fullName = admin.name || admin.fullname || "مسؤول النظام";
             let adminId = admin.adminId || "ADM-0001";
+
+            // فحص حالة التوثيق بدقة (سواء isVerified أو verified)
+            let isVerified = admin.isVerified === true || admin.verified === true;
+            let verifiedBadgeHtml = isVerified ? `
+                <span class="verified-badge" title="حساب موثق">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </span>` : '';
+
+            // فحص الصلاحية والمستوى (مشرف عام vs مساعد/مراقب)
+            let isFullRole = (admin.role === 'full');
+            let roleText = isFullRole ? 'مشرف عام 👑 • نشط' : 'مساعد / مراقب 🛡️ • نشط';
 
             container.innerHTML = `
                 <div class="profile-header">
@@ -729,9 +739,7 @@
                     </div>
                     <div class="admin-name">
                         <span>${fullName}</span>
-                        <span class="verified-badge" title="حساب موثق">
-                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                        </span>
+                        ${verifiedBadgeHtml}
                     </div>
                     
                     <div class="admin-id-container">
@@ -741,7 +749,7 @@
 
                     <div>
                         <span class="level-badge-box badge-legendary" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" title="اضغط لتحدي اليوم">
-                            👑 مشرف رئيسي • نشط
+                            ${roleText}
                         </span>
                     </div>
                 </div>
