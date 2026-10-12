@@ -702,8 +702,9 @@
             document.getElementById('editStudentModal').style.display = 'flex';
         }
 
+        // 🚀 تعديل بيانات الطالب والنقاط بدقة وثبات سحابي
         window.saveStudentEdits = async function() {
-            if (!activeDocId) return;
+            if (!activeDocId || !activeStudentData) return;
             let name = document.getElementById('editStudentName').value.trim();
             let email = document.getElementById('editStudentEmail').value.trim();
             let studentId = document.getElementById('editStudentIdInput').value.trim();
@@ -716,11 +717,20 @@
             let rankInfo = getRankDetails(points);
 
             try {
-                await db.collection('students').doc(activeDocId).update({
+                // البحث عن المستند الصحيح في الكولكشن بغض النظر عن معرف الوثيقة (سواء بالـ id أو الـ email)
+                let docRef = db.collection('students').doc(activeDocId);
+                let docSnap = await docRef.get();
+                
+                if (!docSnap.exists && activeStudentData.email) {
+                    docRef = db.collection('students').doc(activeStudentData.email);
+                }
+
+                await docRef.set({
                     fullName: name,
                     name: name,
                     email: email,
                     studentId: studentId,
+                    id: studentId || activeDocId,
                     phone: phone,
                     parentPhone: parentPhone,
                     guardianPhone: parentPhone,
@@ -728,13 +738,15 @@
                     points: points,
                     rank: rankInfo.key,
                     level: rankInfo.key
-                });
+                }, { merge: true });
+
                 await fetchStudentsFromCloud();
                 closeModal('editStudentModal');
                 closeModal('studentProfileModal');
                 showPlatformToast('تم تحديث معلومات الطالب سحابياً بنجاح!', 'success');
             } catch(e) {
-                showPlatformToast('فشل حفظ التعديلات.', 'error');
+                console.error("خطأ التعديل:", e);
+                showPlatformToast('فشل حفظ التعديلات: ' + e.message, 'error');
             }
         }
 
@@ -745,12 +757,19 @@
             let rankInfo = getRankDetails(targetPoints);
 
             try {
-                await db.collection('students').doc(activeDocId).update({
+                let docRef = db.collection('students').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeStudentData.email) {
+                    docRef = db.collection('students').doc(activeStudentData.email);
+                }
+
+                await docRef.set({
                     totalScore: targetPoints,
                     points: targetPoints,
                     rank: rankInfo.key,
                     level: rankInfo.key
-                });
+                }, { merge: true });
+
                 await fetchStudentsFromCloud();
                 closeModal('studentProfileModal');
                 showPlatformToast('تم ترقية مستوى الطالب بنجاح!', 'success');
@@ -859,10 +878,14 @@
             if (!activeDocId) return;
             if (!confirm('هل تريد حقاً حذف حساب هذا الطالب نهائياً؟')) return;
             try {
-                await db.collection('students').doc(activeDocId).delete();
+                let docRef = db.collection('students').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeStudentData && activeStudentData.email) {
+                    docRef = db.collection('students').doc(activeStudentData.email);
+                }
+                await docRef.delete();
                 
-                // تحديث القائمة المحلية فوراً لإزالته من الجدول
-                studentsList = studentsList.filter(s => s.id !== activeDocId);
+                studentsList = studentsList.filter(s => s.id !== activeDocId && s.email !== activeStudentData?.email);
                 renderStudentsTable();
 
                 closeModal('studentProfileModal');
@@ -977,7 +1000,13 @@
                     phone: phone
                 };
 
-                await db.collection('admins').doc(activeDocId).update(newData);
+                let docRef = db.collection('admins').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeAdminData && activeAdminData.username) {
+                    docRef = db.collection('admins').doc(activeAdminData.username);
+                }
+
+                await docRef.set(newData, { merge: true });
                 window.syncLocalAdminSession(activeDocId, newData);
 
                 await fetchAdminsFromCloud();
@@ -995,7 +1024,13 @@
             let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
             
             try {
-                await db.collection('admins').doc(activeDocId).update({ role: newRole });
+                let docRef = db.collection('admins').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeAdminData.username) {
+                    docRef = db.collection('admins').doc(activeAdminData.username);
+                }
+
+                await docRef.set({ role: newRole }, { merge: true });
                 window.syncLocalAdminSession(activeDocId, { role: newRole });
 
                 await fetchAdminsFromCloud();
@@ -1013,10 +1048,16 @@
             let newStatus = !currentVerified;
 
             try {
-                await db.collection('admins').doc(activeDocId).update({
+                let docRef = db.collection('admins').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeAdminData.username) {
+                    docRef = db.collection('admins').doc(activeAdminData.username);
+                }
+
+                await docRef.set({
                     isVerified: newStatus,
                     verified: newStatus
-                });
+                }, { merge: true });
                 
                 window.syncLocalAdminSession(activeDocId, {
                     isVerified: newStatus,
@@ -1044,10 +1085,14 @@
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً؟')) return;
             
             try {
-                await db.collection('admins').doc(activeDocId).delete();
+                let docRef = db.collection('admins').doc(activeDocId);
+                let docSnap = await docRef.get();
+                if (!docSnap.exists && activeAdminData && activeAdminData.username) {
+                    docRef = db.collection('admins').doc(activeAdminData.username);
+                }
+                await docRef.delete();
                 
-                // تحديث القائمة المحلية فوراً لإزالته من الجدول
-                adminsList = adminsList.filter(a => a.id !== activeDocId);
+                adminsList = adminsList.filter(a => a.id !== activeDocId && a.username !== activeAdminData?.username);
                 renderAdminsTable();
 
                 closeModal('adminProfileModal');
