@@ -207,6 +207,7 @@
         
         .profile-modal-card, .rank-guide-card {
             background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 20px; width: 100%; max-width: 380px; text-align: center; box-shadow: var(--shadow);
+            max-height: 90vh; overflow-y: auto;
         }
 
         .avatar-wrapper-lg { 
@@ -294,11 +295,11 @@
                 </div>
             </div>
 
-            <!-- 1. ملازم الشرح والتلخيص -->
+            <!-- 1. الملازم والملخصات -->
             <div class="accordion-box">
                 <div class="accordion-header" onclick="toggleAccordion('notesAccordionContent')">
                     <div class="accordion-title-side">
-                        <span>📄 1. ملازم الشرح والتلخيص (متابعة اطلاع الطلاب)</span>
+                        <span>📄 1. الملازم والملخصات (متابعة اطلاع الطلاب)</span>
                     </div>
                     <div class="accordion-action-side">
                         <button class="btn-distribute-item" onclick="event.stopPropagation(); promptDistributeCategoryPoints('notes')">توزيع نقاط الملازم 🎁</button>
@@ -317,11 +318,11 @@
                 </div>
             </div>
 
-            <!-- 2. فيديو الشرح والتفاعل -->
+            <!-- 2. فيديوهات -->
             <div class="accordion-box">
                 <div class="accordion-header" onclick="toggleAccordion('videoAccordionContent')">
                     <div class="accordion-title-side">
-                        <span>🎬 2. فيديو الشرح والتفاعل (مدة المشاهدة والتقدم)</span>
+                        <span>🎬 2. فيديوهات (مدة المشاهدة والتقدم)</span>
                     </div>
                     <div class="accordion-action-side">
                         <button class="btn-distribute-item" onclick="event.stopPropagation(); promptDistributeCategoryPoints('video')">توزيع نقاط الفيديو 🎁</button>
@@ -413,20 +414,8 @@
                 <button onclick="adjustStudentRankStep(500)" class="btn-platform-success-glow">ترقية الطالب ⬆️</button>
             </div>
 
-            <!-- زر فتح خانات التعديل -->
-            <button onclick="toggleEditFields()" class="btn-platform-glow" style="margin-bottom:12px;" id="toggleEditBtn">تعديل بيانات الطالب ⚙️</button>
-
-            <!-- خانات التعديل المخفية افتراضياً -->
-            <div id="editFieldsContainer" class="hidden" style="background:var(--th-bg); padding:10px; border-radius:10px; border:1px solid var(--border-color); margin-bottom:12px; text-align:right;">
-                <div style="display:flex; gap:6px; margin-bottom:6px;">
-                    <input type="text" id="editStudentNameInput" placeholder="اسم الطالب" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.78rem;">
-                    <input type="text" id="editStudentPhoneInput" placeholder="رقم الهاتف" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.78rem;">
-                </div>
-                <div style="display:flex; gap:6px; margin-bottom:6px;">
-                    <input type="number" id="editStudentPointsInput" placeholder="النقاط" style="flex:1; padding:6px; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-color); border-radius:6px; font-size:0.78rem;">
-                </div>
-                <button onclick="saveStudentProfileEdits()" class="btn-platform-glow">حفظ التعديلات 💾</button>
-            </div>
+            <!-- زر فتح نافذة التعديل العائمة المستقلة -->
+            <button onclick="openEditModal()" class="btn-platform-glow" style="margin-bottom:12px;">تعديل بيانات الطالب ⚙️</button>
 
             <div style="display:flex; gap:8px; margin-bottom:10px;">
                 <button onclick="banStudentAccount()" style="flex:1; background:#f59e0b; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.78rem; box-shadow:0 0 10px rgba(245,158,11,0.3);">حظر الطالب ⛔</button>
@@ -434,6 +423,38 @@
             </div>
 
             <button onclick="closeStudentModal()" style="background: #475569; color: white; border: none; padding: 8px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold; width: 100%;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل بيانات الطالب العائمة المستقلة (لتفادي مشكلة تجاوز حدود الشاشة) -->
+    <div class="modal-overlay" id="editStudentModalOverlay" onclick="if(event.target===this) closeEditModal()">
+        <div class="profile-modal-card" style="max-width: 400px; text-align: right;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main);">تعديل بيانات الطالب ⚙️</h3>
+                <button onclick="closeEditModal()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); width: 26px; height: 26px; border-radius: 50%; color: var(--text-muted); cursor: pointer;">✕</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">اسم الطالب:</label>
+                    <input type="text" id="editStudentNameInput" placeholder="اسم الطالب" style="width: 100%; padding: 8px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.82rem;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">رقم الهاتف:</label>
+                    <input type="text" id="editStudentPhoneInput" placeholder="رقم الهاتف" style="width: 100%; padding: 8px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.82rem; direction: ltr; text-align: right;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">البريد الإلكتروني:</label>
+                    <input type="email" id="editStudentEmailInput" placeholder="البريد الإلكتروني" style="width: 100%; padding: 8px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.82rem; direction: ltr; text-align: right;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; display: block;">النقاط:</label>
+                    <input type="number" id="editStudentPointsInput" placeholder="النقاط" style="width: 100%; padding: 8px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.82rem;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="saveStudentProfileEdits()" class="btn-platform-success-glow" style="flex: 1;">حفظ التعديلات 💾</button>
+                <button onclick="closeEditModal()" style="flex: 1; background: #475569; color: white; border: none; padding: 8px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">إلغاء</button>
+            </div>
         </div>
     </div>
 
@@ -615,7 +636,6 @@
             content.classList.toggle('open');
         };
 
-        // دالة مساعدة للحصول على نقاط الحصة المكتوبة في إعدادات هذه الحصة بالذات
         function getLessonPointsConfig(lessonId) {
             let lesson = globalLessonsList.find(l => l.id === lessonId);
             let settings = lesson?.settings || {};
@@ -649,7 +669,6 @@
                 let totalScore = Number(student.points || student.totalScore || student.score || 0);
                 let rank = calculateStudentRank(totalScore);
                 
-                // مزامنة صحيحة لبيانات النشاط والحصص للطالب
                 let activity = (student.lessonsActivity || {})[lessonId] || (student.activity || {})[lessonId] || {};
                 let studentIdentifier = student.email || student.studentId || student.id;
 
@@ -662,7 +681,7 @@
                     </div>
                 `;
 
-                // 1. الملازم والتلخيص (مزامنة دقيقة ومحدثة)
+                // 1. الملازم والملخصات
                 let notesSeen = activity.studyNotes === true || activity.notesRead === true;
                 let summarySeen = activity.summarySeen === true || activity.summaryRead === true;
                 let notesBadge = notesSeen ? '<span style="color:var(--success); font-weight:bold;">✔ اطلع عليها</span>' : '<span style="color:var(--danger);">❌ لم يفتح</span>';
@@ -673,7 +692,7 @@
                     <td>${(notesSeen || summarySeen) ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
                 </tr>`;
 
-                // 2. الفيديو (مزامنة دقيقة لوقت المشاهدة والتمام)
+                // 2. فيديوهات
                 let watched = activity.videoWatched === true || activity.watched === true || activity.isWatched === true;
                 let watchDuration = activity.watchTimeMinutes || activity.duration || 0;
                 let videoBadge = watched ? `<span style="color:var(--success); font-weight:bold;">✔ مشاهدة كاملة (${watchDuration} دقيقة)</span>` : (watchDuration > 0 ? `<span style="color:#f59e0b; font-weight:bold;">⏳ شاهد (${watchDuration} دقيقة)</span>` : '<span style="color:var(--danger);">❌ لم يشاهد</span>');
@@ -683,7 +702,7 @@
                     <td>${(watched || watchDuration > 0) ? '<span style="color:var(--success);">جاهز للتوزيع ⭐</span>' : '<span style="color:var(--text-muted);">غير متفاعل</span>'}</td>
                 </tr>`;
 
-                // 3. الامتحان (مزامنة حالة الامتحان والنجاح والدرجات)
+                // 3. امتحان الحصة
                 let examData = activity.examSubmission || activity.examResult || null;
                 let examBadge = '';
                 if (examData) {
@@ -742,10 +761,9 @@
             document.getElementById('loaderModal').style.display = 'none';
         };
 
-        // توزيع النقاط بناءً حصرياً على إعدادات الحصة الحالية
         window.promptDistributeCategoryPoints = function(category) {
             let config = getLessonPointsConfig(activeSelectedLessonId);
-            let catName = category === 'notes' ? 'ملازم الشرح والتلخيص' : (category === 'video' ? 'فيديو الشرح' : 'امتحان الحصة');
+            let catName = category === 'notes' ? 'الملازم والملخصات' : (category === 'video' ? 'فيديوهات' : 'امتحان الحصة');
             let pointsToGive = category === 'notes' ? config.notes : (category === 'video' ? config.video : config.exam);
 
             if (confirm(`هل تريد توزيع نقاط (${catName}) بقيمة (${pointsToGive} نقطة - حسب إعدادات الحصة) لجميع الطلاب؟`)) {
@@ -853,10 +871,6 @@
             document.getElementById('modalStudentPhone').textContent = 'جاري البحث...';
             document.getElementById('modalStudentLevelBadge').textContent = '⭐ جاري تحديد المستوى...';
             
-            // إخفاء حقول التعديل افتراضياً عند فتح البروفايل
-            document.getElementById('editFieldsContainer').classList.add('hidden');
-            document.getElementById('toggleEditBtn').textContent = 'تعديل بيانات الطالب ⚙️';
-
             const avatarFrame = document.getElementById('modalAvatarFrameWrapper');
             avatarFrame.className = 'avatar-wrapper-lg rank-frame-legendary';
             const levelBadge = document.getElementById('modalStudentLevelBadge');
@@ -888,6 +902,7 @@
 
                     document.getElementById('editStudentNameInput').value = data.fullName || data.name || '';
                     document.getElementById('editStudentPhoneInput').value = data.phone || data.parentPhone || data.phoneNumber || '';
+                    document.getElementById('editStudentEmailInput').value = data.email || identifier;
                     document.getElementById('editStudentPointsInput').value = totalScore;
                 } else {
                     document.getElementById('modalStudentId').textContent = 'غير مسجل';
@@ -902,15 +917,12 @@
             document.getElementById('studentProfileModal').classList.remove('active');
         };
 
-        window.toggleEditFields = function() {
-            let container = document.getElementById('editFieldsContainer');
-            let btn = document.getElementById('toggleEditBtn');
-            container.classList.toggle('hidden');
-            if (container.classList.contains('hidden')) {
-                btn.textContent = 'تعديل بيانات الطالب ⚙️';
-            } else {
-                btn.textContent = 'إخفاء خانات التعديل ✕';
-            }
+        window.openEditModal = function() {
+            document.getElementById('editStudentModalOverlay').classList.add('active');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('editStudentModalOverlay').classList.remove('active');
         };
 
         window.adjustStudentRankStep = async function(stepAmount) {
@@ -927,6 +939,7 @@
             if (!currentEditingStudentId) return;
             let newName = document.getElementById('editStudentNameInput').value.trim();
             let newPhone = document.getElementById('editStudentPhoneInput').value.trim();
+            let newEmail = document.getElementById('editStudentEmailInput').value.trim();
             let newPoints = parseInt(document.getElementById('editStudentPointsInput').value) || 0;
 
             try {
@@ -939,12 +952,14 @@
                     fullName: newName,
                     phone: newPhone,
                     parentPhone: newPhone,
+                    email: newEmail,
                     points: newPoints,
                     totalScore: newPoints
                 });
 
                 if (!isSilent) {
                     alert("✔ تم تحديث بيانات ونقاط الطالب بنجاح!");
+                    closeEditModal();
                     closeStudentModal();
                 }
                 const studentsSnap = await getDocs(collection(db, "students"));
