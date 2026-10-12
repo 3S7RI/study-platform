@@ -37,7 +37,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
-        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 15px; }
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 15px; position: relative; }
         .container { max-width: 800px; margin: 0 auto; }
         
         .platform-header {
@@ -61,6 +61,36 @@
             width: 38px; height: 38px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
         }
         .btn-theme-toggle:hover { background-color: var(--hover-bg); border-color: var(--primary); }
+
+        /* شاشة وضع الصيانة الاحترافية للطالب (شاشة كاملة مع السلاسل والقفل المتقاطع) */
+        #maintenanceOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.96); z-index: 99999; overflow: hidden; justify-content: center; align-items: center;
+        }
+        .maintenance-chain-diag-1 {
+            position: absolute; width: 150%; height: 6px; background: repeating-linear-gradient(45deg, #475569, #475569 15px, #1e293b 15px, #1e293b 30px);
+            top: 0; left: -25%; transform: rotate(30deg); transform-origin: top left; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1;
+        }
+        .maintenance-chain-diag-2 {
+            position: absolute; width: 150%; height: 6px; background: repeating-linear-gradient(45deg, #475569, #475569 15px, #1e293b 15px, #1e293b 30px);
+            bottom: 0; left: -25%; transform: rotate(-30deg); transform-origin: bottom left; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1;
+        }
+        .maintenance-chain-horiz {
+            position: absolute; width: 100%; height: 6px; background: repeating-linear-gradient(90deg, #475569, #475569 15px, #1e293b 15px, #1e293b 30px);
+            top: 50%; left: 0; transform: translateY(-50%); box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1;
+        }
+        .maintenance-content-box {
+            position: relative; z-index: 5; background: var(--bg-card); border: 2px solid var(--border-color);
+            padding: 35px 25px; border-radius: 24px; text-align: center; max-width: 450px; width: 90%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+        .maintenance-lock-icon {
+            width: 80px; height: 80px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%;
+            margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4); border: 3px solid rgba(255,255,255,0.2);
+        }
+        .maintenance-title { font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin-bottom: 10px; }
+        .maintenance-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; word-break: break-word; }
 
         .create-post-card {
             background: var(--bg-card); padding: 18px; border-radius: 16px;
@@ -167,7 +197,6 @@
             display: inline-flex; align-items: center; gap: 4px;
         }
 
-        /* تعديل حجم أيقونة الذكر والأنثى لتكون صغيرة ومرتبة جداً */
         .gender-icon-badge {
             display: inline-flex; align-items: center; justify-content: center;
             width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 3px;
@@ -186,7 +215,6 @@
 
         .post-content { font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px; word-break: break-word; color: var(--text-main); }
         
-        /* تعديل حجم الصورة لتكون مصغرة داخل البوست ومع المؤشر تكبير */
         .post-media-img {
             max-width: 180px; max-height: 140px; border-radius: 10px; margin-bottom: 10px;
             display: block; object-fit: cover; cursor: pointer; border: 1px solid var(--border-color);
@@ -194,7 +222,6 @@
         }
         .post-media-img:hover { transform: scale(1.03); opacity: 0.95; }
 
-        /* ستايل مشغل الفويس المخصص بثيم المنصة بدلاً من ثيم المتصفح */
         .custom-audio-player {
             display: flex; align-items: center; gap: 12px; background: var(--th-bg);
             border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 12px;
@@ -214,7 +241,6 @@
         }
         .audio-time-label { font-size: 0.72rem; color: var(--text-muted); font-weight: bold; min-width: 35px; text-align: center; }
 
-        /* نافذة تكبير الصورة (Lightbox Modal) */
         #imageLightboxModal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center; padding: 20px;
@@ -260,6 +286,19 @@
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
+
+    <!-- نافذة وضع الصيانة الاحترافية للطالب (شاشة كاملة مع السلاسل والقفل) -->
+    <div id="maintenanceOverlay">
+        <div class="maintenance-chain-diag-1"></div>
+        <div class="maintenance-chain-diag-2"></div>
+        <div class="maintenance-chain-horiz"></div>
+        
+        <div class="maintenance-content-box">
+            <div class="maintenance-lock-icon">🔒</div>
+            <div class="maintenance-title">وضع الصيانة</div>
+            <div class="maintenance-desc" id="maintenanceTextDisplay">المنتدى مغلق مؤقتاً للصيانة والتحديث وتطوير التجربة التعليمية، نعود إليكم قريباً! ⚡</div>
+        </div>
+    </div>
 
     <!-- نافذة تكبير الصورة (Lightbox) -->
     <div id="imageLightboxModal" onclick="closeLightbox()">
@@ -395,6 +434,28 @@
         let activeCommentChunks = [];
         let activeCommentAudioBase64 = "";
 
+        // فحص حالة صيانة المنتدى وسحب الإعدادات مباشرة من فايربيز
+        async function checkForumMaintenanceStatus() {
+            try {
+                let docSnap = await getDoc(doc(db, "forumSettings", "config"));
+                let defaultMsg = "المنتدى مغلق مؤقتاً للصيانة والتحديث وتطوير التجربة التعليمية، نعود إليكم قريباً! ⚡";
+                const overlay = document.getElementById('maintenanceOverlay');
+                const textDisplay = document.getElementById('maintenanceTextDisplay');
+
+                if (docSnap.exists()) {
+                    let s = docSnap.data();
+                    if (s.isOpen === true) {
+                        textDisplay.textContent = s.maintenanceMsg || defaultMsg;
+                        overlay.style.display = 'flex';
+                    } else {
+                        overlay.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error("خطأ في فحص وضع الصيانة:", e);
+            }
+        }
+
         function isFemaleStudent(stu) {
             let gender = (stu.gender || stu.type || '').toLowerCase();
             if (gender === 'female' || gender === 'بنت' || gender === 'طالبة') return true;
@@ -424,6 +485,7 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
+            await checkForumMaintenanceStatus(); // فحص الصيانة أولاً
             if (user) {
                 try {
                     let docSnap = await getDoc(doc(db, "students", user.uid));
@@ -546,7 +608,6 @@
             }, 3000);
         }
 
-        // دالة تكبير الصورة (Lightbox)
         window.openLightbox = function(imgSrc) {
             document.getElementById('lightboxImgTag').src = imgSrc;
             document.getElementById('imageLightboxModal').style.display = 'flex';
@@ -556,7 +617,6 @@
             document.getElementById('imageLightboxModal').style.display = 'none';
         }
 
-        // دالة تحكم في المشغل الصوتي المخصص بثيم المنصة
         window.toggleCustomAudioPlay = function(audioId, btnId, progressId, timeId) {
             const audioElement = document.getElementById(audioId);
             const playBtn = document.getElementById(btnId);
@@ -564,7 +624,6 @@
             const timeLabel = document.getElementById(timeId);
 
             if (audioElement.paused) {
-                // إيقاف أي صوت تاني شغال في الصفحة أولاً
                 document.querySelectorAll('audio').forEach(aud => {
                     if (aud.id !== audioId && !aud.paused) {
                         aud.pause();
