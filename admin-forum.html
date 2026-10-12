@@ -228,6 +228,7 @@
 
         <div class="admin-nav-tabs">
             <button class="admin-tab-btn active" id="btnTabPosts" onclick="switchTab('posts')">💬 إدارة الأسئلة</button>
+            <button class="admin-tab-btn" id="btnTabPending" onclick="switchTab('pending')">⏳ طلبات المراجعة</button>
             <button class="admin-tab-btn" id="btnTabSettings" onclick="switchTab('settings')">⚙️ إعدادات المنتدى</button>
         </div>
 
@@ -237,6 +238,16 @@
             </div>
             <div id="adminForumFeed">
                 <p style="text-align: center; opacity: 0.7; padding: 20px;">جاري تحميل أسئلة وتفاعلات المنتدى من السحابة...</p>
+            </div>
+        </div>
+
+        <!-- تبويب طلبات المراجعة للأسئلة -->
+        <div id="tabPendingContent" class="section-box hidden">
+            <div class="section-header">
+                <h2>طلبات الأسئلة المعلقة بانتظار موافقة الأدمن ⏳</h2>
+            </div>
+            <div id="adminPendingFeed">
+                <p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد طلبات معلقة حالياً...</p>
             </div>
         </div>
 
@@ -267,7 +278,7 @@
                     <label class="switch"><input type="checkbox" id="settingAllowLikes" checked><span class="slider"></span></label>
                 </div>
                 <div class="setting-card">
-                    <label for="settingAllowEmojis">تحديد رموز التفاعل</label>
+                    <label for="settingAllowEmojis">تحديد رموز التفاعل والإيموجي</label>
                     <label class="switch"><input type="checkbox" id="settingAllowEmojis" checked><span class="slider"></span></label>
                 </div>
                 <div class="setting-card">
@@ -304,7 +315,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc, arrayUnion, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, deleteDoc, updateDoc, arrayUnion, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -339,18 +350,28 @@
 
         window.switchTab = function(tab) {
             const btnPosts = document.getElementById('btnTabPosts');
+            const btnPending = document.getElementById('btnTabPending');
             const btnSettings = document.getElementById('btnTabSettings');
+            
             const contentPosts = document.getElementById('tabPostsContent');
+            const contentPending = document.getElementById('tabPendingContent');
             const contentSettings = document.getElementById('tabSettingsContent');
 
             btnPosts.classList.remove('active');
+            btnPending.classList.remove('active');
             btnSettings.classList.remove('active');
+            
             contentPosts.classList.add('hidden');
+            contentPending.classList.add('hidden');
             contentSettings.classList.add('hidden');
 
             if (tab === 'posts') {
                 btnPosts.classList.add('active');
                 contentPosts.classList.remove('hidden');
+            } else if (tab === 'pending') {
+                btnPending.classList.add('active');
+                contentPending.classList.remove('hidden');
+                loadPendingPostsFromFirebase();
             } else {
                 btnSettings.classList.add('active');
                 contentSettings.classList.remove('hidden');
@@ -506,6 +527,91 @@
                 document.getElementById('adminForumFeed').innerHTML = '<p style="text-align: center; color: var(--danger);">فشل تحميل أسئلة المنتدى من السحابة.</p>';
             }
         }
+
+        async function loadPendingPostsFromFirebase() {
+            try {
+                const q = query(collection(db, "pendingPosts"), orderBy("createdAt", "asc"));
+                const querySnapshot = await getDocs(q);
+                let pending = [];
+                querySnapshot.forEach((docSnap) => {
+                    pending.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderAdminPendingFeed(pending);
+            } catch (e) {
+                console.error("خطأ في جلب الطلبات المعلقة:", e);
+                document.getElementById('adminPendingFeed').innerHTML = '<p style="text-align: center; color: var(--danger);">فشل تحميل الطلبات المعلقة.</p>';
+            }
+        }
+
+        function renderAdminPendingFeed(posts) {
+            const container = document.getElementById('adminPendingFeed');
+            if (!posts || posts.length === 0) {
+                container.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 20px;">لا توجد أسئلة معلقة بانتظار المراجعة حالياً.</p>';
+                return;
+            }
+
+            let html = '';
+            posts.forEach((post) => {
+                let userImg = post.profileImage || defaultMaleSvg;
+                let female = isFemaleStudent(post);
+                let genderSvg = getGenderSvgHtml(female);
+                let rankLabel = getRankName(post.studentLevel);
+
+                html += `
+                    <div class="post-card">
+                        <div class="post-header">
+                            <div class="post-user-info-group">
+                                <img src="${userImg}" class="post-avatar" alt="صورة">
+                                <div class="post-author-info">
+                                    <h4>
+                                        <span style="display:inline-flex; align-items:center; gap:4px;">${post.authorName || 'طالب'} ${genderSvg}</span>
+                                        <span class="student-meta-badge">🎓 ${rankLabel} | ⭐ ${post.studentPoints || 0} نقطة</span>
+                                    </h4>
+                                    <span>${post.date || 'منذ قليل'} | <span style="color:var(--danger); font-weight:bold;">⏳ بانتظار مراجعة الأدمن</span></span>
+                                </div>
+                            </div>
+                            <div class="post-actions">
+                                <button class="btn-pin" style="background:var(--success); color:white;" onclick="approvePendingPost('${post.id}')">موافقة ونشر ✅</button>
+                                <button class="btn-danger" onclick="deletePendingPost('${post.id}')">رفض وحذف ❌</button>
+                            </div>
+                        </div>
+                        <div class="post-content">${post.content || ''}</div>
+                        ${post.image ? `<img src="${post.image}" class="post-media-img" onclick="openLightbox('${post.image}')">` : ''}
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        window.approvePendingPost = async function(postId) {
+            try {
+                let docRef = doc(db, "pendingPosts", postId);
+                let docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    let postData = docSnap.data();
+                    // نقله إلى جدول المنتدى الرئيسي
+                    await addDoc(collection(db, "forumPosts"), postData);
+                    // حذفه من جدول المعلق
+                    await deleteDoc(docRef);
+                    loadPendingPostsFromFirebase();
+                    alert('تمت الموافقة على السؤال ونشره في المنتدى بنجاح! 🚀');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء الموافقة على السؤال.');
+            }
+        };
+
+        window.deletePendingPost = async function(postId) {
+            if (!confirm('هل تريد رفض وحذف هذا السؤال نهائياً؟')) return;
+            try {
+                await deleteDoc(doc(db, "pendingPosts", postId));
+                loadPendingPostsFromFirebase();
+                alert('تم حذف السؤال المعلق.');
+            } catch (e) {
+                console.error(e);
+                alert('حدث خطأ أثناء الحذف.');
+            }
+        };
 
         function renderAdminForumFeed(posts) {
             const container = document.getElementById('adminForumFeed');
