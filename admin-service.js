@@ -1,4 +1,4 @@
-// admin-service.js - ملف الخدمات الشامل والموحد لإدارة وتخزين وإنشاء وتعديل بيانات مشرفي المنصة (متوافق مع Firebase Compat)
+// admin-service.js - ملف الخدمات الشامل والموحد لإدارة المشرفين (متوافق تماماً مع Firebase Compat)
 
 /**
  * 1. البحث عن وثيقة المشرف بدقة تامة باستخدام الـ Document ID أو الإيميل
@@ -85,7 +85,7 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
 }
 
 /**
- * 4. تعديل وتحديث بيانات المشرف (معالجة مباشرة لـ Document ID)
+ * 4. تعديل وتحديث بيانات المشرف (تم إصلاحها لتستخدم طريقة Compat المباشرة للـ Document ID)
  */
 export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
     try {
