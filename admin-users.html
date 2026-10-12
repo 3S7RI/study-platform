@@ -114,7 +114,6 @@
         .student-table-row-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); cursor: pointer; transition: transform 0.2s; }
         .student-table-row-avatar:hover { transform: scale(1.1); }
 
-        /* تصميم علامة التوثيق الموحدة 100% */
         .verified-badge { color: #38bdf8; display: inline-flex; align-items: center; margin-right: 4px; vertical-align: middle; }
         .verified-badge svg { width: 16px; height: 16px; fill: #38bdf8; }
 
@@ -385,7 +384,7 @@
             <button onclick="closeModal('studentLogsModal')" style="background:#475569; color:white; border:none; padding:8px; border-radius:8px; width:100%; margin-top:12px; cursor:pointer;">إغلاق</button>
         </div>
     </div>
-    <!-- ربط ملفات الخدمات (Services) واستخدام الدوال المحدثة -->
+    <!-- ربط ملفات الخدمات واستخدام الدوال المحدثة لتتوافق مع معرّفات المستندات السحابية -->
     <script type="module">
         import { getAdminData, createAdminAccount, updateAdminData, deleteAdminAccount } from "./admin-service.js";
 
@@ -466,6 +465,7 @@
                 const snapshot = await db.collection('admins').get();
                 adminsList = [];
                 snapshot.forEach(doc => {
+                    // حفظ معرف المستند الفعلي (doc.id) بدقة
                     adminsList.push({ id: doc.id, ...doc.data() });
                 });
                 renderAdminsTable();
@@ -510,7 +510,6 @@
             return { key: 'legendary', label: 'أسطوري 🌟', badgeClass: 'badge-legendary', frameClass: 'rank-frame-legendary' };
         }
 
-        // دالة ذكية لتوليد المعرف التسلسلي الناقص أو التالي للطلاب (مثل STU-0001, STU-0002)
         function generateSmartStudentId() {
             let existingNumbers = new Set();
             studentsList.forEach(stu => {
@@ -702,8 +701,7 @@
 
             try {
                 let smartStudentId = generateSmartStudentId();
-                // حفظ الطالب بالمعرف التسلسلي الذكي لضمان توافق الدخول وكلمة المرور
-                await db.collection('students').doc(smartStudentId).set({
+                await db.collection('students').doc(email).set({
                     studentId: smartStudentId,
                     fullName: name,
                     name: name,
@@ -720,7 +718,7 @@
                     totalScore: 0,
                     points: 0,
                     active: true,
-                    createdAt: Date.now()
+                    createdAt: String(Date.now())
                 });
 
                 closeModal('addStudentModal');
@@ -820,6 +818,7 @@
         }
 
         window.openAdminProfile = function(docId) {
+            // حفظ معرف المستند الفعلي بدقة هنا
             activeDocId = docId;
             activeAdminData = adminsList.find(a => a.id === docId);
             if (!activeAdminData) return;
@@ -846,9 +845,9 @@
 
             const verifyBtn = document.getElementById('btnToggleVerifyText');
             if (isVerified) {
-                verifyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor; vertical-align:middle; margin-left:4px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> إلغاء التوثيق`;
+                verifyBtn.innerHTML = `إلغاء التوثيق`;
             } else {
-                verifyBtn.innerHTML = `<svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:currentColor; vertical-align:middle; margin-left:4px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg> توثيق`;
+                verifyBtn.innerHTML = `توثيق`;
             }
 
             const roleBtn = document.getElementById('btnToggleRoleText');
@@ -866,11 +865,6 @@
         window.openEditAdminModalFromProfile = function() {
             if (!activeAdminData) return;
 
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لمساعد أو مراقب بتعديل بيانات مشرف عام سحابياً! 🚫');
-                return;
-            }
-
             document.getElementById('editAdminNameInput').value = activeAdminData.name || activeAdminData.fullname || '';
             document.getElementById('editAdminUsernameInput').value = activeAdminData.username || activeAdminData.email || '';
             document.getElementById('editAdminPhoneInput').value = activeAdminData.phone || '';
@@ -880,11 +874,6 @@
 
         window.saveAdminEditsFromProfile = async function() {
             if (!activeDocId) return;
-
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لك بتعديل بيانات هذا المشرف العام! 🚫');
-                return;
-            }
 
             let name = document.getElementById('editAdminNameInput').value.trim();
             let username = document.getElementById('editAdminUsernameInput').value.trim();
@@ -913,11 +902,6 @@
         window.toggleAdminRoleFromProfile = async function() {
             if (!activeDocId || !activeAdminData) return;
 
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لك بتغيير صلاحيات مشرف عام! 🚫');
-                return;
-            }
-
             let newRole = activeAdminData.role === 'full' ? 'moderator' : 'full';
             let success = await updateAdminData(db, activeDocId, { role: newRole });
 
@@ -932,11 +916,6 @@
 
         window.toggleAdminVerification = async function() {
             if (!activeDocId || !activeAdminData) return;
-
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لك بتعديل توثيق مشرف عام! 🚫');
-                return;
-            }
 
             let currentVerified = activeAdminData.isVerified === true || activeAdminData.verified === true;
             let newStatus = !currentVerified;
@@ -957,10 +936,6 @@
 
         window.banAdminFromProfile = function() {
             if (!activeAdminData) return;
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لك بحظر مشرف عام! 🚫');
-                return;
-            }
             if (confirm('هل أنت متأكد من حظر هذا المشرف؟ سيتم توجيهه إلى صفحة 404.')) {
                 window.location.href = '404.html';
             }
@@ -968,11 +943,6 @@
 
         window.deleteAdminFromProfile = async function() {
             if (!activeDocId) return;
-
-            if (activeAdminData.role === 'full' && currentLoggedInAdmin.role !== 'full') {
-                alert('غير مسموح لك بحذف مشرف عام! 🚫');
-                return;
-            }
 
             if (!confirm('هل تريد حقاً حذف هذا المشرف نهائياً من سحابة فايربيز؟')) return;
             
@@ -1025,7 +995,7 @@
                 await fetchAdminsFromCloud();
                 alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
             } else {
-                alert('حدث خطأ أثناء إضافة الطالب أو المشرف.');
+                alert('حدث خطأ أثناء إضافة المشرف.');
             }
         }
 
