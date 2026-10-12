@@ -167,13 +167,14 @@
             display: inline-flex; align-items: center; gap: 4px;
         }
 
+        /* تعديل حجم أيقونة الذكر والأنثى لتكون صغيرة ومرتبة جداً */
         .gender-icon-badge {
             display: inline-flex; align-items: center; justify-content: center;
-            width: 15px; height: 15px; border-radius: 50%; vertical-align: middle; margin-right: 2px;
+            width: 14px; height: 14px; border-radius: 50%; vertical-align: middle; margin-right: 3px;
         }
-        .gender-icon-badge.male { background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; }
-        .gender-icon-badge.female { background: rgba(236, 72, 153, 0.15); border: 1px solid #ec4899; }
-        .gender-icon-badge svg { width: 9px; height: 9px; }
+        .gender-icon-badge.male { background: rgba(59, 130, 246, 0.12); border: 1px solid #3b82f6; }
+        .gender-icon-badge.female { background: rgba(236, 72, 153, 0.12); border: 1px solid #ec4899; }
+        .gender-icon-badge svg { width: 8px; height: 8px; }
 
         .post-author-info span { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; display: block; }
         
@@ -184,8 +185,49 @@
         .delete-post-btn:hover { background: var(--danger); color: white; }
 
         .post-content { font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px; word-break: break-word; color: var(--text-main); }
-        .post-media-img { max-width: 100%; max-height: 280px; border-radius: 8px; margin-bottom: 10px; display: block; object-fit: contain; }
-        .post-audio { width: 100%; margin-bottom: 10px; border-radius: 6px; height: 36px; }
+        
+        /* تعديل حجم الصورة لتكون مصغرة داخل البوست ومع المؤشر تكبير */
+        .post-media-img {
+            max-width: 180px; max-height: 140px; border-radius: 10px; margin-bottom: 10px;
+            display: block; object-fit: cover; cursor: pointer; border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .post-media-img:hover { transform: scale(1.03); opacity: 0.95; }
+
+        /* ستايل مشغل الفويس المخصص بثيم المنصة بدلاً من ثيم المتصفح */
+        .custom-audio-player {
+            display: flex; align-items: center; gap: 12px; background: var(--th-bg);
+            border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 12px;
+            margin-bottom: 10px; width: 100%; max-width: 320px;
+        }
+        .audio-play-btn {
+            background: var(--primary); color: white; border: none; width: 32px; height: 32px;
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; flex-shrink: 0; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+        .audio-play-btn:hover { background: var(--primary-hover); }
+        .audio-wave-graphic {
+            flex: 1; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden; position: relative; cursor: pointer;
+        }
+        .audio-wave-progress {
+            width: 0%; height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.1s linear;
+        }
+        .audio-time-label { font-size: 0.72rem; color: var(--text-muted); font-weight: bold; min-width: 35px; text-align: center; }
+
+        /* نافذة تكبير الصورة (Lightbox Modal) */
+        #imageLightboxModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center; padding: 20px;
+        }
+        #imageLightboxModal img {
+            max-width: 90%; max-height: 90%; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); object-fit: contain;
+        }
+        #closeLightboxBtn {
+            position: absolute; top: 20px; right: 25px; background: rgba(255,255,255,0.15); color: white;
+            border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);
+        }
+        #closeLightboxBtn:hover { background: var(--danger); }
 
         .comments-section { border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 10px; }
         .comment-item {
@@ -218,6 +260,12 @@
     </style>
 </head>
 <body id="pageBody" data-theme="dark">
+
+    <!-- نافذة تكبير الصورة (Lightbox) -->
+    <div id="imageLightboxModal" onclick="closeLightbox()">
+        <button id="closeLightboxBtn" onclick="closeLightbox()">✕</button>
+        <img id="lightboxImgTag" src="" alt="صورة مكبرة">
+    </div>
 
     <!-- رسالة نجاح النشر مع علامة الصح المتحركة -->
     <div id="successToastOverlay">
@@ -304,7 +352,7 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK (Modular v10) & Firestore Integration -->
+    <!-- Firebase SDK & Custom Audio/Image Player Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -498,6 +546,67 @@
             }, 3000);
         }
 
+        // دالة تكبير الصورة (Lightbox)
+        window.openLightbox = function(imgSrc) {
+            document.getElementById('lightboxImgTag').src = imgSrc;
+            document.getElementById('imageLightboxModal').style.display = 'flex';
+        }
+
+        window.closeLightbox = function() {
+            document.getElementById('imageLightboxModal').style.display = 'none';
+        }
+
+        // دالة تحكم في المشغل الصوتي المخصص بثيم المنصة
+        window.toggleCustomAudioPlay = function(audioId, btnId, progressId, timeId) {
+            const audioElement = document.getElementById(audioId);
+            const playBtn = document.getElementById(btnId);
+            const progressBar = document.getElementById(progressId);
+            const timeLabel = document.getElementById(timeId);
+
+            if (audioElement.paused) {
+                // إيقاف أي صوت تاني شغال في الصفحة أولاً
+                document.querySelectorAll('audio').forEach(aud => {
+                    if (aud.id !== audioId && !aud.paused) {
+                        aud.pause();
+                    }
+                });
+                document.querySelectorAll('.audio-play-btn').forEach(b => {
+                    b.innerHTML = '▶';
+                });
+
+                audioElement.play();
+                playBtn.innerHTML = '⏸';
+
+                audioElement.ontimeupdate = () => {
+                    if (audioElement.duration) {
+                        let pct = (audioElement.currentTime / audioElement.duration) * 100;
+                        progressBar.style.width = pct + '%';
+
+                        let rem = Math.floor(audioElement.duration - audioElement.currentTime);
+                        let m = Math.floor(rem / 60).toString().padStart(2, '0');
+                        let s = (rem % 60).toString().padStart(2, '0');
+                        timeLabel.textContent = `${m}:${s}`;
+                    }
+                };
+
+                audioElement.onended = () => {
+                    playBtn.innerHTML = '▶';
+                    progressBar.style.width = '0%';
+                    timeLabel.textContent = formatDuration(audioElement.duration);
+                };
+            } else {
+                audioElement.pause();
+                playBtn.innerHTML = '▶';
+            }
+        };
+
+        function formatDuration(seconds) {
+            if (isNaN(seconds)) return "00:00";
+            let m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            let s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
         function updateProgress(percent, label) {
             const wrapper = document.getElementById('uploadProgressWrapper');
             const fill = document.getElementById('progressBarFill');
@@ -561,7 +670,6 @@
             try {
                 updateProgress(70, 'جاري النشر في قاعدة البيانات (Firebase)...');
 
-                // الحفظ مباشرة في مجموعة forumPosts بـ Firestore
                 await addDoc(collection(db, "forumPosts"), newPost);
 
                 updateProgress(100, 'تم النشر بنجاح!');
@@ -644,6 +752,11 @@
                             }
                         }
 
+                        let cAudioId = 'cAud_' + Math.random().toString(36).substr(2, 9);
+                        let cBtnId = 'cBtn_' + Math.random().toString(36).substr(2, 9);
+                        let cProgId = 'cProg_' + Math.random().toString(36).substr(2, 9);
+                        let cTimeId = 'cTime_' + Math.random().toString(36).substr(2, 9);
+
                         commentsHtml += `
                             <div class="comment-item">
                                 <div class="comment-header-row">
@@ -651,7 +764,16 @@
                                     ${badgeHtml}
                                 </div>
                                 <div style="margin-top: 4px; line-height: 1.5; color: var(--text-main);">${c.text}</div>
-                                ${c.audio ? `<audio controls class="post-audio" style="margin-top:6px;"><source src="${c.audio}" type="audio/webm"></audio>` : ''}
+                                ${c.audio ? `
+                                    <div class="custom-audio-player" style="margin-top:8px;">
+                                        <audio id="${cAudioId}" src="${c.audio}"></audio>
+                                        <button type="button" class="audio-play-btn" id="${cBtnId}" onclick="toggleCustomAudioPlay('${cAudioId}', '${cBtnId}', '${cProgId}', '${cTimeId}')">▶</button>
+                                        <div class="audio-wave-graphic" onclick="const rect = this.getBoundingClientRect(); const pos = (event.clientX - rect.left) / rect.width; document.getElementById('${cAudioId}').currentTime = pos * document.getElementById('${cAudioId}').duration;">
+                                            <div class="audio-wave-progress" id="${cProgId}"></div>
+                                        </div>
+                                        <span class="audio-time-label" id="${cTimeId}">00:00</span>
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
                     });
@@ -668,6 +790,11 @@
                         ` : ''}
                     </div>
                 `;
+
+                let audioId = 'aud_' + post.id;
+                let btnId = 'btn_' + post.id;
+                let progId = 'prog_' + post.id;
+                let timeId = 'time_' + post.id;
 
                 let card = document.createElement('div');
                 card.className = 'post-card';
@@ -686,8 +813,18 @@
                         ${canDelete ? `<button class="delete-post-btn" onclick="deleteQuestionPost('${post.id}')">🗑️ حذف</button>` : ''}
                     </div>
                     ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
-                    ${post.image ? `<img src="${post.image}" class="post-media-img">` : ''}
-                    ${post.audio ? `<audio controls class="post-audio"><source src="${post.audio}" type="audio/webm"></audio>` : ''}
+                    ${post.image ? `<img src="${post.image}" class="post-media-img" onclick="openLightbox('${post.image}')" title="اضغط لتكبير الصورة">` : ''}
+                    
+                    ${post.audio ? `
+                        <div class="custom-audio-player">
+                            <audio id="${audioId}" src="${post.audio}"></audio>
+                            <button type="button" class="audio-play-btn" id="${btnId}" onclick="toggleCustomAudioPlay('${audioId}', '${btnId}', '${progId}', '${timeId}')">▶</button>
+                            <div class="audio-wave-graphic" onclick="const rect = this.getBoundingClientRect(); const pos = (event.clientX - rect.left) / rect.width; document.getElementById('${audioId}').currentTime = pos * document.getElementById('${audioId}').duration;">
+                                <div class="audio-wave-progress" id="${progId}"></div>
+                            </div>
+                            <span class="audio-time-label" id="${timeId}">00:00</span>
+                        </div>
+                    ` : ''}
                     
                     <div class="comments-section">
                         <div id="commentsList_${post.id}">${commentsHtml}</div>
