@@ -67,7 +67,6 @@
             box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid var(--border-color);
             border-top: 4px solid var(--primary);
         }
-        /* تصغير مستطيل الكتابة ليصبح أصغر ومناسب */
         .create-post-card textarea {
             width: 100%; height: 75px; padding: 10px 12px; border-radius: 10px;
             border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main);
@@ -91,12 +90,45 @@
             box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); display: inline-flex; align-items: center; gap: 6px;
         }
         .post-submit-btn:hover { background-color: var(--primary-hover); }
+        .post-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* ستايل لوحة تسجيل الصوت الشيك والمزودة بـ SVG وإمكانية الحذف والإيقاف */
+        /* ستايل شريط التحميل التفاعلي */
+        #uploadProgressWrapper {
+            display: none; margin-bottom: 12px; background: var(--th-bg);
+            border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px;
+        }
+        .progress-bar-container {
+            width: 100%; height: 6px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-top: 6px;
+        }
+        .progress-bar-fill {
+            width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 4px; transition: width 0.3s ease;
+        }
+
+        /* ستايل علامة الصح المتحركة لنجاح النشر */
+        #successToastOverlay {
+            display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.95); color: white; padding: 12px 24px; border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4); z-index: 9999; align-items: center; gap: 10px;
+            font-weight: bold; font-size: 0.95rem; animation: slideDown 0.3s ease;
+        }
+        @keyframes slideDown {
+            0% { transform: translate(-50%, -20px); opacity: 0; }
+            100% { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .success-checkmark-svg {
+            width: 22px; height: 22px; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none;
+            animation: checkmarkAnim 0.5s ease-in-out forwards;
+        }
+        @keyframes checkmarkAnim {
+            0% { stroke-dasharray: 0, 50; }
+            100% { stroke-dasharray: 50, 50; }
+        }
+
         .voice-recorder-ui {
             display: none; align-items: center; gap: 10px; background: var(--th-bg);
             border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px;
-            margin-bottom: 10px; animation: fadeIn 0.2s ease;
+            margin-bottom: 10px;
         }
         .voice-wave-animation { display: flex; align-items: center; gap: 3px; height: 18px; }
         .voice-wave-bar { width: 3px; background: var(--primary); border-radius: 2px; animation: wavePulse 0.8s ease-in-out infinite alternate; }
@@ -135,7 +167,6 @@
             display: inline-flex; align-items: center; gap: 4px;
         }
 
-        /* تصغير وتعديل علامة الذكر والأنثى لتكون صغيرة ومنسقة بجانب الاسم تماماً */
         .gender-icon-badge {
             display: inline-flex; align-items: center; justify-content: center;
             width: 15px; height: 15px; border-radius: 50%; vertical-align: middle; margin-right: 2px;
@@ -188,6 +219,14 @@
 </head>
 <body id="pageBody" data-theme="dark">
 
+    <!-- رسالة نجاح النشر مع علامة الصح المتحركة -->
+    <div id="successToastOverlay">
+        <svg class="success-checkmark-svg" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span id="successToastText">تم نشر السؤال بنجاح!</span>
+    </div>
+
     <div class="container">
         <header class="platform-header">
             <div class="header-right-side">
@@ -200,7 +239,7 @@
         <div class="create-post-card">
             <textarea id="postContentInput" placeholder="اكتب سؤالك أو استفسارك الدراسي بوضوح تام..."></textarea>
             
-            <!-- شريط تسجيل الفويس الشيك الجديد بـ SVG وإمكانية الإيقاف والحذف -->
+            <!-- شريط تسجيل الفويس -->
             <div id="voiceRecorderBox" class="voice-recorder-ui">
                 <div class="voice-wave-animation">
                     <div class="voice-wave-bar"></div>
@@ -218,6 +257,17 @@
                 </button>
             </div>
 
+            <!-- شريط التحميل التفاعلي أثناء النشر -->
+            <div id="uploadProgressWrapper">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="progressStatusLabel" style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">جاري معالجة ونشر السؤال...</span>
+                    <span id="progressPercentageText" style="font-size: 0.8rem; font-weight: bold; color: var(--text-muted);">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progressBarFill" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
             <div class="post-tools-row">
                 <div class="media-upload-btns">
                     <label class="media-btn">
@@ -225,7 +275,7 @@
                     </label>
                     <button type="button" class="media-btn" id="recordVoiceBtn" onclick="startVoiceRecording()">🎙️ فويس</button>
                 </div>
-                <!-- زر إرسال السؤال الجديد بجانب الأزرار -->
+                <!-- زر نشر السؤال -->
                 <button class="post-submit-btn" id="postSubmitBtn" onclick="handlePostSubmitAction()">
                     <span>نشر السؤال 🚀</span>
                 </button>
@@ -307,7 +357,6 @@
             return false;
         }
 
-        // تصميم أيقونة النوع SVG المصغرة والمتناسقة تماماً مع الاسم
         function getGenderSvgHtml(female) {
             if (female) {
                 return `<span class="gender-icon-badge female" title="أنثى">
@@ -386,7 +435,6 @@
             document.getElementById('postImageInput').value = "";
         };
 
-        // إدارة بدء تسجيل الصوت مع العداد والواجهة الـ SVG
         window.startVoiceRecording = async function() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -444,24 +492,117 @@
             document.getElementById('audioPreviewContainer').style.display = 'none';
         };
 
-        window.handlePostSubmitAction = function() {
+        // عرض إشعار النجاح مع علامة الصح المتحركة
+        function showSuccessToast() {
+            const toast = document.getElementById('successToastOverlay');
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // محاكاة شريط التحميل التفاعلي أثناء النشر
+        function updateProgress(percent, label) {
+            const wrapper = document.getElementById('uploadProgressWrapper');
+            const fill = document.getElementById('progressBarFill');
+            const text = document.getElementById('progressPercentageText');
+            const labelEl = document.getElementById('progressStatusLabel');
+
+            wrapper.style.display = 'block';
+            fill.style.width = percent + '%';
+            text.textContent = percent + '%';
+            if (label) labelEl.textContent = label;
+        }
+
+        function hideProgress() {
+            document.getElementById('uploadProgressWrapper').style.display = 'none';
+            document.getElementById('progressBarFill').style.width = '0%';
+        }
+
+        window.handlePostSubmitAction = async function() {
             if (mediaRecorder && mediaRecorder.state === "recording") {
-                mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(audioBlob);
-                    reader.onloadend = async () => {
-                        recordedAudioBase64 = reader.result;
-                        clearInterval(voiceTimerInterval);
-                        document.getElementById('voiceRecorderBox').style.display = 'none';
-                        await createNewQuestionPost();
-                    };
-                };
                 mediaRecorder.stop();
+                clearInterval(voiceTimerInterval);
+                document.getElementById('voiceRecorderBox').style.display = 'none';
+                
+                setTimeout(async () => {
+                    await createNewQuestionPost();
+                }, 200);
             } else {
-                createNewQuestionPost();
+                await createNewQuestionPost();
             }
         };
+
+        async function createNewQuestionPost() {
+            let content = document.getElementById('postContentInput').value.trim();
+            
+            if (!content && !selectedBase64Image && !recordedAudioBase64) {
+                alert('الرجاء كتابة سؤال، أو إرفاق صورة، أو تسجيل فويس على الأقل!');
+                return;
+            }
+
+            const submitBtn = document.getElementById('postSubmitBtn');
+            submitBtn.disabled = true;
+
+            // بدء شريط التحميل التفاعلي
+            updateProgress(25, 'جاري معالجة الملفات والمحتوى...');
+
+            let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+
+            let newPost = {
+                authorName: currentStudentName,
+                studentLevel: currentStudentLevel,
+                studentPoints: currentStudentPoints,
+                profileImage: currentStudentImage,
+                gender: currentStudentGender,
+                content: content,
+                image: selectedBase64Image,
+                audio: recordedAudioBase64,
+                date: dateStr,
+                comments: []
+            };
+
+            try {
+                updateProgress(50, 'جاري الاتصال بالسحابة وحفظ السؤال...');
+
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                });
+                let data = await res.json();
+                let record = data.record;
+                if (!record.forumPosts) record.forumPosts = [];
+                
+                record.forumPosts.push(newPost);
+
+                updateProgress(80, 'جاري مزامنة النشر في المنتدى...');
+
+                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+                    body: JSON.stringify(record)
+                });
+
+                if (updateRes.ok) {
+                    updateProgress(100, 'تم النشر بنجاح!');
+                    setTimeout(() => {
+                        hideProgress();
+                        submitBtn.disabled = false;
+                        document.getElementById('postContentInput').value = '';
+                        removeSelectedImage();
+                        removeRecordedVoice();
+                        loadForumData();
+                        showSuccessToast(); // إظهار الصح المتحركة
+                    }, 400);
+                } else {
+                    throw new Error('فشل التحديث');
+                }
+            } catch (e) {
+                console.error(e);
+                hideProgress();
+                submitBtn.disabled = false;
+                alert('حدث خطأ أثناء الاتصال بالسحابة وحفظ السؤال.');
+            }
+        }
 
         async function loadForumData() {
             try {
@@ -628,56 +769,6 @@
                 addAdminComment(postIndex);
             }
         };
-
-        async function createNewQuestionPost() {
-            let content = document.getElementById('postContentInput').value.trim();
-            if (!content && !selectedBase64Image && !recordedAudioBase64) {
-                alert('الرجاء كتابة محتوى السؤال أو إرفاق صورة أو تسجيل صوتي!');
-                return;
-            }
-
-            let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
-
-            let newPost = {
-                authorName: currentStudentName,
-                studentLevel: currentStudentLevel,
-                studentPoints: currentStudentPoints,
-                profileImage: currentStudentImage,
-                gender: currentStudentGender,
-                content: content,
-                image: selectedBase64Image,
-                audio: recordedAudioBase64,
-                date: dateStr,
-                comments: []
-            };
-
-            try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let data = await res.json();
-                let record = data.record;
-                if (!record.forumPosts) record.forumPosts = [];
-                
-                record.forumPosts.push(newPost);
-
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-
-                if (updateRes.ok) {
-                    document.getElementById('postContentInput').value = '';
-                    removeSelectedImage();
-                    removeRecordedVoice();
-                    loadForumData();
-                }
-            } catch (e) {
-                console.error(e);
-                alert('حدث خطأ أثناء الاتصال بالسحابة وحفظ السؤال.');
-            }
-        }
 
         window.deleteQuestionPost = async function(index) {
             if (!confirm('هل أنت متأكد من حذف هذا السؤال؟')) return;
