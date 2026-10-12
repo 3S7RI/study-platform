@@ -96,7 +96,7 @@
         }
         .grading-card {
             background: var(--bg-card); border: 1px solid var(--border-color);
-            width: 100%; max-width: 400px; border-radius: 20px; padding: 30px; text-align: center; box-shadow: var(--shadow);
+            width: 100%; max-width: 420px; border-radius: 20px; padding: 25px; text-align: center; box-shadow: var(--shadow);
             display: flex; flex-direction: column; align-items: center; gap: 15px;
         }
         .spinner-bar {
@@ -112,7 +112,7 @@
         }
 
         /* رسومات SVG المتحركة للنجاح والرسوب */
-        .animated-icon-box { width: 80px; height: 80px; margin: 0 auto; display: none; }
+        .animated-icon-box { width: 70px; height: 70px; margin: 0 auto; display: none; }
         .success-svg circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; stroke-miterlimit: 10; stroke: var(--success); fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
         .success-svg path { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; stroke: var(--success); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards; }
 
@@ -156,15 +156,15 @@
         </div>
     </div>
 
-    <!-- نافذة التصحيح وتحميل النتيجة المتحركة -->
+    <!-- نافذة التصحيح وتوضيح النتيجة المتحركة -->
     <div class="grading-overlay" id="gradingOverlayModal">
         <div class="grading-card">
             <div id="gradingLoadingState">
                 <h3 style="color: var(--text-main); margin-bottom: 15px; font-size: 1.1rem;">⏳ جاري تصحيح الامتحان ورصد الدرجات...</h3>
                 <div class="spinner-bar"></div>
-                <p style="color: var.text-muted; font-size: 0.8rem; margin-top: 15px;">يرجى الانتظار لحظات قليلة...</p>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 15px;">يرجى الانتظار لحظات قليلة...</p>
             </div>
-            <div id="gradingResultState" style="display: none;">
+            <div id="gradingResultState" style="display: none; width: 100%;">
                 <div id="successSvgContainer" class="animated-icon-box">
                     <svg class="success-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
                         <circle cx="26" cy="26" r="25" fill="none"/>
@@ -177,8 +177,9 @@
                         <path fill="none" d="M16 16l20 20M36 16L16 36"/>
                     </svg>
                 </div>
-                <h3 id="resultTitleText" style="margin-top: 10px; font-size: 1.1rem; font-weight: 700;">نتيجة الامتحان</h3>
-                <p id="resultDescText" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;"></p>
+                <h3 id="resultTitleText" style="margin-top: 10px; font-size: 1.05rem; font-weight: 700;">نتيجة الامتحان</h3>
+                <p id="resultDescText" style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; margin: 15px 0; text-align: center;"></p>
+                <button onclick="returnToLesson()" class="platform-toast-btn" style="background: var(--primary); margin-top: 5px;">العودة إلى الحصة الدراسية 🏠</button>
             </div>
         </div>
     </div>
@@ -258,6 +259,14 @@
             document.getElementById('platformToastModal').style.display = 'none';
         };
 
+        window.returnToLesson = function() {
+            if (activeLessonId) {
+                window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
+            } else {
+                window.location.href = 'files.html';
+            }
+        };
+
         function enableSecurityFeatures() {
             if (lessonSettings.fullScreen === true) {
                 try {
@@ -280,7 +289,7 @@
 
         window.confirmLeaveExam = function() {
             if (isSubmitted) {
-                window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
+                returnToLesson();
                 return;
             }
 
@@ -313,7 +322,7 @@
                 activeExamTitle = lessonData.examId;
 
                 if (!activeExamTitle) {
-                    showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
+                    showPlatformToast("تنبيه 🔔", "لا يوجد امتحان مربوط بهذه الحصة حالياً!", null, () => { returnToLesson(); });
                     return;
                 }
 
@@ -321,7 +330,7 @@
                 const examSnap = await getDoc(examRef);
 
                 if (!examSnap.exists()) {
-                    showPlatformToast("خطأ ❌", "ملف الامتحان المرتبط غير موجود بالسحابة.", null, () => { window.location.href = `files-lesson-view.html?id=${lessonId}`; });
+                    showPlatformToast("خطأ ❌", "ملف الامتحان المرتبط غير موجود بالسحابة.", null, () => { returnToLesson(); });
                     return;
                 }
 
@@ -466,7 +475,6 @@
 
             if (timerInterval) clearInterval(timerInterval);
 
-            // إظهار شاشة التصحيح المتحركة أولاً
             document.getElementById('gradingOverlayModal').style.display = 'flex';
 
             let totalScore = 0;
@@ -521,31 +529,36 @@
                 }
             }
 
-            // محاكاة وقت تصحيح قصير لظهور شريط التحميل بجمالية
             setTimeout(() => {
                 document.getElementById('gradingLoadingState').style.display = 'none';
                 document.getElementById('gradingResultState').style.display = 'block';
 
-                let percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
-                let isPassed = percentage >= 50; // اعتبار 50% حد النجاح التقريبي
+                let percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+                let isPassed = percentage >= 50;
+
+                const successBox = document.getElementById('successSvgContainer');
+                const errorBox = document.getElementById('errorSvgContainer');
+                const titleEl = document.getElementById('resultTitleText');
 
                 if (isPassed) {
-                    document.getElementById('successSvgContainer').style.display = 'block';
-                    document.getElementById('resultTitleText.style') = 'color: var(--success);';
-                    document.getElementById('resultTitleText').textContent = '🎉 مبروك، لقد اجتزت الامتحان بنجاح!';
+                    successBox.style.display = 'block';
+                    errorBox.style.display = 'none';
+                    titleEl.style.color = 'var(--success)';
+                    titleEl.textContent = '🎉 مبروك، لقد اجتزت الامتحان بنجاح!';
                 } else {
-                    document.getElementById('errorSvgContainer').style.display = 'block';
-                    document.getElementById('resultTitleText').style.color = 'var(--danger)';
-                    document.getElementById('resultTitleText').textContent = '⚠️ لم تفق بالحد المطلوب، حاول مرة أخرى.';
+                    successBox.style.display = 'none';
+                    errorBox.style.display = 'block';
+                    titleEl.style.color = 'var(--danger)';
+                    titleEl.textContent = '⚠️ لم تبلغ الحد المطلوب، حاول مرة أخرى.';
                 }
 
                 let customMsg = (lessonSettings.endMsgToggle !== false && lessonSettings.customMsg) ? lessonSettings.customMsg : "تم رصد وتسليم درجاتك بنجاح.";
-                document.getElementById('resultDescText').innerHTML = `${customMsg}<br><br><strong>درجتك التقريبية: ${totalScore} من ${maxScore} (${Math.round(percentage)}%)</strong>`;
-
-                // الانتظار 3.5 ثانية ثم الانتقال تلقائياً لصفحة الحصة
-                setTimeout(() => {
-                    window.location.href = `files-lesson-view.html?id=${activeLessonId}`;
-                }, 3500);
+                document.getElementById('resultDescText').innerHTML = `
+                    ${customMsg}<br><br>
+                    <span style="font-size: 1.05rem; font-weight: bold; color: var(--text-main);">
+                        الدرجة: ${totalScore} من ${maxScore} (${percentage}%)
+                    </span>
+                `;
 
             }, 1800);
         };
