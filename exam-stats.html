@@ -344,7 +344,7 @@
             <img id="lightboxImg" alt="صورة مكبرة">
         </div>
     </div>
-    <!-- Firebase SDK & Scripts -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -386,7 +386,7 @@
         themeToggleBtn.addEventListener('click', () => {
             let nextTheme = bodyElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             bodyElement.setAttribute('data-theme', nextTheme);
-            localStorage.setItem('platform_theme', nextTheme);
+            localStorage.getItem('platform_theme', nextTheme);
             themeToggleBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌙';
         });
 
@@ -398,7 +398,20 @@
                     const querySnapshot = await getDocs(collection(db, "exams"));
                     globalExamsList = [];
                     querySnapshot.forEach((docSnap) => {
-                        globalExamsList.push({ id: docSnap.id, ...docSnap.data() });
+                        let examData = docSnap.data();
+                        // تنقية وتجميع محاولات الطلاب بحيث يظهر الطالب مرة واحدة فقط (يتم دمج محاولاته وتحديثها تلقائياً)
+                        if (examData.examSubmissions && Array.isArray(examData.examSubmissions)) {
+                            let uniqueMap = {};
+                            examData.examSubmissions.forEach(sub => {
+                                let studentKey = (sub.studentEmail || sub.studentId || sub.uid || sub.studentName || '').toLowerCase().trim();
+                                if (studentKey) {
+                                    // إذا تكرر الطالب، يتم تحديث بياناته بأحدث محاولة أو الاحتفاظ بسجله الأفريد
+                                    uniqueMap[studentKey] = sub;
+                                }
+                            });
+                            examData.examSubmissions = Object.values(uniqueMap);
+                        }
+                        globalExamsList.push({ id: docSnap.id, ...examData });
                     });
                     return globalExamsList;
                 } catch (err) {
@@ -731,7 +744,7 @@
         function calculateExamPointsEarned(score, totalMarks) {
             if (score <= 0) return 0;
             if (score >= totalMarks) {
-                return 15;
+                return 15; // 10 نقاط الامتحان + 5 نقاط مكافأة التقفيل
             }
             return 10;
         }
@@ -761,17 +774,16 @@
 
             try {
                 const examRef = doc(db, "exams", examId);
-                let studentIdentifierKey = (studentSub.studentEmail || studentSub.studentId || studentSub.uid || '').toLowerCase().trim();
-                
-                let uniqueSubmissionsMap = {};
+                let uniqueMap = {};
                 exam.examSubmissions.forEach(sub => {
                     let k = (sub.studentEmail || sub.studentId || sub.uid || sub.studentName || '').toLowerCase().trim();
-                    uniqueSubmissionsMap[k] = sub;
+                    uniqueMap[k] = sub;
                 });
-                exam.examSubmissions = Object.values(uniqueSubmissionsMap);
+                exam.examSubmissions = Object.values(uniqueMap);
 
                 await updateDoc(examRef, { examSubmissions: exam.examSubmissions });
 
+                let studentIdentifierKey = (studentSub.studentEmail || studentSub.studentId || studentSub.uid || '').toLowerCase().trim();
                 if (studentIdentifierKey && pointsDifference > 0) {
                     await addPointsToStudent(db, studentIdentifierKey, pointsDifference);
                 }
@@ -803,12 +815,12 @@
             let exam = exams.find(e => e.id === examId);
             if (!exam || !exam.examSubmissions || exam.examSubmissions.length === 0) return;
 
-            let uniqueSubmissionsMap = {};
+            let uniqueMap = {};
             exam.examSubmissions.forEach(sub => {
                 let k = (sub.studentEmail || sub.studentId || sub.uid || sub.studentName || '').toLowerCase().trim();
-                uniqueSubmissionsMap[k] = sub;
+                uniqueMap[k] = sub;
             });
-            exam.examSubmissions = Object.values(uniqueSubmissionsMap);
+            exam.examSubmissions = Object.values(uniqueMap);
 
             for (let sub of exam.examSubmissions) {
                 let studentIdentifier = (sub.studentEmail || sub.studentId || sub.uid || '').toLowerCase().trim();
