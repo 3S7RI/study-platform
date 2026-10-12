@@ -1,5 +1,4 @@
-// admin-service.js - ملف الخدمات الشامل والموحد لإدارة وتخزين وإنشاء وتعديل بيانات مشرفي المنصة
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// admin-service.js - ملف الخدمات الشامل والموحد لإدارة وتخزين وإنشاء وتعديل بيانات مشرفي المنصة (متوافق مع Firebase Compat)
 
 /**
  * 1. البحث عن وثيقة المشرف بدقة تامة باستخدام الـ Document ID أو الإيميل
@@ -11,29 +10,26 @@ export async function findAdminDocument(db, identifier) {
 
     try {
         // البحث المباشر بمعرف المستند (Document ID) كما هو
-        let docRef = doc(db, "admins", cleanId);
-        let docSnap = await getDoc(docRef);
-        if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'admins' };
+        let docRef = db.collection("admins").doc(cleanId);
+        let docSnap = await docRef.get();
+        if (docSnap.exists) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'admins' };
 
         // البحث بمعرف المستند بالحروف الصغيرة
-        let lowerDocRef = doc(db, "admins", lowerId);
-        let lowerDocSnap = await getDoc(lowerDocRef);
-        if (lowerDocSnap.exists()) return { id: lowerDocSnap.id, ref: lowerDocRef, data: lowerDocSnap.data(), collectionName: 'admins' };
+        let lowerDocRef = db.collection("admins").doc(lowerId);
+        let lowerDocSnap = await lowerDocRef.get();
+        if (lowerDocSnap.exists) return { id: lowerDocSnap.id, ref: lowerDocRef, data: lowerDocSnap.data(), collectionName: 'admins' };
 
         // البحث بواسطة حقل email
-        let q = query(collection(db, "admins"), where("email", "==", lowerId));
-        let snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'admins' };
+        let snapEmail = await db.collection("admins").where("email", "==", lowerId).get();
+        if (!snapEmail.empty) return { id: snapEmail.docs[0].id, ref: snapEmail.docs[0].ref, data: snapEmail.docs[0].data(), collectionName: 'admins' };
 
         // البحث بواسطة حقل username
-        q = query(collection(db, "admins"), where("username", "==", lowerId));
-        snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'admins' };
+        let snapUsername = await db.collection("admins").where("username", "==", lowerId).get();
+        if (!snapUsername.empty) return { id: snapUsername.docs[0].id, ref: snapUsername.docs[0].ref, data: snapUsername.docs[0].data(), collectionName: 'admins' };
 
         // البحث بواسطة حقل adminId
-        q = query(collection(db, "admins"), where("adminId", "==", cleanId));
-        snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'admins' };
+        let snapAdminId = await db.collection("admins").where("adminId", "==", cleanId).get();
+        if (!snapAdminId.empty) return { id: snapAdminId.docs[0].id, ref: snapAdminId.docs[0].ref, data: snapAdminId.docs[0].data(), collectionName: 'admins' };
 
         return null;
     } catch (e) {
@@ -59,7 +55,7 @@ export async function getAdminData(db, adminIdentifier) {
 export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
     try {
         const cleanId = String(adminIdentifier).toLowerCase().trim();
-        const docRef = doc(db, "admins", cleanId);
+        const docRef = db.collection("admins").doc(cleanId);
         
         const isVerifiedStatus = adminData.isVerified === true || adminData.verified === true;
 
@@ -79,7 +75,7 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
             createdAt: String(Date.now())
         };
 
-        await setDoc(docRef, newAdminData);
+        await docRef.set(newAdminData);
         console.log("تم إنشاء حساب المشرف رسمياً في السحابة:", cleanId);
         return { id: cleanId, ref: docRef, data: newAdminData, collectionName: 'admins' };
     } catch (e) {
@@ -97,9 +93,9 @@ export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
         
         // المحاولة المباشرة باستخدام المعرف كـ Document ID في مجموعة admins
         if (adminIdentifier) {
-            let directRef = doc(db, "admins", String(adminIdentifier).trim());
-            let directSnap = await getDoc(directRef);
-            if (directSnap.exists()) {
+            let directRef = db.collection("admins").doc(String(adminIdentifier).trim());
+            let directSnap = await directRef.get();
+            if (directSnap.exists) {
                 targetRef = directRef;
             }
         }
@@ -133,7 +129,7 @@ export async function updateAdminData(db, adminIdentifier, updateFields = {}) {
             lastUpdated: String(Date.now())
         };
 
-        await updateDoc(targetRef, payload);
+        await targetRef.update(payload);
         console.log("تم تحديث بيانات المشرف بنجاح!");
         return true;
     } catch (e) {
@@ -149,9 +145,9 @@ export async function deleteAdminAdminAccount(db, adminIdentifier) {
     try {
         let targetRef = null;
         if (adminIdentifier) {
-            let directRef = doc(db, "admins", String(adminIdentifier).trim());
-            let directSnap = await getDoc(directRef);
-            if (directSnap.exists()) {
+            let directRef = db.collection("admins").doc(String(adminIdentifier).trim());
+            let directSnap = await directRef.get();
+            if (directSnap.exists) {
                 targetRef = directRef;
             }
         }
@@ -162,7 +158,7 @@ export async function deleteAdminAdminAccount(db, adminIdentifier) {
             targetRef = adminObj.ref;
         }
 
-        await deleteDoc(targetRef);
+        await targetRef.delete();
         console.log("تم حذف حساب المشرف بنجاح من السحابة.");
         return true;
     } catch (e) {
