@@ -92,7 +92,7 @@
         .post-submit-btn:hover { background-color: var(--primary-hover); }
         .post-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* ستايل شريط التحميل التفاعلي */
+        /* شريط التحميل التفاعلي */
         #uploadProgressWrapper {
             display: none; margin-bottom: 12px; background: var(--th-bg);
             border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 10px;
@@ -105,7 +105,7 @@
             border-radius: 4px; transition: width 0.3s ease;
         }
 
-        /* ستايل علامة الصح المتحركة لنجاح النشر */
+        /* علامة الصح المتحركة لنجاح النشر */
         #successToastOverlay {
             display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: rgba(16, 185, 129, 0.95); color: white; padding: 12px 24px; border-radius: 30px;
@@ -304,11 +304,11 @@
         </footer>
     </div>
 
-    <!-- Firebase SDK (Modular v10) & JSONBin Integration -->
+    <!-- Firebase SDK (Modular v10) & Firestore Integration -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, deleteDoc, updateDoc, arrayUnion, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -324,8 +324,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        const BIN_ID = '6ab78eaeffd5d1605330ce1e';
-        const API_KEY = '$2a$10$RDl2QtmGx8UEbAlg2zX03e3Xz77B8N6z4TRmCypXNwWqdIoLy6mYe';
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
         let currentStudentName = "طالب المنصة";
@@ -492,7 +490,6 @@
             document.getElementById('audioPreviewContainer').style.display = 'none';
         };
 
-        // عرض إشعار النجاح مع علامة الصح المتحركة
         function showSuccessToast() {
             const toast = document.getElementById('successToastOverlay');
             toast.style.display = 'flex';
@@ -501,7 +498,6 @@
             }, 3000);
         }
 
-        // محاكاة شريط التحميل التفاعلي أثناء النشر
         function updateProgress(percent, label) {
             const wrapper = document.getElementById('uploadProgressWrapper');
             const fill = document.getElementById('progressBarFill');
@@ -544,8 +540,7 @@
             const submitBtn = document.getElementById('postSubmitBtn');
             submitBtn.disabled = true;
 
-            // بدء شريط التحميل التفاعلي
-            updateProgress(25, 'جاري معالجة الملفات والمحتوى...');
+            updateProgress(30, 'جاري معالجة الملفات...');
 
             let dateStr = new Date().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -559,62 +554,47 @@
                 image: selectedBase64Image,
                 audio: recordedAudioBase64,
                 date: dateStr,
+                createdAt: Date.now(),
                 comments: []
             };
 
             try {
-                updateProgress(50, 'جاري الاتصال بالسحابة وحفظ السؤال...');
+                updateProgress(70, 'جاري النشر في قاعدة البيانات (Firebase)...');
 
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let data = await res.json();
-                let record = data.record;
-                if (!record.forumPosts) record.forumPosts = [];
-                
-                record.forumPosts.push(newPost);
+                // الحفظ مباشرة في مجموعة forumPosts بـ Firestore
+                await addDoc(collection(db, "forumPosts"), newPost);
 
-                updateProgress(80, 'جاري مزامنة النشر في المنتدى...');
+                updateProgress(100, 'تم النشر بنجاح!');
+                setTimeout(() => {
+                    hideProgress();
+                    submitBtn.disabled = false;
+                    document.getElementById('postContentInput').value = '';
+                    removeSelectedImage();
+                    removeRecordedVoice();
+                    loadForumData();
+                    showSuccessToast();
+                }, 400);
 
-                let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                    body: JSON.stringify(record)
-                });
-
-                if (updateRes.ok) {
-                    updateProgress(100, 'تم النشر بنجاح!');
-                    setTimeout(() => {
-                        hideProgress();
-                        submitBtn.disabled = false;
-                        document.getElementById('postContentInput').value = '';
-                        removeSelectedImage();
-                        removeRecordedVoice();
-                        loadForumData();
-                        showSuccessToast(); // إظهار الصح المتحركة
-                    }, 400);
-                } else {
-                    throw new Error('فشل التحديث');
-                }
             } catch (e) {
                 console.error(e);
                 hideProgress();
                 submitBtn.disabled = false;
-                alert('حدث خطأ أثناء الاتصال بالسحابة وحفظ السؤال.');
+                alert('حدث خطأ أثناء حفظ السؤال في فايربيز: ' + e.message);
             }
         }
 
         async function loadForumData() {
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                const q = query(collection(db, "forumPosts"), orderBy("createdAt", "asc"));
+                const querySnapshot = await getDocs(q);
+                let forumPosts = [];
+                querySnapshot.forEach((docSnap) => {
+                    forumPosts.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                let data = await res.json();
-                let forumPosts = data.record.forumPosts || [];
                 renderPosts(forumPosts);
             } catch (e) {
                 console.error("خطأ في جلب الأسئلة:", e);
-                document.getElementById('postsFeed').innerHTML = '<p style="text-align:center; color: var(--danger);">فشل تحميل الأسئلة من السحابة.</p>';
+                document.getElementById('postsFeed').innerHTML = '<p style="text-align:center; color: var(--danger);">فشل تحميل الأسئلة من الفايربيز.</p>';
             }
         }
 
@@ -643,8 +623,7 @@
             }
 
             feed.innerHTML = '';
-            posts.slice().reverse().forEach((post, index) => {
-                let realIndex = posts.length - 1 - index;
+            posts.slice().reverse().forEach((post) => {
                 let userImg = post.profileImage || defaultMaleSvg;
                 let canDelete = isUserAdmin || (currentStudentName && post.authorName === currentStudentName);
                 let female = isFemaleStudent({ gender: post.gender, name: post.authorName });
@@ -680,11 +659,11 @@
 
                 let commentBoxHtml = `
                     <div class="add-comment-box">
-                        <input type="text" id="commentInput_${realIndex}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'الردود مقتصرة على الأدمن فقط'}">
+                        <input type="text" id="commentInput_${post.id}" placeholder="${isUserAdmin ? 'اكتب رد الأدمن المعتمد...' : 'الردود مقتصرة على الأدمن فقط'}">
                         ${isUserAdmin ? `
                             <div class="comment-tools">
-                                <button type="button" class="comment-mic-btn" id="commentMicBtn_${realIndex}" onclick="toggleCommentVoiceRecording(${realIndex})" title="تسجيل صوت للرد">🎙️</button>
-                                <button type="button" class="send-btn" onclick="submitAdminCommentAction(${realIndex})">إرسال</button>
+                                <button type="button" class="comment-mic-btn" id="commentMicBtn_${post.id}" onclick="toggleCommentVoiceRecording('${post.id}')" title="تسجيل صوت للرد">🎙️</button>
+                                <button type="button" class="send-btn" onclick="submitAdminCommentAction('${post.id}')">إرسال</button>
                             </div>
                         ` : ''}
                     </div>
@@ -704,14 +683,14 @@
                                 <span>${post.date || 'منذ قليل'}</span>
                             </div>
                         </div>
-                        ${canDelete ? `<button class="delete-post-btn" onclick="deleteQuestionPost(${realIndex})">🗑️ حذف</button>` : ''}
+                        ${canDelete ? `<button class="delete-post-btn" onclick="deleteQuestionPost('${post.id}')">🗑️ حذف</button>` : ''}
                     </div>
                     ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
                     ${post.image ? `<img src="${post.image}" class="post-media-img">` : ''}
                     ${post.audio ? `<audio controls class="post-audio"><source src="${post.audio}" type="audio/webm"></audio>` : ''}
                     
                     <div class="comments-section">
-                        <div id="commentsList_${realIndex}">${commentsHtml}</div>
+                        <div id="commentsList_${post.id}">${commentsHtml}</div>
                         ${commentBoxHtml}
                     </div>
                 `;
@@ -719,8 +698,8 @@
             });
         }
 
-        window.toggleCommentVoiceRecording = async function(postIndex) {
-            const btn = document.getElementById(`commentMicBtn_${postIndex}`);
+        window.toggleCommentVoiceRecording = async function(postId) {
+            const btn = document.getElementById(`commentMicBtn_${postId}`);
 
             if (!activeCommentRecorder || activeCommentRecorder.state === "inactive") {
                 try {
@@ -753,7 +732,7 @@
             }
         };
 
-        window.submitAdminCommentAction = function(postIndex) {
+        window.submitAdminCommentAction = function(postId) {
             if (activeCommentRecorder && activeCommentRecorder.state === "recording") {
                 activeCommentRecorder.onstop = async () => {
                     const audioBlob = new Blob(activeCommentChunks, { type: 'audio/webm' });
@@ -761,82 +740,52 @@
                     reader.readAsDataURL(audioBlob);
                     reader.onloadend = async () => {
                         activeCommentAudioBase64 = reader.result;
-                        await addAdminComment(postIndex);
+                        await addAdminComment(postId);
                     };
                 };
                 activeCommentRecorder.stop();
             } else {
-                addAdminComment(postIndex);
+                addAdminComment(postId);
             }
         };
 
-        window.deleteQuestionPost = async function(index) {
+        window.deleteQuestionPost = async function(postId) {
             if (!confirm('هل أنت متأكد من حذف هذا السؤال؟')) return;
 
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
-                });
-                let data = await res.json();
-                let record = data.record;
-
-                if (record.forumPosts && record.forumPosts[index]) {
-                    record.forumPosts.splice(index, 1);
-
-                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                        body: JSON.stringify(record)
-                    });
-
-                    if (updateRes.ok) {
-                        loadForumData();
-                    }
-                }
+                await deleteDoc(doc(db, "forumPosts", postId));
+                loadForumData();
             } catch (e) {
                 console.error(e);
                 alert('حدث خطأ أثناء حذف السؤال.');
             }
         };
 
-        async function addAdminComment(postIndex) {
-            let input = document.getElementById(`commentInput_${postIndex}`);
+        async function addAdminComment(postId) {
+            let input = document.getElementById(`commentInput_${postId}`);
             let text = input.value.trim();
             if (!text && !activeCommentAudioBase64) return;
 
             let authorName = adminRole === 'master' ? 'محمد عماد (مؤسس المنصة ⚡)' : 'مشرف المنصة المعتمد 🛡️';
 
             try {
-                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-                    headers: { 'X-Master-Key': API_KEY, 'X-Access-Key': API_KEY }
+                const newComment = {
+                    authorName: authorName,
+                    text: text,
+                    audio: activeCommentAudioBase64,
+                    isAdmin: true,
+                    role: adminRole,
+                    createdAt: Date.now()
+                };
+
+                await updateDoc(doc(db, "forumPosts", postId), {
+                    comments: arrayUnion(newComment)
                 });
-                let data = await res.json();
-                let record = data.record;
 
-                if (record.forumPosts && record.forumPosts[postIndex]) {
-                    if (!record.forumPosts[postIndex].comments) {
-                        record.forumPosts[postIndex].comments = [];
-                    }
-                    record.forumPosts[postIndex].comments.push({
-                        authorName: authorName,
-                        text: text,
-                        audio: activeCommentAudioBase64,
-                        isAdmin: true,
-                        role: adminRole
-                    });
+                input.value = '';
+                activeCommentAudioBase64 = "";
+                loadForumData();
 
-                    let updateRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
-                        body: JSON.stringify(record)
-                    });
-
-                    if (updateRes.ok) {
-                        input.value = '';
-                        activeCommentAudioBase64 = "";
-                        loadForumData();
-                    }
-                }
             } catch (e) {
                 console.error(e);
                 alert('حدث خطأ أثناء إضافة رد الأدمن.');
