@@ -466,7 +466,6 @@
                 const snapshot = await db.collection('admins').get();
                 adminsList = [];
                 snapshot.forEach(doc => {
-                    // استخراج البيانات مع الحفاظ على هيكل الـ Service الصحيح
                     adminsList.push({ id: doc.id, ...doc.data() });
                 });
                 renderAdminsTable();
@@ -511,6 +510,24 @@
             return { key: 'legendary', label: 'أسطوري 🌟', badgeClass: 'badge-legendary', frameClass: 'rank-frame-legendary' };
         }
 
+        // دالة ذكية لتوليد المعرف التسلسلي الناقص أو التالي للطلاب (مثل STU-0001, STU-0002)
+        function generateSmartStudentId() {
+            let existingNumbers = new Set();
+            studentsList.forEach(stu => {
+                let idStr = stu.studentId || stu.id || "";
+                let match = idStr.match(/STU-(\d+)/i);
+                if (match) {
+                    existingNumbers.add(parseInt(match[1], 10));
+                }
+            });
+
+            let counter = 1;
+            while (existingNumbers.has(counter)) {
+                counter++;
+            }
+            return `STU-${String(counter).padStart(4, '0')}`;
+        }
+
         function renderStudentsTable() {
             const container = document.getElementById('studentsTableContainer');
             if (studentsList.length === 0) {
@@ -523,7 +540,7 @@
             studentsList.forEach((stu, index) => {
                 let rawName = stu.fullName || stu.name || stu.email || 'طالب المنصة';
                 let name = rawName.includes('@') ? rawName.split('@')[0] : rawName;
-                let sId = stu.studentId || (stu.id.includes('@') ? `STU-00${index + 1}` : stu.id);
+                let sId = stu.studentId || `STU-00${index + 1}`;
                 let avatarUrl = stu.profileImage || stu.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
                 let score = stu.totalScore || stu.points || 0;
                 let rankInfo = getRankDetails(score);
@@ -684,11 +701,15 @@
             }
 
             try {
-                let studentIdDoc = email;
-                await db.collection('students').doc(studentIdDoc).set({
+                let smartStudentId = generateSmartStudentId();
+                // حفظ الطالب بالمعرف التسلسلي الذكي لضمان توافق الدخول وكلمة المرور
+                await db.collection('students').doc(smartStudentId).set({
+                    studentId: smartStudentId,
                     fullName: name,
                     name: name,
                     email: email,
+                    password: pass,
+                    pass: pass,
                     phone: phone,
                     parentPhone: parentPhone,
                     guardianPhone: parentPhone,
@@ -704,7 +725,7 @@
 
                 closeModal('addStudentModal');
                 await fetchStudentsFromCloud();
-                alert('تم إضافة الطالب الجديد سحابياً بنجاح! 🚀');
+                alert(`تم إضافة الطالب الجديد بنجاح برقم المعرف (${smartStudentId}) 🚀`);
             } catch(e) {
                 alert('حدث خطأ أثناء إضافة الطالب.');
             }
@@ -808,7 +829,6 @@
 
             document.getElementById('adminProfileName').textContent = activeAdminData.name || activeAdminData.fullname || 'مشرف المنصة';
             document.getElementById('adminProfileBadgeContainer').innerHTML = verifiedBadgeHtml;
-            // تعديل ليعرض الـ id بدلاً من Admin id بصورة صحيحة
             document.getElementById('adminProfileIdCode').textContent = activeAdminData.adminId || activeAdminData.id || '---';
             document.getElementById('adminProfileUsername').textContent = activeAdminData.username || activeAdminData.email || '---';
             document.getElementById('adminProfilePhone').textContent = activeAdminData.phone || '---';
@@ -872,7 +892,6 @@
 
             if(!name || !username) return alert('يرجى ملء الحقول الأساسية');
 
-            // استخدام دالة updateAdminData من admin-service.js لضمان التحديث السحابي الصحيح
             let success = await updateAdminData(db, activeDocId, {
                 name: name,
                 fullname: name,
@@ -989,7 +1008,6 @@
                 return;
             }
 
-            // استخدام دالة createAdminAccount الموحدة من admin-service.js لإنشاء المشرف بالـ ID التسلسلي الصحيح
             let result = await createAdminAccount(db, username, {
                 name: name,
                 fullname: name,
@@ -1007,7 +1025,7 @@
                 await fetchAdminsFromCloud();
                 alert('تم إضافة المشرف الجديد سحابياً بنجاح! 🚀');
             } else {
-                alert('حدث خطأ أثناء إضافة المشرف.');
+                alert('حدث خطأ أثناء إضافة الطالب أو المشرف.');
             }
         }
 
