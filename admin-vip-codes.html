@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - إدارة أكواد الـ VIP</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --hover-bg: rgba(99, 102, 241, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --th-bg: rgba(255, 255, 255, 0.03);
+            --accent-vip: #ec4899;
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #059669;
+            --danger: #dc2626;
+            --hover-bg: rgba(79, 70, 229, 0.05);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+            --th-bg: rgba(0, 0, 0, 0.02);
+            --accent-vip: #db2777;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 15px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .platform-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--bg-card); padding: 12px 18px; border-radius: 30px;
+            margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border-color);
+        }
+
+        .header-right-side { display: flex; align-items: center; gap: 10px; }
+        .back-btn { 
+            display: inline-flex; align-items: center; text-decoration: none; background: var(--th-bg); 
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); color: var(--text-main); font-weight: bold; font-size: 0.82rem; gap: 5px;
+        }
+        .back-btn:hover { background: var(--hover-bg); border-color: var(--primary); }
+
+        .platform-title-box { font-size: 1rem; font-weight: 700; color: var(--accent-vip); }
+
+        .control-panel-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: var(--shadow);
+            border-top: 4px solid var(--accent-vip); display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between;
+        }
+        .control-panel-card h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 5px; }
+        .control-panel-card p { font-size: 0.82rem; color: var(--text-muted); }
+
+        .actions-group { display: flex; gap: 10px; align-items: center; }
+        .input-num {
+            background: var(--th-bg); border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 10px 14px; border-radius: 8px; width: 90px; text-align: center; font-weight: bold;
+        }
+        .input-num:focus { outline: none; border-color: var(--accent-vip); }
+
+        .btn-generate {
+            background: var(--accent-vip); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
+        .btn-generate:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .table-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 20px; box-shadow: var(--shadow); overflow: hidden;
+        }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .table-header h3 { font-size: 1.05rem; font-weight: 700; }
+
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: right; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+        th { background: var(--th-bg); color: var(--text-muted); font-weight: 600; }
+        tr:hover { background: var(--hover-bg); }
+
+        .badge-status { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
+        .badge-available { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-used { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger);
+            padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: bold;
+        }
+        .btn-delete:hover { background: var(--danger); color: white; }
+
+        footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.78rem; border-top: 1px solid var(--border-color); margin-top: 30px; }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header class="platform-header">
+            <a href="admin.html" class="back-btn">⬅ العودة للوحة التحكم</a>
+            <div class="platform-title-box">💎 إدارة أكواد اشتراكات الـ VIP</div>
+        </header>
+
+        <!-- لوحة التحكم وتوليد الأكواد -->
+        <div class="control-panel-card">
+            <div>
+                <h2>توليد أكواد VIP جديدة</h2>
+                <p>أنشئ مجموعة أكواد اشتراك جديدة لتوزيعها على الطلاب عند إتمام الدفع.</p>
+            </div>
+            <div class="actions-group">
+                <input type="number" id="codesCountInput" class="input-num" value="10" min="1" max="50" title="عدد الأكواد">
+                <button onclick="generateVipCodes()" class="btn-generate">توليد الأكواد الآن ⚡</button>
+            </div>
+        </div>
+
+        <!-- جدول عرض الأكواد -->
+        <div class="table-card">
+            <div class="table-header">
+                <h3>قائمة الأكواد الحالية في النظام</h3>
+                <span id="codesCountBadge" style="font-size: 0.8rem; color: var(--text-muted);">جاري التحميل...</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>كود الاشتراك</th>
+                            <th>الحالة</th>
+                            <th>استخدم بواسطة</th>
+                            <th>تاريخ الإنشاء</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="codesTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted);">جاري جلب الأكواد من قاعدة البيانات... ⏳</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            جميع الحقوق محفوظة للمهندس ومؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> © 2026 - منصة رحلة دراسية
+        </footer>
+    </div>
+
+    <!-- Firebase SDK (Modular v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+            authDomain: "study-trip-1.firebaseapp.com",
+            projectId: "study-trip-1",
+            storageBucket: "study-trip-1.firebasestorage.app",
+            messagingSenderId: "632096690853",
+            appId: "1:632096690853:web:f9622d14de73a761dcf34c",
+            measurementId: "G-0382HVXWMT"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // حماية الصفحة والتأكد أن المستخدم أدمن
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+            } else {
+                loadCodesTable();
+            }
+        });
+
+        // دالة توليد الأكواد الجديدة
+        window.generateVipCodes = async function() {
+            const countInput = document.getElementById('codesCountInput');
+            const count = parseInt(countInput.value) || 10;
+            
+            if (count < 1 || count > 100) {
+                alert("يرجى إدخال عدد صحيح ما بين 1 و 50.");
+                return;
+            }
+
+            try {
+                let successCount = 0;
+                for (let i = 0; i < count; i++) {
+                    const randomNum = Math.floor(100000 + Math.random() * 900000);
+                    const codeString = `VIP-${randomNum}`;
+                    const docId = `code_${Date.now()}_${i}_${Math.floor(Math.random()*1000)}`;
+                    
+                    await setDoc(doc(db, "activationCodes", docId), {
+                        code: codeString,
+                        isUsed: false,
+                        usedBy: null,
+                        createdAt: serverTimestamp()
+                    });
+                    successCount++;
+                }
+
+                alert(`تم توليد ${successCount} كود VIP بنجاح! 🎉`);
+                loadCodesTable(); // تحديث الجدول فوراً
+            } catch (error) {
+                console.error("خطأ في توليد الأكواد:", error);
+                alert("حدث خطأ أثناء توليد الأكواد، حاول مرة أخرى.");
+            }
+        };
+
+        // دالة جلب وعرض الأكواد في الجدول
+        async function loadCodesTable() {
+            const tbody = document.getElementById('codesTableBody');
+            const counterBadge = document.getElementById('codesCountBadge');
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "activationCodes"));
+                if (querySnapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">لا توجد أُكواد مسجلة حالياً. اضغط على زر التوليد بالأعلى. ✨</td></tr>`;
+                    counterBadge.textContent = "إجمالي الأكواد: 0";
+                    return;
+                }
+
+                let codesList = [];
+                querySnapshot.forEach((documentSnap) => {
+                    codesList.push({ id: documentSnap.id, ...documentSnap.data() });
+                });
+
+                // ترتيب الأكواد بالأحدث
+                codesList.sort((a, b) => {
+                    let timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                    let timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                    return timeB - timeA;
+                });
+
+                counterBadge.textContent = `إجمالي الأكواد: ${codesList.length}`;
+                let html = "";
+
+                codesList.forEach((item, index) => {
+                    let statusBadge = item.isUsed 
+                        ? `<span class="badge-status badge-used">مستخدم ❌</span>` 
+                        : `<span class="badge-status badge-available">متاح للاستخدام ✔️</span>`;
+                    
+                    let usedByText = item.usedBy ? item.usedBy : '<span style="color: var(--text-muted);">---</span>';
+                    let dateFormatted = item.createdAt?.toMillis 
+                        ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) 
+                        : 'منذ قليل';
+
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td><strong style="color: var(--accent-vip); font-family: monospace; font-size: 0.95rem;">${item.code}</strong></td>
+                            <td>${statusBadge}</td>
+                            <td>${usedByText}</td>
+                            <td>${dateFormatted}</td>
+                            <td>
+                                <button onclick="deleteCode('${item.id}')" class="btn-delete">حذف</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+            } catch (error) {
+                console.error("خطأ في جلب الأكواد:", error);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--danger);">فشل تحميل الأكواد من قاعدة البيانات.</td></tr>`;
+            }
+        }
+
+        // دالة حذف كود معين
+        window.deleteCode = async function(docId) {
+            if (confirm("هل أنت متأكد من حذف هذا الكود نهائياً؟")) {
+                try {
+                    await deleteDoc(doc(db, "activationCodes", docId));
+                    alert("تم حذف الكود بنجاح.");
+                    loadCodesTable();
+                } catch (error) {
+                    console.error("خطأ في الحذف:", error);
+                    alert("حدث خطأ أثناء محاولة الحذف.");
+                }
+            }
+        };
+    </script>
+</body>
+</html>
