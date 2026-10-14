@@ -38,7 +38,7 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
 
-        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 15px; position: relative; }
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 15px; }
         .container { max-width: 1000px; margin: 0 auto; }
         
         .platform-header {
@@ -164,9 +164,6 @@
 
         footer { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.78rem; border-top: 1px solid var(--border-color); margin-top: 30px; }
     </style>
-    
-    <!-- ربط ملف تنسيق الودجت الخارجي الخاص بالبوت -->
-    <link rel="stylesheet" href="ai-assistant.css">
 </head>
 <body id="pageBody">
     <div class="container">
@@ -225,9 +222,10 @@
                     <h3>الامتحانات الشامله 📝</h3>
                     <p>اختبر نفسك في امتحانات تفاعلية واعرف درجتك فوراً.</p>
                 </div>
-                <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍</a>
+                <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍️️</a>
             </div>
 
+            <!-- بطاقة الدردشة الموجهة بذكاء حسب نوع الطالب -->
             <div class="card" style="border-top-color: #6366f1;">
                 <div>
                     <h3>الدردشه العامه 💬</h3>
@@ -272,15 +270,7 @@
         </footer>
     </div>
 
-    <!-- زر البوت العائم النظيف المربوط بملف ai-assistant.js الخارجي -->
-    <div id="ai-widget-container" class="ai-widget-container">
-        <button id="ai-toggle-btn" class="ai-toggle-btn" aria-label="مساعد المنصة الذكي">
-            <img src="logo-Ai.png" alt="Study Trip AI" class="ai-logo-img">
-            <span class="ai-badge-online"></span>
-        </button>
-    </div>
-
-    <!-- Firebase SDK (Modular v10) & Platform Main Logic -->
+    <!-- Firebase SDK (Modular v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -307,6 +297,7 @@
         let lastSeenNotificationTime = 0;
         let cachedNotificationsList = [];
 
+        // ⏱️️ فحص انتهاء الجلسة (صالحة لمدة 48 ساعة / يومين)
         function checkSessionExpiration() {
             const loginTime = localStorage.getItem('platform_login_time');
             if (loginTime) {
@@ -340,6 +331,7 @@
 
         const navProfileImg = document.getElementById('navProfileImg');
 
+        // جلب البيانات فوراً من الكاش الخاص بالحساب الحالي فقط لمنع تداخل الحسابات
         function loadProfileForUser(email) {
             if (!email) return false;
             const userKey = `profile_${email.toLowerCase().trim()}`;
@@ -379,6 +371,7 @@
             }
         }
 
+        // تحميل سريع مبدئي من آخر إيميل مسجل
         const initialEmail = localStorage.getItem('currentStudentEmail');
         loadProfileForUser(initialEmail);
 
@@ -419,6 +412,7 @@
                     const data = docSnap.data();
                     const userKey = `profile_${cleanEmail}`;
 
+                    // حفظ البيانات في كاش مستقل خاص بهذا الحساب فقط
                     localStorage.setItem(userKey, JSON.stringify(data));
                     localStorage.setItem('currentUser', JSON.stringify(data));
                     localStorage.setItem('chat_gender', data.gender || 'male');
@@ -465,7 +459,7 @@
                 });
 
                 const examsRef = collection(db, "exams");
-                .examsSnap = await getDocs(examsRef);
+                const examsSnap = await getDocs(examsRef);
                 examsSnap.forEach(examDoc => {
                     const examData = examDoc.data();
                     const examTitle = examData.title || 'امتحان إلكتروني';
@@ -544,7 +538,7 @@
 
         function renderNotificationsHTML(list, container) {
             if (list.length === 0) {
-                container.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding:15px; font-size:0.8rem;">لا توجد إشعارات أو نتائج جديدة حالياً. ✨</p>`;
+                container.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:15px; font-size:0.8rem;">لا توجد إشعارات أو نتائج جديدة حالياً. ✨</p>`;
                 return;
             }
 
@@ -565,8 +559,5 @@
             container.innerHTML = html;
         }
     </script>
-
-    <!-- ربط ملف العقل البرمجي للبوت ai-assistant.js -->
-    <script src="ai-assistant.js"></script>
 </body>
 </html>
