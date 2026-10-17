@@ -209,7 +209,7 @@
         </div>
 
         <main class="sections-container">
-            <div class="card" style="border-top-color: #0ea5e9;">
+            <div class="card" style="border-top-color: #0ea5e9;" data-card="files">
                 <div>
                     <h3>الحصص و الشروحات 🎥</h3>
                     <p>حمل أحدث مذكرات الشرح والمراجعات بصيغة PDF.</p>
@@ -217,7 +217,7 @@
                 <a href="files.html" class="card-btn" style="background-color: #0ea5e9;">تصفح الملازم 📂</a>
             </div>
 
-            <div class="card" style="border-top-color: #10b981;">
+            <div class="card" style="border-top-color: #10b981;" data-card="exams">
                 <div>
                     <h3>الامتحانات الشامله 📝</h3>
                     <p>اختبر نفسك في امتحانات تفاعلية واعرف درجتك فوراً.</p>
@@ -225,7 +225,7 @@
                 <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍</a>
             </div>
 
-            <div class="card" style="border-top-color: #6366f1;">
+            <div class="card" style="border-top-color: #6366f1;" data-card="chat">
                 <div>
                     <h3>الدردشه العامه 💬</h3>
                     <p>تواصل مع زمايلك، شارك الأسئلة والملفات في الساحة الجماعية.</p>
@@ -233,7 +233,7 @@
                 <button onclick="goToChat()" class="card-btn" style="background-color: #6366f1;">دخول الدردشة 🌐</button>
             </div>
 
-            <div class="card" style="border-top-color: #f59e0b;">
+            <div class="card" style="border-top-color: #f59e0b;" data-card="stats">
                 <div>
                     <h3>احــصـائـيـاتـي 💻</h3>
                     <p>تابع تقريرك الشامل، درجاتك، الملازم والشروحات التي شاهدتها.</p>
@@ -241,7 +241,7 @@
                 <a href="stats.html" class="card-btn" style="background-color: #f59e0b;">عرض الإحصائيات 📊</a>
             </div>
 
-            <div class="card" style="border-top-color: #ec4899;">
+            <div class="card" style="border-top-color: #ec4899;" data-card="forum">
                 <div>
                     <h3>مـنتدي الاسـئله 💭</h3>
                     <p>اطرح أسئلتك واستفساراتك، وتابع إجابات وتوضيح الأدمن المعتمدة.</p>
@@ -338,11 +338,56 @@
                     const data = JSON.parse(cachedData);
                     if ((data.email || '').toLowerCase().trim() === email.toLowerCase().trim()) {
                         applyProfileData(data);
+                        checkSubscriptionStatus(data);
                         return true;
                     }
                 } catch(e) {}
             }
             return false;
+        }
+
+        // دالة فحص حالة الاشتراك وتحديث البطاقات
+        function checkSubscriptionStatus(userData) {
+            let isSubscribed = false;
+            
+            // تحقق من تاريخ انتهاء الاشتراك أو حقل التفعيل في بيانات الطالب
+            if (userData && userData.subscriptionExpiry) {
+                const expiryTime = new Date(userData.subscriptionExpiry).getTime();
+                if (expiryTime > Date.now()) {
+                    isSubscribed = true;
+                }
+            } else if (userData && userData.isSubscribed === true) {
+                isSubscribed = true;
+            }
+
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                const btn = card.querySelector('.card-btn');
+                if (!isSubscribed) {
+                    // لو مش مشترك: قفل الكارت وتغيير الزر لطلب الاشتراك
+                    card.style.opacity = '0.5';
+                    if (btn) {
+                        btn.textContent = '🔒 اشتراك مطلوب للتفعيل';
+                        btn.style.backgroundColor = 'var(--danger)';
+                        
+                        // حفظ الرابط الأصلي أو نوع الزر للرجوع إليه لاحقاً إن أردت، أو تحويله للبروفايل مباشرة
+                        const originalHref = btn.getAttribute('href');
+                        const originalOnclick = btn.getAttribute('onclick');
+                        
+                        btn.removeAttribute('href');
+                        btn.removeAttribute('onclick');
+                        
+                        btn.onclick = function(e) {
+                            e.preventDefault();
+                            alert('عذراً، يجب إدخال كود اشتراك ساري في ملفك الشخصي لفتح هذا القسم.');
+                            window.location.href = 'profile.html';
+                        };
+                    }
+                } else {
+                    // لو مشترك: فتح الكارت وإرجاعه لطبيعته
+                    card.style.opacity = '1';
+                }
+            });
         }
 
         function applyProfileData(data) {
@@ -413,6 +458,7 @@
                     localStorage.setItem('chat_gender', data.gender || 'male');
 
                     applyProfileData(data);
+                    checkSubscriptionStatus(data);
                 }
             } catch (error) {
                 console.error("خطأ في جلب بيانات الرئيسية:", error);
