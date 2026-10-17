@@ -229,7 +229,6 @@
         .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
         .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
 
-        /* تعديل التنبيهات (Toast) لتظهر أسفل الشاشة على شكل مستطيل شيك قابل للسحب */
         #customToast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
             background: rgba(30, 41, 59, 0.95); color: var(--text-main); border: 1px solid var(--primary-color);
@@ -290,11 +289,10 @@
                 </div>
             </div>
 
-            <!-- خانة تفعيل كود الـ VIP -->
             <div class="vip-activation-box">
-                <h3>💎 تفعيل اشتراك الـ VIP</h3>
+                <h3>💎 تفعيل كود الاشتراك</h3>
                 <div class="search-input-group">
-                    <input type="text" id="vipCodeInput" placeholder="أدخل كود الـ VIP (مثال: VIP-XXXX-XXXX-XXXX)">
+                    <input type="text" id="vipCodeInput" placeholder="أدخل كود الاشتراك...">
                     <button onclick="activateVipCode()" class="vip-btn-glow">تفعيل ⚡</button>
                 </div>
             </div>
@@ -305,7 +303,6 @@
         جميع الحقوق محفوظة للمهندس/مؤسس المنصة <strong>محمد عماد محمد (عشري)</strong> - منصة رحلة دراسية © 2026
     </div>
 
-    <!-- Modals -->
     <div class="modal-overlay" id="settingsModal" onclick="if(event.target===this) closeSettingsModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -480,7 +477,6 @@
             setTimeout(() => { toast.classList.remove('show'); }, 3000);
         }
 
-        // إمكانية سحب التنبيه لإخفائه
         const toastEl = document.getElementById('customToast');
         let startX = 0;
         toastEl.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
@@ -505,7 +501,6 @@
             }
         }
 
-        // دالة لإخفاء أول 5 حروف من البريد الإلكتروني بـ نجوم
         function maskEmail(email) {
             if (!email) return "غير متوفر";
             const parts = email.split('@');
@@ -563,7 +558,16 @@
             const rankInfo = getRankClass(score);
             const avatarUrl = data.profileImage || defaultMaleSvg;
             const studentGender = data.gender || 'male';
-            const isVip = data.accountType === 'vip';
+            
+            // التحقق من حالة الاشتراك النشط
+            let isSubscribed = false;
+            if (data.subscriptionExpiry) {
+                if (new Date(data.subscriptionExpiry).getTime() > Date.now()) {
+                    isSubscribed = true;
+                }
+            } else if (data.isSubscribed === true || data.accountType === 'vip') {
+                isSubscribed = true;
+            }
 
             document.getElementById('studentProfileContent').innerHTML = `
                 <div class="profile-header">
@@ -573,7 +577,7 @@
                     </div>
                     <div class="student-name-row">
                         <div class="student-name" id="profileNameDisplay">${data.name || 'طالب متميز'}</div>
-                        ${isVip ? `<span class="vip-badge-glow">👑 VIP</span>` : ''}
+                        ${isSubscribed ? `<span class="vip-badge-glow">👑 مشترك نشط</span>` : ''}
                         ${getGenderSvgHtml(studentGender)}
                     </div>
                     <div class="student-id-container">
@@ -605,9 +609,9 @@
                 </div>
 
                 <div class="vip-activation-box">
-                    <h3>💎 تفعيل اشتراك الـ VIP</h3>
+                    <h3>💎 تفعيل كود الاشتراك</h3>
                     <div class="search-input-group">
-                        <input type="text" id="vipCodeInput" placeholder="أدخل كود الـ VIP (مثال: VIP-XXXX-XXXX-XXXX)">
+                        <input type="text" id="vipCodeInput" placeholder="أدخل كود الاشتراك...">
                         <button onclick="activateVipCode()" class="vip-btn-glow">تفعيل ⚡</button>
                     </div>
                 </div>
@@ -616,9 +620,9 @@
 
         window.activateVipCode = async function() {
             const codeInput = document.getElementById('vipCodeInput');
-            const codeVal = codeInput.value.trim().toUpperCase();
+            const codeVal = codeInput.value.trim();
 
-            if (!codeVal) { showToast('يرجى إدخال كود تفعيل الـ VIP أولاً!', '⚠️'); return; }
+            if (!codeVal) { showToast('يرجى إدخال كود الاشتراك أولاً!', '⚠️'); return; }
 
             try {
                 const codesRef = collection(db, "activationCodes");
@@ -628,19 +632,41 @@
                 if (snap.empty) { showToast('كود التفعيل غير صحيح، تأكد من الرمز!', '❌'); return; }
 
                 const codeDocSnap = snap.docs[0];
-                if (codeDocSnap.data().isUsed) { showToast('عذراً، هذا الكود تم استخدامه من قبل!', '⚠️'); return; }
+                const codeData = codeDocSnap.data();
+                
+                if (codeData.isUsed) { showToast('عذراً، هذا الكود تم استخدامه من قبل!', '⚠️'); return; }
 
-                await updateDoc(doc(db, "activationCodes", codeDocSnap.id), { isUsed: true, usedBy: currentUser.email || currentUser.uid });
+                // تحديد مدة الصلاحية (افتراضياً 30 يوم أو حسب المدة المسجلة في كود الداتا)
+                const durationDays = codeData.durationDays || 30;
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + durationDays);
+
+                await updateDoc(doc(db, "activationCodes", codeDocSnap.id), { 
+                    isUsed: true, 
+                    usedBy: currentUser.email || currentUser.uid,
+                    usedAt: new Date().toISOString()
+                });
 
                 let studentRef = doc(db, "students", currentUser.email.toLowerCase().trim());
                 let studentSnap = await getDoc(studentRef);
                 if (!studentSnap.exists()) studentRef = doc(db, "students", currentUser.uid);
 
-                await updateDoc(studentRef, { accountType: 'vip' });
+                await updateDoc(studentRef, { 
+                    isSubscribed: true,
+                    subscriptionExpiry: expiryDate.toISOString(),
+                    accountType: 'vip'
+                });
+
+                currentStudentData.isSubscribed = true;
+                currentStudentData.subscriptionExpiry = expiryDate.toISOString();
                 currentStudentData.accountType = 'vip';
+
                 renderStudentProfile(currentStudentData);
-                showToast('🎉 مبروك! تم تفعيل اشتراك الـ VIP بنجاح.', '💎');
-            } catch (error) { showToast('حدث خطأ أثناء تفعيل الكود.', '❌'); }
+                showToast('🎉 مبروك! تم تفعيل الاشتراك بنجاح.', '💎');
+            } catch (error) { 
+                console.error(error);
+                showToast('حدث خطأ أثناء تفعيل الكود.', '❌'); 
+            }
         };
 
         window.copyStudentId = function(idText) {
@@ -761,7 +787,6 @@
             } catch (error) { showToast('فشل حذف الحساب.', '❌'); }
         };
 
-        // بحث متكامل عن الطالب مع عرض بروفايله بالكامل
         window.searchStudentProfile = async function() {
             const queryVal = document.getElementById('friendIdInput').value.trim();
             if (!queryVal) { showToast('أدخل الـ ID أو رقم الهاتف!', '⚠️'); return; }
@@ -795,7 +820,6 @@
                 const rankInfo = getRankClass(score);
                 const avatarUrl = targetData.profileImage || defaultMaleSvg;
                 const targetGender = targetData.gender || 'male';
-                const isVip = targetData.accountType === 'vip';
                 const maskedEmail = maskEmail(targetData.email);
 
                 body.innerHTML = `
@@ -805,7 +829,6 @@
                         </div>
                         <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:6px;">
                             <span>${targetData.name || 'طالب'}</span>
-                            ${isVip ? `<span class="vip-badge-glow">👑 VIP</span>` : ''}
                             ${getGenderSvgHtml(targetGender)}
                         </div>
                         <div style="font-size:0.78rem; color:var(--primary-color); font-weight:bold; margin-bottom:4px;">ID: ${targetData.studentId || ''}</div>
@@ -919,7 +942,6 @@
             } catch(e) { container.innerHTML = `<p>خطأ.</p>`; }
         };
 
-        // فتح بروفايل الصديق من قائمة الأصدقاء (مع زر المقارنة وزر الحذف)
         window.openFriendProfileModal = async function(friendUid) {
             closeFriendsModal();
             document.getElementById('searchedProfileModal').classList.add('active');
@@ -933,7 +955,6 @@
                 const rankInfo = getRankClass(score);
                 const avatarUrl = fData.profileImage || defaultMaleSvg;
                 const targetGender = fData.gender || 'male';
-                const isVip = fData.accountType === 'vip';
                 const maskedEmail = maskEmail(fData.email);
 
                 const friendshipId = [currentUser.uid, friendUid].sort().join('_');
@@ -945,7 +966,6 @@
                         </div>
                         <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:6px;">
                             <span>${fData.name}</span>
-                            ${isVip ? `<span class="vip-badge-glow">👑 VIP</span>` : ''}
                             ${getGenderSvgHtml(targetGender)}
                         </div>
                         <div style="font-size:0.78rem; color:var(--primary-color); font-weight:bold; margin-bottom:4px;">ID: ${fData.studentId || ''}</div>
