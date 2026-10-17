@@ -415,6 +415,7 @@
         let emailCooldownTimer = null;
         let selectedGender = 'male'; 
 
+        // مصفوفة الـ 100 رسالة المتنوعة (رسالة اليوم لك)
         const dailyMessages = [
             "اقترب من الله يفتح لك أبواباً لم تكن تدور في خلدك، فالتوفيق بيده وحده.",
             "لا تحزن إن ضاقت بك الأمور، فرب العزة يخبئ لك الفرج الأعظم في أوقات الشدة.",
@@ -465,7 +466,7 @@
             "إن النصر مع الصبر، وإن الفرج مع الكرب، وإن مع العسر يسراً.",
             "اجعل لسانك رطباً بذكر الله، واجعل قلبك متعلقاً بربك، وسترى العجب العجاب.",
             "كل خطوة تقربك من المدرسة والتحصيل هي خطوة نحو تحقيق حلمك الكبير.",
-            "لا تيأس مهما بلغت درجة صعوبة المادة، بالصبر والاستعانة بالله تصصبح أسهل ما يكون.",
+            "لا تيأس مهما بلغت درجة صعوبة المادة، بالصبر والاستعانة بالله تصبح أسهل ما يكون.",
             "حافظ على هدوئك وثقتك بنفسك أثناء الامتحانات، فالعقل الهادئ يحل أصعب المسائل.",
             "إن أكرمكم عند الله أتقاكم، والتقوى تكون بالعمل الصادق والإخلاص في كل شيء.",
             "كن كالنخل ترمى بالحجر فتثمر أفضل الرطب، لا تهزك الصعاب البسيطة.",
@@ -659,6 +660,7 @@
             });
         }
 
+        // إرسال البريد الإلكتروني عبر Brevo REST API v3
         document.getElementById('sendEmailOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const emailError = document.getElementById('emailError');
@@ -750,7 +752,7 @@
                 } else {
                     const errData = await response.json();
                     console.error("Brevo API Error:", errData);
-                    emailError.textContent = errData.message || 'فشل الإرسال، تأكد من تفعيل إيميل المرسل في حساب Brevo';
+                    emailError.textContent = 'فشل الإرسال، تأكد من تفعيل إيميل المرسل في حساب Brevo';
                     emailError.style.display = 'block';
                     sendBtn.textContent = 'إرسال كود';
                     sendBtn.disabled = false;
@@ -869,22 +871,9 @@
                     catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                // التعديل الآمن لإنشاء الـ studentId باستخدام العداد المركزي في فايربيز
-                const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
-                const configSnap = await window.getDoc(configDocRef);
-
-                let nextStudentSeq = 1;
-                if (configSnap.exists() && configSnap.data().counters && configSnap.data().counters.nextStudentSeq) {
-                    nextStudentSeq = configSnap.data().counters.nextStudentSeq;
-                }
-
-                const studentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
-
-                await window.setDoc(configDocRef, {
-                    counters: {
-                        nextStudentSeq: nextStudentSeq + 1
-                    }
-                }, { merge: true });
+                const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
+                const nextNumber = querySnapshot.size + 1;
+                const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
 
                 const studentData = {
                     uid: user.uid,
@@ -944,4 +933,4 @@
         });
     </script>
 </body>
-</html>
+    </html>
