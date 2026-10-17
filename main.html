@@ -125,6 +125,7 @@
             background: var(--bg-card); border: 1px solid var(--border-color);
             border-radius: 16px; padding: 20px; text-align: center; box-shadow: var(--shadow); 
             display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid var(--primary);
+            position: relative;
         }
         .card h3 { color: var(--text-main); font-size: 1.05rem; margin-bottom: 8px; font-weight: 700; }
         .card p { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 15px; line-height: 1.5; }
@@ -209,7 +210,7 @@
         </div>
 
         <main class="sections-container">
-            <div class="card" style="border-top-color: #0ea5e9;" data-card="files">
+            <div class="card" style="border-top-color: #0ea5e9;" data-href="files.html" data-onclick="" id="cardFiles">
                 <div>
                     <h3>الحصص و الشروحات 🎥</h3>
                     <p>حمل أحدث مذكرات الشرح والمراجعات بصيغة PDF.</p>
@@ -217,7 +218,7 @@
                 <a href="files.html" class="card-btn" style="background-color: #0ea5e9;">تصفح الملازم 📂</a>
             </div>
 
-            <div class="card" style="border-top-color: #10b981;" data-card="exams">
+            <div class="card" style="border-top-color: #10b981;" data-href="exams.html" data-onclick="" id="cardExams">
                 <div>
                     <h3>الامتحانات الشامله 📝</h3>
                     <p>اختبر نفسك في امتحانات تفاعلية واعرف درجتك فوراً.</p>
@@ -225,7 +226,7 @@
                 <a href="exams.html" class="card-btn" style="background-color: #10b981;">دخول الامتحانات ✍</a>
             </div>
 
-            <div class="card" style="border-top-color: #6366f1;" data-card="chat">
+            <div class="card" style="border-top-color: #6366f1;" data-onclick="goToChat()" id="cardChat">
                 <div>
                     <h3>الدردشه العامه 💬</h3>
                     <p>تواصل مع زمايلك، شارك الأسئلة والملفات في الساحة الجماعية.</p>
@@ -233,7 +234,7 @@
                 <button onclick="goToChat()" class="card-btn" style="background-color: #6366f1;">دخول الدردشة 🌐</button>
             </div>
 
-            <div class="card" style="border-top-color: #f59e0b;" data-card="stats">
+            <div class="card" style="border-top-color: #f59e0b;" data-href="stats.html" data-onclick="" id="cardStats">
                 <div>
                     <h3>احــصـائـيـاتـي 💻</h3>
                     <p>تابع تقريرك الشامل، درجاتك، الملازم والشروحات التي شاهدتها.</p>
@@ -241,7 +242,7 @@
                 <a href="stats.html" class="card-btn" style="background-color: #f59e0b;">عرض الإحصائيات 📊</a>
             </div>
 
-            <div class="card" style="border-top-color: #ec4899;" data-card="forum">
+            <div class="card" style="border-top-color: #ec4899;" data-href="forum.html" data-onclick="" id="cardForum">
                 <div>
                     <h3>مـنتدي الاسـئله 💭</h3>
                     <p>اطرح أسئلتك واستفساراتك، وتابع إجابات وتوضيح الأدمن المعتمدة.</p>
@@ -346,46 +347,78 @@
             return false;
         }
 
-        // دالة فحص حالة الاشتراك وتحديث البطاقات
+        // دالة فحص حالة الاشتراك وتحديث البطاقات بدقة
         function checkSubscriptionStatus(userData) {
             let isSubscribed = false;
             
-            // تحقق من تاريخ انتهاء الاشتراك أو حقل التفعيل في بيانات الطالب
             if (userData && userData.subscriptionExpiry) {
                 const expiryTime = new Date(userData.subscriptionExpiry).getTime();
                 if (expiryTime > Date.now()) {
                     isSubscribed = true;
                 }
-            } else if (userData && userData.isSubscribed === true) {
+            } else if (userData && (userData.isSubscribed === true || userData.accountType === 'vip')) {
                 isSubscribed = true;
             }
 
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
                 const btn = card.querySelector('.card-btn');
+                const targetHref = card.getAttribute('data-href');
+                const targetOnclick = card.getAttribute('data-onclick');
+
                 if (!isSubscribed) {
-                    // لو مش مشترك: قفل الكارت وتغيير الزر لطلب الاشتراك
-                    card.style.opacity = '0.5';
+                    // لو مش مشترك: بهتان الكارت وتغيير الزر لشكل اشتراك أنيق ب ثيم المنصة
+                    card.style.opacity = '0.6';
                     if (btn) {
-                        btn.textContent = '🔒 اشتراك مطلوب للتفعيل';
-                        btn.style.backgroundColor = 'var(--danger)';
-                        
-                        // حفظ الرابط الأصلي أو نوع الزر للرجوع إليه لاحقاً إن أردت، أو تحويله للبروفايل مباشرة
-                        const originalHref = btn.getAttribute('href');
-                        const originalOnclick = btn.getAttribute('onclick');
-                        
+                        btn.innerHTML = '🔒 اشتراك VIP مطلوب';
+                        btn.style.backgroundColor = 'var(--border-color)';
+                        btn.style.color = 'var(--text-muted)';
                         btn.removeAttribute('href');
                         btn.removeAttribute('onclick');
                         
                         btn.onclick = function(e) {
                             e.preventDefault();
-                            alert('عذراً، يجب إدخال كود اشتراك ساري في ملفك الشخصي لفتح هذا القسم.');
-                            window.location.href = 'profile.html';
+                            if (confirm('🔒 عذراً يا بطل، هذا القسم مخصص للمشتركين فقط.\nهل تريد الذهاب لصفحة البروفايل لإدخال كود الاشتراك وتفعيل الحساب؟')) {
+                                window.location.href = 'profile.html';
+                            }
                         };
                     }
                 } else {
-                    // لو مشترك: فتح الكارت وإرجاعه لطبيعته
+                    // لو مشترك: إرجاع البطاقات لطبيعتها تماماً وتفعيل الأزرار والروابط الأصلية
                     card.style.opacity = '1';
+                    if (btn) {
+                        if (card.id === 'cardFiles') {
+                            btn.innerHTML = 'تصفح الملازم 📂';
+                            btn.style.backgroundColor = '#0ea5e9';
+                            btn.style.color = 'white';
+                            btn.setAttribute('href', 'files.html');
+                            btn.onclick = null;
+                        } else if (card.id === 'cardExams') {
+                            btn.innerHTML = 'دخول الامتحانات ✍';
+                            btn.style.backgroundColor = '#10b981';
+                            btn.style.color = 'white';
+                            btn.setAttribute('href', 'exams.html');
+                            btn.onclick = null;
+                        } else if (card.id === 'cardChat') {
+                            btn.innerHTML = 'دخول الدردشة 🌐';
+                            btn.style.backgroundColor = '#6366f1';
+                            btn.style.color = 'white';
+                            btn.removeAttribute('href');
+                            btn.onclick = function() { goToChat(); };
+                        } else if (card.id === 'cardStats') {
+                            btn.innerHTML = 'عرض الإحصائيات 📊';
+                            btn.style.backgroundColor = '#f59e0b';
+                            btn.style.color = 'white';
+                            btn.setAttribute('href', 'stats.html');
+                            btn.onclick = null;
+                        } else if (card.id === 'cardForum') {
+                            btn.innerHTML = 'دخول المنتدى 💡';
+                            btn.style.backgroundColor = '#ec4899';
+                            btn.style.color = 'white';
+                            btn.setAttribute('href', 'forum.html');
+                            btn.onclick = null;
+                        }
+                    }
                 }
             });
         }
