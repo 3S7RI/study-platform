@@ -415,7 +415,6 @@
         let emailCooldownTimer = null;
         let selectedGender = 'male'; 
 
-        // مصفوفة الـ 100 رسالة المتنوعة (رسالة اليوم لك)
         const dailyMessages = [
             "اقترب من الله يفتح لك أبواباً لم تكن تدور في خلدك، فالتوفيق بيده وحده.",
             "لا تحزن إن ضاقت بك الأمور، فرب العزة يخبئ لك الفرج الأعظم في أوقات الشدة.",
@@ -660,7 +659,6 @@
             });
         }
 
-        // إرسال البريد الإلكتروني عبر Brevo REST API v3
         document.getElementById('sendEmailOtpBtn').addEventListener('click', async function() {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const emailError = document.getElementById('emailError');
@@ -871,9 +869,22 @@
                     catch (e) { console.error("خطأ معالجة الصورة", e); }
                 }
 
-                const querySnapshot = await window.getDocs(collection(window.firebaseDb, "students"));
-                const nextNumber = querySnapshot.size + 1;
-                const studentId = 'STU-' + String(nextNumber).padStart(4, '0');
+                // التعديل الآمن لإنشاء الـ studentId باستخدام العداد المركزي في فايربيز
+                const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
+                const configSnap = await window.getDoc(configDocRef);
+
+                let nextStudentSeq = 1;
+                if (configSnap.exists() && configSnap.data().counters && configSnap.data().counters.nextStudentSeq) {
+                    nextStudentSeq = configSnap.data().counters.nextStudentSeq;
+                }
+
+                const studentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
+
+                await window.setDoc(configDocRef, {
+                    counters: {
+                        nextStudentSeq: nextStudentSeq + 1
+                    }
+                }, { merge: true });
 
                 const studentData = {
                     uid: user.uid,
