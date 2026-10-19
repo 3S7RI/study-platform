@@ -781,6 +781,7 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
+                // التحقق من وجود حساب سابق داخل مجموعة users
                 const existingStudent = await findStudentDocument(window.firebaseDb, email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
@@ -789,6 +790,7 @@
                     return;
                 }
 
+                // إنشاء المستخدم بـ Firebase Auth
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
@@ -798,7 +800,7 @@
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                // جلب عداد الأكواد من السحابة لإنشاء الـ ID التسلسلي الذكي
+                // جلب العداد المركزي لتوليد الكود التسلسلي STU-0001
                 const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
                 const configSnap = await window.getDoc(configDocRef);
 
@@ -814,46 +816,38 @@
 
                 const studentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
 
-                // تحديث العداد للسحابة للحساب التالي
+                // تحديث العداد
                 await window.setDoc(configDocRef, {
                     counters: { nextStudentSeq: nextStudentSeq + 1 }
                 }, { merge: true });
 
+                // تجهيز الحقول الموحدة الخالية من التكرار
                 const studentData = {
-                    uid: user.uid,
-                    id: studentId,
+                    role: 'student',
                     studentId: studentId,
-                    fullName: name,
+                    uid: user.uid,
                     name: name,
-                    gender: gender,
-                    type: gender,
                     email: email,
-                    studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
-                    guardianPhone: pPhone,
-                    status: 'active',
-                    active: true,
-                    rank: 'weak',
-                    level: 'weak',
-                    points: 0,
+                    gender: gender,
                     totalScore: 0,
-                    profileImage: profileImageBase64,
-                    avatar: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
+                    rank: 'weak',
+                    accountType: 'free',
+                    status: 'active',
                     allowComparison: true,
                     bgPatternEnabled: true,
-                    selectedEmojis: ['⭐', '🚀'],
-                    friends: [],
-                    friendRequests: [],
-                    chats: {},
+                    profileImage: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
                     createdAt: new Date().toISOString(),
                     lastUpdated: new Date().toISOString(),
                     lastSeenNotificationTime: Date.now()
                 };
 
-                await window.setDoc(window.doc(window.firebaseDb, "students", email), studentData);
+                // حفظ البيانات في مجموعة users باسم Document ID = Email
+                await window.setDoc(window.doc(window.firebaseDb, "users", email), studentData);
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, name);
 
+                // حفظ الجلسة المحلية
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
@@ -863,7 +857,7 @@
                 sessionStorage.setItem('chat_rank', 'weak');
                 sessionStorage.setItem('chat_gender', gender);
                 sessionStorage.setItem('chat_streak', '1');
-                sessionStorage.setItem('chat_avatar', studentData.avatar);
+                sessionStorage.setItem('chat_avatar', studentData.profileImage);
                 sessionStorage.setItem('studentUser', JSON.stringify(studentData));
                 sessionStorage.setItem('currentUser', JSON.stringify(studentData));
                 localStorage.setItem('cachedStudentProfile', JSON.stringify(studentData));
