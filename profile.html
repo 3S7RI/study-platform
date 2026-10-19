@@ -537,19 +537,37 @@
         async function fetchStudentProfileUltraFast(emailKey, fallbackUid) {
             try {
                 let docSnap = null;
+                let docRef = null;
+
                 if (emailKey) {
-                    const docRef = doc(db, "students", emailKey.toLowerCase().trim());
+                    docRef = doc(db, "students", emailKey.toLowerCase().trim());
                     docSnap = await getDoc(docRef);
                 }
                 if ((!docSnap || !docSnap.exists()) && fallbackUid) {
-                    docSnap = await getDoc(doc(db, "students", fallbackUid));
+                    docRef = doc(db, "students", fallbackUid);
+                    docSnap = await getDoc(docRef);
                 }
+
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = docSnap.data();
-                    renderStudentProfile(currentStudentData);
+                } else {
+                    currentStudentData = {
+                        uid: currentUser.uid,
+                        name: currentUser.displayName || 'طالب جديد',
+                        email: currentUser.email || '',
+                        totalScore: 0,
+                        studentId: 'STU-' + Math.floor(1000 + Math.random() * 9000),
+                        gender: 'male',
+                        profileImage: ''
+                    };
+                    if(docRef) {
+                        await setDoc(docRef, currentStudentData, { merge: true });
+                    }
                 }
+                renderStudentProfile(currentStudentData);
             } catch (error) {
                 console.error("خطأ في جلب بيانات الطالب:", error);
+                document.getElementById('studentProfileContent').innerHTML = `<p style="text-align:center; color:var(--danger-color); padding:20px;">حدث خطأ في تحميل البيانات. يرجى تحديث الصفحة.</p>`;
             }
         }
 
@@ -611,7 +629,7 @@
                     <h3>💎 تفعيل كود الاشتراك</h3>
                     <div class="search-input-group">
                         <input type="text" id="vipCodeInput" placeholder="أدخل كود الاشتراك...">
-                        <button onclick="activateVipCode()" class="card-btn" style="width: auto; padding: 9px 16px;">تفعيل ⚡</button>
+                        <button onclick="activateVipCode()" class="vip-btn-glow" style="width: auto; padding: 9px 16px;">تفعيل ⚡</button>
                     </div>
                 </div>
             `;
