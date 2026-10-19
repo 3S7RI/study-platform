@@ -1,40 +1,33 @@
-// student-service.js - ملف الخدمات الشامل والموحد لإدارة وجلب وتعديل بيانات طالب المنصة (بدون إنشاء تلقائي)
+// student-service.js - ملف الخدمات الشامل والموحد لإدارة وجلب وتعديل بيانات طالب المنصة داخل مجموعة users
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * 1. البحث عن وثيقة الطالب في قاعدة البيانات بأي وسيلة (Email, StudentId, UID، أو Name)
+ * 1. البحث عن وثيقة الطالب داخل مجموعة users بأي وسيلة (Email, StudentId, أو UID)
  */
 export async function findStudentDocument(db, identifier) {
     if (!identifier) return null;
     const cleanId = String(identifier).toLowerCase().trim();
 
     try {
-        // البحث المباشر في مجموعة students
-        let docRef = doc(db, "students", cleanId);
+        // البحث المباشر في مجموعة users باستخدام الـ Document ID (الإيميل) مع التحقق من الرول
+        let docRef = doc(db, "users", cleanId);
         let docSnap = await getDoc(docRef);
-        if (docSnap.exists()) return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'students' };
+        if (docSnap.exists() && docSnap.data().role === 'student') {
+            return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'users' };
+        }
 
-        // البحث بواسطة email
-        let q = query(collection(db, "students"), where("email", "==", cleanId));
+        // البحث بواسطة حقل email داخل users للطلاب
+        let q = query(collection(db, "users"), where("email", "==", cleanId), where("role", "==", "student"));
         let snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
 
         // البحث بواسطة studentId
-        q = query(collection(db, "students"), where("studentId", "==", identifier));
+        q = query(collection(db, "users"), where("studentId", "==", identifier), where("role", "==", "student"));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
 
         // البحث بواسطة uid
-        q = query(collection(db, "students"), where("uid", "==", identifier));
-        snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
-
-        // البحث في مجموعة users الأساسية
-        let userDocRef = doc(db, "users", identifier);
-        let userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) return { id: userDocSnap.id, ref: userDocRef, data: userDocSnap.data(), collectionName: 'users' };
-
-        q = query(collection(db, "users"), where("email", "==", cleanId));
+        q = query(collection(db, "users"), where("uid", "==", identifier), where("role", "==", "student"));
         snap = await getDocs(q);
         if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
 
@@ -46,44 +39,48 @@ export async function findStudentDocument(db, identifier) {
 }
 
 /**
- * 2. جلب بيانات الطالب فقط (بدون إنشاء تلقائي نهائياً لتأمين المنصة)
+ * 2. جلب بيانات الطالب فقط (بدون إنشاء تلقائي لتأمين المنصة)
  */
 export async function getStudentData(db, studentIdentifier) {
     let studentObj = await findStudentDocument(db, studentIdentifier);
     if (studentObj) {
         return studentObj; // الطالب موجود بالفعل
     }
-    return null; // لا يتم إنشاء أي حساب تلقائياً
+    return null; 
 }
 
 /**
- * 3. إنشاء طالب جديد رسمياً (يتم استدعاؤها فقط من واجهة التسجيل أو لوحة تحكم المشرفين)
+ * 3. إنشاء طالب جديد رسمياً بالحقول الموحدة النظيفة داخل مجموعة users
  */
 export async function createStudentAccount(db, studentIdentifier, studentData = {}) {
     try {
         const cleanId = String(studentIdentifier).toLowerCase().trim();
-        const docRef = doc(db, "students", cleanId);
+        const docRef = doc(db, "users", cleanId);
         
         const newStudentData = {
+            role: 'student',
             email: cleanId.includes('@') ? cleanId : (studentData.email || ''),
             name: studentData.name || 'طالب المنصة',
-            fullName: studentData.fullName || studentData.name || 'طالب المنصة',
             studentId: studentData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
+            uid: studentData.uid || '',
             phone: studentData.phone || '',
-            parentPhone: studentData.parentPhone || studentData.guardianPhone || '',
-            gender: studentData.gender || studentData.type || 'male',
-            type: studentData.gender || studentData.type || 'male',
+            parentPhone: studentData.parentPhone || '',
+            gender: studentData.gender || 'male',
             totalScore: 0,
-            points: 0,
             rank: 'weak',
-            level: 'weak',
-            active: true,
-            createdAt: new Date().toISOString()
+            accountType: studentData.accountType || 'free',
+            status: 'active',
+            allowComparison: true,
+            bgPatternEnabled: true,
+            profileImage: studentData.profileImage || '',
+            createdAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+            lastSeenNotificationTime: Date.now()
         };
 
         await setDoc(docRef, newStudentData);
-        console.log("تم إنشاء حساب الطالب رسمياً في السحابة:", cleanId);
-        return { id: cleanId, ref: docRef, data: newStudentData, collectionName: 'students' };
+        console.log("تم إنشاء حساب الطالب رسمياً في مجموعة users:", cleanId);
+        return { id: cleanId, ref: docRef, data: newStudentData, collectionName: 'users' };
     } catch (e) {
         console.error("خطأ في إنشاء حساب الطالب:", e);
         return null;
@@ -106,11 +103,9 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
             lastUpdated: new Date().toISOString()
         };
 
-        // إذا تم تحديث النقاط، نقوم بحساب المستوى تلقائياً بناءً على النقاط الجديدة
-        if (payload.totalScore !== undefined || payload.points !== undefined) {
-            let score = payload.totalScore || payload.points || 0;
-            payload.rank = calculateStudentRank(score).rankKey;
-            payload.level = payload.rank;
+        // إذا تم تحديث النقاط، نقوم بحساب الرتبة تلقائياً
+        if (payload.totalScore !== undefined) {
+            payload.rank = calculateStudentRank(payload.totalScore).rankKey;
         }
 
         await updateDoc(studentObj.ref, payload);
@@ -123,7 +118,7 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
 }
 
 /**
- * 5. تحديث وإضافة نقاط للطالب وتحديث مستواه فوراً
+ * 5. تحديث وإضافة نقاط للطالب وتحديث مستواه ورتبته فوراً
  */
 export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
     if (!studentIdentifier || !pointsToAdd || pointsToAdd <= 0) return false;
@@ -132,15 +127,13 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
         let studentObj = await findStudentDocument(db, studentIdentifier);
         if (!studentObj) return false;
 
-        const currentScore = studentObj.data.totalScore || studentObj.data.points || 0;
+        const currentScore = studentObj.data.totalScore || 0;
         const newTotalScore = currentScore + pointsToAdd;
         const newRankInfo = calculateStudentRank(newTotalScore);
 
         await updateDoc(studentObj.ref, {
             totalScore: newTotalScore,
-            points: increment(pointsToAdd),
             rank: newRankInfo.rankKey,
-            level: newRankInfo.rankKey,
             lastUpdated: new Date().toISOString()
         });
 
@@ -153,7 +146,7 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
 }
 
 /**
- * 6. حساب معلومات المستوى والشارة
+ * 6. حساب معلومات المستوى والرتبة والشارة
  */
 export function calculateStudentRank(totalScore) {
     let score = totalScore || 0;
