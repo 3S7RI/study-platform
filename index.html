@@ -9,7 +9,7 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://www.studytrip.online/" />
 
-    <!-- Open Graph Meta Tags (لإظهار اللوجو والاسم في جوجل والواتساب) -->
+    <!-- Open Graph Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.studytrip.online/" />
     <meta property="og:title" content="منصة رحلة دراسية | Study Trip" />
@@ -28,7 +28,7 @@
     <link rel="icon" type="image/png" href="https://www.studytrip.online/logo-study-trip.png">
     <link rel="apple-touch-icon" href="https://www.studytrip.online/logo-study-trip.png">
 
-    <!-- Schema.org Structured Data (لجوجل لتثبيت الاسم واللوجو) -->
+    <!-- Schema.org Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -413,8 +413,8 @@
             </div>
         </div>
     </div>
-<script type="module">
-        import { createStudentAccount, findStudentDocument, calculateStudentRank } from './student-service.js';
+    <script type="module">
+        import { createStudentAccount, findStudentDocument } from './student-service.js';
 
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
@@ -432,7 +432,6 @@
             adminModal.classList.remove('active');
         });
 
-        // دخول الأدمن بتأمين السحابة بدلاً من كتابة الباسورد في السورس كود
         adminModalSubmit.addEventListener('click', async () => {
             const enteredPass = adminPasswordInput.value.trim();
             if (!enteredPass) return;
@@ -445,7 +444,6 @@
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
                     window.location.href = "admin-index.html";
                 } else if (enteredPass === "@Mohamad66xm01122161407") {
-                    // رمز احتياطي للمطور
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
                     window.location.href = "admin-index.html";
                 } else {
@@ -781,7 +779,7 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
-                // التحقق من وجود حساب سابق داخل مجموعة users
+                // 1. التأكد من عدم وجود حساب سابق
                 const existingStudent = await findStudentDocument(window.firebaseDb, email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
@@ -790,17 +788,18 @@
                     return;
                 }
 
-                // إنشاء المستخدم بـ Firebase Auth
+                // 2. إنشاء المستخدم عبر Firebase Auth
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
+                // 3. معالجة صورة البروفايل
                 let profileImageBase64 = "";
                 if (imageFile) {
                     try { profileImageBase64 = await processImage(imageFile); } 
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                // جلب العداد المركزي لتوليد الكود التسلسلي STU-0001
+                // 4. جلب العداد المركزي لتوليد الكود التسلسلي STU-0001
                 const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
                 const configSnap = await window.getDoc(configDocRef);
 
@@ -814,53 +813,48 @@
                     }
                 }
 
-                const studentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
+                const generatedStudentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
 
                 // تحديث العداد
                 await window.setDoc(configDocRef, {
                     counters: { nextStudentSeq: nextStudentSeq + 1 }
                 }, { merge: true });
 
-                // تجهيز الحقول الموحدة الخالية من التكرار
-                const studentData = {
-                    role: 'student',
-                    studentId: studentId,
+                // 5. إنشاء وتخزين الطالب عبر createStudentAccount لضمان حفظه في كولكشن users باسم البريد الإلكتروني
+                const createdObj = await createStudentAccount(window.firebaseDb, email, {
                     uid: user.uid,
+                    studentId: generatedStudentId,
                     name: name,
                     email: email,
                     phone: sPhone,
                     parentPhone: pPhone,
                     gender: gender,
-                    totalScore: 0,
-                    rank: 'weak',
-                    accountType: 'free',
-                    status: 'active',
-                    allowComparison: true,
-                    bgPatternEnabled: true,
-                    profileImage: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
-                    createdAt: new Date().toISOString(),
-                    lastUpdated: new Date().toISOString(),
-                    lastSeenNotificationTime: Date.now()
-                };
+                    profileImage: profileImageBase64,
+                    accountType: 'free'
+                });
 
-                // حفظ البيانات في مجموعة users باسم Document ID = Email
-                await window.setDoc(window.doc(window.firebaseDb, "users", email), studentData);
+                if (!createdObj) {
+                    throw new Error("فشل إنشاء ملف الطالب داخل قاعدة البيانات");
+                }
+
+                const fullStudentData = createdObj.data;
+
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, name);
 
-                // حفظ الجلسة المحلية
+                // 6. حفظ البيانات والجلسة المحلية للبروفايل
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
-                sessionStorage.setItem('currentStudentId', studentId);
+                sessionStorage.setItem('currentStudentId', generatedStudentId);
                 sessionStorage.setItem('chat_uid', user.uid);
                 sessionStorage.setItem('chat_name', name);
                 sessionStorage.setItem('chat_rank', 'weak');
                 sessionStorage.setItem('chat_gender', gender);
                 sessionStorage.setItem('chat_streak', '1');
-                sessionStorage.setItem('chat_avatar', studentData.profileImage);
-                sessionStorage.setItem('studentUser', JSON.stringify(studentData));
-                sessionStorage.setItem('currentUser', JSON.stringify(studentData));
-                localStorage.setItem('cachedStudentProfile', JSON.stringify(studentData));
+                sessionStorage.setItem('chat_avatar', fullStudentData.profileImage);
+                sessionStorage.setItem('studentUser', JSON.stringify(fullStudentData));
+                sessionStorage.setItem('currentUser', JSON.stringify(fullStudentData));
+                localStorage.setItem('cachedStudentProfile', JSON.stringify(fullStudentData));
 
                 window.location.href = 'welcome.html';
 
