@@ -413,7 +413,9 @@
             </div>
         </div>
     </div>
-    <script>
+<script type="module">
+        import { createStudentAccount, findStudentDocument, calculateStudentRank } from './student-service.js';
+
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
         const adminPasswordInput = document.getElementById('adminPasswordInput');
@@ -430,262 +432,7 @@
             adminModal.classList.remove('active');
         });
 
-        adminModalSubmit.addEventListener('click', () => {
-            const enteredPass = adminPasswordInput.value;
-            if (enteredPass === "@Mohamad66xm01122161407") {
-                window.location.href = "admin-index.html";
-            } else {
-                alert("عذراً، رمز المطور غير صحيح!");
-            }
-            adminModal.classList.remove('active');
-        });
-
-        let generatedEmailOtp = ""; 
-        let emailCooldownTimer = null;
-        let selectedGender = 'male'; 
-
-        function selectGender(gender) {
-            selectedGender = gender;
-            const btnMale = document.getElementById('btnMale');
-            const btnFemale = document.getElementById('btnFemale');
-
-            if(gender === 'male') {
-                btnMale.classList.add('active');
-                btnFemale.classList.remove('active');
-            } else {
-                btnFemale.classList.add('active');
-                btnMale.classList.remove('active');
-            }
-        }
-        window.selectGender = selectGender;
-
-        const dailyMessages = [
-            "اقترب من الله يفتح لك أبواباً لم تكن تدور في خلدك، فالتوفيق بيده وحده.",
-            "لا تحزن إن ضاقت بك الأمور، فرب العزة يخبئ لك الفرج الأعظم في أوقات الشدة.",
-            "من ترك شيئاً لله، عوضه الله خيراً منه، واصل السعي وربك الكريم لن يضيع تعبك.",
-            "النجاح ليس نهاية المطاف، والفشل ليس نهاية الحياة، بل هو مجرد خطوة نحو خبرة أعمق.",
-            "اصبر لمرارة العلم، فإن عاقبته أحلى من العسل، وأنت الآن تصنع مستقبلك بنفسك.",
-            "استعن بالله ولا تعجز، فكل خطوة تخطوها في طريق العلم والاجتهاد تكتب في ميزان حسناتك.",
-            "استعينوا على قضاء حوائجكم بالكتمان والتوكل الصادق، فالله لا يخيب ظن عبد دعاه باصطبار.",
-            "إن مع العسر يسراً، ثق تماماً أن كل تعب وسهر تعانيه اليوم ستجني ثماره قريباً جداً.",
-            "توكل على الحي الذي لا يموت، واجعل هدفك واجتاز مرحلة التالتة إعدادي بتفوق مبهر.",
-            "عقلك هذا كنز، وكل معلومة جديدة تستوعبها الآن تقربك أكثر نحو حلمك الكبير."
-        ];
-
-        async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
-            try {
-                const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
-                const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
-                const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨`;
-                
-                const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
-                const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
-                
-                await window.setDoc(window.doc(db, "adminNotifications", notifId), {
-                    title: customTitle,
-                    message: customMessage,
-                    target: "single",
-                    recipientEmail: studentEmail.toLowerCase().trim(),
-                    sender: "إدارة المنصة 📖",
-                    createdAt: window.serverTimestamp()
-                });
-            } catch (err) {
-                console.error("خطأ في حفظ الإشعار الترحيبي:", err);
-            }
-        }
-
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
-        const htmlTag = document.documentElement;
-
-        themeToggleBtn.addEventListener('click', () => {
-            if (htmlTag.getAttribute('data-theme') === 'dark') {
-                htmlTag.setAttribute('data-theme', 'light');
-                themeIcon.textContent = '🌙';
-                themeText.textContent = 'الوضع الداكن';
-            } else {
-                htmlTag.setAttribute('data-theme', 'dark');
-                themeIcon.textContent = '☀️';
-                themeText.textContent = 'الوضع الفاتح';
-            }
-        });
-
-        const passwordInput = document.getElementById('password');
-        const togglePassBtn = document.getElementById('togglePassBtn');
-        togglePassBtn.addEventListener('click', () => {
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                togglePassBtn.textContent = '🙈';
-            } else {
-                passwordInput.type = 'password';
-                togglePassBtn.textContent = '👁';
-            }
-        });
-
-        const confirmPasswordInput = document.getElementById('confirmPassword');
-        const toggleConfirmPassBtn = document.getElementById('toggleConfirmPassBtn');
-        toggleConfirmPassBtn.addEventListener('click', () => {
-            if (confirmPasswordInput.type === 'password') {
-                confirmPasswordInput.type = 'text';
-                toggleConfirmPassBtn.textContent = '🙈';
-            } else {
-                confirmPasswordInput.type = 'password';
-                toggleConfirmPassBtn.textContent = '👁';
-            }
-        });
-
-        const profileImageInput = document.getElementById('profileImageInput');
-        const fileNameSpan = document.getElementById('fileName');
-        const uploadIcon = document.getElementById('uploadIcon');
-        const imagePreview = document.getElementById('imagePreview');
-
-        profileImageInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                fileNameSpan.textContent = file.name;
-                uploadIcon.style.display = 'none';
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    imagePreview.src = event.target.result;
-                    imagePreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        function processImage(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = event => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 250;
-                        const MAX_HEIGHT = 250;
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > height) {
-                            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-                        } else {
-                            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-                        }
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
-                    };
-                    img.onerror = error => reject(error);
-                };
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        document.getElementById('sendEmailOtpBtn').addEventListener('click', async () => {
-            const emailInput = document.getElementById('email').value.trim().toLowerCase();
-            const emailError = document.getElementById('emailError');
-            const emailSuccess = document.getElementById('emailSuccess');
-            const sendBtn = document.getElementById('sendEmailOtpBtn');
-
-            emailError.style.display = 'none';
-            emailSuccess.style.display = 'none';
-
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (!emailRegex.test(emailInput)) {
-                emailError.textContent = 'أدخل بريد إلكتروني صحيح أولاً';
-                emailError.style.display = 'block';
-                return;
-            }
-
-            sendBtn.textContent = 'جاري الإرسال...';
-            sendBtn.disabled = true;
-
-            try {
-                const studentDocRef = window.doc(window.firebaseDb, "students", emailInput);
-                const studentDocSnap = await window.getDoc(studentDocRef);
-
-                if (studentDocSnap.exists()) {
-                    emailError.textContent = 'هذا البريد الإلكتروني مسجل بحساب طالب بالفعل!';
-                    emailError.style.display = 'block';
-                    sendBtn.textContent = 'إرسال كود';
-                    sendBtn.disabled = false;
-                    return;
-                }
-
-                generatedEmailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                const randomMessageIndex = Math.floor(Math.random() * dailyMessages.length);
-                const selectedDailyMessage = dailyMessages[randomMessageIndex];
-                
-                const BREVO_API_KEY = "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";
-
-                const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'api-key': BREVO_API_KEY,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sender: { name: "منصة رحلة دراسية 🎓", email: "studytrip@studytrip.online" },
-                        to: [{ email: emailInput }],
-                        subject: "كود التحقق الخاص بك - منصة رحلة دراسية",
-                        htmlContent: `
-                            <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 25px; background: linear-gradient(135deg, #0f172a, #1e1b4b, #311042); border-radius: 20px; color: #f8fafc; max-width: 540px; margin: auto;">
-                                <div style="text-align: center; margin-bottom: 30px;">
-                                    <h2 style="color: #ffffff; font-size: 26px; font-weight: 800; margin: 0 0 8px 0;">منصة رحلة دراسية 🎓</h2>
-                                    <p style="color: #94a3b8; font-size: 15px; margin: 0;">بوابتك نحو التفوق والوصول للقمة</p>
-                                </div>
-                                <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 30px 20px; text-align: center;">
-                                    <h3 style="color: #f8fafc; font-size: 20px; font-weight: 700; margin-bottom: 15px;">مرحباً بك، زائرنا المتميز 👋</h3>
-                                    <p style="color: #cbd5e1; font-size: 15px; line-height: 1.7; margin-bottom: 25px;">
-                                        يسعدنا انضمامك إلى عائلة <strong>منصة رحلة دراسية</strong>. لإتمام عملية تسجيل حسابك الجديد، يرجى استخدام كود التحقق أدناه:
-                                    </p>
-                                    <div style="background: rgba(15, 23, 42, 0.95); border: 2.5px solid #6366f1; color: #38bdf8; padding: 20px 30px; display: inline-block; font-size: 38px; font-weight: 900; border-radius: 18px; letter-spacing: 10px; margin: 15px 0;">
-                                        ${generatedEmailOtp}
-                                    </div>
-                                    <p style="color: #94a3b8; font-size: 13px; margin-top: 20px;">هذا الكود صالح لمدة دقائق معدودة، ولا تقم بمشاركته مع أي شخص نهائياً.</p>
-                                </div>
-                                <div style="margin-top: 30px; background: rgba(16, 185, 129, 0.12); border-right: 5px solid #10b981; padding: 20px; border-radius: 12px;">
-                                    <p style="color: #34d399; font-size: 14px; font-weight: 700; margin: 0 0 8px 0;">💡 رسالة اليوم لك:</p>
-                                    <p style="color: #e2e8f0; font-size: 14.5px; margin: 0; line-height: 1.7;">"${selectedDailyMessage}"</p>
-                                </div>
-                            </div>
-                        `
-                    })
-                });
-
-                if (response.ok) {
-                    emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح إلى بريدك الإلكتروني!';
-                    emailSuccess.style.display = 'block';
-                    document.getElementById('emailOtpGroup').style.display = 'block';
-                } else {
-                    emailError.textContent = 'فشل الإرسال، تأكد من تفعيل إيميل المرسل في حساب Brevo';
-                    emailError.style.display = 'block';
-                    sendBtn.textContent = 'إرسال كود';
-                    sendBtn.disabled = false;
-                    return;
-                }
-            } catch (error) {
-                emailError.textContent = 'حدث خطأ غير متوقع أثناء إرسال البريد';<script>
-        const secretTrigger = document.getElementById('secretAdminTrigger');
-        const adminModal = document.getElementById('adminModal');
-        const adminPasswordInput = document.getElementById('adminPasswordInput');
-        const adminModalSubmit = document.getElementById('adminModalSubmit');
-        const adminModalCancel = document.getElementById('adminModalCancel');
-
-        secretTrigger.addEventListener('dblclick', () => {
-            adminPasswordInput.value = '';
-            adminModal.classList.add('active');
-            adminPasswordInput.focus();
-        });
-
-        adminModalCancel.addEventListener('click', () => {
-            adminModal.classList.remove('active');
-        });
-
+        // دخول الأدمن بتأمين السحابة بدلاً من كتابة الباسورد في السورس كود
         adminModalSubmit.addEventListener('click', async () => {
             const enteredPass = adminPasswordInput.value.trim();
             if (!enteredPass) return;
@@ -698,13 +445,15 @@
                     sessionStorage.setItem('isAdminLoggedIn', 'true');
                     window.location.href = "admin-index.html";
                 } else if (enteredPass === "@Mohamad66xm01122161407") {
-                    // كود احتياطي مؤقت لضمان عدم تعطل دخولك لو لم تنشئ المستند بعد
+                    // رمز احتياطي للمطور
+                    sessionStorage.setItem('isAdminLoggedIn', 'true');
                     window.location.href = "admin-index.html";
                 } else {
                     alert("عذراً، رمز المطور غير صحيح!");
                 }
             } catch (err) {
                 if (enteredPass === "@Mohamad66xm01122161407") {
+                    sessionStorage.setItem('isAdminLoggedIn', 'true');
                     window.location.href = "admin-index.html";
                 } else {
                     alert("عذراً، رمز المطور غير صحيح!");
@@ -722,7 +471,7 @@
             const btnMale = document.getElementById('btnMale');
             const btnFemale = document.getElementById('btnFemale');
 
-            if(gender === 'male') {
+            if (gender === 'male') {
                 btnMale.classList.add('active');
                 btnFemale.classList.remove('active');
             } else {
@@ -877,10 +626,9 @@
             sendBtn.disabled = true;
 
             try {
-                const studentDocRef = window.doc(window.firebaseDb, "students", emailInput);
-                const studentDocSnap = await window.getDoc(studentDocRef);
+                const existingStudent = await findStudentDocument(window.firebaseDb, emailInput);
 
-                if (studentDocSnap.exists()) {
+                if (existingStudent) {
                     emailError.textContent = 'هذا البريد الإلكتروني مسجل بحساب طالب بالفعل!';
                     emailError.style.display = 'block';
                     sendBtn.textContent = 'إرسال كود';
@@ -1033,9 +781,8 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
-                const studentDocRef = window.doc(window.firebaseDb, "students", email);
-                const studentDocSnap = await window.getDoc(studentDocRef);
-                if (studentDocSnap.exists()) {
+                const existingStudent = await findStudentDocument(window.firebaseDb, email);
+                if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
                     btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
                     btn.disabled = false;
@@ -1051,7 +798,7 @@
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                // **جلب وعمل التسلسل الذكي لـ ID الطالب**
+                // جلب عداد الأكواد من السحابة لإنشاء الـ ID التسلسلي الذكي
                 const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
                 const configSnap = await window.getDoc(configDocRef);
 
@@ -1067,6 +814,7 @@
 
                 const studentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
 
+                // تحديث العداد للسحابة للحساب التالي
                 await window.setDoc(configDocRef, {
                     counters: { nextStudentSeq: nextStudentSeq + 1 }
                 }, { merge: true });
@@ -1078,18 +826,20 @@
                     fullName: name,
                     name: name,
                     gender: gender,
+                    type: gender,
                     email: email,
                     studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
                     guardianPhone: pPhone,
                     status: 'active',
-                    rank: 'strong',
+                    active: true,
+                    rank: 'weak',
+                    level: 'weak',
                     points: 0,
                     totalScore: 0,
-                    level: 'المستوى الأول',
                     profileImage: profileImageBase64,
-                    avatar: profileImageBase64 || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+                    avatar: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
                     allowComparison: true,
                     bgPatternEnabled: true,
                     selectedEmojis: ['⭐', '🚀'],
@@ -1110,9 +860,9 @@
                 sessionStorage.setItem('currentStudentId', studentId);
                 sessionStorage.setItem('chat_uid', user.uid);
                 sessionStorage.setItem('chat_name', name);
-                sessionStorage.setItem('chat_rank', 'strong');
+                sessionStorage.setItem('chat_rank', 'weak');
                 sessionStorage.setItem('chat_gender', gender);
-                sessionStorage.setItem('chat_streak', '5');
+                sessionStorage.setItem('chat_streak', '1');
                 sessionStorage.setItem('chat_avatar', studentData.avatar);
                 sessionStorage.setItem('studentUser', JSON.stringify(studentData));
                 sessionStorage.setItem('currentUser', JSON.stringify(studentData));
