@@ -413,7 +413,7 @@
             </div>
         </div>
     </div>
-    <script type="module">
+<script type="module">
         import { createStudentAccount, findStudentDocument } from './student-service.js';
 
         const secretTrigger = document.getElementById('secretAdminTrigger');
@@ -779,7 +779,7 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
-                // 1. التأكد من عدم وجود حساب سابق
+                // 1. التأكد من عدم وجود حساب سابق في كولكشن users
                 const existingStudent = await findStudentDocument(window.firebaseDb, email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
@@ -820,7 +820,7 @@
                     counters: { nextStudentSeq: nextStudentSeq + 1 }
                 }, { merge: true });
 
-                // 5. إنشاء وتخزين الطالب عبر createStudentAccount لضمان حفظه في كولكشن users باسم البريد الإلكتروني
+                // 5. استدعاء دالة الإنشاء لضمان الحفظ المباشر في كولكشن users باسم الإيميل ومع كافة البيانات
                 const createdObj = await createStudentAccount(window.firebaseDb, email, {
                     uid: user.uid,
                     studentId: generatedStudentId,
@@ -829,8 +829,10 @@
                     phone: sPhone,
                     parentPhone: pPhone,
                     gender: gender,
-                    profileImage: profileImageBase64,
-                    accountType: 'free'
+                    profileImage: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
+                    accountType: 'free',
+                    totalScore: 0,
+                    rank: 'weak'
                 });
 
                 if (!createdObj) {
