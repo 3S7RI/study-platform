@@ -78,6 +78,38 @@
         window.getDocs = getDocs;
         window.serverTimestamp = serverTimestamp;
 
+        // دوال المسار المركزي الجديد (users -> students -> email)
+        window.findStudentDocument = async function(dbInstance, email) {
+            try {
+                const cleanEmail = email.toLowerCase().trim();
+                const docRef = doc(dbInstance, "users", "students", "list", cleanEmail);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) return snap.data();
+                return null;
+            } catch (e) {
+                console.error("خطأ في البحث عن الطالب:", e);
+                return null;
+            }
+        };
+
+        window.createStudentAccount = async function(dbInstance, email, data) {
+            try {
+                const cleanEmail = email.toLowerCase().trim();
+                const docRef = doc(dbInstance, "users", "students", "list", cleanEmail);
+                const finalData = {
+                    ...data,
+                    email: cleanEmail,
+                    role: 'student',
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(docRef, finalData);
+                return { success: true, data: finalData };
+            } catch (e) {
+                console.error("خطأ في إنشاء ملف الطالب:", e);
+                return null;
+            }
+        };
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const loginTime = localStorage.getItem('platform_login_time');
@@ -413,9 +445,7 @@
             </div>
         </div>
     </div>
-<script type="module">
-        import { createStudentAccount, findStudentDocument } from './student-service.js';
-
+    <script type="module">
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
         const adminPasswordInput = document.getElementById('adminPasswordInput');
@@ -624,7 +654,7 @@
             sendBtn.disabled = true;
 
             try {
-                const existingStudent = await findStudentDocument(window.firebaseDb, emailInput);
+                const existingStudent = await window.findStudentDocument(window.firebaseDb, emailInput);
 
                 if (existingStudent) {
                     emailError.textContent = 'هذا البريد الإلكتروني مسجل بحساب طالب بالفعل!';
@@ -779,8 +809,8 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
-                // 1. التأكد من عدم وجود حساب سابق في كولكشن users
-                const existingStudent = await findStudentDocument(window.firebaseDb, email);
+                // 1. التحقق من عدم وجود الطالب مسبقاً في المسار المركزي الجديد
+                const existingStudent = await window.findStudentDocument(window.firebaseDb, email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
                     btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
@@ -788,18 +818,18 @@
                     return;
                 }
 
-                // 2. إنشاء المستخدم عبر Firebase Auth
+                // 2. إنشاء الحساب عبر Firebase Auth
                 const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
                 const user = userCredential.user;
 
-                // 3. معالجة صورة البروفايل
+                // 3. معالجة الصورة
                 let profileImageBase64 = "";
                 if (imageFile) {
                     try { profileImageBase64 = await processImage(imageFile); } 
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                // 4. جلب العداد المركزي لتوليد الكود التسلسلي STU-0001
+                // 4. جلب العداد التسلسلي الذكي STU-xxxx
                 const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
                 const configSnap = await window.getDoc(configDocRef);
 
@@ -820,40 +850,57 @@
                     counters: { nextStudentSeq: nextStudentSeq + 1 }
                 }, { merge: true });
 
-                // 5. استدعاء دالة الإنشاء لضمان الحفظ المباشر في كولكشن users باسم الإيميل ومع كافة البيانات
-                const createdObj = await createStudentAccount(window.firebaseDb, email, {
+                // 5. بناء هيكل بيانات الطالب وحفظه تحت مسار users -> students -> [email]
+                const studentPayload = {
                     uid: user.uid,
+                    id: generatedStudentId,
                     studentId: generatedStudentId,
+                    fullName: name,
                     name: name,
+                    gender: gender,
                     email: email,
+                    studentPhone: sPhone,
                     phone: sPhone,
                     parentPhone: pPhone,
-                    gender: gender,
-                    profileImage: profileImageBase64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%231e293b"/><circle cx="50" cy="38" r="18" fill="%2300a2ff"/><path d="M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28" fill="%2300a2ff"/></svg>',
-                    accountType: 'free',
+                    guardianPhone: pPhone,
+                    status: 'active',
+                    rank: 'strong',
+                    points: 0,
                     totalScore: 0,
-                    rank: 'weak'
-                });
+                    level: 'المستوى الأول',
+                    profileImage: profileImageBase64,
+                    avatar: profileImageBase64 || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+                    allowComparison: true,
+                    bgPatternEnabled: true,
+                    selectedEmojis: ['⭐', '🚀'],
+                    friends: [],
+                    friendRequests: [],
+                    chats: {},
+                    lastUpdated: new Date().toISOString(),
+                    lastSeenNotificationTime: Date.now()
+                };
 
+                const createdObj = await window.createStudentAccount(window.firebaseDb, email, studentPayload);
                 if (!createdObj) {
-                    throw new Error("فشل إنشاء ملف الطالب داخل قاعدة البيانات");
+                    throw new Error("فشل حفظ ملف الطالب في قاعدة البيانات");
                 }
 
                 const fullStudentData = createdObj.data;
 
+                // 6. إرسال الإشعار الترحيبي
                 await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, name);
 
-                // 6. حفظ البيانات والجلسة المحلية للبروفايل
+                // 7. تخزين الجلسة المحلية وتحويل الطالب
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
                 sessionStorage.setItem('currentStudentEmail', email);
                 sessionStorage.setItem('currentStudentId', generatedStudentId);
                 sessionStorage.setItem('chat_uid', user.uid);
                 sessionStorage.setItem('chat_name', name);
-                sessionStorage.setItem('chat_rank', 'weak');
+                sessionStorage.setItem('chat_rank', 'strong');
                 sessionStorage.setItem('chat_gender', gender);
-                sessionStorage.setItem('chat_streak', '1');
-                sessionStorage.setItem('chat_avatar', fullStudentData.profileImage);
+                sessionStorage.setItem('chat_streak', '5');
+                sessionStorage.setItem('chat_avatar', fullStudentData.avatar);
                 sessionStorage.setItem('studentUser', JSON.stringify(fullStudentData));
                 sessionStorage.setItem('currentUser', JSON.stringify(fullStudentData));
                 localStorage.setItem('cachedStudentProfile', JSON.stringify(fullStudentData));
