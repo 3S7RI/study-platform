@@ -1,35 +1,31 @@
-// student-service.js - ملف الخدمات الشامل والموحد لإدارة وجلب وتعديل بيانات طالب المنصة داخل مجموعة users
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+// student-service.js - ملف الخدمات الشامل والموحد لإدارة وجلب وتعديل بيانات طالب المنصة داخل مجموعة students
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
- * 1. البحث عن وثيقة الطالب داخل مجموعة users بأي وسيلة (Email, StudentId, أو UID)
+ * 1. البحث عن وثيقة الطالب داخل مجموعة students بأي وسيلة (Email, StudentId, أو UID)
  */
 export async function findStudentDocument(db, identifier) {
     if (!identifier) return null;
     const cleanId = String(identifier).toLowerCase().trim();
 
     try {
-        // البحث المباشر في مجموعة users باستخدام الـ Document ID (الإيميل) مع التحقق من الرول
-        let docRef = doc(db, "users", cleanId);
+        let docRef = doc(db, "students", cleanId);
         let docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().role === 'student') {
-            return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'users' };
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'students' };
         }
 
-        // البحث بواسطة حقل email داخل users للطلاب
-        let q = query(collection(db, "users"), where("email", "==", cleanId), where("role", "==", "student"));
+        let q = query(collection(db, "students"), where("email", "==", cleanId));
         let snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
-        // البحث بواسطة studentId
-        q = query(collection(db, "users"), where("studentId", "==", identifier), where("role", "==", "student"));
+        q = query(collection(db, "students"), where("studentId", "==", identifier));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
-        // البحث بواسطة uid
-        q = query(collection(db, "users"), where("uid", "==", identifier), where("role", "==", "student"));
+        q = query(collection(db, "students"), where("uid", "==", identifier));
         snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
+        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'students' };
 
         return null;
     } catch (e) {
@@ -39,7 +35,7 @@ export async function findStudentDocument(db, identifier) {
 }
 
 /**
- * 2. جلب بيانات الطالب فقط (بدون إنشاء تلقائي لتأمين المنصة)
+ * 2. جلب بيانات الطالب فقط
  */
 export async function getStudentData(db, studentIdentifier) {
     let studentObj = await findStudentDocument(db, studentIdentifier);
@@ -50,46 +46,90 @@ export async function getStudentData(db, studentIdentifier) {
 }
 
 /**
- * 3. إنشاء طالب جديد رسمياً وضمان حفظ جميع خانات التسجيل داخل كولكشن users باسم الإيميل
+ * 3. توليد الـ ID التسلسلي الذكي (STU-0001, STU-0002...) بدون تكرار أو فراغات
  */
-export async function createStudentAccount(db, studentIdentifier, studentData = {}) {
+export async function getNextSmartStudentId(db) {
     try {
-        const cleanId = String(studentIdentifier).toLowerCase().trim();
-        // الحفظ الأساسي والمؤكد داخل كولكشن "users" بحيث يكون الـ Document ID هو البريد الإلكتروني
-        const docRef = doc(db, "users", cleanId);
+        const studentsRef = collection(db, "students");
+        const snapshot = await getDocs(studentsRef);
         
-        const newStudentData = {
+        let existingNumbers = new Set();
+
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const sId = data.studentId || data.id || "";
+            if (sId.startsWith("STU-")) {
+                const numPart = parseInt(sId.replace("STU-", ""), 10);
+                if (!isNaN(numPart)) {
+                    existingNumbers.add(numPart);
+                }
+            }
+        });
+
+        let targetNum = 1;
+        while (existingNumbers.has(targetNum)) {
+            targetNum++;
+        }
+
+        let paddingLength = 4;
+        if (targetNum >= 10000) {
+            paddingLength = String(targetNum).length;
+        }
+
+        return 'STU-' + String(targetNum).padStart(paddingLength, '0');
+
+    } catch (e) {
+        console.error("خطأ في توليد الـ ID الذكي:", e);
+        return 'STU-0001';
+    }
+}
+
+/**
+ * 4. إنشاء حساب طالب جديد وضمان حفظ جميع البيانات داخل كولكشن students بـ إيميل الطالب كمعرف للمستند
+ */
+export async function createStudentAccount(db, email, studentData = {}) {
+    try {
+        const cleanEmail = String(email).toLowerCase().trim();
+        const docRef = doc(db, "students", cleanEmail);
+        
+        const finalStudentData = {
             role: 'student',
-            email: cleanId.includes('@') ? cleanId : (studentData.email || ''),
+            email: cleanEmail,
             name: studentData.name || studentData.fullName || 'طالب المنصة',
-            studentId: studentData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
+            fullName: studentData.fullName || studentData.name || 'طالب المنصة',
+            studentId: studentData.studentId || studentData.id || `STU-0001`,
+            id: studentData.studentId || studentData.id || `STU-0001`,
             uid: studentData.uid || '',
             phone: studentData.phone || studentData.studentPhone || '',
+            studentPhone: studentData.phone || studentData.studentPhone || '',
             parentPhone: studentData.parentPhone || studentData.guardianPhone || '',
-            gender: studentData.gender || studentData.type || 'male',
+            guardianPhone: studentData.parentPhone || studentData.guardianPhone || '',
+            gender: studentData.gender || 'male',
             totalScore: studentData.totalScore || 0,
-            rank: studentData.rank || 'weak',
+            points: studentData.points || 0,
+            rank: studentData.rank || 'strong',
             accountType: studentData.accountType || 'free',
             status: 'active',
             allowComparison: true,
             bgPatternEnabled: true,
             profileImage: studentData.profileImage || '',
-            createdAt: studentData.createdAt || new Date().toISOString(),
+            avatar: studentData.avatar || studentData.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+            createdAt: serverTimestamp(),
             lastUpdated: new Date().toISOString(),
             lastSeenNotificationTime: Date.now()
         };
 
-        await setDoc(docRef, newStudentData);
-        console.log("تم إنشاء حساب الطالب رسمياً في مجموعة users بـ Document ID (الإيميل):", cleanId);
-        return { id: cleanId, ref: docRef, data: newStudentData, collectionName: 'users' };
+        await setDoc(docRef, finalStudentData);
+        console.log("تم حفظ بيانات الطالب بنجاح في كولكشن students تحت الإيميل:", cleanEmail);
+        return { success: true, data: finalStudentData };
     } catch (e) {
-        console.error("خطأ في إنشاء حساب الطالب:", e);
+        console.error("خطأ في حفظ ملف الطالب:", e);
         return null;
     }
 }
 
 /**
- * 4. تعديل وتحديث بيانات الطالب الموجود فعلياً
+ * 5. تعديل وتحديث بيانات الطالب الموجود فعلياً
  */
 export async function updateStudentData(db, studentIdentifier, updateFields = {}) {
     try {
@@ -118,7 +158,7 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
 }
 
 /**
- * 5. تحديث وإضافة نقاط للطالب وتحديث مستواه ورتبته فوراً
+ * 6. تحديث وإضافة نقاط للطالب وتحديث مستواه ورتبته فوراً
  */
 export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
     if (!studentIdentifier || !pointsToAdd || pointsToAdd <= 0) return false;
@@ -133,6 +173,7 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
 
         await updateDoc(studentObj.ref, {
             totalScore: newTotalScore,
+            points: newTotalScore,
             rank: newRankInfo.rankKey,
             lastUpdated: new Date().toISOString()
         });
@@ -146,7 +187,32 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
 }
 
 /**
- * 6. حساب معلومات المستوى والرتبة والشارة
+ * 7. إرسال الإشعار الترحيبي للطالب الجديد
+ */
+export async function sendWelcomeNotification(db, studentEmail, studentName) {
+    try {
+        const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
+        const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
+        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨`;
+        
+        const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
+        const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
+        
+        await setDoc(doc(db, "adminNotifications", notifId), {
+            title: customTitle,
+            message: customMessage,
+            target: "single",
+            recipientEmail: studentEmail.toLowerCase().trim(),
+            sender: "إدارة المنصة 📖",
+            createdAt: serverTimestamp()
+        });
+    } catch (err) {
+        console.error("خطأ في حفظ الإشعار الترحيبي:", err);
+    }
+}
+
+/**
+ * 8. حساب معلومات المستوى والرتبة والشارة
  */
 export function calculateStudentRank(totalScore) {
     let score = totalScore || 0;
