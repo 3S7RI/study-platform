@@ -51,7 +51,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, doc, getDoc, setDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -71,6 +71,7 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.fetchSignInMethodsForEmail = fetchSignInMethodsForEmail;
         window.collection = collection;
         window.doc = doc;
         window.getDoc = getDoc;
@@ -78,10 +79,11 @@
         window.getDocs = getDocs;
         window.serverTimestamp = serverTimestamp;
 
+        // البحث في كولكشن students الأساسي مباشرة باستخدام إيميل الطالب
         window.findStudentDocument = async function(dbInstance, email) {
             try {
                 const cleanEmail = email.toLowerCase().trim();
-                const docRef = doc(dbInstance, "users", "students", "list", cleanEmail);
+                const docRef = doc(dbInstance, "students", cleanEmail);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) return snap.data();
                 return null;
@@ -91,10 +93,11 @@
             }
         };
 
+        // إنشاء حساب الطالب وحفظه في كولكشن students الأساسي مباشرة
         window.createStudentAccount = async function(dbInstance, email, data) {
             try {
                 const cleanEmail = email.toLowerCase().trim();
-                const docRef = doc(dbInstance, "users", "students", "list", cleanEmail);
+                const docRef = doc(dbInstance, "students", cleanEmail);
                 const finalData = {
                     ...data,
                     email: cleanEmail,
@@ -511,10 +514,10 @@
         }
         window.selectGender = selectGender;
 
-        // دالة ذكية لإيجاد أول ID متاح وتجنب التكرار والفراغات ودعم ما بعد الـ 9999
+        // توليد الـ ID الذكي من كولكشن students المباشر
         async function getNextSmartStudentId(db) {
             try {
-                const studentsRef = window.collection(db, "users", "students", "list");
+                const studentsRef = window.collection(db, "students");
                 const snapshot = await window.getDocs(studentsRef);
                 
                 let existingNumbers = new Set();
@@ -544,8 +547,8 @@
 
             } catch (e) {
                 console.error("خطأ في توليد الـ ID الذكي:", e);
-                const randomFallback = Math.floor(1000 + Math.random() * 9000);
-                return `STU-${randomFallback}`;
+                const timeFallback = Math.floor(Date.now() / 1000) % 10000;
+                return 'STU-' + String(timeFallback).padStart(4, '0');
             }
         }
 
@@ -670,9 +673,38 @@
             emailError.style.display = 'none';
             emailSuccess.style.display = 'none';
 
-            sendBtn.textContent = 'جاري الإرسال...';
+            if (!emailInput) {
+                emailError.textContent = 'الرجاء إدخال البريد الإلكتروني أولاً!';
+                emailError.style.display = 'block';
+                return;
+            }
+
+            sendBtn.textContent = 'جاري التحقق...';
             sendBtn.disabled = true;
 
+            try {
+                const signInMethods = await window.fetchSignInMethodsForEmail(window.firebaseAuth, emailInput);
+                if (signInMethods && signInMethods.length > 0) {
+                    emailError.textContent = 'هذا البريد الإلكتروني مسجل مسبقاً في نظام المصادقة!';
+                    emailError.style.display = 'block';
+                    sendBtn.textContent = 'إرسال كود';
+                    sendBtn.disabled = false;
+                    return;
+                }
+            } catch (err) {
+                console.log("الإيميل غير موجود في الـ Auth، يمكننا المتابعة:", err);
+            }
+
+            const existingCheck = await window.findStudentDocument(window.firebaseDb, emailInput);
+            if (existingCheck) {
+                emailError.textContent = 'هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!';
+                emailError.style.display = 'block';
+                sendBtn.textContent = 'إرسال كود';
+                sendBtn.disabled = false;
+                return;
+            }
+
+            sendBtn.textContent = 'جاري الإرسال...';
             const result = await sendEmailOtpProcess(emailInput, window.findStudentDocument, window.firebaseDb);
 
             if (result.success) {
@@ -789,7 +821,6 @@
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                // توليد الـ ID المتسلسل الذكي بدون تكرار أو فراغات
                 const generatedStudentId = await getNextSmartStudentId(window.firebaseDb);
 
                 const studentPayload = {
@@ -850,7 +881,7 @@
                 localStorage.removeItem('platform_login_time');
                 let errMsg = error.message;
                 if (error.code === 'auth/email-already-in-use') {
-                    errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً!';
+                    errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً في نظام المصادقة!';
                 }
                 alert('حدث خطأ أثناء التسجيل: ' + errMsg);
                 btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
