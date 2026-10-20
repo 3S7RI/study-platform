@@ -511,6 +511,44 @@
         }
         window.selectGender = selectGender;
 
+        // دالة ذكية لإيجاد أول ID متاح وتجنب التكرار والفراغات ودعم ما بعد الـ 9999
+        async function getNextSmartStudentId(db) {
+            try {
+                const studentsRef = window.collection(db, "users", "students", "list");
+                const snapshot = await window.getDocs(studentsRef);
+                
+                let existingNumbers = new Set();
+
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const sId = data.studentId || data.id || "";
+                    if (sId.startsWith("STU-")) {
+                        const numPart = parseInt(sId.replace("STU-", ""), 10);
+                        if (!isNaN(numPart)) {
+                            existingNumbers.add(numPart);
+                        }
+                    }
+                });
+
+                let targetNum = 1;
+                while (existingNumbers.has(targetNum)) {
+                    targetNum++;
+                }
+
+                let paddingLength = 4;
+                if (targetNum >= 10000) {
+                    paddingLength = String(targetNum).length;
+                }
+
+                return 'STU-' + String(targetNum).padStart(paddingLength, '0');
+
+            } catch (e) {
+                console.error("خطأ في توليد الـ ID الذكي:", e);
+                const randomFallback = Math.floor(1000 + Math.random() * 9000);
+                return `STU-${randomFallback}`;
+            }
+        }
+
         async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
             try {
                 const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
@@ -623,7 +661,6 @@
             });
         }
 
-        // ربط زر إرسال الـ OTP بملف الخدمات الخارجي
         document.getElementById('sendEmailOtpBtn').addEventListener('click', async () => {
             const emailInput = document.getElementById('email').value.trim().toLowerCase();
             const emailError = document.getElementById('emailError');
@@ -752,24 +789,8 @@
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                const configDocRef = window.doc(window.firebaseDb, "config", "platform data");
-                const configSnap = await window.getDoc(configDocRef);
-
-                let nextStudentSeq = 1;
-                if (configSnap.exists()) {
-                    const data = configSnap.data();
-                    if (data.counters && data.counters.nextStudentSeq) {
-                        nextStudentSeq = data.counters.nextStudentSeq;
-                    } else if (data.systemConfig && data.systemConfig.counters && data.systemConfig.counters.nextStudentSeq) {
-                        nextStudentSeq = data.systemConfig.counters.nextStudentSeq;
-                    }
-                }
-
-                const generatedStudentId = 'STU-' + String(nextStudentSeq).padStart(4, '0');
-
-                await window.setDoc(configDocRef, {
-                    counters: { nextStudentSeq: nextStudentSeq + 1 }
-                }, { merge: true });
+                // توليد الـ ID المتسلسل الذكي بدون تكرار أو فراغات
+                const generatedStudentId = await getNextSmartStudentId(window.firebaseDb);
 
                 const studentPayload = {
                     uid: user.uid,
