@@ -44,42 +44,43 @@ export async function findStudentDocument(db, identifier) {
 export async function getStudentData(db, studentIdentifier) {
     let studentObj = await findStudentDocument(db, studentIdentifier);
     if (studentObj) {
-        return studentObj; // الطالب موجود بالفعل
+        return studentObj; 
     }
     return null; 
 }
 
 /**
- * 3. إنشاء طالب جديد رسمياً بالحقول الموحدة النظيفة داخل مجموعة users
+ * 3. إنشاء طالب جديد رسمياً وضمان حفظ جميع خانات التسجيل داخل كولكشن users باسم الإيميل
  */
 export async function createStudentAccount(db, studentIdentifier, studentData = {}) {
     try {
         const cleanId = String(studentIdentifier).toLowerCase().trim();
+        // الحفظ الأساسي والمؤكد داخل كولكشن "users" بحيث يكون الـ Document ID هو البريد الإلكتروني
         const docRef = doc(db, "users", cleanId);
         
         const newStudentData = {
             role: 'student',
             email: cleanId.includes('@') ? cleanId : (studentData.email || ''),
-            name: studentData.name || 'طالب المنصة',
+            name: studentData.name || studentData.fullName || 'طالب المنصة',
             studentId: studentData.studentId || `STU-${Math.floor(1000 + Math.random() * 9000)}`,
             uid: studentData.uid || '',
-            phone: studentData.phone || '',
-            parentPhone: studentData.parentPhone || '',
-            gender: studentData.gender || 'male',
-            totalScore: 0,
-            rank: 'weak',
+            phone: studentData.phone || studentData.studentPhone || '',
+            parentPhone: studentData.parentPhone || studentData.guardianPhone || '',
+            gender: studentData.gender || studentData.type || 'male',
+            totalScore: studentData.totalScore || 0,
+            rank: studentData.rank || 'weak',
             accountType: studentData.accountType || 'free',
             status: 'active',
             allowComparison: true,
             bgPatternEnabled: true,
             profileImage: studentData.profileImage || '',
-            createdAt: new Date().toISOString(),
+            createdAt: studentData.createdAt || new Date().toISOString(),
             lastUpdated: new Date().toISOString(),
             lastSeenNotificationTime: Date.now()
         };
 
         await setDoc(docRef, newStudentData);
-        console.log("تم إنشاء حساب الطالب رسمياً في مجموعة users:", cleanId);
+        console.log("تم إنشاء حساب الطالب رسمياً في مجموعة users بـ Document ID (الإيميل):", cleanId);
         return { id: cleanId, ref: docRef, data: newStudentData, collectionName: 'users' };
     } catch (e) {
         console.error("خطأ في إنشاء حساب الطالب:", e);
@@ -103,7 +104,6 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
             lastUpdated: new Date().toISOString()
         };
 
-        // إذا تم تحديث النقاط، نقوم بحساب الرتبة تلقائياً
         if (payload.totalScore !== undefined) {
             payload.rank = calculateStudentRank(payload.totalScore).rankKey;
         }
