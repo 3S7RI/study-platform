@@ -85,10 +85,12 @@ export async function getNextSmartStudentId(db) {
 }
 
 /**
- * 4. إنشاء حساب طالب جديد وضمان حفظ جميع البيانات داخل كولكشن students بـ إيميل الطالب كمعرف للمستند
+ * 4. إنشاء حساب طالب جديد وحفظ البيانات المرسلة من الـ Index مع تكملة أي حقول ناقصة بأمان
  */
 export async function createStudentAccount(db, email, studentData = {}) {
     try {
+        if (!email) throw new Error("البريد الإلكتروني مطلوب لإنشاء مستند الطالب");
+        
         const cleanEmail = String(email).toLowerCase().trim();
         const docRef = doc(db, "students", cleanEmail);
         
@@ -97,26 +99,31 @@ export async function createStudentAccount(db, email, studentData = {}) {
             email: cleanEmail,
             name: studentData.name || studentData.fullName || 'طالب المنصة',
             fullName: studentData.fullName || studentData.name || 'طالب المنصة',
-            studentId: studentData.studentId || studentData.id || `STU-0001`,
-            id: studentData.studentId || studentData.id || `STU-0001`,
+            studentId: studentData.studentId || studentData.id || 'STU-0001',
+            id: studentData.studentId || studentData.id || 'STU-0001',
             uid: studentData.uid || '',
             phone: studentData.phone || studentData.studentPhone || '',
             studentPhone: studentData.phone || studentData.studentPhone || '',
             parentPhone: studentData.parentPhone || studentData.guardianPhone || '',
             guardianPhone: studentData.parentPhone || studentData.guardianPhone || '',
             gender: studentData.gender || 'male',
-            totalScore: studentData.totalScore || 0,
-            points: studentData.points || 0,
+            totalScore: studentData.totalScore !== undefined ? studentData.totalScore : 0,
+            points: studentData.points !== undefined ? studentData.points : 0,
             rank: studentData.rank || 'strong',
             accountType: studentData.accountType || 'free',
             status: 'active',
-            allowComparison: true,
-            bgPatternEnabled: true,
+            allowComparison: studentData.allowComparison !== undefined ? studentData.allowComparison : true,
+            bgPatternEnabled: studentData.bgPatternEnabled !== undefined ? studentData.bgPatternEnabled : true,
             profileImage: studentData.profileImage || '',
             avatar: studentData.avatar || studentData.profileImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
+            selectedEmojis: studentData.selectedEmojis || ['⭐', '🚀'],
+            friends: studentData.friends || [],
+            friendRequests: studentData.friendRequests || [],
+            chats: studentData.chats || {},
             createdAt: serverTimestamp(),
             lastUpdated: new Date().toISOString(),
-            lastSeenNotificationTime: Date.now()
+            lastSeenNotificationTime: Date.now(),
+            ...studentData // دمج أي حقول إضافية تم إرسالها من الـ Index مباشرة لضمان عدم فقدانها
         };
 
         await setDoc(docRef, finalStudentData);
@@ -191,6 +198,7 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
  */
 export async function sendWelcomeNotification(db, studentEmail, studentName) {
     try {
+        if (!studentEmail) return;
         const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
         const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
         const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨`;
