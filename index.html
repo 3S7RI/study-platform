@@ -52,7 +52,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        
+        // استدعاء الدوال من ملف الخدمات الخارجي المنظم
+        import { findStudentDocument, getNextSmartStudentId, createStudentAccount, sendWelcomeNotification } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -72,45 +75,12 @@
         window.firebaseDb = db;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
         window.fetchSignInMethodsForEmail = fetchSignInMethodsForEmail;
-        window.collection = collection;
-        window.doc = doc;
+        window.findStudentDocument = (email) => findStudentDocument(db, email);
+        window.getNextSmartStudentId = () => getNextSmartStudentId(db);
+        window.createStudentAccount = (email, data) => createStudentAccount(db, email, data);
+        window.sendWelcomeNotification = (email, name) => sendWelcomeNotification(db, email, name);
         window.getDoc = getDoc;
-        window.setDoc = setDoc;
-        window.getDocs = getDocs;
-        window.serverTimestamp = serverTimestamp;
-
-        // البحث في كولكشن students الأساسي مباشرة باستخدام إيميل الطالب
-        window.findStudentDocument = async function(dbInstance, email) {
-            try {
-                const cleanEmail = email.toLowerCase().trim();
-                const docRef = doc(dbInstance, "students", cleanEmail);
-                const snap = await getDoc(docRef);
-                if (snap.exists()) return snap.data();
-                return null;
-            } catch (e) {
-                console.error("خطأ في البحث عن الطالب:", e);
-                return null;
-            }
-        };
-
-        // إنشاء حساب الطالب وحفظه في كولكشن students الأساسي مباشرة
-        window.createStudentAccount = async function(dbInstance, email, data) {
-            try {
-                const cleanEmail = email.toLowerCase().trim();
-                const docRef = doc(dbInstance, "students", cleanEmail);
-                const finalData = {
-                    ...data,
-                    email: cleanEmail,
-                    role: 'student',
-                    createdAt: serverTimestamp()
-                };
-                await setDoc(docRef, finalData);
-                return { success: true, data: finalData };
-            } catch (e) {
-                console.error("خطأ في إنشاء ملف الطالب:", e);
-                return null;
-            }
-        };
+        window.doc = doc;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -514,66 +484,6 @@
         }
         window.selectGender = selectGender;
 
-        // توليد الـ ID الذكي من كولكشن students المباشر
-        async function getNextSmartStudentId(db) {
-            try {
-                const studentsRef = window.collection(db, "students");
-                const snapshot = await window.getDocs(studentsRef);
-                
-                let existingNumbers = new Set();
-
-                snapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const sId = data.studentId || data.id || "";
-                    if (sId.startsWith("STU-")) {
-                        const numPart = parseInt(sId.replace("STU-", ""), 10);
-                        if (!isNaN(numPart)) {
-                            existingNumbers.add(numPart);
-                        }
-                    }
-                });
-
-                let targetNum = 1;
-                while (existingNumbers.has(targetNum)) {
-                    targetNum++;
-                }
-
-                let paddingLength = 4;
-                if (targetNum >= 10000) {
-                    paddingLength = String(targetNum).length;
-                }
-
-                return 'STU-' + String(targetNum).padStart(paddingLength, '0');
-
-            } catch (e) {
-                console.error("خطأ في توليد الـ ID الذكي:", e);
-                const timeFallback = Math.floor(Date.now() / 1000) % 10000;
-                return 'STU-' + String(timeFallback).padStart(4, '0');
-            }
-        }
-
-        async function sendWelcomeNotificationToNewStudent(db, studentEmail, studentName) {
-            try {
-                const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
-                const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
-                const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨`;
-                
-                const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
-                const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
-                
-                await window.setDoc(window.doc(db, "adminNotifications", notifId), {
-                    title: customTitle,
-                    message: customMessage,
-                    target: "single",
-                    recipientEmail: studentEmail.toLowerCase().trim(),
-                    sender: "إدارة المنصة 📖",
-                    createdAt: window.serverTimestamp()
-                });
-            } catch (err) {
-                console.error("خطأ في حفظ الإشعار الترحيبي:", err);
-            }
-        }
-
         const themeToggleBtn = document.getElementById('themeToggleBtn');
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
@@ -695,7 +605,7 @@
                 console.log("الإيميل غير موجود في الـ Auth، يمكننا المتابعة:", err);
             }
 
-            const existingCheck = await window.findStudentDocument(window.firebaseDb, emailInput);
+            const existingCheck = await window.findStudentDocument(emailInput);
             if (existingCheck) {
                 emailError.textContent = 'هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!';
                 emailError.style.display = 'block';
@@ -804,7 +714,7 @@
             try {
                 localStorage.setItem('platform_login_time', Date.now().toString());
 
-                const existingStudent = await window.findStudentDocument(window.firebaseDb, email);
+                const existingStudent = await window.findStudentDocument(email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
                     btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
@@ -821,7 +731,7 @@
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                const generatedStudentId = await getNextSmartStudentId(window.firebaseDb);
+                const generatedStudentId = await window.getNextSmartStudentId();
 
                 const studentPayload = {
                     uid: user.uid,
@@ -852,14 +762,14 @@
                     lastSeenNotificationTime: Date.now()
                 };
 
-                const createdObj = await window.createStudentAccount(window.firebaseDb, email, studentPayload);
+                const createdObj = await window.createStudentAccount(email, studentPayload);
                 if (!createdObj) {
                     throw new Error("فشل حفظ ملف الطالب في قاعدة البيانات");
                 }
 
                 const fullStudentData = createdObj.data;
 
-                await sendWelcomeNotificationToNewStudent(window.firebaseDb, email, name);
+                await window.sendWelcomeNotification(email, name);
 
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'false');
