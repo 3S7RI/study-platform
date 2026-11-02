@@ -825,9 +825,24 @@
                 <div class="setting-item">
                     <span>إظهار المحادثة العامة للجميع:</span>
                     <label class="switch">
-                        <input type="checkbox" id="adminTogglePublicChat" onchange="togglePublicChatState(this)">
+                        <input type="checkbox" id="adminTogglePublicChat" onchange="saveChatAdminSettings()">
                         <span class="slider"></span>
                     </label>
+                </div>
+                <div class="setting-item">
+                    <span>مسح الرسائل القديمة تلقائياً:</span>
+                    <label class="switch">
+                        <input type="checkbox" id="adminAutoDelete" onchange="saveChatAdminSettings()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>مدة الاحتفاظ بالرسائل (ساعة):</span>
+                    <input type="number" id="adminRetentionHours" min="1" max="720" value="48" onchange="saveChatAdminSettings()" style="width:70px; padding:4px 6px; border-radius:8px; border:1px solid var(--card-border); background:var(--input-bg); color:var(--text-main);">
+                </div>
+                <div class="setting-item" style="flex-direction:column; align-items:stretch; gap:4px;">
+                    <span>رسالة الإغلاق (تظهر للطلاب):</span>
+                    <input type="text" id="adminClosedMessage" maxlength="200" placeholder="الدردشة العامة مغلقة حالياً" onchange="saveChatAdminSettings()" style="padding:6px 8px; border-radius:8px; border:1px solid var(--card-border); background:var(--input-bg); color:var(--text-main);">
                 </div>
             </div>
 
@@ -968,6 +983,20 @@
 
         localStorage.setItem('chat_uid', currentUser.uid);
 
+
+        /* ===== فحص نوع الطالب: الولاد في شات الولاد والبنات في شات البنات ===== */
+        const CHAT_PAGE_GENDER = 'female';
+        const CHAT_OTHER_PAGE = 'chat-boys.html';
+        let chatGenderOk = true;
+        (function(){
+            try {
+                if (PS.isAdminSession() || localStorage.getItem('isAdmin') === 'true') return;
+                const g = (PS.getStudent() || {}).gender;
+                if (g && g !== CHAT_PAGE_GENDER) { chatGenderOk = false; window.location.replace(CHAT_OTHER_PAGE); }
+                else if (!g) { chatGenderOk = false; }
+            } catch(e) {}
+        })();
+
         let currentRoomId = 'gender_female';
         let currentUnsub = null;
         let activeReplyData = null;
@@ -983,7 +1012,9 @@
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
             checkAdminPrivileges();
+            if (!chatGenderOk) { showGenderBlock(); return; }
             initRoomsBar();
+            listenChatState();
             loadRoom(currentRoomId);
             updateUserProfileUI();
             syncStudentCloudProfile();
@@ -1024,6 +1055,10 @@
                     
                     currentUser.avatar = data.profileImage || data.avatar || currentUser.avatar;
                     currentUser.frame = determineFrameByRank(currentUser.rank);
+                    if (!currentUser.isAdmin) {
+                        const g = data.gender || '';
+                        if (g && g !== CHAT_PAGE_GENDER) { window.location.replace(CHAT_OTHER_PAGE); return; }
+                    }
                     currentUser.email = data.email || currentUser.email;
                     currentUser.phone = data.phone || data.studentPhone || data.parentPhone || currentUser.phone;
                     if(data.streak !== undefined) currentUser.streak = parseInt(data.streak);
@@ -1137,15 +1172,8 @@
         }
 
         function initRoomsBar() {
-            db.collection('settings').doc('global_chat_state').get().then(doc => {
-                let publicActive = true;
-                if(doc.exists && doc.data().isActive === false) { publicActive = false; }
-                const btnPublic = document.getElementById('btnRoomPublic');
-                if(btnPublic) {
-                    if(publicActive || currentUser.isAdmin) { btnPublic.style.display = 'flex'; }
-                    else { btnPublic.style.display = 'none'; }
-                }
-            }).catch(() => {});
+            const btnPublic = document.getElementById('btnRoomPublic');
+            if (btnPublic) btnPublic.style.display = 'flex';
         }
 
         function switchRoom(roomType) {
@@ -1160,6 +1188,7 @@
                 document.getElementById('roomTitleDisplay').innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> المحادثة العامة المشتركة`;
             }
             loadRoom(currentRoomId);
+            applyChatState();
             updateOnlinePresence();
         }
 
@@ -1168,16 +1197,18 @@
             chatMessages.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding:15px; font-size:0.75rem;">جاري مزامنة الرسائل...</div>';
 
             if(currentUnsub) { currentUnsub(); }
+            cleanupOldMessages(roomId);
 
             currentUnsub = db.collection('rooms').doc(roomId).collection('messages')
-                .orderBy('timestamp', 'asc')
+                .orderBy('timestamp', 'desc')
+                .limit(CHAT_MESSAGES_LIMIT)
                 .onSnapshot(snapshot => {
                     chatMessages.innerHTML = '';
                     if(snapshot.empty) {
                         chatMessages.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding:20px; font-size:0.75rem;">لا توجد رسائل بعد. كوني أول المشاركات!</div>';
                         return;
                     }
-                    snapshot.forEach(doc => {
+                    snapshot.docs.slice().reverse().forEach(doc => {
                         const msg = doc.data();
                         msg.id = doc.id;
                         renderMessage(msg);
@@ -1458,6 +1489,80 @@
         }
     </script>
     <script>
+
+        /* ===== إعدادات الدردشة العامة + المسح التلقائي + الحد الأقصى للرسائل ===== */
+        const CHAT_MESSAGES_LIMIT = 100;
+        let chatState = { isActive: true, autoDelete: true, retentionHours: 48, closedMessage: '' };
+        let chatStateUnsub = null;
+
+        function listenChatState() {
+            if (chatStateUnsub) return;
+            chatStateUnsub = db.collection('settings').doc('global_chat_state').onSnapshot(doc => {
+                const d = doc.exists ? doc.data() : {};
+                chatState = {
+                    isActive: d.isActive !== false,
+                    autoDelete: d.autoDelete !== false,
+                    retentionHours: Number(d.retentionHours) > 0 ? Number(d.retentionHours) : 48,
+                    closedMessage: d.closedMessage || ''
+                };
+                applyChatState();
+                if (currentUser.isAdmin) fillAdminChatControls();
+            }, () => {});
+        }
+
+        function isPublicRoom() { return currentRoomId === 'public_general_room'; }
+        function chatWritable() { return !(isPublicRoom() && chatState.isActive === false && !currentUser.isAdmin); }
+
+        function applyChatState() {
+            const box = document.getElementById('chatInputAreaBox');
+            if (!box) return;
+            let banner = document.getElementById('chatClosedBanner');
+            const closed = !chatWritable();
+            if (closed) {
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'chatClosedBanner';
+                    banner.style.cssText = 'text-align:center; padding:10px 14px; font-size:0.8rem; font-weight:700; color:var(--text-sub); background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; margin:6px 10px;';
+                    box.parentNode.insertBefore(banner, box);
+                }
+                banner.textContent = '🔒 ' + (chatState.closedMessage || 'الدردشة العامة مغلقة حالياً من الإدارة، ارجع تاني قريب.');
+                box.style.display = 'none';
+            } else {
+                if (banner) banner.remove();
+                box.style.display = '';
+            }
+        }
+
+        function safeAddMessage(data) {
+            if (!chatWritable()) { applyChatState(); return Promise.reject(new Error('chat-closed')); }
+            return db.collection('rooms').doc(currentRoomId).collection('messages').add(data);
+        }
+
+        /* مسح الرسائل الأقدم من مدة الاحتفاظ (دفعات صغيرة، مرة كل 30 دقيقة لكل جهاز لكل غرفة) */
+        async function cleanupOldMessages(roomId) {
+            try {
+                if (chatState.autoDelete === false) return;
+                const key = 'chat_cleanup_' + roomId;
+                const last = parseInt(localStorage.getItem(key) || '0', 10);
+                if (Date.now() - last < 30 * 60 * 1000) return;
+                localStorage.setItem(key, String(Date.now()));
+                const cutoff = firebase.firestore.Timestamp.fromMillis(Date.now() - (chatState.retentionHours || 48) * 3600 * 1000);
+                const snap = await db.collection('rooms').doc(roomId).collection('messages')
+                    .where('timestamp', '<', cutoff).limit(50).get();
+                if (snap.empty) return;
+                const batch = db.batch();
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                if (snap.size === 50) localStorage.setItem(key, '0'); // لسه فيه رسائل قديمة، كمّل في المرة الجاية
+            } catch (e) { console.warn('cleanup skipped', e); }
+        }
+
+        function showGenderBlock() {
+            const m = document.getElementById('chatMessages');
+            if (m) m.innerHTML = '<div style="text-align:center; padding:30px 16px; color:var(--text-sub); font-size:0.9rem; line-height:1.8;">⚠️ نوعك (ولد/بنت) مش متسجل في حسابك.<br>روح للبروفايل وحدّث بياناتك الأول عشان تدخل الشات المناسب.</div>';
+            const box = document.getElementById('chatInputAreaBox'); if (box) box.style.display = 'none';
+        }
+
         function handleMainAction() {
             const input = document.getElementById('chatInput');
             const text = input.value.trim();
@@ -1487,7 +1592,7 @@
                 messageData.text = text;
             }
 
-            db.collection('rooms').doc(currentRoomId).collection('messages').add(messageData)
+            safeAddMessage(messageData)
                 .then(() => {
                     input.value = '';
                     clearPendingAttachment();
@@ -1584,7 +1689,7 @@
 
         function sendRecordedVoice() {
             if(!recordedVoiceBase64) return;
-            db.collection('rooms').doc(currentRoomId).collection('messages').add({
+            safeAddMessage({
                 uid: currentUser.uid,
                 studentId: currentUser.studentId,
                 name: currentUser.name,
@@ -1650,7 +1755,7 @@
 
             if(!question || options.length < 2) return alert('يرجى كتابة سؤال التصويت وخيارين على الأقل.');
 
-            db.collection('rooms').doc(currentRoomId).collection('messages').add({
+            safeAddMessage({
                 uid: currentUser.uid,
                 studentId: currentUser.studentId,
                 name: currentUser.name,
@@ -1695,7 +1800,7 @@
         function submitAsk() {
             const question = document.getElementById('askQuestionInput').value.trim();
             if(!question) return alert('يرجى كتابة نص السؤال.');
-            db.collection('rooms').doc(currentRoomId).collection('messages').add({
+            safeAddMessage({
                 uid: currentUser.uid,
                 studentId: currentUser.studentId,
                 name: currentUser.name,
@@ -1744,6 +1849,7 @@
             document.getElementById('settingStealthMode').checked = currentUser.stealthMode;
             document.getElementById('settingMentionRestrict').checked = currentUser.mentionRestrict;
             document.getElementById('settingSoundToggle').checked = currentUser.soundEnabled;
+            if (currentUser.isAdmin) fillAdminChatControls();
             document.getElementById('settingsModal').classList.add('active');
         }
 
@@ -1768,19 +1874,28 @@
             if(currentUser.isAdmin) {
                 const adminSec = document.getElementById('adminControlSection');
                 if(adminSec) adminSec.style.display = 'block';
-                db.collection('settings').doc('global_chat_state').get().then(doc => {
-                    let toggle = document.getElementById('adminTogglePublicChat');
-                    if(toggle) toggle.checked = !doc.exists || doc.data().isActive !== false;
-                }).catch(() => {});
             }
         }
 
-        function togglePublicChatState(checkboxElem) {
-            const isActive = checkboxElem.checked;
-            db.collection('settings').doc('global_chat_state').set({ isActive: isActive }, { merge: true })
-                .then(() => { initRoomsBar(); })
-                .catch(err => console.error(err));
+        function fillAdminChatControls() {
+            const st = chatState;
+            const t = document.getElementById('adminTogglePublicChat'); if (t) t.checked = st.isActive !== false;
+            const a = document.getElementById('adminAutoDelete'); if (a) a.checked = st.autoDelete !== false;
+            const h = document.getElementById('adminRetentionHours'); if (h) h.value = String(st.retentionHours || 48);
+            const m = document.getElementById('adminClosedMessage'); if (m) m.value = st.closedMessage || '';
         }
+
+        function saveChatAdminSettings() {
+            if (!currentUser.isAdmin) return;
+            const hours = Math.min(720, Math.max(1, parseInt(document.getElementById('adminRetentionHours').value, 10) || 48));
+            return db.collection('settings').doc('global_chat_state').set({
+                isActive: document.getElementById('adminTogglePublicChat').checked,
+                autoDelete: document.getElementById('adminAutoDelete').checked,
+                retentionHours: hours,
+                closedMessage: String(document.getElementById('adminClosedMessage').value || '').trim().slice(0, 200)
+            }, { merge: true }).catch(err => console.error(err));
+        }
+        function togglePublicChatState() { saveChatAdminSettings(); }
 
         // البحث عن طالب بالـ studentId (وثائق students اسمها الإيميل، لذلك نبحث بالحقل)
         async function fetchStudentBySid(sid) {

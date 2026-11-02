@@ -413,3 +413,27 @@ export function calculateStudentRank(totalScore) {
     }
     return { rankKey: 'weak', title: 'ضعيف', frameClass: 'frame-weak', badgeClass: 'badge-weak', color: '#ef4444' };
 }
+
+/* ------------------------------------------------------------------ */
+/* انتهاء الاشتراك: لو subscriptionExpiry عدّى والطالب لسه vip/trial    */
+/* نكتب مرة واحدة accountType=free و isSubscribed=false (بدون حذف أي بيانات) */
+/* ------------------------------------------------------------------ */
+export function isSubscriptionExpired(d) {
+    if (!d || !d.subscriptionExpiry) return false;
+    const t = new Date(d.subscriptionExpiry).getTime();
+    return !isNaN(t) && t <= Date.now();
+}
+
+export async function normalizeSubscription(db, emailKey, data) {
+    try {
+        if (!data || !isSubscriptionExpired(data)) return data;
+        const active = data.isSubscribed === true || data.accountType === 'vip' || data.accountType === 'trial';
+        if (!active) return data;
+        const fix = { accountType: 'free', isSubscribed: false, lastUpdated: new Date().toISOString() };
+        await updateDoc(doc(db, 'students', String(emailKey).toLowerCase().trim()), fix);
+        return { ...data, ...fix };
+    } catch (e) {
+        console.warn('normalizeSubscription skipped', e);
+        return data;
+    }
+}

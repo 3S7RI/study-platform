@@ -275,6 +275,18 @@
                 <a href="admin-users.html" class="card-action-btn">إدارة المشرفين والطلاب 👥</a>
             </div>
 
+            <!-- بطاقة طلبات الدفع -->
+            <div class="platform-card">
+                <div>
+                    <div class="card-heading-wrap">
+                        <div class="card-title-text">💳 طلبات الدفع</div>
+                        <div class="card-counter-badge" id="pendingPaymentsCount">...</div>
+                    </div>
+                    <p class="card-description">مراجعة طلبات الاشتراك بالمحفظة / InstaPay، الموافقة أو الرفض، وضبط رقم المحفظة ومواعيد العمل.</p>
+                </div>
+                <a href="admin-payments.html" class="card-action-btn">مراجعة طلبات الدفع 💳</a>
+            </div>
+
             <!-- بطاقة إدارة أكواد الـ VIP الذهبية المتلألئة (في النهاية خالص) -->
             <div class="platform-card vip-diamond">
                 <div>
@@ -309,7 +321,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -413,6 +425,15 @@
             } catch(e) {
                 console.error("خطأ جلب بيانات الأدمن:", e);
             }
+
+            // عداد طلبات الدفع المعلّقة (قراءة بسيطة على الطلبات المعلّقة فقط)
+            getDocs(query(collection(db, "subscriptionRequests"), where("status", "==", "pending")))
+                .then(snap => {
+                    const el = document.getElementById('pendingPaymentsCount');
+                    el.textContent = snap.size;
+                    if (snap.size > 0) { el.style.background = 'rgba(239,68,68,0.18)'; el.style.color = '#fca5a5'; el.style.borderColor = '#ef4444'; }
+                })
+                .catch(() => { document.getElementById('pendingPaymentsCount').textContent = '0'; });
 
             Promise.all([
                 getDocs(collection(db, "lessons")).catch(() => ({ size: 0 })),

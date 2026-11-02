@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلبات الدفع</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.08); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--gold); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.9rem; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        input:focus { border-color: var(--gold); }
+        .btn { border: none; border-radius: 8px; padding: 7px 14px; font-weight: 800; cursor: pointer; color: #fff; }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-ok { background: var(--success); } .btn-no { background: var(--danger); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); cursor: pointer; font-weight: 700; }
+        .tab.active { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
+        .req { border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--th-bg); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .req .info { line-height: 1.9; }
+        .req .info b { color: var(--gold); }
+        .req .acts { display: flex; gap: 8px; align-items: center; }
+        .badge { padding: 2px 8px; border-radius: 15px; font-size: 0.7rem; font-weight: 800; }
+        .b-pending { background: rgba(251,191,36,0.15); color: var(--gold); } .b-approved { background: rgba(16,185,129,0.15); color: var(--success); } .b-rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .muted { color: var(--text-muted); }
+        .empty { text-align: center; padding: 24px; color: var(--text-muted); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; z-index: 99; display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <a href="admin.html" class="back-btn">← لوحة الأدمن</a>
+        <div class="title">💳 طلبات الدفع</div>
+    </div>
+
+    <div class="card">
+        <h3>⚙️ إعدادات الدفع (اللي بيظهر للطالب)</h3>
+        <div class="grid">
+            <div><label>رقم المحفظة / InstaPay</label><input type="text" id="cfgWallet" placeholder="01xxxxxxxxx" dir="ltr"></div>
+            <div><label>الوصف (مثلاً: فودافون كاش)</label><input type="text" id="cfgLabel" placeholder="على رقم فودافون كاش / InstaPay"></div>
+            <div><label>بداية أوقات العمل</label><input type="text" id="cfgFrom" placeholder="10 صباحاً"></div>
+            <div><label>نهاية أوقات العمل</label><input type="text" id="cfgTo" placeholder="11 مساءً"></div>
+        </div>
+        <button class="btn btn-gold" style="margin-top:12px;" onclick="saveConfig()">حفظ الإعدادات</button>
+    </div>
+
+    <div class="card">
+        <div class="tabs">
+            <button class="tab active" data-st="pending" onclick="setTab('pending')">⏳ معلّقة <span id="cntPending"></span></button>
+            <button class="tab" data-st="approved" onclick="setTab('approved')">✅ مقبولة</button>
+            <button class="tab" data-st="rejected" onclick="setTab('rejected')">❌ مرفوضة</button>
+        </div>
+        <div id="list"><div class="empty">جاري التحميل...</div></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, runTransaction, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    const METHODS = { vodafone_cash: 'فودافون كاش', instapay: 'InstaPay', other_wallet: 'محفظة أخرى' };
+    const STAT = { pending: 'معلّق', approved: 'مقبول', rejected: 'مرفوض' };
+    const fmt = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+
+    let currentTab = 'pending';
+    let adminName = 'admin';
+
+    async function loadConfig() {
+        try {
+            const c = await getDoc(doc(db, 'config', 'payment'));
+            const d = c.exists() ? c.data() : {};
+            $('cfgWallet').value = d.walletNumber || '';
+            $('cfgLabel').value = d.walletLabel || '';
+            $('cfgFrom').value = d.workFrom || '';
+            $('cfgTo').value = d.workTo || '';
+        } catch (e) {}
+    }
+
+    window.saveConfig = async function () {
+        try {
+            await setDoc(doc(db, 'config', 'payment'), {
+                walletNumber: $('cfgWallet').value.trim(),
+                walletLabel: $('cfgLabel').value.trim(),
+                workFrom: $('cfgFrom').value.trim(),
+                workTo: $('cfgTo').value.trim(),
+                updatedAt: Date.now()
+            }, { merge: true });
+            toast('تم حفظ الإعدادات ✅');
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    window.setTab = function (st) {
+        currentTab = st;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.st === st));
+        loadRequests();
+    };
+
+    async function loadRequests() {
+        $('list').innerHTML = '<div class="empty">جاري التحميل...</div>';
+        try {
+            const snap = await getDocs(query(collection(db, 'subscriptionRequests'), where('status', '==', currentTab), limit(100)));
+            const rows = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+            if (currentTab === 'pending') $('cntPending').textContent = rows.length ? '(' + rows.length + ')' : '';
+            if (!rows.length) { $('list').innerHTML = '<div class="empty">مفيش طلبات هنا.</div>'; return; }
+            $('list').innerHTML = rows.map(r => `
+                <div class="req">
+                    <div class="info">
+                        <b>${esc(r.studentName || 'طالب')}</b> <span class="muted">(${esc(r.studentId)})</span>
+                        <span class="badge b-${esc(r.status)}">${STAT[r.status] || ''}</span><br>
+                        الباقة: <b>${esc(r.planName)}</b> • المبلغ: <b>${esc(r.amount)} جنيه</b> • المدة: ${esc(r.days)} يوم<br>
+                        رقم الدفع: <b dir="ltr">${esc(r.payerPhone)}</b> • الطريقة: ${esc(METHODS[r.method] || r.method)}<br>
+                        ${r.reference ? 'المرجع: ' + esc(r.reference) + '<br>' : ''}
+                        <span class="muted">${esc(r.email)} • ${fmt(r.createdAtMs)}</span>
+                        ${r.reviewNote ? '<br><span class="muted">ملاحظة: ' + esc(r.reviewNote) + '</span>' : ''}
+                    </div>
+                    ${r.status === 'pending' ? `<div class="acts">
+                        <button class="btn btn-ok" onclick="approveReq('${esc(r.id)}', this)">موافقة ✅</button>
+                        <button class="btn btn-no" onclick="rejectReq('${esc(r.id)}', this)">رفض ❌</button>
+                    </div>` : ''}
+                </div>`).join('');
+        } catch (e) {
+            console.error(e);
+            $('list').innerHTML = '<div class="empty">تعذر تحميل الطلبات.</div>';
+        }
+    }
+
+    // موافقة: الطلب والطالب في Transaction واحدة. لو عنده اشتراك شغال الأيام بتتضاف على المتبقي
+    window.approveReq = async function (id, btn) {
+        if (!confirm('تأكيد الموافقة وتفعيل الاشتراك؟')) return;
+        btn.disabled = true;
+        try {
+            const reqRef = doc(db, 'subscriptionRequests', id);
+            await runTransaction(db, async (tx) => {
+                const rs = await tx.get(reqRef);
+                if (!rs.exists()) throw new Error('GONE');
+                const r = rs.data();
+                if (r.status !== 'pending') throw new Error('DONE');
+                const stRef = doc(db, 'students', String(r.email).toLowerCase().trim());
+                const ss = await tx.get(stRef);
+                if (!ss.exists()) throw new Error('NO_STUDENT');
+                const st = ss.data();
+                const days = Number(r.days) || 0;
+                if (days < 1) throw new Error('BAD_DAYS');
+                let base = Date.now();
+                if (st.subscriptionExpiry) { const cur = new Date(st.subscriptionExpiry).getTime(); if (cur > base) base = cur; }
+                const expiry = new Date(base + days * 86400000).toISOString();
+                tx.update(stRef, { isSubscribed: true, subscriptionExpiry: expiry, accountType: 'vip', lastUpdated: new Date().toISOString() });
+                tx.update(reqRef, { status: 'approved', reviewedAt: Date.now(), reviewedBy: adminName, reviewNote: '' });
+            });
+            toast('تم تفعيل الاشتراك ✅');
+        } catch (e) {
+            const m = String(e && e.message || '');
+            toast(m.includes('DONE') ? 'الطلب اتراجع قبل كده' : m.includes('NO_STUDENT') ? 'مفيش حساب طالب بالإيميل ده' : 'حصل خطأ، جرّب تاني');
+        }
+        loadRequests();
+    };
+
+    window.rejectReq = async function (id, btn) {
+        const reason = prompt('سبب الرفض (هيظهر للطالب):');
+        if (reason === null) return;
+        btn.disabled = true;
+        try {
+            const reqRef = doc(db, 'subscriptionRequests', id);
+            await runTransaction(db, async (tx) => {
+                const rs = await tx.get(reqRef);
+                if (!rs.exists() || rs.data().status !== 'pending') throw new Error('DONE');
+                tx.update(reqRef, { status: 'rejected', reviewedAt: Date.now(), reviewedBy: adminName, reviewNote: String(reason).trim().slice(0, 200) || 'لم نستلم التحويل' });
+            });
+            toast('تم رفض الطلب');
+        } catch (e) { toast('الطلب اتراجع قبل كده'); }
+        loadRequests();
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        adminName = user.email || 'admin';
+        loadConfig();
+        loadRequests();
+    });
+</script>
+</body>
+</html>

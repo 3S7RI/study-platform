@@ -277,6 +277,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { normalizeSubscription } from "./student-service.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -468,7 +469,7 @@
                 const docSnap = await getDoc(doc(db, "students", cleanEmail));
 
                 if (docSnap.exists()) {
-                    const data = docSnap.data();
+                    const data = await normalizeSubscription(db, cleanEmail, docSnap.data());
                     const st = String(data.status || 'active').toLowerCase();
                     if (['banned', 'blocked', 'suspended', 'disabled', 'inactive'].includes(st)) {
                         PS.clearStudent();

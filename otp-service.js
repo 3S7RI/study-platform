@@ -20,6 +20,11 @@ export async function sendEmailOtpProcess(emailInput, findStudentFunc, dbInstanc
             body: JSON.stringify({ email: emailInput, type: 'student' })
         });
 
+        if (response.status === 429) {
+            const rl = await response.json().catch(() => ({}));
+            const wait = Number(rl.retryAfter) > 0 ? Number(rl.retryAfter) : 90;
+            return { success: false, retryAfter: wait, message: 'استنى ' + wait + ' ثانية قبل ما تطلب كود تاني' };
+        }
         if (!response.ok) {
             return { success: false, message: 'فشل الإرسال، حاول مرة أخرى بعد قليل' };
         }

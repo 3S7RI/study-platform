@@ -623,12 +623,14 @@
             } else {
                 emailError.textContent = result.message;
                 emailError.style.display = 'block';
-                sendBtn.textContent = 'إرسال كود';
-                sendBtn.disabled = false;
-                return;
+                if (!result.retryAfter) {
+                    sendBtn.textContent = 'إرسال كود';
+                    sendBtn.disabled = false;
+                    return;
+                }
             }
 
-            let timer = 60;
+            let timer = result.retryAfter || 90;
             sendBtn.disabled = true;
             clearInterval(emailCooldownTimer);
             emailCooldownTimer = setInterval(() => {

@@ -139,6 +139,19 @@ export default {
 
     if (path === "/send") {
       const type = body.type === "admin" ? "admin" : "student";
+
+      // حد 90 ثانية بين طلبات الكود لنفس الإيميل (Cloudflare KV، ربط باسم OTP_KV). لو الربط مش موجود الحد بيتخطى بدون ما يكسر الإرسال.
+      const RL_SECONDS = 90;
+      const rlKey = "rl:" + email;
+      if (env.OTP_KV) {
+        const last = Number(await env.OTP_KV.get(rlKey));
+        if (last) {
+          const left = Math.ceil((last + RL_SECONDS * 1000 - Date.now()) / 1000);
+          if (left > 0) return json({ error: "rate_limited", retryAfter: left }, 429, cors);
+        }
+        await env.OTP_KV.put(rlKey, String(Date.now()), { expirationTtl: RL_SECONDS });
+      }
+
       const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
       const exp = Date.now() + 10 * 60 * 1000;
       const sig = await hmac(env.OTP_SECRET, `${email}|${exp}|${code}`);
@@ -163,7 +176,10 @@ export default {
           htmlContent: html,
         }),
       });
-      if (!r.ok) return json({ error: "send failed", status: r.status }, 502, cors);
+      if (!r.ok) {
+        if (env.OTP_KV) await env.OTP_KV.delete(rlKey); // الإرسال فشل: متحسبش المحاولة على الطالب
+        return json({ error: "send failed", status: r.status }, 502, cors);
+      }
       return json({ ok: true, exp, sig }, 200, cors);
     }
 

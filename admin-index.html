@@ -470,6 +470,14 @@
                     body: JSON.stringify({ email: emailInput, type: "admin", name: nameInput })
                 });
 
+                if (response.status === 429) {
+                    const rl = await response.json().catch(() => ({}));
+                    const wait = Number(rl.retryAfter) > 0 ? Number(rl.retryAfter) : 90;
+                    emailError.textContent = 'استنى ' + wait + ' ثانية قبل ما تطلب كود تاني';
+                    emailError.style.display = 'block';
+                    startCooldown(wait);
+                    return;
+                }
                 if (!response.ok) throw new Error('فشل الإرسال');
                 const sendData = await response.json();
                 otpProof = { exp: sendData.exp, sig: sendData.sig };
@@ -477,7 +485,7 @@
                 emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح لبريدك';
                 emailSuccess.style.display = 'block';
                 document.getElementById('otpGroup').style.display = 'block';
-                startCooldown(60);
+                startCooldown(90);
                 sendBtn.textContent = 'إعادة الإرسال';
 
             } catch (error) {

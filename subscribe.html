@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <script src="session.js"></script>
+    <script>PS.guard();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة رحلة دراسية - الاشتراك</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --primary-hover: #4f46e5; --success: #10b981;
+            --danger: #ef4444; --gold: #fbbf24; --th-bg: rgba(255,255,255,0.04); --shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 14px; }
+        .container { max-width: 760px; margin: 0 auto; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+        .top-bar a { color: var(--text-main); text-decoration: none; font-weight: 700; font-size: 0.85rem; background: var(--th-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 10px; }
+        .top-bar h1 { font-size: 1rem; color: var(--gold); }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+        .card h2 { font-size: 0.95rem; margin-bottom: 12px; }
+        .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+        .plan { border: 2px solid var(--border-color); border-radius: 14px; padding: 16px 12px; text-align: center; cursor: pointer; background: var(--th-bg); transition: transform .2s, border-color .2s, box-shadow .2s; }
+        .plan:hover { transform: translateY(-3px); border-color: var(--primary); }
+        .plan.selected { border-color: var(--gold); box-shadow: 0 0 18px rgba(251,191,36,0.3); }
+        .plan .name { font-weight: 800; font-size: 0.95rem; margin-bottom: 6px; }
+        .plan .price { font-size: 1.7rem; font-weight: 900; color: var(--gold); }
+        .plan .price small { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+        .plan .days { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        label { display: block; font-size: 0.8rem; font-weight: 700; margin: 12px 0 5px; color: var(--text-muted); }
+        input, select { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); font-size: 0.9rem; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); }
+        select option { background: var(--bg-card); color: var(--text-main); }
+        .pay-box { background: rgba(251,191,36,0.08); border: 1px dashed var(--gold); border-radius: 14px; padding: 14px; text-align: center; margin-bottom: 6px; }
+        .pay-box .amount { font-size: 1.5rem; font-weight: 900; color: var(--gold); margin: 4px 0; }
+        .pay-box .wallet { font-size: 1.25rem; font-weight: 800; letter-spacing: 2px; direction: ltr; display: inline-block; margin: 4px 8px; }
+        .copy-btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-weight: 700; cursor: pointer; font-size: 0.78rem; }
+        .btn-main { width: 100%; margin-top: 16px; padding: 13px; border: none; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; color: #1e293b; background: linear-gradient(135deg, #fef08a, #fbbf24, #f59e0b); box-shadow: 0 4px 15px rgba(251,191,36,0.35); }
+        .btn-main:disabled { opacity: .5; cursor: not-allowed; }
+        .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; line-height: 1.7; }
+        .notice { border-radius: 14px; padding: 16px; line-height: 1.9; font-size: 0.88rem; }
+        .notice.ok { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.5); }
+        .notice.warn { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.5); }
+        .notice.bad { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.5); }
+        .status-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; }
+        .status-row:last-child { border-bottom: none; }
+        .st-pending { color: var(--gold); font-weight: 800; } .st-approved { color: var(--success); font-weight: 800; } .st-rejected { color: var(--danger); font-weight: 800; }
+        .err { color: var(--danger); font-size: 0.78rem; margin-top: 6px; display: none; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 0.85rem; z-index: 99; display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="top-bar">
+        <a href="profile.html">← رجوع للبروفايل</a>
+        <h1>💎 الاشتراك في المنصة</h1>
+    </div>
+
+    <div id="currentSub"></div>
+    <div id="pendingNotice"></div>
+
+    <div class="card" id="planCard">
+        <h2>1️⃣ اختار الباقة</h2>
+        <div class="plans" id="plans"></div>
+    </div>
+
+    <div class="card" id="payCard" style="display:none;">
+        <h2>2️⃣ حوّل المبلغ وبعدها سجّل بياناتك</h2>
+        <div class="pay-box">
+            <div style="font-size:0.8rem; color:var(--text-muted);">حوّل بالظبط المبلغ ده</div>
+            <div class="amount" id="payAmount"></div>
+            <div style="font-size:0.8rem; color:var(--text-muted);" id="walletLabel">على رقم المحفظة / InstaPay</div>
+            <div><span class="wallet" id="walletNumber">...</span> <button class="copy-btn" type="button" onclick="copyWallet()">نسخ 📋</button></div>
+        </div>
+        <p class="hint">⚠️ لازم تحوّل مبلغ الباقة المختارة بالظبط عشان الطلب يتقبل.</p>
+
+        <label for="payerPhone">رقم الموبايل اللي حوّلت منه (الرقم كامل)</label>
+        <input type="tel" id="payerPhone" inputmode="numeric" maxlength="11" placeholder="01xxxxxxxxx" autocomplete="off">
+        <label for="payMethod">طريقة التحويل</label>
+        <select id="payMethod">
+            <option value="vodafone_cash">فودافون كاش</option>
+            <option value="instapay">InstaPay</option>
+            <option value="other_wallet">محفظة أخرى</option>
+        </select>
+        <label for="payRef">رقم العملية / ملاحظة (اختياري)</label>
+        <input type="text" id="payRef" maxlength="60" placeholder="مثال: رقم العملية اللي ظهرلك بعد التحويل">
+        <div class="err" id="formErr"></div>
+        <button class="btn-main" id="submitBtn" type="button" onclick="submitRequest()">✅ أكدت التحويل، ابعت الطلب</button>
+    </div>
+
+    <div class="card" id="historyCard" style="display:none;">
+        <h2>📜 طلباتك السابقة</h2>
+        <div id="history"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const PLANS = [
+        { id: 'week',   name: '7 أيام',  days: 7,  price: 25 },
+        { id: 'month',  name: '28 يوم',  days: 28, price: 100 },
+        { id: 'quarter', name: '3 شهور', days: 90, price: 220 }
+    ];
+    const METHOD_LABELS = { vodafone_cash: 'فودافون كاش', instapay: 'InstaPay', other_wallet: 'محفظة أخرى' };
+    const STATUS_LABELS = { pending: 'قيد المراجعة ⏳', approved: 'تمت الموافقة ✅', rejected: 'مرفوض ❌' };
+
+    let selected = null, payCfg = {}, student = null, hasPending = false;
+
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    const fmtDate = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+
+    function renderPlans() {
+        $('plans').innerHTML = PLANS.map(p => `
+            <div class="plan ${selected && selected.id === p.id ? 'selected' : ''}" onclick="selectPlan('${p.id}')">
+                <div class="name">${p.name}</div>
+                <div class="price">${p.price} <small>ج</small></div>
+                <div class="days">اشتراك VIP لمدة ${p.days} يوم</div>
+            </div>`).join('');
+    }
+
+    window.selectPlan = function (id) {
+        selected = PLANS.find(p => p.id === id);
+        renderPlans();
+        $('payAmount').textContent = selected.price + ' جنيه';
+        $('payCard').style.display = hasPending ? 'none' : 'block';
+        $('payCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    window.copyWallet = function () {
+        const n = payCfg.walletNumber || '';
+        if (!n) return;
+        navigator.clipboard.writeText(n).then(() => toast('تم نسخ الرقم 📋')).catch(() => {});
+    };
+
+    function workHoursText() {
+        return payCfg.workFrom && payCfg.workTo ? ` (من ${PS.esc(payCfg.workFrom)} لغاية ${PS.esc(payCfg.workTo)} بتوقيت القاهرة)` : '';
+    }
+
+    function renderCurrentSub() {
+        const exp = student && student.subscriptionExpiry ? new Date(student.subscriptionExpiry).getTime() : 0;
+        if (exp > Date.now()) {
+            const left = Math.ceil((exp - Date.now()) / 86400000);
+            $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;">💎 اشتراكك شغال وباقي عليه <b>${left}</b> يوم. لو اشتركت تاني الأيام الجديدة بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
+        }
+    }
+
+    function renderPending(req) {
+        hasPending = !!req;
+        $('pendingNotice').innerHTML = req ? `
+            <div class="notice ok" style="margin-bottom:16px;">
+                <b>الطلب اتقدّم ✅</b><br>
+                متقلقش، فلوسك محفوظة. هيتم مراجعة طلبك في أقل من 6 ساعات بعد الدفع وفي أوقات العمل${workHoursText()}.
+                لو الوقت متأخر أوي أو بدري أوي، الطلب بيتراجع أول ما أبدأ شغل.<br>
+                <span style="color:var(--text-muted); font-size:0.78rem;">باقة ${PS.esc(req.planName || '')} • ${PS.esc(req.amount)} جنيه • من رقم ${PS.esc(req.payerPhone)}</span>
+            </div>` : '';
+        $('payCard').style.display = (!req && selected) ? 'block' : 'none';
+        $('planCard').style.display = req ? 'none' : 'block';
+    }
+
+    async function loadAll() {
+        student = PS.getStudent() || {};
+        const email = PS.email(), sid = PS.studentId();
+        try { const d = await getDoc(doc(db, 'students', email)); if (d.exists()) student = d.data(); } catch (e) {}
+        try { const c = await getDoc(doc(db, 'config', 'payment')); payCfg = c.exists() ? c.data() : {}; } catch (e) { payCfg = {}; }
+
+        $('walletNumber').textContent = payCfg.walletNumber || 'لسه الرقم متحددش';
+        if (payCfg.walletLabel) $('walletLabel').textContent = payCfg.walletLabel;
+        if (!payCfg.walletNumber) $('submitBtn').disabled = true;
+
+        renderCurrentSub();
+        renderPlans();
+
+        let reqs = [];
+        try {
+            const snap = await getDocs(query(collection(db, 'subscriptionRequests'), where('studentId', '==', sid), limit(30)));
+            reqs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+        } catch (e) { console.warn(e); }
+
+        renderPending(reqs.find(r => r.status === 'pending') || null);
+
+        const hist = reqs.slice(0, 8);
+        if (hist.length) {
+            $('historyCard').style.display = 'block';
+            $('history').innerHTML = hist.map(r => `
+                <div class="status-row">
+                    <div>باقة ${PS.esc(r.planName || '')} • ${PS.esc(r.amount)} ج<br><span style="color:var(--text-muted); font-size:0.72rem;">${fmtDate(r.createdAtMs)}</span>
+                    ${r.status === 'rejected' && r.reviewNote ? `<br><span style="color:var(--danger);">السبب: ${PS.esc(r.reviewNote)}</span>` : ''}</div>
+                    <div class="st-${PS.safeId(r.status)}">${STATUS_LABELS[r.status] || ''}</div>
+                </div>`).join('');
+        }
+    }
+
+    window.submitRequest = async function () {
+        const err = $('formErr'); err.style.display = 'none';
+        const fail = (m) => { err.textContent = m; err.style.display = 'block'; };
+        if (hasPending) return fail('عندك طلب قيد المراجعة بالفعل، استنى لحد ما يتراجع.');
+        if (!selected) return fail('اختار الباقة الأول.');
+        if (!payCfg.walletNumber) return fail('رقم الدفع لسه متحددش، جرّب بعد شوية.');
+        const phone = $('payerPhone').value.replace(/\s/g, '');
+        if (!/^01[0125][0-9]{8}$/.test(phone)) return fail('اكتب رقم الموبايل كامل (11 رقم) اللي حوّلت منه.');
+
+        const btn = $('submitBtn'); btn.disabled = true; btn.textContent = 'جاري إرسال الطلب...';
+        try {
+            // فحص تاني قبل الإضافة عشان طلب معلّق واحد بس لكل طالب
+            const sid = PS.studentId();
+            const chk = await getDocs(query(collection(db, 'subscriptionRequests'), where('studentId', '==', sid), where('status', '==', 'pending'), limit(1)));
+            if (!chk.empty) { renderPending({ ...chk.docs[0].data() }); return; }
+
+            const req = {
+                studentId: sid,
+                email: PS.email(),
+                studentName: (student && (student.fullName || student.name)) || '',
+                plan: selected.id,
+                planName: selected.name,
+                amount: selected.price,
+                days: selected.days,
+                payerPhone: phone,
+                method: $('payMethod').value,
+                reference: $('payRef').value.trim().slice(0, 60),
+                status: 'pending',
+                createdAt: serverTimestamp(),
+                createdAtMs: Date.now(),
+                reviewedAt: null,
+                reviewNote: ''
+            };
+            await addDoc(collection(db, 'subscriptionRequests'), req);
+            renderPending(req);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            toast('تم تقديم الطلب ✅');
+        } catch (e) {
+            console.error(e);
+            fail('حصل خطأ أثناء إرسال الطلب، جرّب تاني.');
+        } finally {
+            btn.disabled = !payCfg.walletNumber; btn.textContent = '✅ أكدت التحويل، ابعت الطلب';
+        }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user && !PS.isAdminSession()) { window.location.replace('login.html'); return; }
+        loadAll();
+    });
+</script>
+</body>
+</html>
