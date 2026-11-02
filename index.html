@@ -416,7 +416,7 @@
     </div>
 
     <script type="module">
-        import { sendEmailOtpProcess } from './otp-service.js';
+        import { sendEmailOtpProcess, verifyEmailOtp } from './otp-service.js';
 
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
@@ -463,7 +463,7 @@
             adminModal.classList.remove('active');
         });
 
-        let generatedEmailOtp = ""; 
+        let emailOtpProof = null; 
         let emailCooldownTimer = null;
         let selectedGender = 'male'; 
 
@@ -616,7 +616,7 @@
             const result = await sendEmailOtpProcess(emailInput, window.findStudentDocument, window.firebaseDb);
 
             if (result.success) {
-                generatedEmailOtp = result.otp;
+                emailOtpProof = result.proof;
                 emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح إلى بريدك الإلكتروني!';
                 emailSuccess.style.display = 'block';
                 document.getElementById('emailOtpGroup').style.display = 'block';
@@ -700,7 +700,7 @@
                 alert('الرجاء إرسال وإدخال كود التحقق الخاص بالبريد الإلكتروني أولاً!');
                 return;
             }
-            if (enteredEmailOtp !== generatedEmailOtp) {
+            if (!(await verifyEmailOtp(email, enteredEmailOtp, emailOtpProof))) {
                 document.getElementById('emailOtpError').style.display = 'block';
                 return;
             }
