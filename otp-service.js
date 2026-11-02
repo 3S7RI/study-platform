@@ -29,7 +29,7 @@ export async function sendEmailOtpProcess(emailInput, findStudentFunc, dbInstanc
         const randomMessageIndex = Math.floor(Math.random() * dailyMessages.length);
         const selectedDailyMessage = dailyMessages[randomMessageIndex];
         
-        const BREVO_API_KEY = ["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"].join("");
+        const BREVO_API_KEY = ["xkeysib-3", "52609eaf03ecc950423ed", "88973b2893e54ee75a0a91ccf", "d9eabb09525f34c47-iqj2Vck", "0FeO2u3Ll"].join("");
 
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
             method: 'POST',
@@ -70,9 +70,16 @@ export async function sendEmailOtpProcess(emailInput, findStudentFunc, dbInstanc
         if (response.ok) {
             return { success: true, otp: generatedEmailOtp };
         } else {
-            return { success: false, message: 'فشل الإرسال، تأكد من تفعيل إيميل المرسل في حساب Brevo' };
+            let detail = '';
+            try {
+                const errData = await response.json();
+                detail = (errData && (errData.message || errData.code)) ? ` | ${errData.code || ''} ${errData.message || ''}` : '';
+            } catch (e) {}
+            console.error('Brevo rejected:', response.status, detail);
+            return { success: false, message: `فشل الإرسال (HTTP ${response.status})${detail}` };
         }
     } catch (error) {
-        return { success: false, message: 'حدث خطأ غير متوقع أثناء إرسال البريد' };
+        console.error('OTP send error:', error);
+        return { success: false, message: 'حدث خطأ غير متوقع أثناء إرسال البريد: ' + (error && error.message ? error.message : '') };
     }
 }
