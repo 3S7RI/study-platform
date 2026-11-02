@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - الامتحانات التفاعلية</title>
@@ -282,7 +284,7 @@
         let timerInterval = null;
         let timeLeft = 0;
         let currentStudentEmail = '';
-        let currentStudentUid = '';
+        let currentStudentSid = '';
 
         let mediaRecordersMap = {};
         let audioChunksMap = {};
@@ -302,8 +304,8 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentStudentEmail = user.email || 'طالب المنصة';
-                currentStudentUid = user.uid;
+                currentStudentEmail = (user.email || PS.email() || '').toLowerCase().trim();
+                currentStudentSid = PS.studentId();
                 await fetchExamsListFromCloud();
             } else {
                 window.location.href = 'login.html';
@@ -456,7 +458,7 @@
 
         async function registerInitialAttemptInCloud(examId) {
             try {
-                let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
+                let studentUser = PS.getStudent() || {};
                 let email = currentStudentEmail;
                 let name = studentUser.fullname || studentUser.name || email.split('@')[0];
                 let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
@@ -727,7 +729,7 @@
 
         async function saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints) {
             try {
-                let studentUser = JSON.parse(sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || '{}');
+                let studentUser = PS.getStudent() || {};
                 let email = currentStudentEmail;
                 let name = studentUser.fullname || studentUser.name || email.split('@')[0];
                 let avatar = studentUser.avatar || 'https://www.w3schools.com/howto/img_avatar.png';
@@ -761,13 +763,8 @@
                     await updateDoc(examRef, { examSubmissions: submissions });
                 }
 
-                if (currentStudentUid && earnedPoints > 0) {
-                    const studentDocRef = doc(db, "users", currentStudentUid);
-                    await updateDoc(studentDocRef, {
-                        points: increment(earnedPoints),
-                        totalScore: increment(earnedPoints)
-                    }).catch(() => {});
-                }
+                // ملاحظة: النقاط الفعلية تُمنح مرة واحدة عند اعتماد الدرجة من الأدمن (exam-stats.html) بعلامة pointsAwarded،
+                // لذلك لا نضيفها هنا حتى لا تُحسب مرتين.
             } catch (err) { console.error("خطأ في حفظ النتيجة:", err); }
         }
     </script>

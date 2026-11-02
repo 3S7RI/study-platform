@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة المنتدى والأسئلة - لوحة التحكم الاحترافية 💬</title>
@@ -564,7 +565,7 @@
                                 <img src="${userImg}" class="post-avatar" alt="صورة">
                                 <div class="post-author-info">
                                     <h4>
-                                        <span style="display:inline-flex; align-items:center; gap:4px;">${post.authorName || 'طالب'} ${genderSvg}</span>
+                                        <span style="display:inline-flex; align-items:center; gap:4px;">${PS.esc(post.authorName || 'طالب')} ${genderSvg}</span>
                                         <span class="student-meta-badge">🎓 ${rankLabel} | ⭐ ${post.studentPoints || 0} نقطة</span>
                                     </h4>
                                     <span>${post.date || 'منذ قليل'} | <span style="color:var(--danger); font-weight:bold;">⏳ بانتظار مراجعة الأدمن</span></span>
@@ -575,8 +576,8 @@
                                 <button class="btn-danger" onclick="deletePendingPost('${post.id}')">رفض وحذف ❌</button>
                             </div>
                         </div>
-                        <div class="post-content">${post.content || ''}</div>
-                        ${post.image ? `<img src="${post.image}" class="post-media-img" onclick="openLightbox('${post.image}')">` : ''}
+                        <div class="post-content">${PS.esc(post.content || '')}</div>
+                        ${post.image ? `<img src="${PS.safeUrl(post.image)}" class="post-media-img" onclick="openLightbox(this.src)">` : ''}
                     </div>`;
             });
             container.innerHTML = html;
@@ -638,7 +639,7 @@
 
                         commentsHtml += `
                             <div class="comment-item">
-                                <div><b>💬 ${comm.authorName || 'مشرف'}:</b> ${comm.text}</div>
+                                <div><b>💬 ${PS.esc(comm.authorName || 'مشرف')}:</b> ${PS.esc(comm.text)}</div>
                                 ${comm.audio ? `
                                     <div class="custom-audio-player" style="margin-top:6px;">
                                         <audio id="${cAudioId}" src="${comm.audio}"></audio>
@@ -670,7 +671,7 @@
                                 <img src="${userImg}" class="post-avatar" alt="صورة">
                                 <div class="post-author-info">
                                     <h4>
-                                        <span style="display:inline-flex; align-items:center; gap:4px;">${post.authorName || 'طالب'} ${genderSvg}</span>
+                                        <span style="display:inline-flex; align-items:center; gap:4px;">${PS.esc(post.authorName || 'طالب')} ${genderSvg}</span>
                                         <span class="student-meta-badge">🎓 ${rankLabel} | ⭐ ${post.studentPoints || 0} نقطة</span>
                                     </h4>
                                     <span>${post.date || 'منذ قليل'} ${isPinned ? ' | <span style="color:#f59e0b; font-weight:bold;">📌 مثبت</span>' : ''}</span>
@@ -681,12 +682,12 @@
                                 <button class="btn-danger" onclick="deleteForumPost('${post.id}')">حذف</button>
                             </div>
                         </div>
-                        <div class="post-content">${post.content || ''}</div>
-                        ${post.image ? `<img src="${post.image}" class="post-media-img" onclick="openLightbox('${post.image}')" title="اضغط لتكبير الصورة">` : ''}
+                        <div class="post-content">${PS.esc(post.content || '')}</div>
+                        ${post.image ? `<img src="${PS.safeUrl(post.image)}" class="post-media-img" onclick="openLightbox(this.src)" title="اضغط لتكبير الصورة">` : ''}
                         
                         ${post.audio ? `
                             <div class="custom-audio-player">
-                                <audio id="${audioId}" src="${post.audio}"></audio>
+                                <audio id="${audioId}" src="${PS.safeUrl(post.audio)}"></audio>
                                 <button type="button" class="audio-play-btn" id="${btnId}" onclick="toggleCustomAudioPlay('${audioId}', '${btnId}', '${progId}', '${timeId}')">▶</button>
                                 <div class="audio-wave-graphic" onclick="const rect = this.getBoundingClientRect(); const pos = (event.clientX - rect.left) / rect.width; document.getElementById('${audioId}').currentTime = pos * document.getElementById('${audioId}').duration;">
                                     <div class="audio-wave-progress" id="${progId}"></div>

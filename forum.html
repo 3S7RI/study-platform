@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - منتدى الأسئلة والماستر 💬</title>
@@ -413,7 +415,8 @@
         const defaultMaleSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%2300a2ff'/><path d='M22 82c0-15.5 12.5-28 28-28s28 12.5 28 28' fill='%2300a2ff'/></svg>";
 
         let currentStudentName = "طالب المنصة";
-        let currentStudentLevel = "الثانوية العامة";
+        let currentStudentLevel = "ضعيف";
+        let currentStudentSid = "";
         let currentStudentPoints = 0;
         let currentStudentImage = defaultMaleSvg;
         let currentStudentGender = "male";
@@ -507,30 +510,28 @@
             }
         }
 
+        function applyStudentToForum(data) {
+            currentStudentName = data.fullName || data.name || 'طالب المنصة';
+            currentStudentPoints = Number(data.totalScore !== undefined ? data.totalScore : data.points) || 0;
+            currentStudentLevel = PS.rank(currentStudentPoints).label; // ضعيف / متوسط / قوي / قوي جداً / أسطوري
+            currentStudentImage = data.profileImage || defaultMaleSvg;
+            currentStudentGender = data.gender || data.type || 'male';
+            currentStudentSid = data.studentId || data.id || PS.studentId();
+        }
+
         onAuthStateChanged(auth, async (user) => {
-            await fetchAndApplyForumSettings(); 
-            if (user) {
+            await fetchAndApplyForumSettings();
+            const cached = PS.getStudent();
+            if (cached) applyStudentToForum(cached);
+            if (user || cached) {
                 try {
-                    let docSnap = await getDoc(doc(db, "students", user.uid));
-                    if (!docSnap.exists() && user.email) {
-                        docSnap = await getDoc(doc(db, "students", user.email.toLowerCase().trim()));
+                    const key = ((user && user.email) || PS.email() || '').toLowerCase().trim();
+                    const docSnap = key ? await getDoc(doc(db, "students", key)) : null;
+                    if (docSnap && docSnap.exists()) {
+                        applyStudentToForum(docSnap.data());
+                        PS.saveStudent(docSnap.data());
                     }
-                    if (docSnap.exists()) {
-                        let data = docSnap.data();
-                        currentStudentName = data.name || data.fullName || user.displayName || 'طالب المنصة';
-                        currentStudentLevel = data.level || data.rank || 'ضعيف';
-                        currentStudentPoints = data.totalScore || data.points || 0;
-                        currentStudentImage = data.profileImage || defaultMaleSvg;
-                        currentStudentGender = data.gender || data.type || 'male';
-                    }
-                } catch(e) {
-                    const cached = JSON.parse(localStorage.getItem('studentUser')) || {};
-                    currentStudentName = cached.fullName || cached.name || 'طالب المنصة';
-                    currentStudentLevel = cached.level || 'ضعيف';
-                    currentStudentPoints = cached.points || 0;
-                    currentStudentImage = cached.profileImage || defaultMaleSvg;
-                    currentStudentGender = cached.gender || 'male';
-                }
+                } catch(e) { console.warn('استخدام النسخة المحفوظة من بيانات الطالب', e); }
             }
             loadForumData();
         });
@@ -753,6 +754,7 @@
 
             let newPost = {
                 authorName: currentStudentName,
+                authorId: currentStudentSid || PS.studentId(),
                 studentLevel: currentStudentLevel,
                 studentPoints: currentStudentPoints,
                 profileImage: currentStudentImage,
@@ -867,13 +869,13 @@
                         commentsHtml += `
                             <div class="comment-item">
                                 <div class="comment-header-row">
-                                    <span class="comment-author">${c.authorName}</span>
+                                    <span class="comment-author">${PS.esc(c.authorName)}</span>
                                     ${badgeHtml}
                                 </div>
-                                <div style="margin-top: 4px; line-height: 1.5; color: var(--text-main);">${c.text}</div>
+                                <div style="margin-top: 4px; line-height: 1.5; color: var(--text-main);">${PS.esc(c.text)}</div>
                                 ${c.audio ? `
                                     <div class="custom-audio-player" style="margin-top:8px;">
-                                        <audio id="${cAudioId}" src="${c.audio}"></audio>
+                                        <audio id="${cAudioId}" src="${PS.safeUrl(c.audio)}"></audio>
                                         <button type="button" class="audio-play-btn" id="${cBtnId}" onclick="toggleCustomAudioPlay('${cAudioId}', '${cBtnId}', '${cProgId}', '${cTimeId}')">▶</button>
                                         <div class="audio-wave-graphic" onclick="const rect = this.getBoundingClientRect(); const pos = (event.clientX - rect.left) / rect.width; document.getElementById('${cAudioId}').currentTime = pos * document.getElementById('${cAudioId}').duration;">
                                             <div class="audio-wave-progress" id="${cProgId}"></div>
@@ -917,7 +919,7 @@
                             <img src="${userImg}" class="post-avatar" alt="صورة">
                             <div class="post-author-info">
                                 <h4>
-                                    <span style="display:inline-flex; align-items:center; gap:4px;">${post.authorName} ${genderSvg}</span>
+                                    <span style="display:inline-flex; align-items:center; gap:4px;">${PS.esc(post.authorName)} ${genderSvg}</span>
                                     <span class="student-meta-badge">🎓 ${rankLabel} | ⭐ ${post.studentPoints || 0} نقطة</span>
                                 </h4>
                                 <span>${post.date || 'منذ قليل'}</span>
@@ -925,12 +927,12 @@
                         </div>
                         ${canDelete ? `<button class="delete-post-btn" onclick="deleteQuestionPost('${post.id}')">🗑️ حذف</button>` : ''}
                     </div>
-                    ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
-                    ${post.image ? `<img src="${post.image}" class="post-media-img" onclick="openLightbox('${post.image}')" title="اضغط لتكبير الصورة">` : ''}
+                    ${post.content ? `<div class="post-content">${PS.esc(post.content)}</div>` : ''}
+                    ${post.image ? `<img src="${PS.safeUrl(post.image)}" class="post-media-img" onclick="openLightbox(this.src)" title="اضغط لتكبير الصورة">` : ''}
                     
                     ${post.audio ? `
                         <div class="custom-audio-player">
-                            <audio id="${audioId}" src="${post.audio}"></audio>
+                            <audio id="${audioId}" src="${PS.safeUrl(post.audio)}"></audio>
                             <button type="button" class="audio-play-btn" id="${btnId}" onclick="toggleCustomAudioPlay('${audioId}', '${btnId}', '${progId}', '${timeId}')">▶</button>
                             <div class="audio-wave-graphic" onclick="const rect = this.getBoundingClientRect(); const pos = (event.clientX - rect.left) / rect.width; document.getElementById('${audioId}').currentTime = pos * document.getElementById('${audioId}').duration;">
                                 <div class="audio-wave-progress" id="${progId}"></div>

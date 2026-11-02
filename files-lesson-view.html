@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - عرض ومشاهدة الحصة</title>
@@ -166,6 +168,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, updateDoc, increment, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { addPointsToStudent } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -206,7 +209,7 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUserId = user.uid;
+                currentUserId = PS.studentId();
                 currentUserEmail = user.email || user.displayName || "طالب معتمد";
             }
             const urlParams = new URLSearchParams(window.location.search);
@@ -274,7 +277,7 @@
 
                 if (currentUserId) {
                     try {
-                        let userRef = doc(db, "users", currentUserId);
+                        let userRef = doc(db, "students", PS.email());
                         let userSnap = await getDoc(userRef);
                         if (userSnap.exists()) {
                             let userData = userSnap.data();
@@ -334,7 +337,7 @@
 
             if (!currentUserId) return;
             try {
-                let userRef = doc(db, "users", currentUserId);
+                let userRef = doc(db, "students", PS.email());
                 let userSnap = await getDoc(userRef);
                 if (!userSnap.exists()) return;
                 
@@ -354,10 +357,10 @@
                 lessonsActivity[activeLessonId] = act;
                 let updatePayload = { lessonsActivity: lessonsActivity };
                 let addPts = pts[contentType] !== undefined ? pts[contentType] : 5;
-                if (shouldAddPoints) updatePayload.points = increment(addPts);
-
                 await setDoc(userRef, updatePayload, { merge: true });
-            } catch(e) {}
+                // النقاط والرتبة تتحدثان معاً (points + totalScore + rank + level)
+                if (shouldAddPoints && addPts) await addPointsToStudent(db, PS.email(), addPts);
+            } catch(e) { console.error('تعذر حفظ نشاط الحصة:', e); }
         };
 
         function renderLessonPage() {
@@ -627,7 +630,7 @@
 
             if (currentUserId && activeLessonId) {
                 try {
-                    let userRef = doc(db, "users", currentUserId);
+                    let userRef = doc(db, "students", PS.email());
                     let userSnap = await getDoc(userRef);
                     let userData = userSnap.exists() ? userSnap.data() : {};
                     let lessonsActivity = userData.lessonsActivity || {};

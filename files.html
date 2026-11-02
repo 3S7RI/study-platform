@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - مكتبة الحصص والقاعات</title>
@@ -223,15 +225,15 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                currentUserId = user.uid;
-                await fetchUserData(currentUserId);
+                currentUserId = PS.studentId();
+                await fetchUserData();
             }
             await fetchCloudLessons();
         });
 
-        async function fetchUserData(uid) {
+        async function fetchUserData() {
             try {
-                let userRef = doc(db, "users", uid);
+                let userRef = doc(db, "students", PS.email());
                 let userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
                     currentUserData = userSnap.data();
@@ -287,7 +289,7 @@
 
             if (currentUserId) {
                 try {
-                    let userRef = doc(db, "users", currentUserId);
+                    let userRef = doc(db, "students", PS.email());
                     
                     let userSnap = await getDoc(userRef);
                     let userData = userSnap.exists() ? userSnap.data() : (currentUserData || {});

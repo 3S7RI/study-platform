@@ -469,7 +469,7 @@
                 اجمع النقاط من خلال إكمال الحصص والامتحانات لتتطور وترتقي بمستواك! 🚀
             </p>
             <div class="rank-guide-item">
-                <span class="rank-guide-title" style="color: #fca5a5;">🔴 مبتدئ (ضعيف)</span>
+                <span class="rank-guide-title" style="color: #fca5a5;">🔴 ضعيف</span>
                 <span class="rank-guide-points">0 - 499 نقطة</span>
             </div>
             <div class="rank-guide-item">
@@ -506,7 +506,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { findStudentDocument, addPointsToStudent, calculateStudentRank } from "./student-service.js";
+        import { findStudentDocument, addPointsToStudent, calculateStudentRank, deleteStudentAccountDoc } from "./student-service.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -995,8 +995,9 @@
             if (confirm("تحذير: هل تريد حذف حساب هذا الطالب نهائياً؟")) {
                 try {
                     let studentDoc = await findStudentDocument(db, currentEditingStudentId);
-                    let colName = studentDoc ? studentDoc.collectionName : "students";
-                    await deleteDoc(doc(db, colName, currentEditingStudentId));
+                    if (!studentDoc) { alert("لم يتم العثور على الطالب."); return; }
+                    // الوثيقة اسمها الإيميل: نحذفها مع إرجاع الـ ID للفراغات
+                    await deleteStudentAccountDoc(db, studentDoc.id);
                     alert("🗑️ تم حذف حساب الطالب نهائياً.");
                     closeStudentModal();
                     const studentsSnap = await getDocs(collection(db, "students"));

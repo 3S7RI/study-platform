@@ -185,7 +185,7 @@
                             <th>الحالة</th>
                             <th>استخدم بواسطة</th>
                             <th>تاريخ الإنشاء</th>
-                            <th>تاريخ الانتهاء</th>
+                            <th>مدة الاشتراك</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -242,14 +242,13 @@
             }
         });
 
-        // دالة لتوليد كود معقد وصعب التخمين
+        // دالة لتوليد كود معقد وصعب التخمين (عشوائية تشفيرية بدل Math.random)
         function generateComplexCode() {
-            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; 
-            let part1 = "", part2 = "", part3 = "";
-            for(let i=0; i<4; i++) part1 += chars.charAt(Math.floor(Math.random() * chars.length));
-            for(let i=0; i<4; i++) part2 += chars.charAt(Math.floor(Math.random() * chars.length));
-            for(let i=0; i<4; i++) part3 += chars.charAt(Math.floor(Math.random() * chars.length));
-            return `VIP-${part1}-${part2}-${part3}`;
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            const buf = new Uint32Array(12);
+            crypto.getRandomValues(buf);
+            const pick = (from) => { let out = ""; for (let i = from; i < from + 4; i++) out += chars.charAt(buf[i] % chars.length); return out; };
+            return `VIP-${pick(0)}-${pick(4)}-${pick(8)}`;
         }
 
         // دالة توليد الأكواد مع الصلاحية المختارة
@@ -294,6 +293,7 @@
                         code: codeString,
                         isUsed: false,
                         usedBy: null,
+                        durationDays: validityDays,   // مدة الاشتراك التي يحصل عليها الطالب عند التفعيل
                         createdAt: serverTimestamp(),
                         expiresAt: Timestamp.fromDate(expiryDate)
                     });
@@ -363,9 +363,8 @@
                         ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) 
                         : 'منذ قليل';
 
-                    let expiresFormatted = item.expiresAt?.toMillis 
-                        ? new Date(item.expiresAt.toMillis()).toLocaleDateString('ar-EG') 
-                        : 'بلا حدود';
+                    let dDays = Number(item.durationDays) || (item.expiresAt?.toMillis && item.createdAt?.toMillis ? Math.round((item.expiresAt.toMillis() - item.createdAt.toMillis()) / 86400000) : 0);
+                    let expiresFormatted = dDays >= 9999 ? 'بلا حدود' : (dDays ? dDays + ' يوم' : '30 يوم');
 
                     html += `
                         <tr>

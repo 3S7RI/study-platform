@@ -5,27 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - تسجيل الدخول</title>
     
-    <!-- التحقق الأوتوماتيكي للطلاب فقط (تم استثناء الأدمن لزيادة الأمان وعدم حفظ جلسته أوتوماتيكياً) -->
+    <script src="session.js"></script>
+    <!-- التحقق الأوتوماتيكي للطلاب فقط: الجلسة محفوظة 48 ساعة، والأدمن لا تُحفظ جلسته -->
     <script>
         (function() {
-            const loginTime = localStorage.getItem('platform_login_time');
-            const userType = localStorage.getItem('platform_user_type'); // 'admin' أو 'student'
-            
-            if (loginTime && userType) {
-                // إذا كان المستخدم الأخير مسجلاً كأدمن، نقوم بمسح الجلسة فوراً لعدم تفعيل الـ 48 ساعة له
-                if (userType === 'admin') {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                } else {
-                    // خاصية الـ 48 ساعة تعمل للطلاب فقط
-                    const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-                    if (hoursPassed <= 48) {
-                        window.location.replace('main.html');
-                    } else {
-                        localStorage.clear();
-                        sessionStorage.clear();
-                    }
-                }
+            var userType = localStorage.getItem('platform_user_type'); // 'admin' أو 'student'
+            if (userType === 'admin') {
+                // الأدمن يسجل دخوله دائماً من جديد: نمسح أعلام الأدمن فقط (مع الإبقاء على الثيم والإعدادات)
+                localStorage.removeItem('platform_user_type');
+                localStorage.removeItem('isAdmin');
+                localStorage.removeItem('platform_login_time');
+                sessionStorage.clear();
+            } else if (PS.isFresh() && PS.email() && PS.studentId()) {
+                window.location.replace('main.html');
+            } else if (PS.loginTime()) {
+                PS.clearStudent(); // انتهت الـ 48 ساعة
             }
         })();
     </script>
@@ -33,8 +27,9 @@
     <!-- استيراد مكتبات Firebase SDK (نسخة 10 المعيارية) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { ensureStudentConsistency } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -54,6 +49,8 @@
         window.firebaseDb = db;
         window.signInWithEmailAndPassword = signInWithEmailAndPassword;
         window.sendPasswordResetEmail = sendPasswordResetEmail;
+        window.signOutUser = () => signOut(auth);
+        window.ensureStudentConsistency = (email) => ensureStudentConsistency(db, email);
         window.doc = doc;
         window.getDoc = getDoc;
     </script>
@@ -424,8 +421,8 @@
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            // تنظيف أي بيانات مؤقتة قديمة لمنع التداخل
-            localStorage.clear();
+            // تنظيف بيانات الجلسة السابقة فقط (دون مسح الثيم والإعدادات)
+            PS.clearStudent();
             sessionStorage.clear();
 
             const email = document.getElementById('email').value.trim().toLowerCase();
@@ -441,20 +438,19 @@
             btn.disabled = true;
 
             try {
-                // 1. فحص مجموعة الأدمن بدقة أولاً في قاعدة البيانات
-                const adminDocRef = window.doc(window.firebaseDb, "admins", email);
-                const adminSnap = await window.getDoc(adminDocRef);
+                // 1. تسجيل الدخول في Firebase Auth أولاً
+                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
 
+                // 2. هل هو أدمن؟
+                const adminSnap = await window.getDoc(window.doc(window.firebaseDb, "admins", email));
                 if (adminSnap.exists()) {
-                    await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // للأدمن: لا نقوم بتفعيل خاصية الـ 48 ساعة أوتوماتيكياً (لن يتم حفظ وقت الدخول للأدمن لضمان طلب تسجيل الدخول دائماً للأمان)
+                    // الأدمن: لا نحفظ وقت الدخول (لا توجد جلسة 48 ساعة للأدمن، يسجل دخوله كل مرة للأمان)
                     localStorage.setItem('platform_user_type', 'admin');
                     localStorage.setItem('isAdmin', 'true');
-                    
+
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('isAdmin', 'true');
                     sessionStorage.setItem('adminRole', adminData.role || 'admin');
@@ -467,43 +463,42 @@
                     return;
                 }
 
-                // 2. فحص مجموعة الطلاب الحقيقيين إذا لم يكن مسجلاً في الأدمن
-                const studentDocRef = window.doc(window.firebaseDb, "students", email);
-                const studentSnap = await window.getDoc(studentDocRef);
-
-                if (studentSnap.exists()) {
-                    await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
-
-                    const studentData = studentSnap.data();
-                    const studentDataString = JSON.stringify(studentData);
-                    
-                    // للطلاب: نقوم بتفعيل خاصية الـ 48 ساعة بشكل طبيعي
-                    localStorage.setItem('platform_login_time', Date.now().toString());
-                    localStorage.setItem('platform_user_type', 'student');
-                    localStorage.setItem('isAdmin', 'false');
-
-                    sessionStorage.setItem('isLoggedIn', 'true');
-                    sessionStorage.setItem('isAdmin', 'false');
-                    sessionStorage.setItem('currentStudentEmail', studentData.email || email);
-                    sessionStorage.setItem('currentStudentId', studentData.studentId || studentData.id || '');
-                    sessionStorage.setItem('studentUser', studentDataString);
-                    sessionStorage.setItem('currentUser', studentDataString);
-
-                    window.location.replace('main.html');
-                    return;
+                // 3. طالب: نوحّد بياناته (ID صحيح، حقول مكررة، رتبة) ثم نقرأ الوثيقة
+                let studentData = await window.ensureStudentConsistency(email);
+                if (!studentData) {
+                    const studentSnap = await window.getDoc(window.doc(window.firebaseDb, "students", email));
+                    studentData = studentSnap.exists() ? studentSnap.data() : null;
                 }
 
-                throw new Error('البريد الإلكتروني غير مسجل معنا أو غير مصرح له.');
+                if (!studentData) {
+                    try { await window.signOutUser(); } catch (e) {}
+                    throw new Error('البريد الإلكتروني غير مسجل معنا أو غير مصرح له.');
+                }
+
+                const st = String(studentData.status || 'active').toLowerCase();
+                if (['banned', 'blocked', 'suspended', 'disabled', 'inactive'].includes(st)) {
+                    try { await window.signOutUser(); } catch (e) {}
+                    throw new Error('هذا الحساب موقوف، تواصل مع إدارة المنصة.');
+                }
+
+                // جلسة الطالب: 48 ساعة من الآن في localStorage
+                PS.startSession();
+                PS.saveStudent(studentData);
+
+                window.location.replace('main.html');
+                return;
 
             } catch (error) {
                 console.error(error);
-                localStorage.clear();
+                PS.clearStudent();
                 sessionStorage.clear();
 
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.message.includes('غير مسجل')) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || (error.message || '').includes('غير مسجل')) {
                     emailError.style.display = 'block';
                 } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                     passError.style.display = 'block';
+                } else if (error.code === 'auth/too-many-requests') {
+                    showPlatformModal('محاولات كثيرة', 'تم إيقاف المحاولات مؤقتاً بسبب كثرة المحاولات الخاطئة، حاول بعد قليل أو استعد كلمة المرور.');
                 } else {
                     showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + error.message);
                 }

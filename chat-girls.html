@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - قناة دردشة الطالبات</title>
@@ -946,8 +948,8 @@
         const db = firebase.firestore();
 
         let currentUser = {
-            uid: localStorage.getItem('chat_uid') || localStorage.getItem('currentStudentUid') || 'girl_' + Math.random().toString(36).substring(2, 9),
-            studentId: localStorage.getItem('currentStudentId') || 'STU-0001',
+            uid: PS.studentId() || ('ADMIN-' + PS.safeId(sessionStorage.getItem('currentAdminId') || sessionStorage.getItem('adminEmail') || 'admin')),
+            studentId: PS.studentId(),
             name: localStorage.getItem('chat_name') || localStorage.getItem('currentStudentName') || 'طالبة مكافحة',
             rank: localStorage.getItem('chat_rank') || 'weak',
             points: parseInt(localStorage.getItem('chat_points') || localStorage.getItem('currentStudentPoints') || '10'),
@@ -955,8 +957,8 @@
             streak: parseInt(localStorage.getItem('chat_streak') || '0'),
             avatar: localStorage.getItem('chat_avatar') || localStorage.getItem('currentStudentAvatar') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
             frame: localStorage.getItem('chat_frame') || 'frame-weak',
-            email: localStorage.getItem('currentStudentEmail') || 'student.girl@gmail.com',
-            phone: localStorage.getItem('currentStudentPhone') || '01012345678',
+            email: PS.email() || (sessionStorage.getItem('adminEmail') || ''),
+            phone: ((PS.getStudent() || {}).studentPhone || (PS.getStudent() || {}).phone || ''),
             isAdmin: localStorage.getItem('chat_is_admin') === 'true' || localStorage.getItem('isAdmin') === 'true',
             lockProfile: localStorage.getItem('chat_lock_profile') === 'true',
             stealthMode: localStorage.getItem('chat_stealth_mode') === 'true',
@@ -1005,10 +1007,12 @@
                 if(emailKey) {
                     docSnap = await db.collection('students').doc(emailKey.toLowerCase().trim()).get();
                 }
-                if((!docSnap || !docSnap.exists) && currentUser.uid) {
-                    docSnap = await db.collection('students').doc(currentUser.uid).get();
-                }
 
+                if(docSnap && !docSnap.exists && !currentUser.isAdmin) {
+                    PS.clearStudent();
+                    window.location.replace('login.html');
+                    return;
+                }
                 if(docSnap && docSnap.exists) {
                     let data = docSnap.data();
                     currentUser.name = data.fullName || data.name || currentUser.name;
@@ -1185,7 +1189,8 @@
                 });
         }
 
-        function renderMessage(msg) {
+        function renderMessage(rawMsg) {
+            const msg = sanitizeChatMessage(rawMsg);
             const chatMessages = document.getElementById('chatMessages');
             const isMe = msg.uid === currentUser.uid;
 
@@ -1777,10 +1782,37 @@
                 .catch(err => console.error(err));
         }
 
+        // البحث عن طالب بالـ studentId (وثائق students اسمها الإيميل، لذلك نبحث بالحقل)
+        async function fetchStudentBySid(sid) {
+            const q = await db.collection('students').where('studentId', '==', String(sid || '').toUpperCase()).limit(1).get();
+            return q.empty ? { exists: false, data: () => null } : { exists: true, data: () => q.docs[0].data() };
+        }
+
+        // تعقيم رسالة قبل عرضها: يمنع حقن HTML/JS من أي طالب
+        function sanitizeChatMessage(m) {
+            const c = Object.assign({}, m);
+            c.id = PS.safeId(m.id);
+            c.uid = PS.safeId(m.uid);
+            c.name = PS.safeText(m.name);
+            c.text = PS.safeText(m.text);
+            c.question = PS.safeText(m.question);
+            c.fileName = PS.safeText(m.fileName);
+            c.avatar = PS.safeUrl(m.avatar);
+            c.fileUrl = PS.safeUrl(m.fileUrl);
+            if (m.replyTo) c.replyTo = Object.assign({}, m.replyTo, { name: PS.safeText(m.replyTo.name), text: PS.safeText(m.replyTo.text) });
+            if (Array.isArray(m.options)) c.options = m.options.map(o => PS.safeText(o));
+            if (m.reactions && typeof m.reactions === 'object') {
+                const r = {};
+                Object.keys(m.reactions).forEach(k => { r[PS.safeText(k)] = Array.isArray(m.reactions[k]) ? m.reactions[k] : []; });
+                c.reactions = r;
+            }
+            return c;
+        }
+
         async function showUserProfile(targetUid, fallbackName, fallbackRank, fallbackAvatar, fallbackFrame, fallbackPoints) {
             if(targetUid !== currentUser.uid && !currentUser.isAdmin) {
                 try {
-                    let docSnap = await db.collection('students').doc(targetUid).get();
+                    let docSnap = await fetchStudentBySid(targetUid);
                     if(docSnap.exists && docSnap.data().lockProfile) {
                         showCustomToast();
                         return;
@@ -1789,16 +1821,17 @@
             }
 
             let profileName = fallbackName;
-            let profileStudentId = currentUser.studentId || 'STU-0001';
-            let profileEmail = currentUser.email || 'student.girl@gmail.com';
-            let profilePhone = currentUser.phone || '01012345678';
+            const isSelfProfile = targetUid === currentUser.uid;
+            let profileStudentId = isSelfProfile ? currentUser.studentId : String(targetUid || '');
+            let profileEmail = isSelfProfile ? currentUser.email : '';
+            let profilePhone = isSelfProfile ? currentUser.phone : '';
             let profilePoints = fallbackPoints !== undefined ? fallbackPoints : 10;
             let profileRank = determineRankByPoints(profilePoints);
             let profileAvatar = fallbackAvatar;
             let profileFrame = determineFrameByRank(profileRank);
 
             try {
-                let docSnap = await db.collection('students').doc(targetUid).get();
+                let docSnap = await fetchStudentBySid(targetUid);
                 if(docSnap.exists) {
                     let data = docSnap.data();
                     if(data.lockProfile && targetUid !== currentUser.uid && !currentUser.isAdmin) {

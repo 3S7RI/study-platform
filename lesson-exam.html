@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>منصة رحلة دراسية - امتحان الحصة</title>
@@ -199,6 +201,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { addPointsToStudent } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -224,7 +227,7 @@
         let isSubmitted = false;
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) currentUserId = user.uid;
+            if (user) currentUserId = PS.studentId();
 
             const urlParams = new URLSearchParams(window.location.search);
             activeLessonId = urlParams.get('id');
@@ -511,7 +514,6 @@
                         submittedAt: new Date().toISOString()
                     }, { merge: true });
 
-                    let userRef = doc(db, "users", currentUserId);
                     let pts = lessonSettings.points || {};
                     let examPoints = pts.exam !== undefined ? pts.exam : 10;
                     let perfectBonus = pts.perfectExam !== undefined ? pts.perfectExam : 15;
@@ -521,9 +523,8 @@
                         pointsToAdd += perfectBonus;
                     }
 
-                    await updateDoc(userRef, {
-                        points: increment(pointsToAdd)
-                    });
+                    // النقاط والرتبة تتحدثان معاً (points + totalScore + rank + level)
+                    await addPointsToStudent(db, PS.email(), pointsToAdd);
                 } catch(e) {
                     console.log("Error saving exam result:", e);
                 }

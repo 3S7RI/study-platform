@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="session.js"></script>
+    <script>PS.guard({vip:true});</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إحصائيات وتقارير الطالب الشاملة - منصة رحلة دراسية</title>
@@ -259,13 +261,10 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
-            let localRaw = sessionStorage.getItem('studentUser') || sessionStorage.getItem('currentUser') || localStorage.getItem('studentUser');
-            let studentData = localRaw ? JSON.parse(localRaw) : null;
+            let studentData = PS.getStudent();
 
-            let identifier = user ? user.uid : null;
-            if (!identifier && studentData) {
-                identifier = studentData.email || studentData.studentId || studentData.id;
-            }
+            // المعرّف = studentId (وليس uid)
+            let identifier = PS.studentId() || (studentData && (studentData.studentId || studentData.id)) || (user && user.email) || null;
 
             initPlatformTimer(identifier);
             await fetchAndSyncRealStudentData(identifier, studentData, user);
@@ -276,7 +275,6 @@
                 let cloudData = null;
                 let searchKeys = [];
 
-                if (authUser && authUser.uid) searchKeys.push(authUser.uid);
                 if (authUser && authUser.email) searchKeys.push(authUser.email.toLowerCase().trim());
                 if (localStudent) {
                     if (localStudent.email) searchKeys.push(localStudent.email.toLowerCase().trim());

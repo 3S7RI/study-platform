@@ -156,22 +156,22 @@
 
         // الروابط والخدمات الخاصة بمنصتك
         if (q.includes('vip') || q.includes('تفعيل')) {
-            return `💎 <strong>تفعيل اشتراك الـ VIP:</strong><br>ادخل على ملفك الشخصي ⚙️، انزل عند خانة "تفعيل اشتراك الـ VIP"، اكتب الكود واضغط تفعيل ⚡.<br>لو مش معاك كود، تواصل فوراً مع الدعم: <a href="https://wa.me/201038783039" target="_blank" style="color:#60a5fa;">واتساب الدعم</a>[span_0](start_span)[span_0](end_span)`;
+            return `💎 <strong>تفعيل اشتراك الـ VIP:</strong><br>ادخل على ملفك الشخصي ⚙️، انزل عند خانة "تفعيل اشتراك الـ VIP"، اكتب الكود واضغط تفعيل ⚡.<br>لو مش معاك كود، تواصل فوراً مع الدعم: <a href="https://wa.me/201038783039" target="_blank" style="color:#60a5fa;">واتساب الدعم</a>`;
         }
         if (q.includes('نقاط') || q.includes('مستويات')) {
-            return `🏆 <strong>نظام النقاط والمستويات:</strong><br>كل ما تحضر حصص وتجاوز امتحانات بتجمع نقاط تطلعك من (مبتدئ 🔴) لحد ما توصل لـ (أسطوري 🌟)!`;
+            return `🏆 <strong>نظام النقاط والمستويات:</strong><br>كل ما تحضر حصص وتجاوز امتحانات بتجمع نقاط تطلعك من (ضعيف 🔴) لحد ما توصل لـ (أسطوري 🌟)!`;
         }
         if (q.includes('يوتيوب') || q.includes('قناة') || q.includes('تليجرام') || q.includes('انستغرام') || q.includes('قنوات')) {
             return `📺 <strong>قنواتنا الرسمية يا بطل:</strong><br>
-            • يوتيوب: <a href="https://youtube.com/@study_tripp?si=IWKOjS9PMBa-Oru5" target="_blank" style="color:#60a5fa;">اضغط هنا</a>[span_1](start_span)[span_1](end_span)<br>
-            • تيليجرام: <a href="https://t.me/Study_tripp" target="_blank" style="color:#60a5fa;">اضغط هنا</a>[span_2](start_span)[span_2](end_span)<br>
-            • واتساب: <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" style="color:#60a5fa;">اضغط هنا</a>[span_3](start_span)[span_3](end_span)<br>
-            • انستغرام: <a href="https://instagram.com/study_tripp?psln=MXFvZnN1cGFscmx3cA%3D%3D" target="_blank" style="color:#60a5fa;">اضغط هنا</a>[span_4](start_span)[span_4](end_span)`;
+            • يوتيوب: <a href="https://youtube.com/@study_tripp?si=IWKOjS9PMBa-Oru5" target="_blank" style="color:#60a5fa;">اضغط هنا</a><br>
+            • تيليجرام: <a href="https://t.me/Study_tripp" target="_blank" style="color:#60a5fa;">اضغط هنا</a><br>
+            • واتساب: <a href="https://whatsapp.com/channel/0029Vb8LoLC0rGiRfVLpmf0u" target="_blank" style="color:#60a5fa;">اضغط هنا</a><br>
+            • انستغرام: <a href="https://instagram.com/study_tripp?psln=MXFvZnN1cGFscmx3cA%3D%3D" target="_blank" style="color:#60a5fa;">اضغط هنا</a>`;
         }
         if (q.includes('دعم') || q.includes('تواصل')) {
             return `📞 <strong>التواصل والدعم الفني:</strong><br>
-            • واتساب: <a href="https://wa.me/201038783039" target="_blank" style="color:#60a5fa;">01038783039</a>[span_5](start_span)[span_5](end_span)<br>
-            • تيليجرام: <a href="https://t.me/A_S_H_RE" target="_blank" style="color:#60a5fa;">@A_S_H_RE</a>[span_6](start_span)[span_6](end_span)`;
+            • واتساب: <a href="https://wa.me/201038783039" target="_blank" style="color:#60a5fa;">01038783039</a><br>
+            • تيليجرام: <a href="https://t.me/A_S_H_RE" target="_blank" style="color:#60a5fa;">@A_S_H_RE</a>`;
         }
 
         // لأي سؤال تاني (أكاديمي، عام، أو بحثي)، يدي إجابة تفصيلية مفتوحة ومفيدة فوراً

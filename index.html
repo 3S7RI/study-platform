@@ -49,13 +49,14 @@
     }
     </script>
 
+    <script src="session.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser, onAuthStateChanged, fetchSignInMethodsForEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        
+
         // استدعاء الدوال من ملف الخدمات الخارجي المنظم
-        import { findStudentDocument, getNextSmartStudentId, createStudentAccount, sendWelcomeNotification } from './student-service.js';
+        import { findStudentDocument, createStudentAccount, sendWelcomeNotification } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -74,23 +75,19 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.deleteAuthUser = deleteUser;
         window.fetchSignInMethodsForEmail = fetchSignInMethodsForEmail;
         window.findStudentDocument = (email) => findStudentDocument(db, email);
-        window.getNextSmartStudentId = () => getNextSmartStudentId(db);
         window.createStudentAccount = (email, data) => createStudentAccount(db, email, data);
         window.sendWelcomeNotification = (email, name) => sendWelcomeNotification(db, email, name);
         window.getDoc = getDoc;
         window.doc = doc;
 
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const loginTime = localStorage.getItem('platform_login_time');
-                if (loginTime) {
-                    const hoursPassed = (Date.now() - parseInt(loginTime)) / (1000 * 60 * 60);
-                    if (hoursPassed <= 48) {
-                        window.location.href = 'main.html';
-                    }
-                }
+            // جلسة الطالب محفوظة 48 ساعة: لو سارية يدخل مباشرة بدون إعادة تسجيل
+            if (user && window.PS && PS.isFresh() && PS.email() && PS.studentId() && !window.__registering) {
+                window.location.replace('main.html');
             }
         });
     </script>
@@ -441,27 +438,28 @@
             const enteredPass = adminPasswordInput.value.trim();
             if (!enteredPass) return;
 
+            // بوابة المطور: الرمز السري الأساسي محفوظ في Firestore (config/adminAccess ← secretKey).
+            // يوجد أيضاً تحقق احتياطي ببصمة SHA-256 بدل كتابة الرمز صريحاً في الكود.
+            const DEV_GATE_HASH = 'c372a61e02d750ef9bdf7ec19869414e4421f6558dd8b24a70968a0acb5e64aa';
+            const sha256Hex = async (t) => {
+                const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+                return Array.from(new Uint8Array(buf)).map(x => x.toString(16).padStart(2, '0')).join('');
+            };
+            let granted = false;
             try {
-                const adminDocRef = window.doc(window.firebaseDb, "config", "adminAccess");
-                const adminSnap = await window.getDoc(adminDocRef);
-                
-                if (adminSnap.exists() && adminSnap.data().secretKey === enteredPass) {
-                    sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    window.location.href = "admin-index.html";
-                } else if (enteredPass === "@Mohamad66xm01122161407") {
-                    sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    window.location.href = "admin-index.html";
-                } else {
-                    alert("عذراً، رمز المطور غير صحيح!");
-                }
-            } catch (err) {
-                if (enteredPass === "@Mohamad66xm01122161407") {
-                    sessionStorage.setItem('isAdminLoggedIn', 'true');
-                    window.location.href = "admin-index.html";
-                } else {
-                    alert("عذراً، رمز المطور غير صحيح!");
-                }
+                const adminSnap = await window.getDoc(window.doc(window.firebaseDb, "config", "adminAccess"));
+                if (adminSnap.exists() && adminSnap.data().secretKey === enteredPass) granted = true;
+            } catch (err) { /* نكمل للتحقق الاحتياطي */ }
+            if (!granted) {
+                try { granted = (await sha256Hex(enteredPass)) === DEV_GATE_HASH; } catch (err) { granted = false; }
             }
+
+            if (granted) {
+                sessionStorage.setItem('isAdminLoggedIn', 'true');
+                window.location.href = "admin-index.html";
+                return;
+            }
+            alert("عذراً، رمز المطور غير صحيح!");
             adminModal.classList.remove('active');
         });
 
@@ -711,87 +709,81 @@
             btn.textContent = 'جاري إنشاء الحساب في السحابة...';
             btn.disabled = true;
 
+            window.__registering = true;
+            let createdAuthUser = null;
             try {
-                localStorage.setItem('platform_login_time', Date.now().toString());
-
                 const existingStudent = await window.findStudentDocument(email);
                 if (existingStudent) {
                     alert("عذراً، هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
                     btn.textContent = 'تسجيل الحساب وانطلاق 🚀';
                     btn.disabled = false;
+                    window.__registering = false;
                     return;
                 }
 
-                const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
-                const user = userCredential.user;
+                let user;
+                try {
+                    const userCredential = await window.createUserWithEmailAndPassword(window.firebaseAuth, email, pass);
+                    user = userCredential.user;
+                    createdAuthUser = user;
+                } catch (authErr) {
+                    // الإيميل موجود في Auth بدون وثيقة طالب (تسجيل سابق انقطع قبل الحفظ): نكمل بنفس كلمة المرور
+                    if (authErr.code === 'auth/email-already-in-use') {
+                        try {
+                            const cred = await window.signInWithEmailAndPassword(window.firebaseAuth, email, pass);
+                            user = cred.user;
+                        } catch (signErr) {
+                            throw authErr;
+                        }
+                    } else {
+                        throw authErr;
+                    }
+                }
 
                 let profileImageBase64 = "";
                 if (imageFile) {
-                    try { profileImageBase64 = await processImage(imageFile); } 
+                    try { profileImageBase64 = await processImage(imageFile); }
                     catch (err) { console.error("خطأ معالجة الصورة", err); }
                 }
 
-                const generatedStudentId = await window.getNextSmartStudentId();
-
-                const studentPayload = {
+                // الـ ID التسلسلي يتحدد داخل نفس العملية التي تحفظ وثيقة الطالب (بدون تكرار ويملأ الفراغات)
+                const createdObj = await window.createStudentAccount(email, {
                     uid: user.uid,
-                    id: generatedStudentId,
-                    studentId: generatedStudentId,
                     fullName: name,
-                    name: name,
                     gender: gender,
-                    email: email,
                     studentPhone: sPhone,
-                    phone: sPhone,
                     parentPhone: pPhone,
-                    guardianPhone: pPhone,
-                    status: 'active',
-                    rank: 'strong',
-                    points: 0,
-                    totalScore: 0,
-                    level: 'المستوى الأول',
-                    profileImage: profileImageBase64,
-                    avatar: profileImageBase64 || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-                    allowComparison: true,
-                    bgPatternEnabled: true,
-                    selectedEmojis: ['⭐', '🚀'],
-                    friends: [],
-                    friendRequests: [],
-                    chats: {},
-                    lastUpdated: new Date().toISOString(),
-                    lastSeenNotificationTime: Date.now()
-                };
-
-                const createdObj = await window.createStudentAccount(email, studentPayload);
-                if (!createdObj) {
-                    throw new Error("فشل حفظ ملف الطالب في قاعدة البيانات");
+                    profileImage: profileImageBase64
+                });
+                if (!createdObj || !createdObj.success) {
+                    throw new Error("فشل حفظ ملف الطالب في قاعدة البيانات، حاول مرة أخرى");
+                }
+                if (!createdObj.created) {
+                    throw new Error("هذا البريد الإلكتروني مسجل مسبقاً بحساب طالب!");
                 }
 
                 const fullStudentData = createdObj.data;
-
                 await window.sendWelcomeNotification(email, name);
 
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('isAdmin', 'false');
-                sessionStorage.setItem('currentStudentEmail', email);
-                sessionStorage.setItem('currentStudentId', generatedStudentId);
-                sessionStorage.setItem('chat_uid', user.uid);
-                sessionStorage.setItem('chat_name', name);
-                sessionStorage.setItem('chat_rank', 'strong');
-                sessionStorage.setItem('chat_gender', gender);
-                sessionStorage.setItem('chat_streak', '5');
-                sessionStorage.setItem('chat_avatar', fullStudentData.avatar);
-                sessionStorage.setItem('studentUser', JSON.stringify(fullStudentData));
-                sessionStorage.setItem('currentUser', JSON.stringify(fullStudentData));
-                localStorage.setItem('cachedStudentProfile', JSON.stringify(fullStudentData));
+                // الجلسة تُحفظ في localStorage لمدة 48 ساعة
+                PS.startSession();
+                PS.saveStudent(fullStudentData);
 
-                window.location.href = 'welcome.html';
+                window.location.replace('welcome.html');
 
             } catch (error) {
-                localStorage.removeItem('platform_login_time');
+                window.__registering = false;
+                // لو أنشأنا حساب Auth ولم تُحفظ وثيقة الطالب نحذفه حتى لا يعلق الإيميل
+                if (createdAuthUser) {
+                    try { await window.deleteAuthUser(createdAuthUser); } catch (e) { console.warn('تعذر حذف حساب Auth الناقص', e); }
+                }
                 let errMsg = error.message;
                 if (error.code === 'auth/email-already-in-use') {
-                    errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً في نظام المصادقة!';
+                    errMsg = 'هذا البريد الإلكتروني مسجل مسبقاً في نظام المصادقة! جرّب تسجيل الدخول أو استعادة كلمة المرور.';
+                } else if (error.code === 'auth/weak-password') {
+                    errMsg = 'كلمة المرور ضعيفة، استخدم 6 أحرف على الأقل.';
+                } else if (error.code === 'auth/network-request-failed') {
+                    errMsg = 'تعذر الاتصال بالإنترنت، تأكد من الشبكة وحاول مرة أخرى.';
                 }
                 alert('حدث خطأ أثناء التسجيل: ' + errMsg);
                 btn.textContent = 'تسجيل الحساب وانطلاق 🚀';

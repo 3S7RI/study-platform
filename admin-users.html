@@ -408,7 +408,9 @@
     <!-- الجزء البرمجي والخدمات السحابية المحدثة بالكامل -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, deleteUser, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { createStudentAccount, deleteStudentAccountDoc, rebuildStudentIdCounter } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -425,7 +427,11 @@
         const db = firebase.firestore();
 
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app); 
+        const auth = getAuth(app);
+        const mdb = getFirestore(app); // نسخة modular لخدمات الطالب (الـ ID التسلسلي)
+        // تطبيق ثانوي لإنشاء حسابات الطلاب حتى لا تتبدل جلسة الأدمن الحالية بجلسة الطالب الجديد
+        const creatorApp = initializeApp(firebaseConfig, 'student-creator');
+        const creatorAuth = getAuth(creatorApp);
 
         let studentsList = [];
         let adminsList = [];
@@ -596,23 +602,6 @@
             return { key: 'legendary', label: 'أسطوري 🌟', badgeClass: 'badge-legendary', frameClass: 'rank-frame-legendary' };
         }
 
-        function generateSmartStudentId() {
-            let existingNumbers = new Set();
-            studentsList.forEach(stu => {
-                let idStr = stu.studentId || stu.id || "";
-                let match = idStr.match(/STU-(\d+)/i);
-                if (match) {
-                    existingNumbers.add(parseInt(match[1], 10));
-                }
-            });
-
-            let counter = 1;
-            while (existingNumbers.has(counter)) {
-                counter++;
-            }
-            return `STU-${String(counter).padStart(4, '0')}`;
-        }
-
         function renderStudentsTable() {
             const container = document.getElementById('studentsTableContainer');
             if (studentsList.length === 0) {
@@ -695,6 +684,7 @@
             let rawName = activeStudentData.fullName || activeStudentData.name || activeStudentData.email || '';
             document.getElementById('editStudentName').value = rawName.includes('@') ? rawName.split('@')[0] : rawName;
             document.getElementById('editStudentEmail').value = activeStudentData.email || '';
+            document.getElementById('editStudentEmail').readOnly = true;
             document.getElementById('editStudentIdInput').value = activeStudentData.studentId || activeStudentData.id || '';
             document.getElementById('editStudentPhone').value = activeStudentData.phone || '';
             document.getElementById('editStudentParentPhone').value = activeStudentData.parentPhone || activeStudentData.guardianPhone || '';
@@ -706,7 +696,8 @@
         window.saveStudentEdits = async function() {
             if (!activeDocId || !activeStudentData) return;
             let name = document.getElementById('editStudentName').value.trim();
-            let email = document.getElementById('editStudentEmail').value.trim();
+            // الإيميل هو مفتاح وثيقة الطالب وحساب الدخول، فلا يُغيَّر من هنا
+            let email = (activeStudentData.email || '').trim();
             let studentId = document.getElementById('editStudentIdInput').value.trim();
             let phone = document.getElementById('editStudentPhone').value.trim();
             let parentPhone = document.getElementById('editStudentParentPhone').value.trim();
@@ -716,7 +707,15 @@
 
             let rankInfo = getRankDetails(points);
 
+            if (studentId && !/^STU-\d{4,}$/i.test(studentId)) return showPlatformToast('صيغة الـ ID غير صحيحة (مثال: STU-0007)', 'error');
+            studentId = studentId.toUpperCase();
+
             try {
+                if (studentId) {
+                    const dup = await db.collection('students').where('studentId', '==', studentId).limit(3).get();
+                    const clash = dup.docs.some(d => d.id !== activeDocId && (d.data().email || d.id) !== activeStudentData.email);
+                    if (clash) return showPlatformToast('هذا الـ ID مستخدم لطالب آخر!', 'error');
+                }
                 // البحث عن المستند الصحيح في الكولكشن بغض النظر عن معرف الوثيقة (سواء بالـ id أو الـ email)
                 let docRef = db.collection('students').doc(activeDocId);
                 let docSnap = await docRef.get();
@@ -739,6 +738,9 @@
                     rank: rankInfo.key,
                     level: rankInfo.key
                 }, { merge: true });
+
+                const oldSid = String(activeStudentData.studentId || activeStudentData.id || '').toUpperCase();
+                if (studentId && studentId !== oldSid) { try { await rebuildStudentIdCounter(mdb); } catch (x) { console.warn(x); } }
 
                 await fetchStudentsFromCloud();
                 closeModal('editStudentModal');
@@ -800,36 +802,29 @@
                 return;
             }
 
+            if (pass.length < 6) { showPlatformToast('كلمة المرور 6 أحرف على الأقل!', 'warning'); return; }
+            let newAuthUser = null;
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-                const user = userCredential.user;
+                const userCredential = await createUserWithEmailAndPassword(creatorAuth, email, pass);
+                newAuthUser = userCredential.user;
 
-                let smartStudentId = generateSmartStudentId();
-                
-                await db.collection('students').doc(email).set({
-                    uid: user.uid,
-                    studentId: smartStudentId,
-                    id: smartStudentId,
+                // الـ ID التسلسلي يُحجز داخل نفس العملية التي تحفظ وثيقة الطالب (بدون تكرار ويملأ الفراغات)
+                const created = await createStudentAccount(mdb, email, {
+                    uid: newAuthUser.uid,
                     fullName: name,
-                    name: name,
-                    email: email,
-                    phone: phone,
+                    studentPhone: phone,
                     parentPhone: parentPhone,
-                    guardianPhone: parentPhone,
                     gender: gender,
-                    type: gender,
-                    rank: 'weak',
-                    level: 'weak',
-                    totalScore: 0,
-                    points: 0,
-                    active: true,
-                    createdAt: String(Date.now())
+                    type: gender
                 });
+                if (!created || !created.success || !created.created) throw new Error('تعذر حفظ ملف الطالب');
 
+                await signOut(creatorAuth);
                 closeModal('addStudentModal');
                 await fetchStudentsFromCloud();
-                showPlatformToast(`تم إضافة الطالب بنجاح (${smartStudentId})`, 'success');
+                showPlatformToast(`تم إضافة الطالب بنجاح (${created.data.studentId})`, 'success');
             } catch(e) {
+                if (newAuthUser) { try { await deleteUser(newAuthUser); } catch (x) {} }
                 showPlatformToast('خطأ: ' + e.message, 'error');
             }
         }
@@ -883,7 +878,9 @@
                 if (!docSnap.exists && activeStudentData && activeStudentData.email) {
                     docRef = db.collection('students').doc(activeStudentData.email);
                 }
-                await docRef.delete();
+                const delEmail = (docSnap.exists ? (docSnap.data().email || docRef.id) : (activeStudentData && activeStudentData.email)) || docRef.id;
+                // حذف الوثيقة + إرجاع الـ ID للفراغات ليُعاد استخدامه
+                await deleteStudentAccountDoc(mdb, delEmail);
                 
                 studentsList = studentsList.filter(s => s.id !== activeDocId && s.email !== activeStudentData?.email);
                 renderStudentsTable();
