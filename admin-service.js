@@ -1,4 +1,4 @@
-// admin-service.js - ملف الخدمات الشامل والموحد لإدارة المشرفين داخل مجموعة users (Firebase Modular SDK)
+// admin-service.js - ملف الخدمات الشامل والموحد لإدارة المشرفين داخل مجموعة admins (Firebase Modular SDK)
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
@@ -7,29 +7,25 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, qu
 export async function findAdminDocument(db, identifier) {
     if (!identifier) return null;
     const cleanId = String(identifier).toLowerCase().trim();
+    const rawId = String(identifier).trim();
+    const pack = (snap, coll) => ({ id: snap.id, ref: snap.ref, data: snap.data(), collectionName: coll });
 
     try {
-        // البحث المباشر بمعرف المستند (الإيميل) مع التحقق من الرول
-        let docRef = doc(db, "users", cleanId);
-        let docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().role === 'admin') {
-            return { id: docSnap.id, ref: docRef, data: docSnap.data(), collectionName: 'users' };
+        // مجموعة admins هي المصدر الأساسي (نفس اللي بيستخدمه login و admin-index و admin-users)
+        let snap = await getDoc(doc(db, "admins", cleanId));
+        if (snap.exists()) return pack(snap, 'admins');
+        if (rawId !== cleanId) { snap = await getDoc(doc(db, "admins", rawId)); if (snap.exists()) return pack(snap, 'admins'); }
+
+        for (const [field, val] of [["email", cleanId], ["adminId", rawId], ["uid", rawId]]) {
+            const q = await getDocs(query(collection(db, "admins"), where(field, "==", val)));
+            if (!q.empty) return pack(q.docs[0], 'admins');
         }
 
-        // البحث بواسطة حقل email
-        let q = query(collection(db, "users"), where("email", "==", cleanId), where("role", "==", "admin"));
-        let snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
-
-        // البحث بواسطة adminId
-        q = query(collection(db, "users"), where("adminId", "==", identifier), where("role", "==", "admin"));
-        snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
-
-        // البحث بواسطة uid
-        q = query(collection(db, "users"), where("uid", "==", identifier), where("role", "==", "admin"));
-        snap = await getDocs(q);
-        if (!snap.empty) return { id: snap.docs[0].id, ref: snap.docs[0].ref, data: snap.docs[0].data(), collectionName: 'users' };
+        // توافق مع البيانات القديمة في users
+        snap = await getDoc(doc(db, "users", cleanId));
+        if (snap.exists() && snap.data().role === 'admin') return pack(snap, 'users');
+        const q = await getDocs(query(collection(db, "users"), where("email", "==", cleanId), where("role", "==", "admin")));
+        if (!q.empty) return pack(q.docs[0], 'users');
 
         return null;
     } catch (e) {
@@ -55,10 +51,10 @@ export async function getAdminData(db, adminIdentifier) {
 export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
     try {
         const cleanId = String(adminIdentifier).toLowerCase().trim();
-        const docRef = doc(db, "users", cleanId);
+        const docRef = doc(db, "admins", cleanId);
         
         const newAdminData = {
-            role: 'admin',
+            role: adminData.role || adminData.adminLevel || 'moderator',
             adminId: adminData.adminId || `ADM-${Math.floor(1000 + Math.random() * 9000)}`,
             adminLevel: adminData.adminLevel || 'moderator',
             uid: adminData.uid || '',
@@ -74,7 +70,7 @@ export async function createAdminAccount(db, adminIdentifier, adminData = {}) {
 
         await setDoc(docRef, newAdminData);
         console.log("تم إنشاء حساب المشرف رسمياً في مجموعة users:", cleanId);
-        return { id: cleanId, ref: docRef, data: newAdminData, collectionName: 'users' };
+        return { id: cleanId, ref: docRef, data: newAdminData, collectionName: 'admins' };
     } catch (e) {
         console.error("خطأ في إنشاء حساب المشرف:", e);
         return null;

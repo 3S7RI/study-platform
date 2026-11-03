@@ -71,7 +71,7 @@ function buildStudentDoc(email, d, studentId) {
         bgPatternEnabled: d.bgPatternEnabled !== false,
         profileImage: img,
         avatar: d.avatar || img || DEFAULT_AVATAR,
-        selectedEmojis: d.selectedEmojis || [],
+        selectedEmojis: d.selectedEmojis || ['⭐', '🚀'],
         friends: d.friends || [],
         friendRequests: d.friendRequests || [],
         chats: d.chats || {},
@@ -405,8 +405,8 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
     try {
         if (!studentEmail) return;
         const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
-        const customTitle = `أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
-        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك!` + (trialGranted ? ` هديناك تجربة مجانية لمدة 24 ساعة بكل مميزات VIP، استمتع بيها!` : ``);
+        const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
+        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨` + (trialGranted ? ` 🎁 هديناك تجربة مجانية لمدة 24 ساعة بكل مميزات VIP، استمتع بيها!` : ``);
 
         const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
         const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
@@ -416,7 +416,7 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
             message: customMessage,
             target: "single",
             recipientEmail: studentEmail.toLowerCase().trim(),
-            sender: "إدارة المنصة",
+            sender: "إدارة المنصة 📖",
             createdAt: serverTimestamp()
         });
     } catch (err) {
@@ -430,16 +430,17 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
 
 export function calculateStudentRank(totalScore) {
     const score = Number(totalScore) || 0;
+    const lvTitle = 'Lv.' + Math.min(50, Math.floor(Math.sqrt(score / 10)) + 1); // المستوى بدل أسماء الرتب
     if (score >= 5000) {
-        return { rankKey: 'legendary', title: 'أسطوري', frameClass: 'frame-legendary', badgeClass: 'badge-legendary', color: '#f472b6' };
+        return { rankKey: 'legendary', title: lvTitle, frameClass: 'frame-legendary', badgeClass: 'badge-legendary', color: '#f472b6' };
     } else if (score >= 3000) {
-        return { rankKey: 'very-strong', title: 'قوي جداً', frameClass: 'frame-legendary', badgeClass: 'badge-very-strong', color: '#3b82f6' };
+        return { rankKey: 'very-strong', title: lvTitle, frameClass: 'frame-legendary', badgeClass: 'badge-very-strong', color: '#3b82f6' };
     } else if (score >= 1500) {
-        return { rankKey: 'strong', title: 'قوي', frameClass: 'frame-strong', badgeClass: 'badge-strong', color: '#10b981' };
+        return { rankKey: 'strong', title: lvTitle, frameClass: 'frame-strong', badgeClass: 'badge-strong', color: '#10b981' };
     } else if (score >= 500) {
-        return { rankKey: 'medium', title: 'متوسط', frameClass: 'frame-medium', badgeClass: 'badge-medium', color: '#f59e0b' };
+        return { rankKey: 'medium', title: lvTitle, frameClass: 'frame-medium', badgeClass: 'badge-medium', color: '#f59e0b' };
     }
-    return { rankKey: 'weak', title: 'ضعيف', frameClass: 'frame-weak', badgeClass: 'badge-weak', color: '#ef4444' };
+    return { rankKey: 'weak', title: lvTitle, frameClass: 'frame-weak', badgeClass: 'badge-weak', color: '#ef4444' };
 }
 
 /* ------------------------------------------------------------------ */

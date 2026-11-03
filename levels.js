@@ -1,8 +1,10 @@
 /* levels.js — نظام المستويات والتأثيرات لمنصة رحلة دراسية
  * سكريبت عادي (غير module) يُحمَّل بعد session.js ويعرّف المتغير العام LV.
  *
- *  - المستوى (Lv.1 Lv.50) محسوب من النقاط totalScore فقط (لا حقل جديد في Firestore).
- *  - الرتب الخمس (ضعيف أسطوري) زي ما هي من session.js / student-service.js ولم تتغير.
+ *  - المستوى (Lv.1 → Lv.50) محسوب من النقاط totalScore فقط (لا حقل جديد في Firestore).
+ *  - الرتب الخمس القديمة (ضعيف ← أسطوري) اتشالت من العرض: المستوى (Lv.1-50) هو الأساس.
+ *  - كل الأيقونات SVG (LV.icon) بدل الإيموجي.
+ *  - مميزات كل 5 مستويات: خلفية صورة (30)، لقب مخصص (35)، لون البروفايل (45).
  *  - كل مميزات المستويات تجميلية وفعلية: إطار الصورة، الهالة، الجزيئات، التاج، تأثير الاسم،
  *    خلفية بطاقة البروفايل، واللقب. بتظهر في البروفايل ولوحة المتصدرين والإحصائيات.
  *
@@ -21,15 +23,60 @@
         return Math.min(MAX_LEVEL, Math.floor(Math.sqrt(s / K)) + 1);
     }
 
+    /* ===== أيقونات SVG (بدل الإيموجي) — stroke بلون النص الحالي ===== */
+    var ICONS = {
+        sprout: '<path d="M12 21v-8"/><path d="M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 15c0-3-2-5-6-5 0 3 2 5 6 5z"/>',
+        book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 19v2H6"/>',
+        flame: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>',
+        gem: '<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 18M15 3l-3 18"/>',
+        orb: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+        crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
+        trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4M12 13v4M8 21h8M9 17h6"/>',
+        shield: '<path d="M12 3l8 3v6c0 4.5-3.2 8.2-8 9-4.8-.8-8-4.5-8-9V6z"/>',
+        medal: '<circle cx="12" cy="9" r="6"/><path d="M8.5 14.5L7 21l5-3 5 3-1.5-6.5"/>',
+        star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+        moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+        image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 9"/>',
+        tag: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',
+        palette: '<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2-.6-1.2.2-2.5 1.6-2.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>',
+        lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+        check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+        settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+        users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+        inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/>',
+        search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+        card: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+        copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+        camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+        logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
+        bolt: '<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',
+        gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9M7.5 8a2.5 2.5 0 1 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 1 1 0 5"/>',
+        save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+        trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/>',
+        alert: '<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
+        info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+        user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/>',
+        message: '<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-5.4A8 8 0 1 1 21 12z"/>',
+        send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+        ban: '<circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/>',
+        x: '<path d="M18 6L6 18M6 6l12 12"/>',
+        folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+        chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>'
+    };
+    function svg(name, size) {
+        var s = size || '1em';
+        return '<svg class="lv-i" viewBox="0 0 24 24" width="' + s + '" height="' + s + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || ICONS.star) + '</svg>';
+    }
+
     /* ===== الفئات (Tiers): كل فئة ليها تأثير بصري مختلف ===== */
     var TIERS = [
-        { id: 1, min: 1,  name: 'مستكشف',   icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22c55e" aria-hidden="true"><path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8zM14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>', c1: '#94a3b8', c2: '#64748b', text: '#e2e8f0' },
-        { id: 2, min: 5,  name: 'مجتهد',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>', c1: '#e2e8f0', c2: '#60a5fa', text: '#dbeafe' },
-        { id: 3, min: 10, name: 'متميز',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#f97316" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>', c1: '#fde047', c2: '#f59e0b', text: '#fef3c7' },
-        { id: 4, min: 15, name: 'محترف',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg>', c1: '#22d3ee', c2: '#3b82f6', text: '#cffafe' },
-        { id: 5, min: 20, name: 'خبير',     icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', c1: '#c084fc', c2: '#6366f1', text: '#f3e8ff' },
-        { id: 6, min: 30, name: 'أسطورة',   icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg>', c1: '#f472b6', c2: '#a855f7', text: '#fce7f3' },
-        { id: 7, min: 40, name: 'إمبراطور', icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg>', c1: '#fbbf24', c2: '#ec4899', text: '#fef9c3' }
+        { id: 1, min: 1,  name: 'مستكشف',   icon: svg('sprout'), c1: '#94a3b8', c2: '#64748b', text: '#e2e8f0' },
+        { id: 2, min: 5,  name: 'مجتهد',    icon: svg('book'), c1: '#e2e8f0', c2: '#60a5fa', text: '#dbeafe' },
+        { id: 3, min: 10, name: 'متميز',    icon: svg('flame'), c1: '#fde047', c2: '#f59e0b', text: '#fef3c7' },
+        { id: 4, min: 15, name: 'محترف',    icon: svg('gem'), c1: '#22d3ee', c2: '#3b82f6', text: '#cffafe' },
+        { id: 5, min: 20, name: 'خبير',     icon: svg('orb'), c1: '#c084fc', c2: '#6366f1', text: '#f3e8ff' },
+        { id: 6, min: 30, name: 'أسطورة',   icon: svg('crown'), c1: '#f472b6', c2: '#a855f7', text: '#fce7f3' },
+        { id: 7, min: 40, name: 'إمبراطور', icon: svg('trophy'), c1: '#fbbf24', c2: '#ec4899', text: '#fef9c3' }
     ];
 
     function tierOf(level) {
@@ -40,16 +87,17 @@
 
     /* ===== مميزات المستويات (كلها تجميلية وفعلية في المنصة) ===== */
     var PERKS = [
-        { lvl: 1,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>', title: 'إطار المستكشف',        desc: 'إطار رمادي هادي حوالين صورتك.' },
-        { lvl: 3,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 13.89L17 22l-5-3-5 3 1.52-8.11"/></svg>', title: 'شارة المستوى',          desc: 'شارة Lv. بلون فئتك بتظهر جنب اسمك في كل مكان.' },
-        { lvl: 5,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#cbd5e1" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 13.89L17 22l-5-3-5 3 1.52-8.11"/></svg>', title: 'إطار فضي لامع',         desc: 'إطار فضي بلمعة متحركة + لقب «مجتهد».' },
-        { lvl: 10, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#f97316" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>', title: 'وهج ذهبي نابض',         desc: 'إطار ذهبي بوهج بينبض + لمعة على اسمك + لقب «متميز».' },
-        { lvl: 15, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg>', title: 'هالة الألماس',          desc: 'هالة سماوية متحركة + خلفية مميزة لبطاقة البروفايل + لقب «محترف».' },
-        { lvl: 20, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'جزيئات متطايرة',        desc: 'جزيئات بتدور حوالين صورتك + اسمك بتدرج ألوان + لقب «خبير».' },
-        { lvl: 25, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'اسم متحرك',             desc: 'ألوان اسمك بتتحرك وتلمع بشكل مستمر.' },
-        { lvl: 30, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg>', title: 'تاج الأسطورة',          desc: 'إطار قوس قزح دوّار + تاج فوق صورتك + لقب «أسطورة».' },
-        { lvl: 40, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'عرش الإمبراطور',        desc: 'خلفية فضائية بنجوم متلألئة + إطار كوني + لقب «إمبراطور».' },
-        { lvl: 50, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg>', title: 'القمة',                 desc: 'أعلى مستوى في المنصة: كل التأثيرات مفتوحة وبأقوى شكل.' }
+        { lvl: 1,  icon: svg('shield'),  title: 'إطار المستكشف',      desc: 'إطار هادي حوالين صورتك من أول يوم.' },
+        { lvl: 5,  icon: svg('medal'),   title: 'إطار فضي لامع',      desc: 'إطار فضي بلمعة متحركة + لقب «مجتهد».' },
+        { lvl: 10, icon: svg('flame'),   title: 'وهج ذهبي نابض',      desc: 'إطار ذهبي بوهج بينبض + لمعة على اسمك + لقب «متميز».' },
+        { lvl: 15, icon: svg('gem'),     title: 'هالة الألماس',       desc: 'هالة سماوية متحركة + خلفية مميزة لبطاقة البروفايل + لقب «محترف».' },
+        { lvl: 20, icon: svg('orb'),     title: 'جزيئات متطايرة',     desc: 'جزيئات بتدور حوالين صورتك + اسمك بتدرج ألوان + لقب «خبير».' },
+        { lvl: 25, icon: svg('star'),    title: 'اسم متحرك',          desc: 'ألوان اسمك بتتحرك وتلمع بشكل مستمر.' },
+        { lvl: 30, icon: svg('image'),   title: 'صورة خلفية للبروفايل', desc: 'تاج + إطار قوس قزح، وتقدر ترفع صورة خلفية خاصة بيك ورا صورتك (من زر التعديل).' },
+        { lvl: 35, icon: svg('tag'),     title: 'لقب من اختيارك',     desc: 'اكتب لقبك الخاص (لحد 20 حرف) وبيظهر تحت اسمك بدل لقب المستوى.' },
+        { lvl: 40, icon: svg('moon'),    title: 'عرش الإمبراطور',     desc: 'خلفية فضائية بنجوم متلألئة + إطار كوني + لقب «إمبراطور».' },
+        { lvl: 45, icon: svg('palette'), title: 'لون البروفايل',      desc: 'اختار لون البروفايل والإطار والتقدم اللي يعجبك.' },
+        { lvl: 50, icon: svg('trophy'),  title: 'القمة',              desc: 'أعلى مستوى في المنصة: كل التأثيرات والمميزات مفتوحة بأقوى شكل.' }
     ];
 
     function info(score) {
@@ -72,6 +120,12 @@
 
     /* ===== CSS مشترك (بيتحقن مرة واحدة) ===== */
     var CSS = [
+        '.lv-i{width:1em;height:1em;flex-shrink:0;vertical-align:-.14em}',
+        '.lv-crown{color:#fbbf24}.lv-crown .lv-i{width:1em;height:1em;fill:rgba(251,191,36,.35)}',
+        '.lv-spark{color:#fde68a}.lv-spark .lv-i{fill:currentColor}',
+        '.lv-perk-ic .lv-i{width:20px;height:20px}',
+        '.lv-perk-l{display:flex;align-items:center;gap:4px}',
+        '.lv-badge .lv-i{margin-inline-end:2px}',
         '@keyframes lvSpin{to{transform:rotate(360deg)}}',
         '@keyframes lvPulse{0%,100%{box-shadow:0 0 calc(var(--s)*.12) var(--g1)}50%{box-shadow:0 0 calc(var(--s)*.3) var(--g2)}}',
         '@keyframes lvShimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}',
@@ -180,10 +234,10 @@
             for (var i = 0; i < dots; i++) orbit += '<i style="--a:' + Math.round((360 / dots) * i) + 'deg"></i>';
             orbit += '</span>';
         }
-        var crown = t.id >= 6 ? '<span class="lv-crown"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg></span>' : '';
+        var crown = t.id >= 6 ? '<span class="lv-crown">' + svg('crown') + '</span>' : '';
         var sparks = '';
         if (t.id === 7) {
-            sparks = '<span class="lv-spark" style="top:-4%;right:-6%"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>';
+            sparks = '<span class="lv-spark" style="top:-4%;right:-6%">' + svg('star') + '</span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s">' + svg('star') + '</span>';
         }
         return '<div class="lv-avatar lv-t' + t.id + '" style="--s:' + size + 'px">' +
             '<span class="lv-ring"></span>' + orbit +
@@ -219,9 +273,9 @@
         var i = info(score);
         var t = i.tier;
         var note = i.maxed
-            ? 'وصلت لأعلى مستوى في المنصة!'
+            ? 'وصلت لأعلى مستوى في المنصة'
             : 'باقي ' + i.toNext + ' نقطة للمستوى ' + (i.level + 1) +
-              (i.nextPerk ? ' • أقرب ميزة: ' + i.nextPerk.icon + ' ' + i.nextPerk.title + ' (Lv.' + i.nextPerk.lvl + ')' : '');
+              (i.nextPerk ? ' • أقرب ميزة: ' + i.nextPerk.title + ' (Lv.' + i.nextPerk.lvl + ')' : '');
         return '<div class="lv-xp" style="--c1:' + t.c1 + ';--c2:' + t.c2 + '">' +
             '<div class="lv-xp-top"><span>Lv.' + i.level + '</span><span>' + i.score + (i.next ? ' / ' + i.next : '') + ' نقطة</span><span>' + (i.maxed ? 'MAX' : 'Lv.' + (i.level + 1)) + '</span></div>' +
             '<div class="lv-xp-bar"><div class="lv-xp-fill" style="width:' + i.pct + '%"></div></div>' +
@@ -235,9 +289,9 @@
         return PERKS.map(function (p) {
             var on = level >= p.lvl;
             return '<div class="lv-perk ' + (on ? 'on' : 'lock') + '">' +
-                '<div class="lv-perk-ic">' + (on ? p.icon : '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>') + '</div>' +
+                '<div class="lv-perk-ic">' + (on ? p.icon : svg('lock')) + '</div>' +
                 '<div><div class="lv-perk-t">' + p.title + '</div><div class="lv-perk-d">' + p.desc + '</div></div>' +
-                '<div class="lv-perk-l">' + (on ? 'مفتوحة' : 'Lv.' + p.lvl + ' • ' + pointsFor(p.lvl) + ' نقطة') + '</div></div>';
+                '<div class="lv-perk-l">' + (on ? svg('check') + ' مفتوحة' : 'Lv.' + p.lvl + ' • ' + pointsFor(p.lvl) + ' نقطة') + '</div></div>';
         }).join('');
     }
 
@@ -249,6 +303,7 @@
     }
 
     global.LV = {
+        icon: svg, ICONS: ICONS,
         MAX_LEVEL: MAX_LEVEL, TIERS: TIERS, PERKS: PERKS,
         pointsFor: pointsFor, levelOf: levelOf, tierOf: tierOf, info: info,
         injectCss: injectCss, avatar: avatar, badge: badge,

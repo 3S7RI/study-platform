@@ -26,10 +26,18 @@
         { key: 'legendary',   min: 5000, label: 'أسطوري',    frame: 'frame-legendary' }
     ];
 
+    // المستوى (1-50) محسوب من النقاط بنفس معادلة levels.js: 10 × (n-1)²
+    function levelNum(score) {
+        return Math.min(50, Math.floor(Math.sqrt(Math.max(0, Number(score) || 0) / 10)) + 1);
+    }
+
+    // أسماء الرتب القديمة (ضعيف..أسطوري) اتشالت من العرض: label بقى "Lv.N".
+    // المفاتيح (key/frame) فضلت داخلية عشان الصفحات القديمة ماتبوظش.
     function rankOf(score) {
         var s = Number(score) || 0, r = RANKS[0];
         for (var i = 0; i < RANKS.length; i++) { if (s >= RANKS[i].min) r = RANKS[i]; }
-        return r;
+        var lv = levelNum(s);
+        return { key: r.key, min: r.min, frame: r.frame, level: lv, label: 'Lv.' + lv };
     }
 
     function parse(raw) { try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
@@ -38,6 +46,7 @@
         SESSION_MS: SESSION_MS,
         RANKS: RANKS,
         rank: rankOf,
+        levelOf: levelNum,
 
         isAdminSession: function () {
             return ssGet('isAdmin') === 'true' || ssGet('isAdminLoggedIn') === 'true';
