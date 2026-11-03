@@ -54,8 +54,11 @@
     <div class="card">
         <h3>⚙️ إعدادات الدفع (اللي بيظهر للطالب)</h3>
         <div class="grid">
-            <div><label>رقم المحفظة / InstaPay</label><input type="text" id="cfgWallet" placeholder="01xxxxxxxxx" dir="ltr"></div>
-            <div><label>الوصف (مثلاً: فودافون كاش)</label><input type="text" id="cfgLabel" placeholder="على رقم فودافون كاش / InstaPay"></div>
+            <div><label>رقم اتصالات كاش</label><input type="text" id="cfgWallet" placeholder="01122161407" dir="ltr"></div>
+            <div><label>رقم فوري</label><input type="text" id="cfgFawry" placeholder="01122161407" dir="ltr"></div>
+            <div><label>InstaPay (سيبه فاضي = غير متاح / قريباً)</label><input type="text" id="cfgInstapay" placeholder="اكتب العنوان أو الرقم لما يشتغل" dir="ltr"></div>
+            <div><label>IBAN 1 (فيزا / تحويل بنكي)</label><input type="text" id="cfgIban1" dir="ltr"></div>
+            <div><label>IBAN 2</label><input type="text" id="cfgIban2" dir="ltr"></div>
             <div><label>بداية أوقات العمل</label><input type="text" id="cfgFrom" placeholder="10 صباحاً"></div>
             <div><label>نهاية أوقات العمل</label><input type="text" id="cfgTo" placeholder="11 مساءً"></div>
         </div>
@@ -92,7 +95,8 @@
     const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const $ = (id) => document.getElementById(id);
     const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
-    const METHODS = { vodafone_cash: 'فودافون كاش', instapay: 'InstaPay', other_wallet: 'محفظة أخرى' };
+    const METHODS = { etisalat_cash: 'اتصالات كاش', fawry: 'فوري', instapay: 'InstaPay', bank_iban: 'فيزا / تحويل بنكي', vodafone_cash: 'فودافون كاش', other_wallet: 'محفظة أخرى' };
+    const DEF = { walletNumber: '01122161407', fawryNumber: '01122161407', iban1: 'EG390037002708181020729838535', iban2: 'EG300037004608181130729820170' };
     const STAT = { pending: 'معلّق', approved: 'مقبول', rejected: 'مرفوض' };
     const fmt = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
 
@@ -103,8 +107,11 @@
         try {
             const c = await getDoc(doc(db, 'config', 'payment'));
             const d = c.exists() ? c.data() : {};
-            $('cfgWallet').value = d.walletNumber || '';
-            $('cfgLabel').value = d.walletLabel || '';
+            $('cfgWallet').value = d.walletNumber || DEF.walletNumber;
+            $('cfgFawry').value = d.fawryNumber || DEF.fawryNumber;
+            $('cfgInstapay').value = d.instapayNumber || '';
+            $('cfgIban1').value = d.iban1 || DEF.iban1;
+            $('cfgIban2').value = d.iban2 || DEF.iban2;
             $('cfgFrom').value = d.workFrom || '';
             $('cfgTo').value = d.workTo || '';
         } catch (e) {}
@@ -114,7 +121,10 @@
         try {
             await setDoc(doc(db, 'config', 'payment'), {
                 walletNumber: $('cfgWallet').value.trim(),
-                walletLabel: $('cfgLabel').value.trim(),
+                fawryNumber: $('cfgFawry').value.trim(),
+                instapayNumber: $('cfgInstapay').value.trim(),
+                iban1: $('cfgIban1').value.trim(),
+                iban2: $('cfgIban2').value.trim(),
                 workFrom: $('cfgFrom').value.trim(),
                 workTo: $('cfgTo').value.trim(),
                 updatedAt: Date.now()

@@ -63,6 +63,9 @@ function buildStudentDoc(email, d, studentId) {
         totalScore: score, points: score,
         rank: r.rankKey, level: r.rankKey,
         accountType: d.accountType || 'free',
+        streak: Number(d.streak) || 0,
+        longestStreak: Number(d.longestStreak) || 0,
+        lastActiveDay: d.lastActiveDay || '',
         status: 'active',
         allowComparison: d.allowComparison !== false,
         bgPatternEnabled: d.bgPatternEnabled !== false,
@@ -210,12 +213,19 @@ export async function releaseStudentId(db, studentId) {
  * @returns {Promise<{success:true, created:boolean, data:object}|null>}
  *   created=false لو الوثيقة موجودة من قبل (لا نعدّلها).
  */
-export async function createStudentAccount(db, email, studentData = {}) {
+export const TRIAL_HOURS = 24;
+
+export async function createStudentAccount(db, email, studentData = {}, opts = {}) {
     try {
         if (!email) throw new Error("البريد الإلكتروني مطلوب لإنشاء مستند الطالب");
         const cleanEmail = String(email).toLowerCase().trim();
         const studentRef = doc(db, "students", cleanEmail);
         const counterRef = doc(db, ...COUNTER_PATH);
+
+        // التجربة المجانية: مرة واحدة لكل إيميل ولكل رقم تليفون (وثيقة phones/{الرقم} داخل نفس الـ Transaction)
+        const wantTrial = opts.grantTrial === true;
+        const phoneDigits = String(studentData.studentPhone || studentData.phone || '').replace(/\D/g, '');
+        const phoneRef = (wantTrial && phoneDigits.length >= 10) ? doc(db, "phones", phoneDigits) : null;
 
         let seed = null;
         const pre = await getDoc(counterRef);
@@ -226,16 +236,34 @@ export async function createStudentAccount(db, email, studentData = {}) {
             if (existing.exists()) return { created: false, data: existing.data() };
 
             const cs = await tx.get(counterRef);
+            const phoneSnap = phoneRef ? await tx.get(phoneRef) : null;
             const counter = cs.exists() ? cs.data() : (seed || { next: 1, free: [] });
             const picked = pickFromCounter(counter);
             const studentId = formatStudentId(picked.n);
 
             const finalData = buildStudentDoc(cleanEmail, studentData, studentId);
+
+            let trialGranted = false;
+            if (wantTrial && phoneRef && !(phoneSnap && phoneSnap.exists())) {
+                const now = Date.now();
+                const expiry = new Date(now + TRIAL_HOURS * 3600 * 1000).toISOString();
+                finalData.accountType = 'trial';
+                finalData.isSubscribed = true;
+                finalData.subscriptionExpiry = expiry;
+                finalData.trialUsed = true;
+                finalData.trialStartedAt = new Date(now).toISOString();
+                finalData.trialExpiry = expiry;
+                trialGranted = true;
+            } else if (wantTrial) {
+                finalData.trialUsed = true; // الرقم أخذ تجربة قبل كده
+            }
+
             tx.set(studentRef, finalData);
             tx.set(counterRef, { ...picked.state, updatedAt: serverTimestamp() });
-            return { created: true, data: finalData };
+            if (trialGranted) tx.set(phoneRef, { email: cleanEmail, studentId, createdAt: new Date().toISOString() });
+            return { created: true, data: finalData, trialGranted };
         });
-        return { success: true, created: result.created, data: result.data };
+        return { success: true, created: result.created, data: result.data, trialGranted: !!result.trialGranted };
     } catch (e) {
         console.error("خطأ في حفظ ملف الطالب:", e);
         return null;
@@ -373,12 +401,12 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
 /* 5. إشعار الترحيب                                                    */
 /* ------------------------------------------------------------------ */
 
-export async function sendWelcomeNotification(db, studentEmail, studentName) {
+export async function sendWelcomeNotification(db, studentEmail, studentName, trialGranted = false) {
     try {
         if (!studentEmail) return;
         const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
         const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
-        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨`;
+        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨` + (trialGranted ? ` 🎁 هديناك تجربة مجانية لمدة 24 ساعة بكل مميزات VIP، استمتع بيها!` : ``);
 
         const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
         const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
@@ -435,5 +463,38 @@ export async function normalizeSubscription(db, emailKey, data) {
     } catch (e) {
         console.warn('normalizeSubscription skipped', e);
         return data;
+    }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* الاستريك اليومي: +1 مع أول دخول في كل يوم (بتوقيت القاهرة)، ولا يتصفّر أبداً */
+/* ------------------------------------------------------------------ */
+export function cairoDay(ts = Date.now()) {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
+}
+
+export async function touchDailyStreak(db, email) {
+    try {
+        const key = String(email || '').toLowerCase().trim();
+        if (!key) return null;
+        const today = cairoDay();
+        try { if (localStorage.getItem('streak_done_' + key) === today) return null; } catch (e) {}
+        const ref = doc(db, 'students', key);
+        const res = await runTransaction(db, async (tx) => {
+            const snap = await tx.get(ref);
+            if (!snap.exists()) return null;
+            const d = snap.data();
+            const cur = Number(d.streak) || 0;
+            if (d.lastActiveDay === today) return { streak: cur, changed: false };
+            const n = cur + 1;
+            tx.update(ref, { streak: n, longestStreak: Math.max(Number(d.longestStreak) || 0, n), lastActiveDay: today });
+            return { streak: n, changed: true };
+        });
+        if (res) { try { localStorage.setItem('streak_done_' + key, today); localStorage.setItem('chat_streak', String(res.streak)); } catch (e) {} }
+        return res;
+    } catch (e) {
+        console.warn('touchDailyStreak skipped', e);
+        return null;
     }
 }

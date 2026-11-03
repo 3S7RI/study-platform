@@ -103,6 +103,12 @@
             box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); display: inline-flex; align-items: center; gap: 3px;
             animation: vipGlowAnim 2s infinite alternate;
         }
+        .trial-badge-glow {
+            background: linear-gradient(135deg, #34d399, #06b6d4); color: #052e2b; font-size: 0.68rem; font-weight: 900;
+            padding: 2px 9px; border-radius: 20px; box-shadow: 0 0 10px rgba(52, 211, 153, 0.55);
+            animation: trialGlowAnim 2s infinite alternate; white-space: nowrap;
+        }
+        @keyframes trialGlowAnim { from { box-shadow: 0 0 6px rgba(52,211,153,0.4); } to { box-shadow: 0 0 14px rgba(6,182,212,0.8); } }
         @keyframes vipGlowAnim {
             0% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); transform: scale(1); }
             100% { box-shadow: 0 0 16px rgba(251, 191, 36, 0.9); transform: scale(1.04); }
@@ -448,7 +454,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, limit, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { withAliases, deleteStudentAccountDoc, calculateStudentRank, normalizeSubscription } from './student-service.js';
+        import { withAliases, deleteStudentAccountDoc, calculateStudentRank, normalizeSubscription, touchDailyStreak } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -581,6 +587,7 @@
                 if (docSnap && docSnap.exists()) {
                     currentStudentData = await normalizeSubscription(db, key, docSnap.data());
                     PS.saveStudent(currentStudentData);
+                    touchDailyStreak(db, key); // +1 استريك لأول دخول في اليوم
                     renderStudentProfile(currentStudentData);
                 } else {
                     // لا ننشئ طالباً بـ ID وهمي: الحساب بلا وثيقة طالب = خطأ يُعرض
@@ -618,7 +625,7 @@
                     </div>
                     <div class="student-name-row">
                         <div class="student-name" id="profileNameDisplay">${esc(data.fullName || data.name || 'طالب متميز')}</div>
-                        ${isSubscribed ? `<span class="vip-badge-glow">VIP</span>` : ''}
+                        ${isSubscribed ? (data.accountType === 'trial' ? `<span class="trial-badge-glow" title="تجربة مجانية">🎁 تجربة</span>` : `<span class="vip-badge-glow">VIP</span>`) : ''}
                         ${getGenderSvgHtml(studentGender)}
                     </div>
                     <div class="student-id-container">
@@ -655,7 +662,7 @@
                         <input type="text" id="vipCodeInput" placeholder="أدخل كود الاشتراك...">
                         <button onclick="activateVipCode()" class="vip-btn-glow" style="width: auto; padding: 9px 16px;">تفعيل ⚡</button>
                     </div>
-                    <a href="subscribe.html" style="display:block; margin-top:8px; text-align:center; font-size:0.78rem; font-weight:700; color:var(--gold); text-decoration:none;">💳 معندكش كود؟ اشترك بالمحفظة / InstaPay</a>
+                    <a href="subscribe.html" style="display:block; margin-top:8px; text-align:center; font-size:0.78rem; font-weight:700; color:var(--gold); text-decoration:none;">💳 معندكش كود؟ اشترك بالمحفظة / فوري / تحويل بنكي</a>
                 </div>
             `;
             if ((Number(data.codeLockUntil) || 0) > Date.now()) showCodeLock(Number(data.codeLockUntil));

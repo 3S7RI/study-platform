@@ -39,6 +39,18 @@
         .pay-box { background: rgba(251,191,36,0.08); border: 1px dashed var(--gold); border-radius: 14px; padding: 14px; text-align: center; margin-bottom: 6px; }
         .pay-box .amount { font-size: 1.5rem; font-weight: 900; color: var(--gold); margin: 4px 0; }
         .pay-box .wallet { font-size: 1.25rem; font-weight: 800; letter-spacing: 2px; direction: ltr; display: inline-block; margin: 4px 8px; }
+        .methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+        .method { position: relative; border: 2px solid var(--border-color); border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; background: var(--th-bg); transition: transform .2s, border-color .2s, box-shadow .2s; }
+        .method:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .method.selected { border-color: var(--gold); box-shadow: 0 0 14px rgba(251,191,36,0.3); }
+        .method.off { opacity: .55; cursor: not-allowed; }
+        .method.off:hover { transform: none; border-color: var(--border-color); }
+        .method .ico { font-size: 1.5rem; }
+        .method .mname { font-weight: 800; font-size: 0.82rem; margin-top: 4px; }
+        .method .soon { position: absolute; top: 6px; left: 6px; background: var(--danger); color: #fff; font-size: 0.62rem; font-weight: 800; padding: 2px 7px; border-radius: 8px; }
+        .copy-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .copy-row .lbl { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; width: 100%; }
+        .iban { font-size: 0.86rem; font-weight: 800; letter-spacing: 1px; direction: ltr; display: inline-block; word-break: break-all; }
         .copy-btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-weight: 700; cursor: pointer; font-size: 0.78rem; }
         .btn-main { width: 100%; margin-top: 16px; padding: 13px; border: none; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; color: #1e293b; background: linear-gradient(135deg, #fef08a, #fbbf24, #f59e0b); box-shadow: 0 4px 15px rgba(251,191,36,0.35); }
         .btn-main:disabled { opacity: .5; cursor: not-allowed; }
@@ -70,24 +82,20 @@
     </div>
 
     <div class="card" id="payCard" style="display:none;">
-        <h2>2️⃣ حوّل المبلغ وبعدها سجّل بياناتك</h2>
-        <div class="pay-box">
+        <h2>2️⃣ اختار طريقة الدفع</h2>
+        <div class="methods" id="methods"></div>
+        <div class="pay-box" id="payBox">
             <div style="font-size:0.8rem; color:var(--text-muted);">حوّل بالظبط المبلغ ده</div>
             <div class="amount" id="payAmount"></div>
-            <div style="font-size:0.8rem; color:var(--text-muted);" id="walletLabel">على رقم المحفظة / InstaPay</div>
-            <div><span class="wallet" id="walletNumber">...</span> <button class="copy-btn" type="button" onclick="copyWallet()">نسخ 📋</button></div>
+            <div style="font-size:0.8rem; color:var(--text-muted);" id="walletLabel"></div>
+            <div id="payTargets"></div>
         </div>
         <p class="hint">⚠️ لازم تحوّل مبلغ الباقة المختارة بالظبط عشان الطلب يتقبل.</p>
 
-        <label for="payerPhone">رقم الموبايل اللي حوّلت منه (الرقم كامل)</label>
+        <h2 style="margin-top:18px;">3️⃣ سجّل بياناتك بعد التحويل</h2>
+        <label for="payerPhone">رقم موبايلك (الرقم كامل)</label>
         <input type="tel" id="payerPhone" inputmode="numeric" maxlength="11" placeholder="01xxxxxxxxx" autocomplete="off">
-        <label for="payMethod">طريقة التحويل</label>
-        <select id="payMethod">
-            <option value="vodafone_cash">فودافون كاش</option>
-            <option value="instapay">InstaPay</option>
-            <option value="other_wallet">محفظة أخرى</option>
-        </select>
-        <label for="payRef">رقم العملية / ملاحظة (اختياري)</label>
+        <label for="payRef">رقم العملية / اسم صاحب الحساب المحوَّل منه (اختياري)</label>
         <input type="text" id="payRef" maxlength="60" placeholder="مثال: رقم العملية اللي ظهرلك بعد التحويل">
         <div class="err" id="formErr"></div>
         <button class="btn-main" id="submitBtn" type="button" onclick="submitRequest()">✅ أكدت التحويل، ابعت الطلب</button>
@@ -121,10 +129,20 @@
         { id: 'month',  name: '28 يوم',  days: 28, price: 100 },
         { id: 'quarter', name: '3 شهور', days: 90, price: 220 }
     ];
-    const METHOD_LABELS = { vodafone_cash: 'فودافون كاش', instapay: 'InstaPay', other_wallet: 'محفظة أخرى' };
+    const METHOD_LABELS = { etisalat_cash: 'اتصالات كاش', fawry: 'فوري', instapay: 'InstaPay', bank_iban: 'فيزا / تحويل بنكي', vodafone_cash: 'فودافون كاش', other_wallet: 'محفظة أخرى' };
+
+    /* بيانات الدفع الافتراضية (تشتغل حتى لو مفيش حاجة متسجلة في لوحة الأدمن).
+       لو الأدمن كتب قيمة في config/payment بتغلب على الافتراضي. */
+    const DEFAULT_PAY = {
+        walletNumber: '01122161407',   // اتصالات كاش
+        fawryNumber: '01122161407',    // فوري
+        instapayNumber: '',            // فاضي = InstaPay غير متاح حالياً
+        iban1: 'EG390037002708181020729838535',
+        iban2: 'EG300037004608181130729820170'
+    };
     const STATUS_LABELS = { pending: 'قيد المراجعة ⏳', approved: 'تمت الموافقة ✅', rejected: 'مرفوض ❌' };
 
-    let selected = null, payCfg = {}, student = null, hasPending = false;
+    let selected = null, payCfg = {}, student = null, hasPending = false, method = 'etisalat_cash';
 
     const $ = (id) => document.getElementById(id);
     const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
@@ -139,18 +157,61 @@
             </div>`).join('');
     }
 
+    function methodList() {
+        const c = payCfg;
+        return [
+            { id: 'etisalat_cash', name: 'اتصالات كاش', ico: '📱', label: 'حوّل على رقم محفظة اتصالات كاش', targets: [['الرقم', c.walletNumber]] },
+            { id: 'fawry', name: 'فوري', ico: '🏪', label: 'ادفع من أي منفذ فوري أو من تطبيق فوري على الرقم ده', targets: [['رقم فوري', c.fawryNumber]] },
+            c.instapayNumber
+                ? { id: 'instapay', name: 'InstaPay', ico: '⚡', label: 'حوّل عن طريق InstaPay على', targets: [['InstaPay', c.instapayNumber]] }
+                : { id: 'instapay', name: 'InstaPay', ico: '⚡', off: true },
+            { id: 'bank_iban', name: 'فيزا / تحويل بنكي', ico: '💳', label: 'حوّل من تطبيق البنك أو الفيزا على أحد حسابات الـ IBAN دول', iban: true, targets: [['IBAN 1', c.iban1], ['IBAN 2', c.iban2]] }
+        ];
+    }
+
+    function renderMethods() {
+        $('methods').innerHTML = methodList().map(m => `
+            <div class="method ${m.off ? 'off' : ''} ${method === m.id ? 'selected' : ''}" onclick="selectMethod('${m.id}')">
+                ${m.off ? '<span class="soon">قريباً</span>' : ''}
+                <div class="ico">${m.ico}</div>
+                <div class="mname">${m.name}</div>
+            </div>`).join('');
+        const m = methodList().find(x => x.id === method);
+        if (!m) return;
+        if (m.off) {
+            $('walletLabel').textContent = '';
+            $('payTargets').innerHTML = '<div class="notice warn" style="margin-top:8px;">⚡ InstaPay غير متاح حالياً بسبب بعض الأخطاء، وهيتوفر قريب. اختار طريقة تانية دلوقتي 🙏</div>';
+            return;
+        }
+        $('walletLabel').textContent = m.label;
+        $('payTargets').innerHTML = m.targets.filter(t => t[1]).map(t => `
+            <div class="copy-row">
+                ${m.targets.length > 1 ? `<span class="lbl">${t[0]}</span>` : ''}
+                <span class="${m.iban ? 'iban' : 'wallet'}">${PS.esc(t[1])}</span>
+                <button class="copy-btn" type="button" onclick="copyText('${PS.esc(t[1])}')">نسخ 📋</button>
+            </div>`).join('');
+    }
+
+    window.selectMethod = function (id) {
+        const m = methodList().find(x => x.id === id);
+        if (!m) return;
+        if (m.off) { toast('InstaPay غير متاح حالياً، وهيتوفر قريب ⚡'); return; }
+        method = id;
+        renderMethods();
+    };
+
     window.selectPlan = function (id) {
         selected = PLANS.find(p => p.id === id);
         renderPlans();
         $('payAmount').textContent = selected.price + ' جنيه';
+        renderMethods();
         $('payCard').style.display = hasPending ? 'none' : 'block';
         $('payCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
-    window.copyWallet = function () {
-        const n = payCfg.walletNumber || '';
+    window.copyText = function (n) {
         if (!n) return;
-        navigator.clipboard.writeText(n).then(() => toast('تم نسخ الرقم 📋')).catch(() => {});
+        navigator.clipboard.writeText(n).then(() => toast('تم النسخ 📋')).catch(() => {});
     };
 
     function workHoursText() {
@@ -161,7 +222,12 @@
         const exp = student && student.subscriptionExpiry ? new Date(student.subscriptionExpiry).getTime() : 0;
         if (exp > Date.now()) {
             const left = Math.ceil((exp - Date.now()) / 86400000);
-            $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;">💎 اشتراكك شغال وباقي عليه <b>${left}</b> يوم. لو اشتركت تاني الأيام الجديدة بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
+            if (student.accountType === 'trial') {
+                const hrs = Math.max(1, Math.ceil((exp - Date.now()) / 3600000));
+                $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;">🎁 أنت دلوقتي في <b>التجربة المجانية</b> وباقي عليها حوالي <b>${hrs}</b> ساعة. لو اشتركت دلوقتي الأيام بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
+            } else {
+                $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;">💎 اشتراكك شغال وباقي عليه <b>${left}</b> يوم. لو اشتركت تاني الأيام الجديدة بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
+            }
         }
     }
 
@@ -182,11 +248,11 @@
         student = PS.getStudent() || {};
         const email = PS.email(), sid = PS.studentId();
         try { const d = await getDoc(doc(db, 'students', email)); if (d.exists()) student = d.data(); } catch (e) {}
-        try { const c = await getDoc(doc(db, 'config', 'payment')); payCfg = c.exists() ? c.data() : {}; } catch (e) { payCfg = {}; }
-
-        $('walletNumber').textContent = payCfg.walletNumber || 'لسه الرقم متحددش';
-        if (payCfg.walletLabel) $('walletLabel').textContent = payCfg.walletLabel;
-        if (!payCfg.walletNumber) $('submitBtn').disabled = true;
+        let fsCfg = {};
+        try { const c = await getDoc(doc(db, 'config', 'payment')); fsCfg = c.exists() ? c.data() : {}; } catch (e) { fsCfg = {}; }
+        // الافتراضي أولاً، وأي قيمة غير فاضية من لوحة الأدمن تغلب عليه
+        payCfg = { ...DEFAULT_PAY, workFrom: '', workTo: '' };
+        Object.keys(fsCfg).forEach(k => { if (fsCfg[k] !== undefined && fsCfg[k] !== null && String(fsCfg[k]).trim() !== '') payCfg[k] = fsCfg[k]; });
 
         renderCurrentSub();
         renderPlans();
@@ -216,7 +282,8 @@
         const fail = (m) => { err.textContent = m; err.style.display = 'block'; };
         if (hasPending) return fail('عندك طلب قيد المراجعة بالفعل، استنى لحد ما يتراجع.');
         if (!selected) return fail('اختار الباقة الأول.');
-        if (!payCfg.walletNumber) return fail('رقم الدفع لسه متحددش، جرّب بعد شوية.');
+        const mSel = methodList().find(x => x.id === method);
+        if (!mSel || mSel.off) return fail('اختار طريقة دفع متاحة.');
         const phone = $('payerPhone').value.replace(/\s/g, '');
         if (!/^01[0125][0-9]{8}$/.test(phone)) return fail('اكتب رقم الموبايل كامل (11 رقم) اللي حوّلت منه.');
 
@@ -236,7 +303,8 @@
                 amount: selected.price,
                 days: selected.days,
                 payerPhone: phone,
-                method: $('payMethod').value,
+                method: method,
+                methodLabel: METHOD_LABELS[method] || method,
                 reference: $('payRef').value.trim().slice(0, 60),
                 status: 'pending',
                 createdAt: serverTimestamp(),
@@ -252,7 +320,7 @@
             console.error(e);
             fail('حصل خطأ أثناء إرسال الطلب، جرّب تاني.');
         } finally {
-            btn.disabled = !payCfg.walletNumber; btn.textContent = '✅ أكدت التحويل، ابعت الطلب';
+            btn.disabled = false; btn.textContent = '✅ أكدت التحويل، ابعت الطلب';
         }
     };
 
