@@ -32,6 +32,24 @@
         { id: 7, min: 40, name: 'إمبراطور', icon: '🏆', c1: '#fbbf24', c2: '#ec4899', text: '#fef9c3' }
     ];
 
+    /* ===== أيقونات SVG للفئات (بديل الإيموجي) ===== */
+    var TIER_SVG = {
+        1: '<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+        2: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+        3: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+        4: '<path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',
+        5: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/>',
+        6: '<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7z"/><path d="M5 20h14"/>',
+        7: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>'
+    };
+    /** أيقونة SVG للفئة (id من 1 إلى 7) بلون currentColor */
+    function tierIcon(id, size) {
+        size = size || 14;
+        return '<svg class="lv-ico" viewBox="0 0 24 24" width="' + size + '" height="' + size + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (TIER_SVG[id] || TIER_SVG[1]) + '</svg>';
+    }
+    var CROWN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4.5 4L12 4.5 16.5 12 21 8l-1.8 11H4.8z" fill="#fbbf24" stroke="#92400e" stroke-width="1.2" stroke-linejoin="round"/><path d="M5.2 16.5h13.6" stroke="#fde68a" stroke-width="1.2" stroke-linecap="round"/><rect x="4.6" y="19" width="14.8" height="2.4" rx="1.1" fill="#f59e0b" stroke="#92400e" stroke-width="1"/><circle cx="3" cy="8" r="1.5" fill="#fde68a" stroke="#92400e" stroke-width=".8"/><circle cx="12" cy="4.5" r="1.6" fill="#fde68a" stroke="#92400e" stroke-width=".8"/><circle cx="21" cy="8" r="1.5" fill="#fde68a" stroke="#92400e" stroke-width=".8"/><circle cx="12" cy="14" r="1.6" fill="#ef4444" stroke="#7f1d1d" stroke-width=".7"/></svg>';
+    var SPARK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1l2.7 8.3L23 12l-8.3 2.7L12 23l-2.7-8.3L1 12l8.3-2.7z" fill="#fde68a" stroke="#f59e0b" stroke-width="1" stroke-linejoin="round"/></svg>';
+
     function tierOf(level) {
         var t = TIERS[0];
         for (var i = 0; i < TIERS.length; i++) { if (level >= TIERS[i].min) t = TIERS[i]; }
@@ -84,7 +102,9 @@
         '.lv-ring{position:absolute;inset:0;border-radius:50%;z-index:1}',
         '.lv-orbit{position:absolute;inset:0;z-index:4;pointer-events:none;animation:lvSpin 7s linear infinite}',
         '.lv-orbit i{position:absolute;left:50%;top:50%;width:max(4px,calc(var(--s)*.06));height:max(4px,calc(var(--s)*.06));margin:calc(var(--s)*-.03) 0 0 calc(var(--s)*-.03);border-radius:50%;transform:rotate(var(--a)) translateY(calc(var(--s)/-2 - var(--s)*.05));background:var(--dot,#fff);box-shadow:0 0 8px var(--dot,#fff)}',
-        '.lv-crown{position:absolute;left:50%;top:calc(var(--s)*-.27);font-size:calc(var(--s)*.34);line-height:1;z-index:6;transform:translateX(-50%);animation:lvFloat 3s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}',
+        '.lv-crown svg,.lv-spark svg{width:100%;height:100%;display:block}',
+        '.lv-ico{vertical-align:-2px;flex-shrink:0}',
+        '.lv-crown{position:absolute;left:50%;top:calc(var(--s)*-.27);width:calc(var(--s)*.34);height:calc(var(--s)*.34);line-height:0;z-index:6;transform:translateX(-50%);animation:lvFloat 3s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}',
         '.lv-extra{position:absolute;z-index:7}',
 
         /* الفئة 1: مستكشف */
@@ -107,7 +127,7 @@
         '.lv-t7{--g1:rgba(251,191,36,.6);--g2:rgba(236,72,153,1);--dot:#fef08a}',
         '.lv-t7 .lv-ring{background:conic-gradient(from 0deg,#fbbf24,#ec4899,#7c3aed,#22d3ee,#fbbf24,#ec4899,#fbbf24);animation:lvSpin 2.4s linear infinite,lvPulse 1.6s ease-in-out infinite}',
         '.lv-t7 .lv-orbit{animation-duration:4.5s}',
-        '.lv-spark{position:absolute;z-index:6;font-size:calc(var(--s)*.18);animation:lvTwinkle 1.8s ease-in-out infinite;pointer-events:none}',
+        '.lv-spark{position:absolute;z-index:6;width:calc(var(--s)*.2);height:calc(var(--s)*.2);line-height:0;filter:drop-shadow(0 0 4px rgba(253,224,71,.9));animation:lvTwinkle 1.8s ease-in-out infinite;pointer-events:none}',
 
         /* شارة المستوى */
         '.lv-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:800;white-space:nowrap;border:1px solid rgba(255,255,255,.22);color:#fff;line-height:1.5}',
@@ -180,10 +200,10 @@
             for (var i = 0; i < dots; i++) orbit += '<i style="--a:' + Math.round((360 / dots) * i) + 'deg"></i>';
             orbit += '</span>';
         }
-        var crown = t.id >= 6 ? '<span class="lv-crown">👑</span>' : '';
+        var crown = t.id >= 6 ? '<span class="lv-crown">' + CROWN_SVG + '</span>' : '';
         var sparks = '';
         if (t.id === 7) {
-            sparks = '<span class="lv-spark" style="top:-4%;right:-6%">✨</span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s">✨</span>';
+            sparks = '<span class="lv-spark" style="top:-4%;right:-6%">' + SPARK_SVG + '</span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s">' + SPARK_SVG + '</span>';
         }
         return '<div class="lv-avatar lv-t' + t.id + '" style="--s:' + size + 'px">' +
             '<span class="lv-ring"></span>' + orbit +
@@ -196,7 +216,7 @@
         injectCss();
         level = Math.max(1, Math.min(MAX_LEVEL, Number(level) || 1));
         var t = tierOf(level);
-        return '<span class="lv-badge lv-bt' + t.id + '"><b>Lv.' + level + '</b><span>' + t.icon + ' ' + t.name + '</span></span>';
+        return '<span class="lv-badge lv-bt' + t.id + '"><b>Lv.' + level + '</b><span style="display:inline-flex;align-items:center;gap:4px">' + tierIcon(t.id, 13) + t.name + '</span></span>';
     }
 
     function nameClass(level) {
@@ -250,7 +270,7 @@
 
     global.LV = {
         MAX_LEVEL: MAX_LEVEL, TIERS: TIERS, PERKS: PERKS,
-        pointsFor: pointsFor, levelOf: levelOf, tierOf: tierOf, info: info,
+        pointsFor: pointsFor, levelOf: levelOf, tierOf: tierOf, info: info, tierIcon: tierIcon,
         injectCss: injectCss, avatar: avatar, badge: badge,
         nameClass: nameClass, cardClass: cardClass,
         progressHtml: progressHtml, perksHtml: perksHtml, shortName: shortName
