@@ -306,6 +306,35 @@
         .cz-prev { width: 64px; height: 36px; border-radius: 8px; background: #1e293b center/cover; border: 1px solid var(--border-color); }
         .modal-header h3 { display: flex; align-items: center; gap: 8px; }
         .friend-action-icon-btn, .modal-body .btn, .modal-card .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    
+        /* ===== وسام المستوى + شبكة المستويات ===== */
+        .pf-sub { font-size: 0.82rem; font-weight: 800; color: var(--c1); margin: 2px 0 8px; }
+        .pf-lvbtn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; margin-bottom: 10px; border-radius: 999px; border: 1px solid var(--c1); background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); color: var(--c1); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: transform .15s, filter .15s; }
+        .pf-lvbtn:hover { transform: scale(1.03); filter: brightness(1.15); }
+        .pf-lvbtn b { color: var(--text-main); font-weight: 900; }
+        .pf-lvbtn-sub { font-size: 0.68rem; color: var(--text-secondary); font-weight: 700; border-inline-start: 1px solid var(--border-color); padding-inline-start: 6px; }
+        .pf-lvbtn .lv-i:last-child { width: 14px; height: 14px; transform: scaleX(-1); }
+        .lvg-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.68rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .lvg-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .lvg-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; background: #334155; }
+        .lvg-dot.done { background: #22c55e; } .lvg-dot.cur { background: var(--c1, #6366f1); } .lvg-dot.perk { background: transparent; border: 2px solid #f59e0b; }
+        .lvg { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; direction: rtl; }
+        .lvg-cell { position: relative; aspect-ratio: 1.25; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-secondary); font-family: inherit; font-size: 0.9rem; font-weight: 800; cursor: pointer; }
+        .lvg-cell.done { color: #bbf7d0; border-color: rgba(34,197,94,0.45); background: rgba(34,197,94,0.1); }
+        .lvg-cell.cur { color: #fff; border-color: var(--c1, #6366f1); background: linear-gradient(135deg, var(--c1, #6366f1), var(--c2, #a855f7)); }
+        .lvg-cell.perk::after { content: ""; position: absolute; top: 4px; left: 4px; width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
+        .lvg-cell.sel { outline: 2px solid #fff; outline-offset: 1px; }
+        .lvd { margin-top: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; }
+        .lvd-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+        .lvd-state { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; font-weight: 800; color: var(--text-secondary); }
+        .lvd-state.on { color: #4ade80; }
+        .lvd-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 6px 0; border-bottom: 1px dashed var(--border-color); color: var(--text-secondary); }
+        .lvd-row b { color: var(--text-main); }
+        .lvd-title { font-size: 0.82rem; font-weight: 800; margin: 12px 0 8px; }
+        .lvd-none { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.8; }
+        .lvd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .lvd-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); font-size: 0.7rem; font-weight: 700; }
+        .lvd-chip .lv-i { width: 13px; height: 13px; color: var(--c1, #a5b4fc); }
     </style>
 </head>
 <body>
@@ -666,7 +695,10 @@
                         ${isSubscribed ? (data.accountType === 'trial' ? `<span class="trial-badge-glow" title="تجربة مجانية">${ic('gift')} تجربة</span>` : `<span class="vip-badge-glow">VIP</span>`) : ''}
                         ${getGenderSvgHtml(studentGender)}
                     </div>
-                    <div class="pf-sub">${customTitle ? esc(customTitle) : `${lv.tier.icon} ${lv.tier.name}`}</div>
+                    <div class="pf-sub">${customTitle ? `${ic('tag')} ${esc(customTitle)}` : esc(lv.tier.name)}</div>
+                    <button type="button" class="pf-lvbtn" onclick="openLevelPerksModal()" title="كل المستويات ومميزاتها">
+                        ${lv.tier.icon}<b>Lv.${lv.level}</b><span class="pf-lvbtn-sub">كل المستويات</span>${ic('chevron')}
+                    </button>
                     <div class="student-id-container">
                         <span class="id-text-badge" id="profileIdDisplay">ID: ${sid}</span>
                         <button class="copy-id-btn" onclick="copyStudentId('${sid}')" title="نسخ الـ ID">${ic('copy')}</button>
@@ -859,23 +891,66 @@
         };
         window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
 
+        let lvSelected = 1;
+        function lvScore() {
+            const d = currentStudentData || PS.getStudent() || {};
+            return Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
+        }
+        function lvGridHtml(cur) {
+            const perkLv = {};
+            LV.PERKS.forEach(p => perkLv[p.lvl] = true);
+            let out = '';
+            for (let n = 1; n <= LV.MAX_LEVEL; n++) {
+                const st = n === cur ? 'cur' : (n < cur ? 'done' : 'lock');
+                out += `<button type="button" class="lvg-cell ${st}${perkLv[n] ? ' perk' : ''}${n === lvSelected ? ' sel' : ''}" data-lv="${n}" onclick="selectLevel(${n})">${n}</button>`;
+            }
+            return out;
+        }
+        function lvDetailHtml(n, score) {
+            const cur = LV.levelOf(score);
+            const tier = LV.tierOf(n);
+            const need = LV.pointsFor(n);
+            const status = n <= cur
+                ? `<span class="lvd-state on">${LV.icon('check')} مفتوح</span>`
+                : `<span class="lvd-state">${LV.icon('lock')} باقي ${Math.max(0, need - score)} نقطة</span>`;
+            const here = LV.PERKS.filter(p => p.lvl === n);
+            const active = LV.PERKS.filter(p => p.lvl <= n);
+            const nextP = LV.PERKS.find(p => p.lvl > n);
+            const perksBlock = here.length
+                ? here.map(p => `<div class="lv-perk ${n <= cur ? 'on' : 'lock'}"><div class="lv-perk-ic">${p.icon}</div><div><div class="lv-perk-t">${p.title}</div><div class="lv-perk-d">${p.desc}</div></div></div>`).join('')
+                : `<div class="lvd-none">مفيش ميزة جديدة في المستوى ده.${nextP ? ` الميزة الجاية: <b>${nextP.title}</b> عند Lv.${nextP.lvl}.` : ''}</div>`;
+            return `
+                <div class="lvd-head">${LV.badge(n)}${status}</div>
+                <div class="lvd-row"><span>النقاط المطلوبة</span><b>${need}</b></div>
+                <div class="lvd-row"><span>اللقب</span><b>${tier.name}</b></div>
+                <div class="lvd-title">ميزات المستوى ${n}</div>
+                ${perksBlock}
+                <div class="lvd-title">المميزات المفتوحة عند هذا المستوى</div>
+                <div class="lvd-chips">${active.map(p => `<span class="lvd-chip">${p.icon}${p.title}</span>`).join('')}</div>`;
+        }
+        window.selectLevel = function(n) {
+            lvSelected = n;
+            const score = lvScore();
+            document.querySelectorAll('#lvGrid .lvg-cell').forEach(c => c.classList.toggle('sel', Number(c.dataset.lv) === n));
+            document.getElementById('lvDetail').innerHTML = lvDetailHtml(n, score);
+        };
         window.openLevelPerksModal = function() {
             const d = currentStudentData || PS.getStudent() || {};
-            const score = Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
+            const score = lvScore();
             const lv = LV.info(score);
             const avatarUrl = d.profileImage || defaultMaleSvg;
-            const tiers = LV.TIERS.map(t => `<tr><td>${t.icon} ${t.name}</td><td>Lv.${t.min}${t.id < 7 ? ' - ' + (LV.TIERS[t.id].min - 1) : ' - 50'}</td><td>${LV.pointsFor(t.min)} نقطة+</td></tr>`).join('');
+            lvSelected = lv.level;
             document.getElementById('levelPerksBody').innerHTML = `
                 <div class="lv-modal-hero">
-                    ${LV.avatar(avatarUrl, lv.level, 90)}
-                    <div style="margin-bottom:8px;">${LV.badge(lv.level)}</div>
+                    ${LV.avatar(avatarUrl, lv.level, 80)}
+                    <div style="margin:8px 0;">${LV.badge(lv.level)}</div>
                     ${LV.progressHtml(score)}
                 </div>
-                <h4 style="font-size:0.85rem; margin:14px 0 8px; display:flex; align-items:center; gap:6px;">${LV.icon('gift')} المميزات (بتتفتح تلقائياً كل 5 مستويات)</h4>
-                ${LV.perksHtml(lv.level)}
-                <h4 style="font-size:0.85rem; margin:16px 0 4px; display:flex; align-items:center; gap:6px;">${LV.icon('chart')} فئات المستويات</h4>
-                <table class="lv-tier-table">${tiers}</table>
-                <p style="font-size:0.7rem; color:var(--text-secondary); margin-top:10px; line-height:1.7;">النقاط بتيجي من: مشاهدة الفيديوهات، فتح الملازم والملخصات، امتحانات الحصص (بحسب درجتك)، والامتحانات الشاملة (بعد اعتماد الدرجة).</p>`;
+                <h4 class="lvd-title" style="margin-top:14px;">اختار مستوى تشوف مميزاته</h4>
+                <div class="lvg-legend"><span><i class="lvg-dot done"></i> وصلت له</span><span><i class="lvg-dot cur"></i> مستواك</span><span><i class="lvg-dot perk"></i> فيه ميزة</span></div>
+                <div class="lvg" id="lvGrid">${lvGridHtml(lv.level)}</div>
+                <div class="lvd" id="lvDetail">${lvDetailHtml(lv.level, score)}</div>
+                <p style="font-size:0.7rem; color:var(--text-secondary); margin-top:10px; line-height:1.7;">النقاط بتيجي من مشاهدة الفيديوهات وفتح الملازم وامتحانات الحصص.</p>`;
             document.getElementById('levelPerksModal').classList.add('active');
         };
         window.closeLevelPerksModal = function() { document.getElementById('levelPerksModal').classList.remove('active'); };
