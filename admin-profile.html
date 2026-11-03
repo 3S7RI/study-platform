@@ -102,16 +102,6 @@
             z-index: 5; 
         }
 
-
-        .admin-info-card { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 6px 14px; margin-bottom: 18px; }
-        .info-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border-color); }
-        .info-row:last-child { border-bottom: none; }
-        .info-ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(99,102,241,0.15); color: #a5b4fc; flex-shrink: 0; }
-        .info-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-        .info-label { font-size: 0.7rem; color: var(--text-muted, #94a3b8); font-weight: 600; }
-        .info-val { font-size: 0.86rem; font-weight: 700; color: var(--text-main); overflow-wrap: anywhere; text-align: right; }
-        .level-badge-box svg { vertical-align: -3px; }
-
         .rank-frame-legendary { 
             background: linear-gradient(135deg, #6366f1, #a855f7, #06b6d4, #6366f1); 
             background-size: 300% 300%;
@@ -587,6 +577,7 @@
     </div>
     <!-- تضمين مكتبات Firebase SDK والربط المباشر المضمون -->
     <script type="module">
+        import { updateAdminData, deleteAdminAccount } from "./admin-service.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -647,187 +638,121 @@
             }
         };
 
-        const DEV_EMAIL = 'mohamad91xm@gmail.com';
-        let currentAuthUser = null;
-        let adminDocExists = false;
-
-        function esc(v) {
-            return String(v === undefined || v === null ? '' : v)
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        }
-
-        // أيقونات SVG بدل الإيموجي
-        const ICONS = {
-            mail:  '<path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="m22 6-10 7L2 6"/>',
-            phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
-            key:   '<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M16 7l3 3M14 9l2 2"/>',
-            cal:   '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
-            clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-            shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
-            login: '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/>',
-            crown: '<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7z"/><path d="M5 20h14"/>',
-            code:  '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
-            camera:'<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
-        };
-        function svgIcon(name, size = 16) {
-            return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0">${ICONS[name] || ''}</svg>`;
-        }
-
-        // يدمج بيانات Firestore (لو موجودة) مع بيانات حساب Firebase Auth الفعلي
-        function buildAdminModel(docData, user, emailKey) {
-            const d = docData || {};
-            const isDev = emailKey === DEV_EMAIL;
-            const authName = user.displayName || '';
-            const provider = (user.providerData && user.providerData[0] && user.providerData[0].providerId) || 'password';
-            return {
-                ...d,
-                email: d.email || emailKey,
-                name: d.name || d.fullname || authName || (isDev ? 'محمد عماد' : (emailKey.split('@')[0] || 'مسؤول النظام')),
-                fullname: d.fullname || d.name || authName || (isDev ? 'محمد عماد' : ''),
-                profileImage: d.profileImage || d.avatar || user.photoURL || '',
-                phone: d.phone || user.phoneNumber || '',
-                adminId: d.adminId || (isDev ? 'ADM-0001' : ''),
-                uid: d.uid || user.uid,
-                role: isDev ? 'full' : d.role,
-                isDeveloper: isDev,
-                isVerified: isDev || d.isVerified === true || d.verified === true,
-                _authProvider: provider,
-                _emailVerified: user.emailVerified === true,
-                _createdAt: user.metadata && user.metadata.creationTime,
-                _lastLogin: user.metadata && user.metadata.lastSignInTime
-            };
-        }
-
-        // حفظ حقول في وثيقة الأدمن (admins/{email}) — ينشئ الوثيقة لو مش موجودة
-        async function persistAdmin(fields) {
-            const key = currentAdminDocKey || (currentAdminData && currentAdminData.email);
-            if (!key) throw new Error('no-admin-key');
-            const payload = { ...fields, lastUpdated: new Date().toISOString() };
-            if (!adminDocExists) {
-                payload.email = currentAdminData.email;
-                payload.uid = currentAuthUser ? currentAuthUser.uid : (currentAdminData.uid || '');
-                payload.adminId = currentAdminData.adminId || 'ADM-0001';
-                payload.role = currentAdminData.role || 'full';
-                payload.isVerified = currentAdminData.isVerified === true;
-                payload.status = 'active';
-                if (!('name' in payload)) { payload.name = currentAdminData.name; payload.fullname = currentAdminData.name; }
-            }
-            await setDoc(doc(db, "admins", key), payload, { merge: true });
-            adminDocExists = true;
-            currentAdminDocKey = key;
-        }
-
-        function cacheAdminSession() {
-            try {
-                const clean = { ...currentAdminData };
-                sessionStorage.setItem('adminUser', JSON.stringify(clean));
-            } catch (e) {}
-        }
-
         onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = 'login.html';
-                return;
-            }
-            currentAuthUser = user;
-            const emailKey = (user.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
-            let docData = null;
-            let targetDocId = emailKey || user.uid;
+            if (user) {
+                let emailKey = (user.email || sessionStorage.getItem('adminEmail') || '').toLowerCase().trim();
+                let uid = user.uid;
 
-            try {
-                let snap = null;
-                if (emailKey) {
-                    const directSnap = await getDoc(doc(db, "admins", emailKey));
-                    if (directSnap.exists()) { snap = directSnap; targetDocId = emailKey; }
-                    else {
-                        const qSnap = await getDocs(query(collection(db, "admins"), where("email", "==", emailKey)));
-                        if (!qSnap.empty) { snap = qSnap.docs[0]; targetDocId = qSnap.docs[0].id; }
+                try {
+                    let adminDocSnap = null;
+                    let targetDocId = null;
+
+                    if (emailKey) {
+                        let directRef = doc(db, "admins", emailKey);
+                        let directSnap = await getDoc(directRef);
+                        if (directSnap.exists()) {
+                            adminDocSnap = directSnap;
+                            targetDocId = emailKey;
+                        } else {
+                            let qEmail = query(collection(db, "admins"), where("email", "==", emailKey));
+                            let qSnap = await getDocs(qEmail);
+                            if (!qSnap.empty) {
+                                adminDocSnap = qSnap.docs[0];
+                                targetDocId = qSnap.docs[0].id;
+                            }
+                        }
                     }
-                }
-                if (!snap && user.uid) {
-                    const uidSnap = await getDoc(doc(db, "admins", user.uid));
-                    if (uidSnap.exists()) { snap = uidSnap; targetDocId = user.uid; }
-                }
-                if (snap && snap.exists()) { docData = snap.data(); adminDocExists = true; }
-            } catch (err) {
-                // حتى لو قراءة Firestore فشلت (صلاحيات/شبكة) نكمل ببيانات حساب Firebase نفسه
-                console.error("خطأ قراءة بيانات الأدمن من Firestore:", err);
-            }
 
-            currentAdminDocKey = targetDocId;
-            currentAdminData = buildAdminModel(docData, user, emailKey);
-            sessionStorage.setItem('adminEmail', emailKey);
-            cacheAdminSession();
-            renderAdminProfile(currentAdminData);
+                    if (!adminDocSnap && uid) {
+                        let uidRef = doc(db, "admins", uid);
+                        let uidSnap = await getDoc(uidRef);
+                        if (uidSnap.exists()) {
+                            adminDocSnap = uidSnap;
+                            targetDocId = uid;
+                        }
+                    }
+
+                    if (adminDocSnap && adminDocSnap.exists()) {
+                        currentAdminData = adminDocSnap.data();
+                        currentAdminDocKey = targetDocId;
+                        
+                        sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
+                        sessionStorage.setItem('adminEmail', emailKey);
+                        renderAdminProfile(currentAdminData);
+                    } else {
+                        currentAdminData = {
+                            name: "محمد عماد (مشرف عام)",
+                            fullname: "محمد عماد (مشرف عام)",
+                            email: emailKey || "mohamad91xm@gmail.com",
+                            adminId: "ADM-0001",
+                            role: "full",
+                            isVerified: true,
+                            verified: true
+                        };
+                        currentAdminDocKey = emailKey || uid || "mohamad91xm@gmail.com";
+                        sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
+                        renderAdminProfile(currentAdminData);
+                    }
+                } catch (err) {
+                    console.error("خطأ فحص صلاحيات الأدمن:", err);
+                    currentAdminData = {
+                        name: "محمد عماد (مشرف عام)",
+                        fullname: "محمد عماد (مشرف عام)",
+                        email: emailKey || "mohamad91xm@gmail.com",
+                        adminId: "ADM-0001",
+                        role: "full",
+                        isVerified: true,
+                        verified: true
+                    };
+                    currentAdminDocKey = emailKey || "mohamad91xm@gmail.com";
+                    renderAdminProfile(currentAdminData);
+                }
+            } else {
+                window.location.href = 'login.html';
+            }
         });
 
-        function fmtDate(v) {
-            if (!v) return '—';
-            const d = new Date(v);
-            if (isNaN(d)) return '—';
-            return d.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', dateStyle: 'medium', timeStyle: 'short' });
-        }
-
+        // 🚀 تحديث دالة العرض لتكون ديناميكية 100% بناءً على إعدادات قاعدة البيانات
         function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
+            
+            let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
+            let fullName = admin.name || admin.fullname || "مسؤول النظام";
+            let adminId = admin.adminId || "ADM-0001";
 
-            const avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
-            const fullName = admin.name || admin.fullname || "مسؤول النظام";
-            const adminId = admin.adminId || "—";
-            const isDev = admin.isDeveloper === true;
-
-            const verifiedBadgeHtml = admin.isVerified ? `
+            // فحص حالة التوثيق بدقة (سواء isVerified أو verified)
+            let isVerified = admin.isVerified === true || admin.verified === true;
+            let verifiedBadgeHtml = isVerified ? `
                 <span class="verified-badge" title="حساب موثق">
                     <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </span>` : '';
 
-            const isFullRole = isDev || admin.role === 'full' || admin.adminLevel === 'full';
-            const roleIcon = isDev ? 'code' : (isFullRole ? 'crown' : 'shield');
-            const roleText = isDev ? 'المطوّر • مشرف عام' : (isFullRole ? 'مشرف عام' : 'مساعد / مراقب');
-
-            const providerMap = { 'google.com': 'حساب Google', 'password': 'إيميل وكلمة سر', 'phone': 'رقم الهاتف' };
-            const rows = [
-                ['mail',  'البريد الإلكتروني', admin.email || '—', true],
-                ['phone', 'رقم الهاتف', admin.phone || 'غير مسجل', true],
-                ['key',   'معرّف الحساب (UID)', admin.uid || '—', true],
-                ['shield','توثيق البريد', admin._emailVerified ? 'موثّق' : 'غير موثّق', false],
-                ['login', 'طريقة الدخول', providerMap[admin._authProvider] || admin._authProvider || '—', false],
-                ['cal',   'تاريخ إنشاء الحساب', fmtDate(admin._createdAt || admin.createdAt), false],
-                ['clock', 'آخر تسجيل دخول', fmtDate(admin._lastLogin), false]
-            ].map(([ic, label, val, ltr]) => `
-                <div class="info-row">
-                    <span class="info-ic">${svgIcon(ic, 17)}</span>
-                    <div class="info-txt">
-                        <span class="info-label">${label}</span>
-                        <span class="info-val" ${ltr ? 'dir="ltr"' : ''}>${esc(val)}</span>
-                    </div>
-                </div>`).join('');
+            // فحص الصلاحية والمستوى (مشرف عام vs مساعد/مراقب)
+            let isFullRole = (admin.role === 'full');
+            let roleText = isFullRole ? 'مشرف عام 👑 • نشط' : 'مساعد / مراقب 🛡️ • نشط';
 
             container.innerHTML = `
                 <div class="profile-header">
                     <div class="avatar-wrapper rank-frame-legendary">
-                        <img src="${esc(avatarUrl)}" alt="صورة الأدمن" id="adminAvatarDisplay" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=defaultAvatarSvg;">
-                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير صورة البروفايل">${svgIcon('camera', 14)}</div>
+                        <img src="${avatarUrl}" alt="صورة الأدمن" id="adminAvatarDisplay">
+                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير صورة البروفايل">📷</div>
                     </div>
                     <div class="admin-name">
-                        <span>${esc(fullName)}</span>
+                        <span>${fullName}</span>
                         ${verifiedBadgeHtml}
                     </div>
-
+                    
                     <div class="admin-id-container">
-                        <span class="id-text-badge">id: ${esc(adminId)}</span>
-                        <button class="copy-id-btn" onclick="copyAdminId('${esc(adminId)}')">نسخ 📋</button>
+                        <span class="id-text-badge">id: ${adminId}</span>
+                        <button class="copy-id-btn" onclick="copyAdminId('${adminId}')">نسخ 📋</button>
                     </div>
 
                     <div>
                         <span class="level-badge-box badge-legendary" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" title="اضغط لتحدي اليوم">
-                            ${svgIcon(roleIcon, 15)} ${roleText} • نشط
+                            ${roleText}
                         </span>
                     </div>
                 </div>
-
-                <div class="admin-info-card">${rows}</div>
 
                 <div class="profile-actions-bar">
                     <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ الإعدادات</button>
@@ -890,14 +815,17 @@
             btn.disabled = true;
 
             try {
-                await persistAdmin({
-                    profileImage: selectedNewAvatarBase64,
-                    avatar: selectedNewAvatarBase64
-                });
                 currentAdminData.profileImage = selectedNewAvatarBase64;
                 currentAdminData.avatar = selectedNewAvatarBase64;
-                selectedNewAvatarBase64 = null;
-                cacheAdminSession();
+
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, {
+                        profileImage: selectedNewAvatarBase64,
+                        avatar: selectedNewAvatarBase64
+                    });
+                }
+                sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
                 closeModal('avatarModal');
                 showToast('تم تحديث وحفظ صورة البروفايل بنجاح!', '🖼');
@@ -912,12 +840,17 @@
 
         window.removeProfileImage = async function() {
             if (!confirm("هل أنت متأكد من حذف صورة البروفايل؟")) return;
+            currentAdminData.profileImage = "";
+            currentAdminData.avatar = "";
             try {
-                await persistAdmin({ profileImage: "", avatar: "" });
-                // بعد الحذف نرجع لصورة حساب Firebase (لو فيه) أو الصورة الافتراضية
-                currentAdminData.profileImage = (currentAuthUser && currentAuthUser.photoURL) || "";
-                currentAdminData.avatar = "";
-                cacheAdminSession();
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, {
+                        profileImage: "",
+                        avatar: ""
+                    });
+                }
+                sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
                 closeModal('settingsModal');
                 showToast("تم حذف صورة البروفايل بنجاح.", "🗑️");
@@ -937,6 +870,11 @@
                 return;
             }
 
+            currentAdminData.name = newName;
+            currentAdminData.fullname = newName;
+            currentAdminData.phone = newPhone;
+            if (newPass) currentAdminData.password = newPass;
+
             try {
                 let updatePayload = {
                     name: newName,
@@ -945,11 +883,11 @@
                 };
                 if (newPass) updatePayload.password = newPass;
 
-                await persistAdmin(updatePayload);
-                currentAdminData.name = newName;
-                currentAdminData.fullname = newName;
-                currentAdminData.phone = newPhone;
-                cacheAdminSession();
+                let targetKey = currentAdminDocKey || currentAdminData.email;
+                if (targetKey) {
+                    await updateAdminData(db, targetKey, updatePayload);
+                }
+                sessionStorage.setItem('adminUser', JSON.stringify(currentAdminData));
                 renderAdminProfile(currentAdminData);
                 closeModal('settingsModal');
                 showToast("تم حفظ تعديلات البروفايل بنجاح! ✅", "💾");
@@ -964,7 +902,7 @@
             try {
                 let targetKey = currentAdminDocKey || currentAdminData.email;
                 if (targetKey) {
-                    await deleteDoc(doc(db, "admins", targetKey));
+                    await deleteAdminAccount(db, targetKey);
                 }
                 sessionStorage.clear();
                 showToast("تم حذف حسابك نهائياً.", "⚠️");
