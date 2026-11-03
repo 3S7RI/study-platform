@@ -22,6 +22,9 @@ export async function sendEmailOtpProcess(emailInput, findStudentFunc, dbInstanc
 
         if (response.status === 429) {
             const rl = await response.json().catch(() => ({}));
+            if (rl.error === 'daily_limit') {
+                return { success: false, dailyLimit: true, message: 'وصلت للحد الأقصى (5 أكواد في اليوم) لنفس الإيميل، جرّب تاني بكرة' };
+            }
             const wait = Number(rl.retryAfter) > 0 ? Number(rl.retryAfter) : 90;
             return { success: false, retryAfter: wait, message: 'استنى ' + wait + ' ثانية قبل ما تطلب كود تاني' };
         }

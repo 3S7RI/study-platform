@@ -122,7 +122,7 @@
     /* ===== CSS مشترك (بيتحقن مرة واحدة) ===== */
     var CSS = [
         '.lv-i{width:1em;height:1em;flex-shrink:0;vertical-align:-.14em}',
-        '.lv-crown{color:#fbbf24}.lv-crown .lv-i{width:1em;height:1em;fill:rgba(251,191,36,.35)}',
+        '.lv-crown{color:#fbbf24}.lv-crown .lv-i{width:1em;height:1em;fill:rgba(251,191,36,.55);stroke-width:2.2}',
         '.lv-spark{color:#fde68a}.lv-spark .lv-i{fill:currentColor}',
         '.lv-perk-ic .lv-i{width:20px;height:20px}',
         '.lv-perk-l{display:flex;align-items:center;gap:4px}',
@@ -139,7 +139,7 @@
         '.lv-ring{position:absolute;inset:0;border-radius:50%;z-index:1}',
         '.lv-orbit{position:absolute;inset:0;z-index:4;pointer-events:none;animation:lvSpin 7s linear infinite}',
         '.lv-orbit i{position:absolute;left:50%;top:50%;width:max(4px,calc(var(--s)*.06));height:max(4px,calc(var(--s)*.06));margin:calc(var(--s)*-.03) 0 0 calc(var(--s)*-.03);border-radius:50%;transform:rotate(var(--a)) translateY(calc(var(--s)/-2 - var(--s)*.05));background:var(--dot,#fff);box-shadow:0 0 8px var(--dot,#fff)}',
-        '.lv-crown{position:absolute;left:50%;top:calc(var(--s)*-.27);font-size:calc(var(--s)*.34);line-height:1;z-index:6;transform:translateX(-50%);animation:lvFloat 3s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}',
+        '.lv-crown{position:absolute;left:50%;top:calc(var(--s)*-.36);font-size:max(18px,calc(var(--s)*.5));line-height:1;z-index:8;transform:translateX(-50%);animation:lvFloat 3s ease-in-out infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}',
         '.lv-extra{position:absolute;z-index:7}',
 
         /* الفئة 1: مستكشف */

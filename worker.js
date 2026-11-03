@@ -159,6 +159,16 @@ export default {
     if (path === "/send") {
       const type = body.type === "admin" ? "admin" : "student";
 
+      // حد يومي: 5 طلبات كود كحد أقصى لكل إيميل في اليوم (بتوقيت القاهرة)، بيتحسب الإرسال الناجح بس
+      const DAILY_MAX = 5;
+      const cairoDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Cairo" }).format(new Date());
+      const dayKey = "dc:" + email + ":" + cairoDay;
+      let dayCount = 0;
+      if (env.OTP_KV) {
+        dayCount = Number(await env.OTP_KV.get(dayKey)) || 0;
+        if (dayCount >= DAILY_MAX) return json({ error: "daily_limit", max: DAILY_MAX }, 429, cors);
+      }
+
       // حد 90 ثانية بين طلبات الكود لنفس الإيميل (Cloudflare KV، ربط باسم OTP_KV). لو الربط مش موجود الحد بيتخطى بدون ما يكسر الإرسال.
       const RL_SECONDS = 90;
       const rlKey = "rl:" + email;
@@ -199,7 +209,8 @@ export default {
         if (env.OTP_KV) await env.OTP_KV.delete(rlKey); // الإرسال فشل: متحسبش المحاولة على الطالب
         return json({ error: "send failed", status: r.status }, 502, cors);
       }
-      return json({ ok: true, exp, sig }, 200, cors);
+      if (env.OTP_KV) await env.OTP_KV.put(dayKey, String(dayCount + 1), { expirationTtl: 172800 });
+      return json({ ok: true, exp, sig, left: Math.max(0, DAILY_MAX - dayCount - 1) }, 200, cors);
     }
 
     if (path === "/verify") {

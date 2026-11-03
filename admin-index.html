@@ -472,6 +472,13 @@
 
                 if (response.status === 429) {
                     const rl = await response.json().catch(() => ({}));
+                    if (rl.error === 'daily_limit') {
+                        emailError.textContent = 'وصلت للحد الأقصى (5 أكواد في اليوم) لنفس الإيميل، جرّب تاني بكرة';
+                        emailError.style.display = 'block';
+                        sendBtn.textContent = 'إرسال الكود';
+                        sendBtn.disabled = false;
+                        return;
+                    }
                     const wait = Number(rl.retryAfter) > 0 ? Number(rl.retryAfter) : 90;
                     emailError.textContent = 'استنى ' + wait + ' ثانية قبل ما تطلب كود تاني';
                     emailError.style.display = 'block';
