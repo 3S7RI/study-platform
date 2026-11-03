@@ -21,7 +21,7 @@
 
             <div id="ai-chat-messages" class="ai-chat-messages">
                 <div class="ai-msg bot-msg">
-                    <p>أهلاً بيك يا بطل! <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> أنا مساعدك الذكي في منصة <strong>رحلة دراسية</strong>. اسألني عن أي منهج، أو سؤال، أو استفسار وهجاوبك فوراً! <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></p>
+                    <p>أهلاً بيك يا بطل! <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> أنا مساعدك الذكي في منصة <strong>رحلة دراسية</strong>. اسألني عن المنصة، أو عن أي درس أو مسألة في المنهج، وهجاوبك خطوة بخطوة! <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></p>
                     <span class="msg-time">الآن</span>
                 </div>
             </div>
@@ -31,6 +31,8 @@
                 <button onclick="sendQuickPrompt('نظام النقاط والمستويات')"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg> نظام النقاط</button>
                 <button onclick="sendQuickPrompt('فين قناة اليوتيوب؟')"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> القنوات الرسمية</button>
                 <button onclick="sendQuickPrompt('التواصل مع الدعم')"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg> الدعم الفني</button>
+                <button onclick="sendQuickPrompt('ازاي أنظم مذاكرتي؟')">نظّم مذاكرتي</button>
+                <button onclick="sendQuickPrompt('أسعار الاشتراك وطرق الدفع')">الأسعار والدفع</button>
             </div>
 
             <div class="ai-chat-input-area">
@@ -71,6 +73,17 @@
     .ai-chat-input-area { padding: 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; }
     .ai-chat-input-area input { flex: 1; background: #0f172a; border: 1px solid #334155; padding: 10px 14px; border-radius: 10px; color: #fff; font-size: 13px; outline: none; }
     .ai-chat-input-area button { background: #3b82f6; border: none; width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .ai-msg p { margin: 0; }
+    .ai-msg code { background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 4px; direction: ltr; unicode-bidi: embed; }
+    .ai-msg a { word-break: break-all; }
+    .ai-li { padding-right: 14px; position: relative; margin: 3px 0; }
+    .ai-li::before { content: "•"; position: absolute; right: 2px; color: #60a5fa; }
+    .ai-typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+    .ai-typing i { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; animation: aiDot 1.2s infinite ease-in-out; }
+    .ai-typing i:nth-child(2) { animation-delay: .18s; } .ai-typing i:nth-child(3) { animation-delay: .36s; }
+    @keyframes aiDot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+    .ai-chat-input-area button:disabled { opacity: .5; cursor: not-allowed; }
+    .ai-msg { user-select: text; }
     @media(max-width: 480px) { .ai-chat-box { width: 90vw; right: -10px; height: 450px; } }
     `;
 
@@ -141,17 +154,8 @@
         }
     };
 
-    function appendMessage(text, sender) {
-        if (!chatMessages) return;
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `ai-msg ${sender === 'user' ? 'user-msg' : 'bot-msg'}`;
-        msgDiv.innerHTML = `<p>${text}</p><span class="msg-time">الآن</span>`;
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
     // 3. المحرك الذكي المفتوح للردود (بدون قيود وبدون رسائل موحدة معفنة)
-    function getSmartResponse(query) {
+    function legacyFaq(query) {
         const q = query.toLowerCase();
 
         // الروابط والخدمات الخاصة بمنصتك
@@ -178,18 +182,145 @@
         return `<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> بخصوص سؤالك عن (<strong>${query}</strong>):<br>أنا جاهز أساعدك وأشرحهالك بالتفصيل! تقدر تسألني في أي قاعدة نحوية، مصطلح علمي، مسألة رياضية، أو تاريخ، وهبسطهالك فوراً كأن مستر معاك خطوة بخطوة <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>.`;
     }
 
-    function sendUserMessage() {
-        const text = userInput.value.trim();
+
+    // ===== المساعد الذكي: بيكلّم Cloudflare Worker (/chat) والمفاتيح محفوظة هناك =====
+    const AI_ENDPOINT = 'https://otp.mohamad91xm.workers.dev/chat';
+    const QUICK_FAQ = ['ازاي أفعل الـ VIP؟', 'نظام النقاط والمستويات', 'فين قناة اليوتيوب؟', 'التواصل مع الدعم'];
+    const history = [];      // آخر الرسائل (user / assistant) اللي بتتبعت للـ AI
+    let busy = false;
+
+    function esc(t) {
+        return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // تنسيق آمن لرد الـ AI: escape الأول وبعدين bold / code / روابط / نقط
+    function formatAi(text) {
+        let h = esc(text);
+        h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+        h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+        h = h.replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)\]،؟])/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:#60a5fa;">$1</a>');
+        const out = h.split('\n').map(line => {
+            const m = line.match(/^\s*(?:[-•*]|\d+[.)])\s+(.*)$/);
+            const hd = line.match(/^\s*#{1,4}\s+(.*)$/);
+            if (m) return '<div class="ai-li">' + m[1] + '</div>';
+            if (hd) return '<strong>' + hd[1] + '</strong><br>';
+            return line.trim() === '' ? '<div style="height:6px"></div>' : line + '<br>';
+        }).join('');
+        return out.replace(/(<br>)+$/, '');
+    }
+
+    function appendMessage(content, sender, isHtml) {
+        if (!chatMessages) return null;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `ai-msg ${sender === 'user' ? 'user-msg' : 'bot-msg'}`;
+        const p = document.createElement('p');
+        if (isHtml) p.innerHTML = content; else p.textContent = content;   // رسالة الطالب دايماً نص عادي (منع XSS)
+        const t = document.createElement('span');
+        t.className = 'msg-time';
+        t.textContent = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        msgDiv.appendChild(p);
+        msgDiv.appendChild(t);
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return msgDiv;
+    }
+
+    function toMs(v) {
+        if (!v) return 0;
+        if (typeof v === 'number') return v;
+        if (typeof v.toMillis === 'function') return v.toMillis();
+        if (typeof v.seconds === 'number') return v.seconds * 1000;
+        const n = Date.parse(v);
+        return isNaN(n) ? 0 : n;
+    }
+
+    // بيانات بسيطة عن الطالب الحالي (اسمه الأول ونقاطه…) عشان الرد يبقى شخصي ودقيق
+    function studentContext() {
+        try {
+            const d = (window.PS && PS.getStudent && PS.getStudent()) || null;
+            if (!d) return null;
+            const points = Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
+            const exp = toMs(d.subscriptionExpiry);
+            const active = d.isSubscribed === true && exp > Date.now();
+            return {
+                name: String(d.fullName || d.name || '').trim().split(/\s+/)[0] || '',
+                points: points,
+                level: window.LV ? LV.levelOf(points) : undefined,
+                rank: window.PS && PS.rank ? PS.rank(points).label : '',
+                streak: Number(d.streak) || 0,
+                plan: d.accountType === 'trial' ? (active ? 'تجربة مجانية' : 'مجاني') : (active ? 'VIP' : 'مجاني'),
+                daysLeft: active ? Math.max(0, Math.ceil((exp - Date.now()) / 86400000)) : undefined
+            };
+        } catch (e) { return null; }
+    }
+
+    const SUPPORT_HTML = '<br>لو المشكلة مستمرة كلّم الدعم: <a href="https://wa.me/201038783039" target="_blank" rel="noopener noreferrer" style="color:#60a5fa;">واتساب 01038783039</a>';
+
+    async function askAi() {
+        const typing = appendMessage('<span class="ai-typing"><i></i><i></i><i></i></span>', 'bot', true);
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 45000);
+        try {
+            const res = await fetch(AI_ENDPOINT, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ messages: history.slice(-8), ctx: studentContext() }),
+                signal: ctrl.signal
+            });
+            let data = {};
+            try { data = await res.json(); } catch (e) {}
+            let html;
+            if (res.ok && data.reply) {
+                history.push({ role: 'assistant', content: data.reply });
+                html = formatAi(data.reply);
+            } else if (res.status === 429) {
+                history.pop();
+                html = data.error === 'daily_limit'
+                    ? 'وصلت للحد اليومي من الأسئلة من الشبكة دي، جرّب تاني بكرة.' + SUPPORT_HTML
+                    : 'بتسأل بسرعة! استنى نص دقيقة وكمّل.';
+            } else if (res.status === 503) {
+                history.pop();
+                html = 'المساعد الذكي غير متاح دلوقتي.' + SUPPORT_HTML;
+            } else {
+                history.pop();
+                html = 'حصلت مشكلة وأنا بجهّز الرد، جرّب تبعت سؤالك تاني.' + SUPPORT_HTML;
+            }
+            typing.querySelector('p').innerHTML = html;
+        } catch (e) {
+            history.pop();
+            typing.querySelector('p').innerHTML = (e && e.name === 'AbortError' ? 'الرد اتأخر أوي.' : 'مفيش اتصال بالمساعد دلوقتي، اتأكد من النت.') + ' جرّب تاني.' + SUPPORT_HTML;
+        } finally {
+            clearTimeout(timer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    function setBusy(b) {
+        busy = b;
+        if (sendBtn) sendBtn.disabled = b;
+        if (userInput) userInput.disabled = b;
+        if (!b && userInput && !chatBox.classList.contains('hidden')) userInput.focus();
+    }
+
+    async function sendUserMessage() {
+        if (busy) return;
+        const text = userInput.value.trim().slice(0, 1000);
         if (!text) return;
 
-        appendMessage(text, 'user');
+        appendMessage(text, 'user', false);
         userInput.value = '';
 
-        // محاكاة سرعة الرد الذكي
-        setTimeout(() => {
-            const reply = getSmartResponse(text);
-            appendMessage(reply, 'bot');
-        }, 500);
+        // الأسئلة السريعة (الأزرار) بترد فوراً من غير AI
+        if (QUICK_FAQ.indexOf(text) !== -1) {
+            setTimeout(() => appendMessage(legacyFaq(text), 'bot', true), 250);
+            return;
+        }
+
+        history.push({ role: 'user', content: text });
+        if (history.length > 10) history.splice(0, history.length - 10);
+        setBusy(true);
+        await askAi();
+        setBusy(false);
     }
 
     if (sendBtn) sendBtn.addEventListener('click', sendUserMessage);
