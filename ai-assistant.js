@@ -270,6 +270,8 @@
             let data = {};
             try { data = await res.json(); } catch (e) {}
             let html;
+            // تشخيص للمطور: بيظهر في Console المتصفح (F12) لو الـ AI مش شغال
+            if (!(res.ok && data.reply)) console.warn('[AI] status', res.status, data);
             if (res.ok && data.reply) {
                 history.push({ role: 'assistant', content: data.reply });
                 html = formatAi(data.reply);

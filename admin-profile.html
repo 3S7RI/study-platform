@@ -410,7 +410,10 @@
         .profile-action-btn .lv-i { width: 17px; height: 17px; flex-shrink: 0; }
         .back-btn .lv-i { width: 16px; height: 16px; }
         @media (max-width: 420px) { .ap-stats { grid-template-columns: repeat(2, 1fr); } }
-    </style>
+            /* تاج ونجوم أصغر حوالين صورة الأدمن */
+        .lv-avatar .lv-crown { font-size: max(14px, calc(var(--s) * 0.28)); top: calc(var(--s) * -0.22); }
+        .lv-avatar .lv-spark { font-size: calc(var(--s) * 0.1); }
+</style>
 </head>
 <body>
 
@@ -664,25 +667,19 @@
 
         const DEV_EMAIL = 'mohamad91xm@gmail.com';
 
-        // بيجمّع أي بيانات (صورة/اسم/هاتف) للحساب من students و users وبيانات Firebase Auth
-        async function pullExtraProfile(emailKey, uid, user) {
+        // مكمّلات بيانات الأدمن لو وثيقة admins ناقصة: من جلسة الأدمن (اللي اتحفظت وقت الدخول من admins) ثم Firebase Auth.
+        // مهم: مبنقراش من students ولا users عشان بيانات طالب (صورة/اسم) متظهرش في بروفايل الأدمن.
+        function pullExtraProfile(emailKey, uid, user) {
             const extra = {};
-            const take = (d) => {
-                if (!d) return;
-                const img = d.profileImage || d.avatar;
-                if (!extra.profileImage && img) extra.profileImage = img;
-                const nm = d.fullName || d.name || d.fullname;
-                if (!extra.name && nm) extra.name = nm;
-                const ph = d.phone || d.studentPhone;
-                if (!extra.phone && ph) extra.phone = ph;
-            };
-            const tryDoc = async (coll, id) => {
-                if (!id) return;
-                try { const s = await getDoc(doc(db, coll, id)); if (s.exists()) take(s.data()); } catch (e) {}
-            };
-            await tryDoc('students', emailKey);
-            await tryDoc('users', uid);
-            await tryDoc('users', emailKey);
+            try {
+                const cached = JSON.parse(sessionStorage.getItem('adminUser') || 'null');
+                if (cached && typeof cached === 'object' && String(cached.email || '').toLowerCase().trim() === emailKey) {
+                    if (cached.profileImage || cached.avatar) extra.profileImage = cached.profileImage || cached.avatar;
+                    const nm = cached.name || cached.fullname;
+                    if (nm) extra.name = nm;
+                    if (cached.phone) extra.phone = cached.phone;
+                }
+            } catch (e) {}
             if (user) {
                 if (!extra.profileImage && user.photoURL) extra.profileImage = user.photoURL;
                 if (!extra.name && user.displayName) extra.name = user.displayName;
@@ -714,7 +711,7 @@
                     if (uidSnap.exists()) { adminDocSnap = uidSnap; targetDocId = uid; }
                 }
 
-                const extra = await pullExtraProfile(emailKey, uid, user);
+                const extra = pullExtraProfile(emailKey, uid, user);
 
                 if (adminDocSnap && adminDocSnap.exists()) {
                     currentAdminData = { ...adminDocSnap.data() };
