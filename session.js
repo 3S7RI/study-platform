@@ -211,5 +211,32 @@
         } catch (e) {}
     })();
 
+    /* ===== تسجيل أخطاء الصفحات (لوحة صحة المنصة) =====
+     * بيبعت لـ Firestore REST في collection اسمها errorLogs. أقصى 3 أخطاء لكل تحميل صفحة، ومن غير تكرار.
+     * لو قواعد Firestore مش بتسمح بالإنشاء بيفشل بصمت ومفيش أي تأثير على الطالب. */
+    (function errorReporter() {
+        var sent = 0, seen = {};
+        function report(msg, src, line) {
+            try {
+                msg = String(msg || '').slice(0, 300);
+                if (!msg || sent >= 3 || seen[msg]) return;
+                if (/ResizeObserver|Script error\.?$/i.test(msg)) return;
+                seen[msg] = 1; sent++;
+                var f = function (v) { return { stringValue: String(v == null ? '' : v).slice(0, 300) }; };
+                var body = { fields: {
+                    page: f(location.pathname.split('/').pop() || 'index.html'),
+                    msg: f(msg), src: f(String(src || '').split('/').pop()), line: f(line || ''),
+                    ua: f((navigator.userAgent || '').slice(0, 120)),
+                    t: f(new Date().toISOString())
+                } };
+                fetch('https://firestore.googleapis.com/v1/projects/study-trip-1/databases/(default)/documents/errorLogs?key=AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true
+                }).catch(function () {});
+            } catch (e) {}
+        }
+        window.addEventListener('error', function (e) { report(e.message, e.filename, e.lineno); });
+        window.addEventListener('unhandledrejection', function (e) { report('Promise: ' + (e.reason && (e.reason.message || e.reason)), '', ''); });
+    })();
+
     global.PS = PS;
 })(window);

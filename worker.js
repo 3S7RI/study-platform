@@ -133,6 +133,25 @@ export default {
     if (req.method !== "POST") return json({ error: "method" }, 405, cors);
 
     const path = new URL(req.url).pathname;
+
+    // فحص الحالة للوحة الأدمن: حالة Brevo والرصيد المتبقي (من غير أي بيانات حساسة)
+    if (path === "/status") {
+      const t0 = Date.now();
+      const out = { ok: true, kv: !!env.OTP_KV, secrets: { otp: !!env.OTP_SECRET, brevo: !!env.BREVO_API_KEY, sender: !!env.SENDER_EMAIL } };
+      try {
+        const r = await fetch("https://api.brevo.com/v3/account", { headers: { "accept": "application/json", "api-key": env.BREVO_API_KEY || "" } });
+        out.brevoStatus = r.status;
+        out.brevoOk = r.ok;
+        if (r.ok) {
+          const a = await r.json();
+          const plans = Array.isArray(a.plan) ? a.plan : [];
+          out.credits = plans.filter(p => p.creditsType === "sendLimit").map(p => ({ type: p.type, credits: p.credits }));
+        }
+      } catch (e) { out.brevoOk = false; out.brevoStatus = 0; }
+      out.latencyMs = Date.now() - t0;
+      return json(out, 200, cors);
+    }
+
     const body = await req.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) return json({ error: "bad email" }, 400, cors);

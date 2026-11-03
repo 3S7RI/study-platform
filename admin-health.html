@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صحة المنصة</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--tx:#f8fafc;--mut:#94a3b8;--bd:#334155;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444;--cy:#22d3ee;--th:rgba(255,255,255,.04);--sh:0 8px 20px rgba(0,0,0,.12)}
+[data-theme=light]{--bg:#f1f5f9;--card:#fff;--tx:#1e293b;--mut:#64748b;--bd:#e2e8f0;--th:rgba(0,0,0,.03)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif;font-size:.86rem}
+body{background:var(--bg);color:var(--tx);padding:12px;min-height:100vh}
+.wrap{max-width:1100px;margin:0 auto}
+.hd{display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:9px 16px;border-radius:14px;margin-bottom:14px;border:1px solid var(--bd);box-shadow:var(--sh)}
+.hd a{text-decoration:none;color:var(--tx);background:var(--th);padding:6px 12px;border-radius:10px;border:1px solid var(--bd);font-weight:700}
+.hd b{color:var(--cy);font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;right:0;left:0;height:4px;background:var(--cy)}
+.card h3{color:var(--cy);font-size:.95rem;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--th);border:1px solid var(--bd);border-radius:12px;padding:10px;text-align:center}
+.tile b{display:block;font-size:1.2rem}.tile span{font-size:.7rem;color:var(--mut)}
+.svc{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.s{border:1px solid var(--bd);border-radius:12px;padding:11px;background:var(--th)}
+.s .n{display:flex;justify-content:space-between;font-weight:800;margin-bottom:6px}
+.s small{color:var(--mut);display:block;line-height:1.8;font-size:.74rem}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:6px;background:var(--mut)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.ch{background:var(--th);border:1px solid var(--bd);border-radius:12px;padding:10px}
+.ch h4{font-size:.8rem;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}
+.lg{display:flex;gap:10px;flex-wrap:wrap;font-size:.72rem;color:var(--mut);margin-top:4px}
+.lg i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-left:4px;vertical-align:middle}
+svg.c{width:100%;height:auto;display:block}
+.pb{padding:9px 11px;border-radius:10px;border:1px solid var(--bd);margin-bottom:7px;display:flex;gap:8px;align-items:flex-start;line-height:1.7}
+.pb.bad{border-color:var(--bad);background:rgba(239,68,68,.1)}.pb.warn{border-color:var(--warn);background:rgba(245,158,11,.1)}.pb.ok{border-color:var(--ok);background:rgba(16,185,129,.1)}
+.btn{border:none;border-radius:10px;padding:7px 14px;font-weight:800;cursor:pointer;color:#fff;background:linear-gradient(135deg,#22d3ee,#0891b2)}
+.btn:disabled{opacity:.5}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px dashed var(--bd);text-align:right}th{color:var(--mut);font-size:.72rem}
+.mut{color:var(--mut)}.big{font-size:1.05rem;font-weight:900}
+.empty{text-align:center;padding:16px;color:var(--mut)}
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+<div class="hd"><a href="admin.html">&larr; لوحة الأدمن</a><b>صحة المنصة</b><button class="btn" id="re" onclick="runAll()">تحديث</button></div>
+
+<div class="card"><h3><span>الحالة العامة</span><span id="overall" class="big mut">جاري الفحص...</span></h3><div id="problems"></div></div>
+
+<div class="card"><h3>إحصائيات المنصة</h3><div class="grid" id="stats"></div></div>
+
+<div class="card"><h3>الخدمات: Firebase و Brevo والاستضافة</h3><div class="svc" id="svc"></div></div>
+
+<div class="card"><h3>السرعة (بالمللي ثانية)</h3>
+<div class="two">
+<div class="ch"><h4>قياس حي كل 5 ثواني</h4><div id="chLive"></div><div class="lg"><span><i style="background:#22d3ee"></i>Firestore</span><span><i style="background:#a78bfa"></i>الاستضافة</span><span><i style="background:#fbbf24"></i>Worker</span></div></div>
+<div class="ch"><h4>متوسط السرعة عبر الأيام</h4><div id="chHist"></div><div class="lg"><span>بيتسجل قياس كل ساعة لما تفتح الصفحة دي</span></div></div>
+</div></div>
+
+<div class="card"><h3>النمو والحِمل</h3>
+<div class="two">
+<div class="ch"><h4>طلاب جداد يومياً (آخر 14 يوم)</h4><div id="chGrow"></div></div>
+<div class="ch"><h4>أخطاء الصفحات يومياً (آخر 7 أيام)</h4><div id="chErr"></div></div>
+</div></div>
+
+<div class="card"><h3><span>ثِقل الصفحات</span><button class="btn" id="wbtn" onclick="measureWeight()">قياس الوزن والتحميل</button></h3>
+<div class="ch"><div id="chW"><div class="empty">اضغط الزرار لقياس حجم كل ملف وزمن تحميله (بينزّل الملفات مرة واحدة).</div></div></div></div>
+
+<div class="card"><h3>الأخطاء المسجّلة من الصفحات</h3><div id="errs"><div class="empty">جاري التحميل...</div></div></div>
+
+<div class="card"><h3>صلاحيات Firestore (هل الأدمن يقدر يقرأ كل المجموعات؟)</h3><div class="grid" id="rules"></div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, limit, getDocs, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",authDomain:"study-trip-1.firebaseapp.com",projectId:"study-trip-1",storageBucket:"study-trip-1.firebasestorage.app",messagingSenderId:"632096690853",appId:"1:632096690853:web:f9622d14de73a761dcf34c"});
+const auth=getAuth(app),db=getFirestore(app);
+const WORKER='https://otp.mohamad91xm.workers.dev';
+const $=id=>document.getElementById(id);
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.body.setAttribute('data-theme',localStorage.getItem('platform_theme')||'dark');
+const PAGES="index login welcome main profile stats files files-lesson-view lesson-exam exams forum chat-boys chat-girls subscribe admin-index admin admin-users admin-profile admin-payments admin-vip-codes admin-forum admin-files admin-exams admin-chats admin-leaderboard admin-health files-lessons files-exam-create files-settings files-stats files-exam-sync exam-create exam-settings exam-stats".split(' ').map(x=>x+'.html').concat(['session.js','student-service.js','admin-service.js','otp-service.js','levels.js','streak-tree.js','ai-assistant.js']);
+const COLS=['students','admins','lessons','lessonExams','studentExamResults','exams','activationCodes','subscriptionRequests','config','forumPosts','pendingPosts','friends','friendRequests','chats','adminNotifications','adminNotes','phones','settings','errorLogs','platformHealth'];
+
+/* ---------- رسم خط بياني SVG ---------- */
+function line(el,labels,series,unit){
+  const W=600,H=190,P={l:38,r:10,t:12,b:24};
+  const all=series.flatMap(s=>s.v).filter(v=>v!=null);
+  if(!labels.length||!all.length){el.innerHTML='<div class="empty">مفيش بيانات لسه</div>';return;}
+  const max=Math.max(1,...all)*1.1,n=labels.length,x=i=>P.l+(n===1?(W-P.l-P.r)/2:i*(W-P.l-P.r)/(n-1)),y=v=>H-P.b-(v/max)*(H-P.t-P.b);
+  let g='';
+  for(let k=0;k<=4;k++){const v=max*k/4,yy=y(v);g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${yy}" y2="${yy}" stroke="currentColor" opacity=".12"/><text x="${P.l-4}" y="${yy+3}" font-size="9" text-anchor="end" fill="currentColor" opacity=".6">${Math.round(v)}</text>`;}
+  const step=Math.ceil(n/7);
+  labels.forEach((l,i)=>{if(i%step===0||i===n-1)g+=`<text x="${x(i)}" y="${H-8}" font-size="9" text-anchor="middle" fill="currentColor" opacity=".6">${esc(l)}</text>`;});
+  series.forEach(s=>{
+    const pts=s.v.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);if(!pts.length)return;
+    g+=`<path d="M${pts[0][0]},${H-P.b} L${pts.map(p=>p.join(',')).join(' L')} L${pts[pts.length-1][0]},${H-P.b}Z" fill="${s.c}" opacity=".12"/>`;
+    g+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round"/>`;
+    const lp=pts[pts.length-1];g+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="3.5" fill="${s.c}"/>`;
+  });
+  el.innerHTML=`<svg class="c" viewBox="0 0 ${W} ${H}" style="color:var(--tx)">${g}</svg>`;
+}
+const dayKey=d=>d.toISOString().slice(0,10);
+const lastDays=n=>{const a=[];for(let i=n-1;i>=0;i--){a.push(dayKey(new Date(Date.now()-i*864e5)));}return a;};
+const short=k=>k.slice(5).replace('-','/');
+
+/* ---------- قياس ---------- */
+const timeit=async f=>{const t=performance.now();try{const r=await f();return{ms:Math.round(performance.now()-t),ok:true,r};}catch(e){return{ms:Math.round(performance.now()-t),ok:false,e};}};
+const live={fs:[],host:[],wk:[]};let liveTimer=null,probs=[],svcState={};
+
+async function sample(){
+  const a=await timeit(()=>getDoc(doc(db,'settings','global_chat_state')));
+  const h=await timeit(()=>fetch('index.html?_='+Date.now(),{method:'HEAD',cache:'no-store'}));
+  live.fs.push(a.ok?a.ms:null);live.host.push(h.ok?h.ms:null);
+  const w=svcState.wkMs;live.wk.push(w==null?null:w);
+  ['fs','host','wk'].forEach(k=>{if(live[k].length>30)live[k].shift();});
+  line($('chLive'),live.fs.map((_,i)=>i+1),[{v:live.fs,c:'#22d3ee'},{v:live.host,c:'#a78bfa'},{v:live.wk,c:'#fbbf24'}]);
+  return{fs:a.ms,host:h.ms,fsOk:a.ok,hostOk:h.ok};
+}
+
+function svcCard(name,state,lines){return`<div class="s"><div class="n"><span><i class="dot ${state}"></i>${name}</span></div><small>${lines.join('<br>')}</small></div>`;}
+
+async function checkServices(lat){
+  const out=[];
+  // Auth
+  const u=auth.currentUser;
+  out.push(svcCard('Firebase Auth',u?'ok':'bad',['المستخدم: '+esc(u&&u.email||'غير مسجّل'),'SDK: 10.8.0 • المشروع: study-trip-1']));
+  // Firestore
+  const fsState=!lat.fsOk?'bad':lat.fs>1500?'warn':'ok';
+  if(!lat.fsOk)probs.push(['bad','Firestore مش بيرد (فشل قراءة وثيقة الإعدادات). راجع الإنترنت أو القواعد أو الحصة اليومية.']);
+  else if(lat.fs>1500)probs.push(['warn','Firestore بطيء ('+lat.fs+'ms).']);
+  out.push(svcCard('Firestore',fsState,['زمن القراءة: '+lat.fs+'ms',fsState==='ok'?'الاتصال سليم':'راجع المشاكل فوق']));
+  // الاستضافة
+  const hs=!lat.hostOk?'bad':lat.host>1200?'warn':'ok';
+  if(!lat.hostOk)probs.push(['bad','الاستضافة (الموقع) مش بترد.']);
+  out.push(svcCard('الاستضافة (GitHub Pages)',hs,['زمن الاستجابة: '+lat.host+'ms','الدومين: '+location.hostname]));
+  // Worker + Brevo
+  const w=await timeit(async()=>{const r=await fetch(WORKER+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+  svcState.wkMs=w.ok?w.ms:null;
+  if(w.ok){
+    const d=w.r,credit=(d.credits||[]).map(c=>c.credits).filter(x=>typeof x==='number');
+    const left=credit.length?Math.min(...credit):null;
+    const bs=!d.brevoOk?'bad':(left!=null&&left<=20)?'warn':'ok';
+    if(!d.brevoOk)probs.push(['bad','Brevo مش شغال (الحالة '+d.brevoStatus+'). كود التحقق مش هيتبعت. راجع BREVO_API_KEY أو الحساب.']);
+    else if(left!=null&&left<=20)probs.push(['warn','رصيد Brevo قرب يخلص (متبقي '+left+').']);
+    if(d.secrets&&(!d.secrets.otp||!d.secrets.brevo||!d.secrets.sender))probs.push(['bad','في سر ناقص في إعدادات الـ Worker (OTP_SECRET / BREVO_API_KEY / SENDER_EMAIL).']);
+    if(!d.kv)probs.push(['warn','ربط OTP_KV مش موجود، حد الـ 90 ثانية مش شغال.']);
+    out.push(svcCard('Cloudflare Worker',w.ms>2000?'warn':'ok',['زمن الاستجابة: '+w.ms+'ms','OTP_KV: '+(d.kv?'مربوط':'غير مربوط')]));
+    out.push(svcCard('Brevo (كود التحقق)',bs,['الحالة: '+(d.brevoOk?'شغّال':'فشل ('+d.brevoStatus+')'),'الرصيد المتبقي: '+(left==null?'غير معروف':left),'زمن فحص Brevo: '+d.latencyMs+'ms']));
+  }else{
+    probs.push(['warn','تعذر الوصول لـ /status في الـ Worker. لو لسه مرفعتش worker.js المحدّث ارفعه، ولو بتفتح الصفحة محلياً ده طبيعي (الـ Worker بيسمح بالدومين بس).']);
+    out.push(svcCard('Cloudflare Worker / Brevo','warn',['مش متاح دلوقتي','ارفع worker.js المحدّث عشان تشوف حالة Brevo']));
+  }
+  $('svc').innerHTML=out.join('');
+}
+
+async function cnt(q){try{return(await getCountFromServer(q)).data().count;}catch(e){return null;}}
+async function loadStats(){
+  const C=n=>collection(db,n),W=(n,f,v)=>query(C(n),where(f,'==',v));
+  const [st,vip,tr,ls,ex,fp,pp,codes,pend,m1,m2,m3]=await Promise.all([
+    cnt(C('students')),cnt(W('students','accountType','vip')),cnt(W('students','accountType','trial')),cnt(C('lessons')),cnt(C('exams')),cnt(C('forumPosts')),cnt(C('pendingPosts')),cnt(C('activationCodes')),cnt(W('subscriptionRequests','status','pending')),
+    cnt(collection(db,'rooms','gender_male','messages')),cnt(collection(db,'rooms','gender_female','messages')),cnt(collection(db,'rooms','public_general_room','messages'))]);
+  const t=[['الطلاب',st],['VIP',vip],['تجربة مجانية',tr],['الحصص',ls],['الامتحانات الشاملة',ex],['منشورات المنتدى',fp],['منشورات معلّقة',pp],['أكواد VIP',codes],['طلبات دفع معلّقة',pend],['رسائل البنين',m1],['رسائل البنات',m2],['رسائل العام',m3]];
+  $('stats').innerHTML=t.map(x=>`<div class="tile"><b>${x[1]==null?'—':x[1].toLocaleString('en-US')}</b><span>${x[0]}</span></div>`).join('');
+  if(pend>0)probs.push([pend>=5?'bad':'warn','في '+pend+' طلب دفع معلّق مستني مراجعة.']);
+  if(pp>0)probs.push(['warn','في '+pp+' منشور معلّق في المنتدى.']);
+  const big=Math.max(m1||0,m2||0,m3||0);if(big>3000)probs.push(['warn','رسائل الشات كترت ('+big+'). فعّل المسح التلقائي أو امسح القديم من صفحة الشاتات.']);
+  if(st===null)probs.push(['bad','تعذر قراءة عدد الطلاب (صلاحيات أو اتصال).']);
+}
+
+async function loadGrowth(){
+  try{
+    const s=await getDocs(query(collection(db,'students'),orderBy('createdAt','desc'),limit(400)));
+    const days=lastDays(14),m={};days.forEach(d=>m[d]=0);
+    s.forEach(d=>{const c=d.data().createdAt;const dt=c&&c.toDate?c.toDate():c?new Date(c):null;if(dt&&!isNaN(dt)){const k=dayKey(dt);if(k in m)m[k]++;}});
+    line($('chGrow'),days.map(short),[{v:days.map(d=>m[d]),c:'#10b981'}]);
+  }catch(e){$('chGrow').innerHTML='<div class="empty">تعذر تحميل بيانات النمو</div>';}
+}
+
+async function loadErrors(){
+  try{
+    const s=await getDocs(query(collection(db,'errorLogs'),orderBy('t','desc'),limit(200)));
+    const rows=s.docs.map(d=>d.data());
+    const days=lastDays(7),m={};days.forEach(d=>m[d]=0);
+    rows.forEach(r=>{const k=String(r.t||'').slice(0,10);if(k in m)m[k]++;});
+    line($('chErr'),days.map(short),[{v:days.map(d=>m[d]),c:'#ef4444'}]);
+    const last24=rows.filter(r=>Date.now()-new Date(r.t).getTime()<864e5).length;
+    if(last24>0)probs.push([last24>=20?'bad':'warn','في '+last24+' خطأ جافاسكربت اتسجّل آخر 24 ساعة (التفاصيل تحت).']);
+    if(!rows.length){$('errs').innerHTML='<div class="pb ok">مفيش أخطاء مسجّلة. (لو لسه مفعّلتش قاعدة errorLogs في Firestore يبقى التسجيل مش شغال أصلاً، شوف الملاحظة في الرد.)</div>';return;}
+    const g={};rows.forEach(r=>{const k=(r.page||'')+'|'+(r.msg||'');(g[k]=g[k]||{r,n:0,last:r.t}).n++;});
+    $('errs').innerHTML='<table><tr><th>الصفحة</th><th>الخطأ</th><th>المرات</th><th>آخر مرة</th></tr>'+Object.values(g).sort((a,b)=>b.n-a.n).slice(0,20).map(x=>`<tr><td>${esc(x.r.page)}</td><td dir="ltr" style="text-align:left">${esc(x.r.msg)}${x.r.line?' <span class="mut">:'+esc(x.r.line)+'</span>':''}</td><td>${x.n}</td><td class="mut">${esc(new Date(x.last).toLocaleString('ar-EG',{dateStyle:'short',timeStyle:'short'}))}</td></tr>`).join('')+'</table>';
+  }catch(e){
+    line($('chErr'),[],[]);
+    $('errs').innerHTML='<div class="pb warn">تعذر قراءة errorLogs. غالباً القاعدة مش مضافة في Firestore Rules (اقرأ الملاحظة في الرد).</div>';
+  }
+}
+
+async function loadHistory(cur){
+  try{
+    const k=new Date().toISOString().slice(0,13);
+    const ref=doc(db,'platformHealth',k);
+    const ex=await getDoc(ref);
+    if(!ex.exists()&&cur.fsOk)await setDoc(ref,{t:new Date().toISOString(),day:k.slice(0,10),fs:cur.fs,host:cur.host,wk:svcState.wkMs||0});
+    const s=await getDocs(query(collection(db,'platformHealth'),orderBy('t','desc'),limit(200)));
+    const days=lastDays(7),a={};days.forEach(d=>a[d]={fs:[],host:[],wk:[]});
+    s.forEach(d=>{const x=d.data();if(a[x.day]){a[x.day].fs.push(x.fs);a[x.day].host.push(x.host);if(x.wk)a[x.day].wk.push(x.wk);}});
+    const avg=v=>v.length?Math.round(v.reduce((p,c)=>p+c,0)/v.length):null;
+    line($('chHist'),days.map(short),[{v:days.map(d=>avg(a[d].fs)),c:'#22d3ee'},{v:days.map(d=>avg(a[d].host)),c:'#a78bfa'},{v:days.map(d=>avg(a[d].wk)),c:'#fbbf24'}]);
+  }catch(e){$('chHist').innerHTML='<div class="empty">تعذر حفظ/قراءة السجل (platformHealth) — محتاج قاعدة كتابة للأدمن</div>';}
+}
+
+async function loadRules(){
+  const r=await Promise.all(COLS.map(async n=>{const c=await cnt(collection(db,n));return[n,c];}));
+  $('rules').innerHTML=r.map(([n,c])=>`<div class="tile"><b class="${c==null?'bad':'ok'}">${c==null?'مرفوض':c}</b><span>${n}</span></div>`).join('');
+  const bad=r.filter(x=>x[1]==null).map(x=>x[0]).filter(n=>!['errorLogs','platformHealth'].includes(n));
+  if(bad.length)probs.push(['warn','مجموعات الأدمن مش قادر يقرأها: '+bad.join('، ')+' (قد تكون القواعد أو المجموعة مش موجودة).']);
+}
+
+window.measureWeight=async function(){
+  const b=$('wbtn');b.disabled=true;$('chW').innerHTML='<div class="empty">جاري القياس...</div>';
+  const rows=[];
+  for(const p of PAGES){
+    const t=performance.now();
+    try{const r=await fetch(p+'?_='+Date.now(),{cache:'no-store'});const blob=await r.blob();rows.push({p,kb:Math.round(blob.size/1024),ms:Math.round(performance.now()-t),ok:r.ok});}
+    catch(e){rows.push({p,kb:0,ms:0,ok:false});}
+  }
+  const ok=rows.filter(r=>r.ok).sort((a,b)=>b.kb-a.kb),missing=rows.filter(r=>!r.ok);
+  const total=ok.reduce((s,r)=>s+r.kb,0);
+  $('chW').innerHTML=`<div class="grid" style="margin-bottom:10px"><div class="tile"><b>${ok.length}</b><span>ملف اتقاس</span></div><div class="tile"><b>${(total/1024).toFixed(2)} MB</b><span>الإجمالي</span></div><div class="tile"><b>${ok[0]?ok[0].kb+' KB':'—'}</b><span>أكبر ملف (${ok[0]?esc(ok[0].p):''})</span></div><div class="tile"><b class="${missing.length?'bad':'ok'}">${missing.length}</b><span>ملف مش لاقيه</span></div></div><div id="wLine"></div>`+
+  '<table><tr><th>الملف</th><th>الحجم</th><th>زمن التحميل</th></tr>'+ok.slice(0,12).map(r=>`<tr><td dir="ltr" style="text-align:left">${esc(r.p)}</td><td class="${r.kb>100?'warn':''}">${r.kb} KB</td><td>${r.ms}ms</td></tr>`).join('')+'</table>'+(missing.length?'<div class="pb bad" style="margin-top:8px">ملفات مش موجودة: '+missing.map(m=>esc(m.p)).join('، ')+'</div>':'');
+  line($('wLine'),ok.slice(0,15).map((r,i)=>i+1),[{v:ok.slice(0,15).map(r=>r.kb),c:'#f97316'}]);
+  b.disabled=false;
+};
+
+function paintProblems(){
+  const order={bad:0,warn:1,ok:2};probs.sort((a,b)=>order[a[0]]-order[b[0]]);
+  const worst=probs.length?probs[0][0]:'ok';
+  $('overall').className='big '+worst;
+  $('overall').textContent=worst==='ok'?'كل شيء سليم':worst==='warn'?'في تحذيرات ('+probs.length+')':'في مشاكل تحتاج تدخّل ('+probs.filter(p=>p[0]==='bad').length+')';
+  $('problems').innerHTML=probs.length?probs.map(p=>`<div class="pb ${p[0]}"><i class="dot ${p[0]}" style="margin-top:6px;flex-shrink:0"></i><div>${esc(p[1])}</div></div>`).join(''):'<div class="pb ok"><i class="dot ok" style="margin-top:6px"></i><div>مفيش مشاكل مرصودة دلوقتي.</div></div>';
+}
+
+window.runAll=async function(){
+  $('re').disabled=true;probs=[];$('overall').textContent='جاري الفحص...';$('overall').className='big mut';
+  const lat=await sample();
+  await checkServices(lat);
+  await Promise.all([loadStats(),loadGrowth(),loadErrors(),loadRules()]);
+  await loadHistory(lat);
+  paintProblems();
+  clearInterval(liveTimer);liveTimer=setInterval(sample,5000);
+  $('re').disabled=false;
+};
+onAuthStateChanged(auth,u=>{if(!u){location.href='login.html';return;}runAll();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearInterval(liveTimer);}else if(auth.currentUser){clearInterval(liveTimer);liveTimer=setInterval(sample,5000);}});
+</script>
+</body>
+</html>
