@@ -262,15 +262,15 @@
     }
 
     function stage(days) {
-        if (days <= 0) return { title: 'بذرة جاهزة تنتظر أول يوم 🌱', desc: 'ادخل المنصة النهاردة وهتطلع أول ورقة في شجرتك' };
-        if (days < 7) return { title: 'نبتة صغيرة بتكبر 🌿', desc: 'أول أوراقك طلعت، كمّل كل يوم' };
-        if (days < 30) return { title: 'شتلة قوية 🌱', desc: 'فروعك بدأت تتفرع وتتزين بالأوراق' };
-        if (days < 100) return { title: 'شجرة صغيرة نشيطة 🌳', desc: 'جذعك بقى ثابت وأوراقك كتير' };
-        if (days < 200) return { title: 'شجرة يانعة 🌳', desc: 'التاج بدأ يكبر ويتملي بالخضرة' };
-        if (days < 300) return { title: 'شجرة مزهرة 🌸', desc: 'الأزهار بدأت تظهر بين الأوراق' };
-        if (days < MAX) return { title: 'شجرة عملاقة قربت تكتمل ✨', desc: 'قربت جداً من الشكل النهائي' };
+        if (days <= 0) return { title: 'بذرة جاهزة تنتظر أول يوم', desc: 'ادخل المنصة النهاردة وهتطلع أول ورقة في شجرتك' };
+        if (days < 7) return { title: 'نبتة صغيرة بتكبر', desc: 'أول أوراقك طلعت، كمّل كل يوم' };
+        if (days < 30) return { title: 'شتلة قوية', desc: 'فروعك بدأت تتفرع وتتزين بالأوراق' };
+        if (days < 100) return { title: 'شجرة صغيرة نشيطة', desc: 'جذعك بقى ثابت وأوراقك كتير' };
+        if (days < 200) return { title: 'شجرة يانعة', desc: 'التاج بدأ يكبر ويتملي بالخضرة' };
+        if (days < 300) return { title: 'شجرة مزهرة', desc: 'الأزهار بدأت تظهر بين الأوراق' };
+        if (days < MAX) return { title: 'شجرة عملاقة قربت تكتمل', desc: 'قربت جداً من الشكل النهائي' };
         var y = Math.floor(days / MAX);
-        return { title: 'شجرة مكتملة 🏆' + (y >= 2 ? ' • السنة ' + (y + 1) : ''), desc: 'اكتملت شجرتك! والاستريك بيكمّل معاك طول العمر' };
+        return { title: 'شجرة مكتملة' + (y >= 2 ? ' • السنة ' + (y + 1) : ''), desc: 'اكتملت شجرتك! والاستريك بيكمّل معاك طول العمر' };
     }
 
     function mount(el, days) {
@@ -289,7 +289,7 @@
         var info = stage(days);
         var pct = Math.min(100, Math.round(shown / MAX * 100));
         var cap = days >= MAX
-            ? '🏆 ' + Math.floor(days / MAX) + (Math.floor(days / MAX) === 1 ? ' سنة' : ' سنة') + ' كاملة • ' + days + ' يوم' + (days < MAX + 100 ? ' • ثمار ذهبية: ' + Math.min(100, 12 + (days - MAX)) : '')
+            ? '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg> ' + Math.floor(days / MAX) + (Math.floor(days / MAX) === 1 ? ' سنة' : ' سنة') + ' كاملة • ' + days + ' يوم' + (days < MAX + 100 ? ' • ثمار ذهبية: ' + Math.min(100, 12 + (days - MAX)) : '')
             : 'ورقة ' + shown + ' من ' + MAX + ' • باقي ' + (MAX - shown) + ' يوم على اكتمال الشجرة';
         el.innerHTML = '<div class="st-wrap">' + svg + '<div class="st-bar"><i style="width:' + pct + '%"></i></div><div class="st-cap">' + cap + '</div></div>';
         return info;

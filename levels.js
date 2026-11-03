@@ -1,8 +1,8 @@
 /* levels.js — نظام المستويات والتأثيرات لمنصة رحلة دراسية
  * سكريبت عادي (غير module) يُحمَّل بعد session.js ويعرّف المتغير العام LV.
  *
- *  - المستوى (Lv.1 → Lv.50) محسوب من النقاط totalScore فقط (لا حقل جديد في Firestore).
- *  - الرتب الخمس (ضعيف ← أسطوري) زي ما هي من session.js / student-service.js ولم تتغير.
+ *  - المستوى (Lv.1 Lv.50) محسوب من النقاط totalScore فقط (لا حقل جديد في Firestore).
+ *  - الرتب الخمس (ضعيف أسطوري) زي ما هي من session.js / student-service.js ولم تتغير.
  *  - كل مميزات المستويات تجميلية وفعلية: إطار الصورة، الهالة، الجزيئات، التاج، تأثير الاسم،
  *    خلفية بطاقة البروفايل، واللقب. بتظهر في البروفايل ولوحة المتصدرين والإحصائيات.
  *
@@ -23,13 +23,13 @@
 
     /* ===== الفئات (Tiers): كل فئة ليها تأثير بصري مختلف ===== */
     var TIERS = [
-        { id: 1, min: 1,  name: 'مستكشف',   icon: '🌱', c1: '#94a3b8', c2: '#64748b', text: '#e2e8f0' },
-        { id: 2, min: 5,  name: 'مجتهد',    icon: '📘', c1: '#e2e8f0', c2: '#60a5fa', text: '#dbeafe' },
-        { id: 3, min: 10, name: 'متميز',    icon: '🔥', c1: '#fde047', c2: '#f59e0b', text: '#fef3c7' },
-        { id: 4, min: 15, name: 'محترف',    icon: '💎', c1: '#22d3ee', c2: '#3b82f6', text: '#cffafe' },
-        { id: 5, min: 20, name: 'خبير',     icon: '🔮', c1: '#c084fc', c2: '#6366f1', text: '#f3e8ff' },
-        { id: 6, min: 30, name: 'أسطورة',   icon: '👑', c1: '#f472b6', c2: '#a855f7', text: '#fce7f3' },
-        { id: 7, min: 40, name: 'إمبراطور', icon: '🏆', c1: '#fbbf24', c2: '#ec4899', text: '#fef9c3' }
+        { id: 1, min: 1,  name: 'مستكشف',   icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22c55e" aria-hidden="true"><path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8zM14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>', c1: '#94a3b8', c2: '#64748b', text: '#e2e8f0' },
+        { id: 2, min: 5,  name: 'مجتهد',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>', c1: '#e2e8f0', c2: '#60a5fa', text: '#dbeafe' },
+        { id: 3, min: 10, name: 'متميز',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#f97316" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>', c1: '#fde047', c2: '#f59e0b', text: '#fef3c7' },
+        { id: 4, min: 15, name: 'محترف',    icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg>', c1: '#22d3ee', c2: '#3b82f6', text: '#cffafe' },
+        { id: 5, min: 20, name: 'خبير',     icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', c1: '#c084fc', c2: '#6366f1', text: '#f3e8ff' },
+        { id: 6, min: 30, name: 'أسطورة',   icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg>', c1: '#f472b6', c2: '#a855f7', text: '#fce7f3' },
+        { id: 7, min: 40, name: 'إمبراطور', icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg>', c1: '#fbbf24', c2: '#ec4899', text: '#fef9c3' }
     ];
 
     function tierOf(level) {
@@ -40,16 +40,16 @@
 
     /* ===== مميزات المستويات (كلها تجميلية وفعلية في المنصة) ===== */
     var PERKS = [
-        { lvl: 1,  icon: '🛡️', title: 'إطار المستكشف',        desc: 'إطار رمادي هادي حوالين صورتك.' },
-        { lvl: 3,  icon: '🏅', title: 'شارة المستوى',          desc: 'شارة Lv. بلون فئتك بتظهر جنب اسمك في كل مكان.' },
-        { lvl: 5,  icon: '🥈', title: 'إطار فضي لامع',         desc: 'إطار فضي بلمعة متحركة + لقب «مجتهد».' },
-        { lvl: 10, icon: '🔥', title: 'وهج ذهبي نابض',         desc: 'إطار ذهبي بوهج بينبض + لمعة على اسمك + لقب «متميز».' },
-        { lvl: 15, icon: '💎', title: 'هالة الألماس',          desc: 'هالة سماوية متحركة + خلفية مميزة لبطاقة البروفايل + لقب «محترف».' },
-        { lvl: 20, icon: '🔮', title: 'جزيئات متطايرة',        desc: 'جزيئات بتدور حوالين صورتك + اسمك بتدرج ألوان + لقب «خبير».' },
-        { lvl: 25, icon: '✨', title: 'اسم متحرك',             desc: 'ألوان اسمك بتتحرك وتلمع بشكل مستمر.' },
-        { lvl: 30, icon: '👑', title: 'تاج الأسطورة',          desc: 'إطار قوس قزح دوّار + تاج فوق صورتك + لقب «أسطورة».' },
-        { lvl: 40, icon: '🌌', title: 'عرش الإمبراطور',        desc: 'خلفية فضائية بنجوم متلألئة + إطار كوني + لقب «إمبراطور».' },
-        { lvl: 50, icon: '🏆', title: 'القمة',                 desc: 'أعلى مستوى في المنصة: كل التأثيرات مفتوحة وبأقوى شكل.' }
+        { lvl: 1,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>', title: 'إطار المستكشف',        desc: 'إطار رمادي هادي حوالين صورتك.' },
+        { lvl: 3,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 13.89L17 22l-5-3-5 3 1.52-8.11"/></svg>', title: 'شارة المستوى',          desc: 'شارة Lv. بلون فئتك بتظهر جنب اسمك في كل مكان.' },
+        { lvl: 5,  icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#cbd5e1" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.48 13.89L17 22l-5-3-5 3 1.52-8.11"/></svg>', title: 'إطار فضي لامع',         desc: 'إطار فضي بلمعة متحركة + لقب «مجتهد».' },
+        { lvl: 10, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#f97316" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>', title: 'وهج ذهبي نابض',         desc: 'إطار ذهبي بوهج بينبض + لمعة على اسمك + لقب «متميز».' },
+        { lvl: 15, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg>', title: 'هالة الألماس',          desc: 'هالة سماوية متحركة + خلفية مميزة لبطاقة البروفايل + لقب «محترف».' },
+        { lvl: 20, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'جزيئات متطايرة',        desc: 'جزيئات بتدور حوالين صورتك + اسمك بتدرج ألوان + لقب «خبير».' },
+        { lvl: 25, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'اسم متحرك',             desc: 'ألوان اسمك بتتحرك وتلمع بشكل مستمر.' },
+        { lvl: 30, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg>', title: 'تاج الأسطورة',          desc: 'إطار قوس قزح دوّار + تاج فوق صورتك + لقب «أسطورة».' },
+        { lvl: 40, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', title: 'عرش الإمبراطور',        desc: 'خلفية فضائية بنجوم متلألئة + إطار كوني + لقب «إمبراطور».' },
+        { lvl: 50, icon: '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg>', title: 'القمة',                 desc: 'أعلى مستوى في المنصة: كل التأثيرات مفتوحة وبأقوى شكل.' }
     ];
 
     function info(score) {
@@ -180,10 +180,10 @@
             for (var i = 0; i < dots; i++) orbit += '<i style="--a:' + Math.round((360 / dots) * i) + 'deg"></i>';
             orbit += '</span>';
         }
-        var crown = t.id >= 6 ? '<span class="lv-crown">👑</span>' : '';
+        var crown = t.id >= 6 ? '<span class="lv-crown"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M2 7l4 11h12l4-11-5.5 4L12 3 7.5 11z"/><path d="M6 21h12"/></svg></span>' : '';
         var sparks = '';
         if (t.id === 7) {
-            sparks = '<span class="lv-spark" style="top:-4%;right:-6%">✨</span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s">✨</span>';
+            sparks = '<span class="lv-spark" style="top:-4%;right:-6%"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span><span class="lv-spark" style="bottom:2%;left:-8%;animation-delay:.9s"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></span>';
         }
         return '<div class="lv-avatar lv-t' + t.id + '" style="--s:' + size + 'px">' +
             '<span class="lv-ring"></span>' + orbit +
@@ -219,7 +219,7 @@
         var i = info(score);
         var t = i.tier;
         var note = i.maxed
-            ? '🏆 وصلت لأعلى مستوى في المنصة!'
+            ? 'وصلت لأعلى مستوى في المنصة!'
             : 'باقي ' + i.toNext + ' نقطة للمستوى ' + (i.level + 1) +
               (i.nextPerk ? ' • أقرب ميزة: ' + i.nextPerk.icon + ' ' + i.nextPerk.title + ' (Lv.' + i.nextPerk.lvl + ')' : '');
         return '<div class="lv-xp" style="--c1:' + t.c1 + ';--c2:' + t.c2 + '">' +
@@ -235,9 +235,9 @@
         return PERKS.map(function (p) {
             var on = level >= p.lvl;
             return '<div class="lv-perk ' + (on ? 'on' : 'lock') + '">' +
-                '<div class="lv-perk-ic">' + (on ? p.icon : '🔒') + '</div>' +
+                '<div class="lv-perk-ic">' + (on ? p.icon : '<svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>') + '</div>' +
                 '<div><div class="lv-perk-t">' + p.title + '</div><div class="lv-perk-d">' + p.desc + '</div></div>' +
-                '<div class="lv-perk-l">' + (on ? 'مفتوحة ✅' : 'Lv.' + p.lvl + ' • ' + pointsFor(p.lvl) + ' نقطة') + '</div></div>';
+                '<div class="lv-perk-l">' + (on ? 'مفتوحة' : 'Lv.' + p.lvl + ' • ' + pointsFor(p.lvl) + ' نقطة') + '</div></div>';
         }).join('');
     }
 

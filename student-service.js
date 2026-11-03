@@ -71,7 +71,7 @@ function buildStudentDoc(email, d, studentId) {
         bgPatternEnabled: d.bgPatternEnabled !== false,
         profileImage: img,
         avatar: d.avatar || img || DEFAULT_AVATAR,
-        selectedEmojis: d.selectedEmojis || ['⭐', '🚀'],
+        selectedEmojis: d.selectedEmojis || [],
         friends: d.friends || [],
         friendRequests: d.friendRequests || [],
         chats: d.chats || {},
@@ -405,8 +405,8 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
     try {
         if (!studentEmail) return;
         const firstName = studentName ? studentName.trim().split(' ')[0] : 'بطلنا';
-        const customTitle = `🎉 أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
-        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! 🚀 استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك! ✨` + (trialGranted ? ` 🎁 هديناك تجربة مجانية لمدة 24 ساعة بكل مميزات VIP، استمتع بيها!` : ``);
+        const customTitle = `أهلاً بيك يا ${firstName} في عائلة رحلة دراسية!`;
+        const customMessage = `منورنا يا بطل في أقوى منصة تعليمية لطلاب تالتة اعدادي! استعد لرحلة تفوق استثنائية، حل واجباتك، تابع دروسك، واصنع مستقبلك بكل حماس. بالتوفيق في رحلتك!` + (trialGranted ? ` هديناك تجربة مجانية لمدة 24 ساعة بكل مميزات VIP، استمتع بيها!` : ``);
 
         const cleanEmailKey = studentEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_");
         const notifId = "welcome_" + cleanEmailKey + "_" + Date.now();
@@ -416,7 +416,7 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
             message: customMessage,
             target: "single",
             recipientEmail: studentEmail.toLowerCase().trim(),
-            sender: "إدارة المنصة 📖",
+            sender: "إدارة المنصة",
             createdAt: serverTimestamp()
         });
     } catch (err) {

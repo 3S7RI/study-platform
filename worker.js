@@ -45,11 +45,11 @@ function studentHtml(generatedEmailOtp, selectedDailyMessage) {
   return `
                     <div style="direction: rtl; text-align: right; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 25px; background: linear-gradient(135deg, #0f172a, #1e1b4b, #311042); border-radius: 20px; color: #f8fafc; max-width: 540px; margin: auto;">
                         <div style="text-align: center; margin-bottom: 30px;">
-                            <h2 style="color: #ffffff; font-size: 26px; font-weight: 800; margin: 0 0 8px 0;">منصة رحلة دراسية 🎓</h2>
+                            <h2 style="color: #ffffff; font-size: 26px; font-weight: 800; margin: 0 0 8px 0;">منصة رحلة دراسية </h2>
                             <p style="color: #94a3b8; font-size: 15px; margin: 0;">بوابتك نحو التفوق والوصول للقمة</p>
                         </div>
                         <div style="background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; padding: 30px 20px; text-align: center;">
-                            <h3 style="color: #f8fafc; font-size: 20px; font-weight: 700; margin-bottom: 15px;">مرحباً بك، زائرنا المتميز 👋</h3>
+                            <h3 style="color: #f8fafc; font-size: 20px; font-weight: 700; margin-bottom: 15px;">مرحباً بك، زائرنا المتميز </h3>
                             <p style="color: #cbd5e1; font-size: 15px; line-height: 1.7; margin-bottom: 25px;">
                                 يسعدنا انضمامك إلى عائلة <strong>منصة رحلة دراسية</strong>. لإتمام عملية تسجيل حسابك الجديد، يرجى استخدام كود التحقق أدناه:
                             </p>
@@ -59,7 +59,7 @@ function studentHtml(generatedEmailOtp, selectedDailyMessage) {
                             <p style="color: #94a3b8; font-size: 13px; margin-top: 20px;">هذا الكود صالح لمدة دقائق معدودة، ولا تقم بمشاركته مع أي شخص نهائياً.</p>
                         </div>
                         <div style="margin-top: 30px; background: rgba(16, 185, 129, 0.12); border-right: 5px solid #10b981; padding: 20px; border-radius: 12px;">
-                            <p style="color: #34d399; font-size: 14px; font-weight: 700; margin: 0 0 8px 0;">💡 رسالة اليوم لك:</p>
+                            <p style="color: #34d399; font-size: 14px; font-weight: 700; margin: 0 0 8px 0;">رسالة اليوم لك:</p>
                             <p style="color: #e2e8f0; font-size: 14.5px; margin: 0; line-height: 1.7;">"${selectedDailyMessage}"</p>
                         </div>
                     </div>
@@ -72,7 +72,7 @@ function adminHtml(adminName, generatedOtp, randomQuote) {
                     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background: linear-gradient(135deg, #1e1b4b, #311042); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;">
                         <tr>
                             <td style="padding: 30px 30px 20px 30px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
-                                <h1 style="color: #f8fafc; font-size: 24px; margin: 0 0 8px 0; font-weight: 800;">🛡️ بوابة الإدارة والمطورين</h1>
+                                <h1 style="color: #f8fafc; font-size: 24px; margin: 0 0 8px 0; font-weight: 800;">بوابة الإدارة والمطورين</h1>
                                 <p style="color: #94a3b8; font-size: 14px; margin: 0;">منصة رحلة دراسية</p>
                             </td>
                         </tr>
@@ -80,14 +80,14 @@ function adminHtml(adminName, generatedOtp, randomQuote) {
                         <tr>
                             <td style="padding: 20px 30px 10px 30px; text-align: center;">
                                 <div style="background: rgba(99, 102, 241, 0.12); border: 1px dashed rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 12px; color: #a5b4fc; font-size: 14px; font-weight: 600;">
-                                    ✨ صلِّ على الحبيب المصطفى ﷺ ✨
+                                    صلِّ على الحبيب المصطفى ﷺ 
                                 </div>
                             </td>
                         </tr>
 
                         <tr>
                             <td style="padding: 20px 30px;">
-                                <h2 style="color: #f8fafc; font-size: 20px; margin-bottom: 15px;">مرحباً بك، ${adminName} 👋</h2>
+                                <h2 style="color: #f8fafc; font-size: 20px; margin-bottom: 15px;">مرحباً بك، ${adminName} </h2>
                                 <p style="color: #94a3b8; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
                                     لتأكيد وإنشاء حسابك الإداري في <strong style="color: #6366f1;">منصة رحلة دراسية</strong>، يرجى استخدام كود التحقق أدناه:
                                 </p>
@@ -100,7 +100,7 @@ function adminHtml(adminName, generatedOtp, randomQuote) {
                                 </div>
 
                                 <div style="background: rgba(30, 41, 59, 0.9); border-right: 4px solid #10b981; border-radius: 12px; padding: 16px 20px; margin-top: 30px; margin-bottom: 10px;">
-                                    <p style="color: #34d399; font-size: 12px; font-weight: bold; margin-bottom: 5px;">💡 إضاءة لقلب المسؤول:</p>
+                                    <p style="color: #34d399; font-size: 12px; font-weight: bold; margin-bottom: 5px;">إضاءة لقلب المسؤول:</p>
                                     <p style="color: #e2e8f0; font-size: 14px; font-style: italic; line-height: 1.5; margin: 0;">
                                         "${randomQuote}"
                                     </p>
@@ -112,7 +112,7 @@ function adminHtml(adminName, generatedOtp, randomQuote) {
                             <td style="background: rgba(15, 23, 42, 0.5); padding: 20px 30px; text-align: center; border-top: 1px solid rgba(255,255,255,0.08);">
                                 <p style="color: #64748b; font-size: 12px; margin: 0;">
                                     جميع الحقوق محفوظة © 2026 منصة رحلة دراسية <br>
-                                    بوابة الإدارة والمطورين 🚀
+                                    بوابة الإدارة والمطورين 
                                 </p>
                             </td>
                         </tr>
@@ -159,7 +159,7 @@ export default {
       let subject, html;
       if (type === "admin") {
         const name = esc(String(body.name || "").trim().slice(0, 60) || "المسؤول الجديد");
-        subject = "🔐 كود التحقق الإداري - منصة رحلة دراسية";
+        subject = "كود التحقق الإداري - منصة رحلة دراسية";
         html = adminHtml(name, code, pick(adminQuotes));
       } else {
         subject = "كود التحقق الخاص بك - منصة رحلة دراسية";
