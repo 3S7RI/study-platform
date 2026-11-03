@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <script src="session.js"></script>
+    <script src="levels.js"></script>
     <script>PS.guard();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -233,6 +234,30 @@
         .chat-msg.mine { align-self: flex-start; background: var(--primary-color); color: #fff; border-bottom-left-radius: 2px; }
         .chat-msg.other { align-self: flex-end; background: #334155; color: var(--text-main); border-bottom-right-radius: 2px; }
 
+
+        /* ===== جماليات البروفايل (مستويات) ===== */
+        .profile-card { overflow: hidden; --c1: #6366f1; --c2: #a855f7; }
+        .profile-card > * { position: relative; z-index: 1; }
+        .pf-banner { position: absolute !important; top: 0; right: 0; left: 0; height: 118px; z-index: 0 !important; background: linear-gradient(135deg, var(--c1), var(--c2)); opacity: 0.32; border-radius: 24px 24px 0 0; }
+        .pf-banner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--card-bg)); }
+        .lv-avatar .upload-badge { z-index: 9; bottom: 2px; left: 2px; }
+        .profile-header { padding-top: 22px; }
+        .pf-title { font-size: 0.74rem; font-weight: 800; letter-spacing: 0.4px; margin-bottom: 8px; color: var(--c1); }
+        .pf-badges-row { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .pf-badges-row .level-badge-box { margin-bottom: 0; padding: 4px 12px; font-size: 0.74rem; }
+        .pf-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 4px 0 14px; }
+        .pf-chip { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 9px 4px; text-align: center; }
+        .pf-chip b { display: block; font-size: 1.02rem; font-weight: 900; color: var(--text-main); line-height: 1.3; }
+        .pf-chip span { font-size: 0.64rem; color: var(--text-secondary); font-weight: 700; }
+        .pf-xp-box { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px 14px; margin-bottom: 12px; }
+        .pf-perks-btn { width: 100%; margin-top: 10px; padding: 9px; border-radius: 12px; border: 1px solid var(--c1); background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(168,85,247,0.12)); color: var(--text-main); font-weight: 800; font-size: 0.8rem; cursor: pointer; }
+        .pf-perks-btn:hover { filter: brightness(1.2); }
+        .lv-modal-hero { text-align: center; margin-bottom: 14px; }
+        .lv-modal-hero .lv-avatar { margin: 18px auto 10px; }
+        .lv-tier-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.76rem; }
+        .lv-tier-table td { padding: 6px 4px; border-bottom: 1px solid var(--border-color); }
+        .lv-tier-table td:last-child { text-align: left; color: var(--text-secondary); font-weight: 700; }
+        @media (max-width: 400px) { .pf-chips { grid-template-columns: repeat(2, 1fr); } }
         .rank-guide-item { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); padding: 10px 14px; border-radius: 12px; margin-bottom: 8px; border: 1px solid var(--border-color); text-align: right; }
         .rank-guide-title { font-weight: 700; font-size: 0.82rem; }
         .rank-guide-points { font-size: 0.75rem; font-weight: bold; color: var(--primary-color); }
@@ -386,6 +411,16 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="levelPerksModal" onclick="if(event.target===this) closeLevelPerksModal()">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>مستواك ومميزات المستويات 🎁</h3>
+                <button class="close-modal" onclick="closeLevelPerksModal()">✕</button>
+            </div>
+            <div class="modal-body" id="levelPerksBody" style="text-align: right;"></div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="searchedProfileModal" onclick="if(event.target===this) closeSearchedProfileModal()">
         <div class="modal-card">
             <div class="modal-header">
@@ -454,7 +489,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, query, where, limit, getDocs, addDoc, onSnapshot, serverTimestamp, setDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { withAliases, deleteStudentAccountDoc, calculateStudentRank, normalizeSubscription, touchDailyStreak } from './student-service.js';
+        import { withAliases, deleteStudentAccountDoc, calculateStudentRank, normalizeSubscription, touchDailyStreak, syncStudyTime } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -588,6 +623,7 @@
                     currentStudentData = await normalizeSubscription(db, key, docSnap.data());
                     PS.saveStudent(currentStudentData);
                     touchDailyStreak(db, key); // +1 استريك لأول دخول في اليوم
+                    syncStudyTime(db, key); // تحديث وقت المذاكرة
                     renderStudentProfile(currentStudentData);
                 } else {
                     // لا ننشئ طالباً بـ ID وهمي: الحساب بلا وثيقة طالب = خطأ يُعرض
@@ -617,14 +653,20 @@
                 isSubscribed = true;
             }
 
+            const lv = LV.info(score);
+            const cardEl = document.getElementById('profileCardMain');
+            cardEl.className = 'profile-card ' + LV.cardClass(lv.level);
+            cardEl.style.setProperty('--c1', lv.tier.c1);
+            cardEl.style.setProperty('--c2', lv.tier.c2);
+            const streakNow = Number(data.streak) || 0;
+
             document.getElementById('studentProfileContent').innerHTML = `
+                <div class="pf-banner"></div>
                 <div class="profile-header">
-                    <div class="avatar-wrapper ${rankInfo.frame}">
-                        <img id="profileAvatarDisplay" src="${avatarUrl}" alt="صورة الطالب">
-                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>
-                    </div>
+                    ${LV.avatar(avatarUrl, lv.level, 120, { id: 'profileAvatarDisplay', extra: '<div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">📷</div>' })}
+                    <div class="pf-title">${lv.tier.icon} ${lv.tier.name}</div>
                     <div class="student-name-row">
-                        <div class="student-name" id="profileNameDisplay">${esc(data.fullName || data.name || 'طالب متميز')}</div>
+                        <div class="student-name ${LV.nameClass(lv.level)}" id="profileNameDisplay">${esc(data.fullName || data.name || 'طالب متميز')}</div>
                         ${isSubscribed ? (data.accountType === 'trial' ? `<span class="trial-badge-glow" title="تجربة مجانية">🎁 تجربة</span>` : `<span class="vip-badge-glow">VIP</span>`) : ''}
                         ${getGenderSvgHtml(studentGender)}
                     </div>
@@ -632,11 +674,20 @@
                         <span class="id-text-badge" id="profileIdDisplay">ID: ${esc(data.studentId || data.id || '')}</span>
                         <button class="copy-id-btn" onclick="copyStudentId('${esc(data.studentId || data.id || '')}')">نسخ 📋</button>
                     </div>
-                    <div>
-                        <span class="level-badge-box ${rankInfo.badge}" onclick="openRankGuideModal()">
-                            ${rankInfo.label} • ${score} نقطة
-                        </span>
+                    <div class="pf-badges-row">
+                        ${LV.badge(lv.level)}
+                        <span class="level-badge-box ${rankInfo.badge}" onclick="openRankGuideModal()">${rankInfo.label}</span>
                     </div>
+                </div>
+                <div class="pf-chips">
+                    <div class="pf-chip"><b>${lv.level}</b><span>المستوى</span></div>
+                    <div class="pf-chip"><b>${score}</b><span>النقاط</span></div>
+                    <div class="pf-chip"><b>${streakNow}</b><span>🔥 الاستريك</span></div>
+                    <div class="pf-chip"><b>${Number(data.longestStreak) || streakNow}</b><span>أطول استريك</span></div>
+                </div>
+                <div class="pf-xp-box">
+                    ${LV.progressHtml(score)}
+                    <button class="pf-perks-btn" onclick="openLevelPerksModal()">🎁 مميزات المستويات وإيه اللي هتفتحه بعد كده</button>
                 </div>
                 <div class="profile-actions-bar">
                     <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ التعديل</button>
@@ -768,7 +819,7 @@
                     newExpiryIso = expiry.toISOString();
 
                     tx.update(codeRef, { isUsed: true, usedBy: myEmailKey(), usedByStudentId: myStudentId(), usedAt: new Date().toISOString() });
-                    tx.update(studentRef, { isSubscribed: true, subscriptionExpiry: newExpiryIso, accountType: 'vip', codeAttempts: 0, codeLockUntil: 0, lastUpdated: new Date().toISOString() });
+                    tx.update(studentRef, { isSubscribed: true, subscriptionExpiry: newExpiryIso, accountType: 'vip', codeAttempts: 0, codeLockUntil: 0, subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: days, lastPlanSource: 'code', lastUpdated: new Date().toISOString() });
                 });
 
                 currentStudentData.isSubscribed = true;
@@ -813,6 +864,26 @@
         };
         window.closeAvatarModal = function() { document.getElementById('avatarModal').classList.remove('active'); };
 
+        window.openLevelPerksModal = function() {
+            const d = currentStudentData || PS.getStudent() || {};
+            const score = Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
+            const lv = LV.info(score);
+            const avatarUrl = d.profileImage || defaultMaleSvg;
+            const tiers = LV.TIERS.map(t => `<tr><td>${t.icon} ${t.name}</td><td>Lv.${t.min}${t.id < 7 ? ' - ' + (LV.TIERS[t.id].min - 1) : ' - 50'}</td><td>${LV.pointsFor(t.min)} نقطة+</td></tr>`).join('');
+            document.getElementById('levelPerksBody').innerHTML = `
+                <div class="lv-modal-hero">
+                    ${LV.avatar(avatarUrl, lv.level, 90)}
+                    <div style="margin-bottom:8px;">${LV.badge(lv.level)}</div>
+                    ${LV.progressHtml(score)}
+                </div>
+                <h4 style="font-size:0.85rem; margin:14px 0 8px;">🎁 المميزات (بتتفتح تلقائياً مع كل مستوى)</h4>
+                ${LV.perksHtml(lv.level)}
+                <h4 style="font-size:0.85rem; margin:16px 0 4px;">📈 فئات المستويات</h4>
+                <table class="lv-tier-table">${tiers}</table>
+                <p style="font-size:0.7rem; color:var(--text-secondary); margin-top:10px; line-height:1.7;">النقاط بتيجي من: مشاهدة الفيديوهات، فتح الملازم والملخصات، امتحانات الحصص (بحسب درجتك)، والامتحانات الشاملة (بعد اعتماد الدرجة).</p>`;
+            document.getElementById('levelPerksModal').classList.add('active');
+        };
+        window.closeLevelPerksModal = function() { document.getElementById('levelPerksModal').classList.remove('active'); };
         window.openRankGuideModal = function() { document.getElementById('rankGuideModal').classList.add('active'); };
         window.closeRankGuideModal = function() { document.getElementById('rankGuideModal').classList.remove('active'); };
 
@@ -948,9 +1019,7 @@
 
                 body.innerHTML = `
                     <div style="text-align:center;">
-                        <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                            <img src="${avatarUrl}" alt="صورة الطالب">
-                        </div>
+                        <div style="display:flex; justify-content:center; margin:18px 0 12px;">${LV.avatar(avatarUrl, LV.levelOf(score), 95)}</div>
                         <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:6px;">
                             <span>${esc(tName)}</span>
                             ${getGenderSvgHtml(targetGender)}
@@ -958,7 +1027,7 @@
                         <div style="font-size:0.78rem; color:var(--primary-color); font-weight:bold; margin-bottom:4px;">ID: ${esc(targetSid)}</div>
                         <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">البريد: ${maskedEmail}</div>
                         <div style="margin-bottom:16px;">
-                            <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
+                            <span style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">${LV.badge(LV.levelOf(score))}<span class="level-badge-box ${rankInfo.badge}" style="cursor:default; margin-bottom:0; padding:4px 12px; font-size:0.74rem;">${rankInfo.label} • ${score} نقطة</span></span>
                         </div>
                         ${isMe ? `<p style="color:var(--text-secondary); font-size:0.8rem;">هذا هو حسابك 😊</p>` :
                         `<button class="btn" id="sendFriendReqBtn" data-sid="${esc(targetSid)}" data-name="${esc(tName)}" style="background:var(--success-color);">إرسال طلب صداقة 🤝</button>`}
@@ -1103,9 +1172,7 @@
 
                 body.innerHTML = `
                     <div style="text-align:center;">
-                        <div class="modal-avatar-wrapper ${rankInfo.frame}" style="margin-bottom:12px;">
-                            <img src="${avatarUrl}" alt="صورة الصديق">
-                        </div>
+                        <div style="display:flex; justify-content:center; margin:18px 0 12px;">${LV.avatar(avatarUrl, LV.levelOf(score), 95)}</div>
                         <div style="font-size:1.1rem; font-weight:bold; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:6px;">
                             <span>${esc(fName)}</span>
                             ${getGenderSvgHtml(targetGender)}
@@ -1113,7 +1180,7 @@
                         <div style="font-size:0.78rem; color:var(--primary-color); font-weight:bold; margin-bottom:4px;">ID: ${esc(fData.studentId || '')}</div>
                         <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:8px;">البريد: ${maskedEmail}</div>
                         <div style="margin-bottom:16px;">
-                            <span class="level-badge-box ${rankInfo.badge}">${rankInfo.label} • ${score} نقطة</span>
+                            <span style="display:inline-flex; gap:6px; flex-wrap:wrap; justify-content:center;">${LV.badge(LV.levelOf(score))}<span class="level-badge-box ${rankInfo.badge}" style="cursor:default; margin-bottom:0; padding:4px 12px; font-size:0.74rem;">${rankInfo.label} • ${score} نقطة</span></span>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                             <button class="btn" onclick="openComparisonModalWithFriend('${esc(friendSid)}', '${esc(fName)}')" style="background:var(--success-color); margin-top:0;">مقارنة شاملة 📊</button>

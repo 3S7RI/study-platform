@@ -160,5 +160,47 @@
         return u.replace(/'/g, '%27').replace(/"/g, '%22').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/\\/g, '%5C').replace(/\s/g, '%20');
     };
 
+    /* ===== تتبع وقت المذاكرة الفعلي =====
+     * بيعدّ الثواني اللي المنصة ظاهرة فيها على الشاشة (التبويب مفتوح ومش مخفي) لأي صفحة طالب.
+     * التخزين محلي في localStorage، ودالة syncStudyTime في student-service.js بتبعت الفرق
+     * لـ Firestore (studySeconds) بـ increment، فمفيش تضارب بين أكتر من جهاز. */
+    PS.timeKeys = function () {
+        var sid = PS.studentId();
+        return sid ? { total: 'ps_time_' + sid, synced: 'ps_time_synced_' + sid } : null;
+    };
+    PS.localStudySeconds = function () {
+        var k = PS.timeKeys(); if (!k) return 0;
+        return parseInt(lsGet(k.total), 10) || 0;
+    };
+    PS.unsyncedStudySeconds = function () {
+        var k = PS.timeKeys(); if (!k) return 0;
+        var t = parseInt(lsGet(k.total), 10) || 0, s = parseInt(lsGet(k.synced), 10) || 0;
+        return Math.max(0, t - s);
+    };
+    PS.markStudySynced = function (upToSeconds) {
+        var k = PS.timeKeys(); if (!k) return;
+        lsSet(k.synced, String(upToSeconds));
+    };
+    (function startStudyTimer() {
+        var TICK = 5000, last = Date.now();
+        function tick() {
+            var now = Date.now(), elapsed = now - last;
+            last = now;
+            try {
+                if (document.visibilityState !== 'visible') return;
+                if (PS.isAdminSession() || !PS.isFresh()) return;
+                var k = PS.timeKeys(); if (!k) return;
+                // نتجاهل أي قفزة كبيرة (جهاز نام/تبويب اتجمّد) عشان الوقت يفضل حقيقي
+                var add = Math.min(Math.round(elapsed / 1000), 10);
+                if (add <= 0) return;
+                lsSet(k.total, String((parseInt(lsGet(k.total), 10) || 0) + add));
+            } catch (e) {}
+        }
+        try {
+            setInterval(tick, TICK);
+            document.addEventListener('visibilitychange', function () { last = Date.now(); });
+        } catch (e) {}
+    })();
+
     global.PS = PS;
 })(window);

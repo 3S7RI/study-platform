@@ -504,27 +504,51 @@
                 try {
                     let resultId = `${currentUserId}_${activeLessonId}`;
                     let resultRef = doc(db, "studentExamResults", resultId);
-                    
+                    let nowIso = new Date().toISOString();
+
+                    let pts = lessonSettings.points || {};
+                    let examPoints = Number(pts.exam !== undefined ? pts.exam : 10) || 0;
+                    let perfectBonus = Number(pts.perfectExam !== undefined ? pts.perfectExam : 15) || 0;
+                    let isPerfect = totalScore === maxScore && maxScore > 0 && lessonSettings.fullMarkCongrats !== false;
+
+                    // النتيجة السابقة (لو الطالب أعاد الامتحان) — بنمنح النقاط بالفرق بس، عشان الإعادة متكسّبش نقاط تاني
+                    let prevSnap = await getDoc(resultRef);
+                    let prev = prevSnap.exists() ? prevSnap.data() : {};
+                    let alreadyAwarded;
+                    if (prev.pointsAwarded !== undefined) {
+                        alreadyAwarded = Number(prev.pointsAwarded) || 0;
+                    } else if (prevSnap.exists()) {
+                        // نتيجة قديمة قبل التعديل: كانت بتاخد النقاط الثابتة (+ المكافأة لو الدرجة كاملة)
+                        alreadyAwarded = examPoints + ((Number(prev.score) === Number(prev.maxScore) && Number(prev.maxScore) > 0) ? perfectBonus : 0);
+                    } else {
+                        alreadyAwarded = 0;
+                    }
+
+                    // النقاط حسب الدرجة: نقاط الامتحان × نسبة الدرجة + مكافأة الدرجة النهائية
+                    let ratio = maxScore > 0 ? (totalScore / maxScore) : 0;
+                    let earnedNow = Math.round(examPoints * ratio) + (isPerfect ? perfectBonus : 0);
+                    let pointsToAdd = Math.max(0, earnedNow - alreadyAwarded);
+                    let newAwardedTotal = Math.max(alreadyAwarded, earnedNow);
+
+                    let prevBest = Number(prev.bestScore);
+                    let bestScore = isNaN(prevBest) ? totalScore : Math.max(prevBest, totalScore);
+
                     await setDoc(resultRef, {
                         userId: currentUserId,
                         lessonId: activeLessonId,
                         examTitle: activeExamTitle,
                         score: totalScore,
                         maxScore: maxScore,
-                        submittedAt: new Date().toISOString()
+                        submittedAt: nowIso,
+                        firstSubmittedAt: prev.firstSubmittedAt || prev.submittedAt || nowIso,
+                        attempts: (Number(prev.attempts) || 0) + 1,
+                        bestScore: bestScore,
+                        bestMaxScore: maxScore,
+                        pointsAwarded: newAwardedTotal
                     }, { merge: true });
 
-                    let pts = lessonSettings.points || {};
-                    let examPoints = pts.exam !== undefined ? pts.exam : 10;
-                    let perfectBonus = pts.perfectExam !== undefined ? pts.perfectExam : 15;
-
-                    let pointsToAdd = examPoints;
-                    if (totalScore === maxScore && maxScore > 0 && lessonSettings.fullMarkCongrats !== false) {
-                        pointsToAdd += perfectBonus;
-                    }
-
                     // النقاط والرتبة تتحدثان معاً (points + totalScore + rank + level)
-                    await addPointsToStudent(db, PS.email(), pointsToAdd);
+                    if (pointsToAdd > 0) await addPointsToStudent(db, PS.email(), pointsToAdd);
                 } catch(e) {
                     console.log("Error saving exam result:", e);
                 }

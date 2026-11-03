@@ -1,7 +1,7 @@
 // student-service.js - ملف الخدمات الموحد لإدارة بيانات الطالب داخل مجموعة students
 // - وثيقة الطالب اسمها الإيميل (بحروف صغيرة): students/{email}
 // - معرّف الطالب في المنصة كلها: studentId (STU-0001, STU-0002 ...) وليس uid
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, limit, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, limit, getDocs, runTransaction, serverTimestamp, increment, orderBy, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 export const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100';
 const COUNTER_PATH = ['config', 'studentIdCounter'];
@@ -495,6 +495,84 @@ export async function touchDailyStreak(db, email) {
         return res;
     } catch (e) {
         console.warn('touchDailyStreak skipped', e);
+        return null;
+    }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* وقت المذاكرة: بيبعت الفرق المتراكم محلياً (session.js) بـ increment    */
+/* كتابة واحدة بس لو الفرق دقيقة أو أكتر، فمفيش استهلاك زيادة.            */
+/* ------------------------------------------------------------------ */
+export async function syncStudyTime(db, email) {
+    try {
+        const key = String(email || '').toLowerCase().trim();
+        if (!key || typeof PS === 'undefined') return null;
+        const total = PS.localStudySeconds();
+        const delta = PS.unsyncedStudySeconds();
+        if (delta < 60) return null;
+        await updateDoc(doc(db, 'students', key), { studySeconds: increment(delta) });
+        PS.markStudySynced(total);
+        return delta;
+    } catch (e) {
+        console.warn('syncStudyTime skipped', e);
+        return null;
+    }
+}
+
+/* ------------------------------------------------------------------ */
+/* لوحة المتصدرين: أعلى N طالب بالنقاط (استعلام واحد = N قراءة بس)       */
+/* totalScore بتتجمّع فيها نقاط: الفيديوهات والملازم والملخصات وامتحانات   */
+/* الحصص (بالدرجة) والامتحانات الشاملة (بعد اعتماد الدرجة).              */
+/* بتتخزن في sessionStorage 5 دقايق عشان القراءات متزدش.                 */
+/* ------------------------------------------------------------------ */
+const LB_CACHE_KEY = 'lb_top_cache_v1';
+const LB_TTL_MS = 5 * 60 * 1000;
+
+export async function fetchLeaderboard(db, n = 20, force = false) {
+    try {
+        if (!force) {
+            const raw = sessionStorage.getItem(LB_CACHE_KEY);
+            if (raw) {
+                const c = JSON.parse(raw);
+                if (c && Date.now() - c.t < LB_TTL_MS && Array.isArray(c.rows)) return { rows: c.rows, at: c.t, cached: true };
+            }
+        }
+    } catch (e) {}
+    const snap = await getDocs(query(collection(db, 'students'), orderBy('totalScore', 'desc'), limit(n)));
+    const rows = [];
+    snap.forEach(d => {
+        const x = d.data();
+        const score = Math.max(Number(x.totalScore) || 0, Number(x.points) || 0);
+        if (score <= 0) return;
+        if (x.status && x.status !== 'active') return;
+        const avatar = x.profileImage || '';
+        rows.push({
+            email: String(d.id).toLowerCase(),
+            studentId: x.studentId || x.id || '',
+            name: x.fullName || x.name || 'طالب',
+            gender: x.gender || 'male',
+            score,
+            streak: Number(x.streak) || 0,
+            vip: !!(x.isSubscribed === true || x.accountType === 'vip' || x.accountType === 'trial'),
+            hidden: x.allowComparison === false,
+            avatar: avatar && avatar.length < 60000 ? avatar : ''
+        });
+    });
+    const at = Date.now();
+    try { sessionStorage.setItem(LB_CACHE_KEY, JSON.stringify({ t: at, rows })); } catch (e) {}
+    return { rows, at, cached: false };
+}
+
+/** ترتيب الطالب الحالي لو برّه أول N: عدد اللي نقاطهم أعلى منه + 1 (قراءة واحدة تقريباً) */
+export async function getMyLeaderboardRank(db, myScore) {
+    try {
+        const s = Number(myScore) || 0;
+        if (s <= 0) return null;
+        const cnt = await getCountFromServer(query(collection(db, 'students'), where('totalScore', '>', s)));
+        return cnt.data().count + 1;
+    } catch (e) {
+        console.warn('getMyLeaderboardRank skipped', e);
         return null;
     }
 }
