@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="levels.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بروفايل الأدمن - رحلة دراسية</title>
@@ -386,6 +387,29 @@
         }
 
         .loading { text-align: center; padding: 25px; color: var(--text-secondary); font-size: 0.85rem; }
+    
+        /* ===== تصميم البروفايل الجديد (قريب من بروفايل الطالب) ===== */
+        .profile-card { max-width: 520px; padding: 0 0 22px; overflow: hidden; }
+        .top-nav-bar { max-width: 520px; }
+        .footer-rights { max-width: 520px; }
+        .ap-banner { height: 120px; position: relative; background: linear-gradient(135deg, #4c1d95, #6366f1 55%, #06b6d4); overflow: hidden; }
+        .ap-banner::after { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 120% at 80% 0%, rgba(255,255,255,.22), transparent 60%), radial-gradient(40% 90% at 10% 100%, rgba(251,191,36,.25), transparent 70%); }
+        .ap-body { padding: 0 20px; text-align: center; }
+        .ap-avatar-row { display: flex; justify-content: center; margin-top: -58px; position: relative; z-index: 6; }
+        .ap-avatar-row .lv-avatar .upload-badge { z-index: 9; bottom: 2px; left: 2px; }
+        .ap-name { font-size: 1.3rem; font-weight: 800; margin: 14px 0 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .ap-role { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; cursor: pointer; background: linear-gradient(135deg, rgba(139,92,246,.25), rgba(99,102,241,.2)); border: 1px solid rgba(139,92,246,.5); color: #ddd6fe; }
+        .ap-role .lv-i { width: 15px; height: 15px; }
+        .ap-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 18px 0 16px; }
+        .ap-stat { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px 4px; }
+        .ap-stat b { display: block; font-size: 1.05rem; font-weight: 800; color: var(--text-main); }
+        .ap-stat span { font-size: 0.66rem; color: var(--text-secondary); }
+        .ap-stat:nth-child(1) b { color: #38bdf8; } .ap-stat:nth-child(2) b { color: #a78bfa; } .ap-stat:nth-child(3) b { color: #34d399; } .ap-stat:nth-child(4) b { color: #fbbf24; }
+        .ap-info { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .ap-info .admin-id-container { margin-bottom: 0; }
+        .profile-action-btn .lv-i { width: 17px; height: 17px; flex-shrink: 0; }
+        .back-btn .lv-i { width: 16px; height: 16px; }
+        @media (max-width: 420px) { .ap-stats { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
@@ -396,8 +420,8 @@
     </div>
 
     <div class="top-nav-bar">
-        <a href="admin.html" class="back-btn"><span>←</span> لوحة التحكم الرئيسية</a>
-        <button class="back-btn" onclick="confirmAdminLogout()" style="color: var(--danger-color);">تسجيل الخروج 🚪</button>
+        <a href="admin.html" class="back-btn"><span>&larr;</span> لوحة التحكم الرئيسية</a>
+        <button class="back-btn" onclick="confirmAdminLogout()" style="color: var(--danger-color);">تسجيل الخروج</button>
     </div>
 
     <div class="profile-card" id="profileCardMain">
@@ -580,7 +604,7 @@
         import { updateAdminData, deleteAdminAccount } from "./admin-service.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, addDoc, serverTimestamp, getDocs, query, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -742,53 +766,62 @@
         // 🚀 تحديث دالة العرض لتكون ديناميكية 100% بناءً على إعدادات قاعدة البيانات
         function renderAdminProfile(admin) {
             const container = document.getElementById('profileContent');
-            
+            const I = (n) => (window.LV ? LV.icon(n, 17) : '');
+
             let avatarUrl = admin.profileImage || admin.avatar || defaultAvatarSvg;
             let fullName = admin.name || admin.fullname || "مسؤول النظام";
             let adminId = admin.adminId || "ADM-0001";
-
-            // فحص حالة التوثيق بدقة (سواء isVerified أو verified)
             let isVerified = admin.isVerified === true || admin.verified === true;
             let verifiedBadgeHtml = isVerified ? `
                 <span class="verified-badge" title="حساب موثق">
                     <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </span>` : '';
-
-            // فحص الصلاحية والمستوى (مشرف عام vs مساعد/مراقب)
             let isFullRole = (admin.role === 'full');
-            let roleText = isFullRole ? 'مشرف عام 👑 • نشط' : 'مساعد / مراقب 🛡️ • نشط';
+            let roleText = isFullRole ? 'مشرف عام' : 'مساعد / مراقب';
+            // نفس إطار الطالب: المشرف العام بإطار الإمبراطور (تاج + نجوم)، المساعد بإطار الأسطورة (تاج)
+            const frameLevel = isFullRole ? 50 : 30;
+            const avatarHtml = window.LV
+                ? LV.avatar(avatarUrl, frameLevel, 112, { id: 'adminAvatarDisplay', alt: 'صورة الأدمن', extra: `<div class="upload-badge" onclick="openAvatarModal()" title="تغيير صورة البروفايل">${I('camera')}</div>` })
+                : `<img src="${avatarUrl}" id="adminAvatarDisplay" style="width:112px;height:112px;border-radius:50%;object-fit:cover">`;
 
             container.innerHTML = `
-                <div class="profile-header">
-                    <div class="avatar-wrapper rank-frame-legendary">
-                        <img src="${avatarUrl}" alt="صورة الأدمن" id="adminAvatarDisplay">
-                        <div class="upload-badge" onclick="openAvatarModal()" title="تغيير صورة البروفايل">📷</div>
+                <div class="ap-banner"></div>
+                <div class="ap-body">
+                    <div class="ap-avatar-row">${avatarHtml}</div>
+                    <div class="ap-name"><span>${fullName}</span>${verifiedBadgeHtml}</div>
+                    <div class="ap-info">
+                        <div class="admin-id-container">
+                            <span class="id-text-badge">id: ${adminId}</span>
+                            <button class="copy-id-btn" onclick="copyAdminId('${adminId}')">${I('copy')} نسخ</button>
+                        </div>
+                        <span class="ap-role" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" title="اضغط لتحدي اليوم">${I(isFullRole ? 'crown' : 'shield')} ${roleText}</span>
                     </div>
-                    <div class="admin-name">
-                        <span>${fullName}</span>
-                        ${verifiedBadgeHtml}
+                    <div class="ap-stats">
+                        <div class="ap-stat"><b id="apStStudents">…</b><span>طالب</span></div>
+                        <div class="ap-stat"><b id="apStLessons">…</b><span>حصة</span></div>
+                        <div class="ap-stat"><b id="apStExams">…</b><span>امتحان</span></div>
+                        <div class="ap-stat"><b id="apStPending">…</b><span>طلب دفع معلّق</span></div>
                     </div>
-                    
-                    <div class="admin-id-container">
-                        <span class="id-text-badge">id: ${adminId}</span>
-                        <button class="copy-id-btn" onclick="copyAdminId('${adminId}')">نسخ 📋</button>
+                    <div class="profile-actions-bar">
+                        <button class="profile-action-btn" onclick="openSettingsModal()">${I('settings')} الإعدادات</button>
+                        <button class="profile-action-btn" onclick="openModal('broadcastModal')">${I('send')} إشعار جماعي</button>
+                        <button class="profile-action-btn" onclick="openModal('notesModal'); loadAdminNotesFromCloud();">${I('save')} الملاحظات</button>
+                        <button class="profile-action-btn" onclick="openModal('messageComposerModal')">${I('bolt')} رسائل سريعة</button>
+                        <button class="profile-action-btn btn-full" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff;">${I('trophy')} تحدي اليوم للمشرف</button>
                     </div>
-
-                    <div>
-                        <span class="level-badge-box badge-legendary" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" title="اضغط لتحدي اليوم">
-                            ${roleText}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="profile-actions-bar">
-                    <button class="profile-action-btn" onclick="openSettingsModal()">⚙️ الإعدادات</button>
-                    <button class="profile-action-btn" onclick="openModal('broadcastModal')">📢 إشعار جماعي</button>
-                    <button class="profile-action-btn" onclick="openModal('notesModal'); loadAdminNotesFromCloud();">📝 الملاحظات</button>
-                    <button class="profile-action-btn" onclick="openModal('messageComposerModal')">⚡ رسائل سريعة</button>
-                    <button class="profile-action-btn btn-full" onclick="openModal('adminQuestModal'); loadDailyQuestFromCloud();" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff;">🎯 تحدي اليوم للمشرف</button>
                 </div>
             `;
+            loadAdminQuickStats();
+        }
+
+        // أرقام سريعة (4 قراءات count فقط، رخيصة)
+        async function loadAdminQuickStats() {
+            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+            const cnt = async (q, id) => { try { const c = await getCountFromServer(q); set(id, c.data().count); } catch (e) { set(id, '—'); } };
+            cnt(collection(db, 'students'), 'apStStudents');
+            cnt(collection(db, 'lessons'), 'apStLessons');
+            cnt(collection(db, 'exams'), 'apStExams');
+            cnt(query(collection(db, 'subscriptionRequests'), where('status', '==', 'pending')), 'apStPending');
         }
 
         window.copyAdminId = function(idText) {

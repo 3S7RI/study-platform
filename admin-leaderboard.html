@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التحكم في لوحة المتصدرين</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --orange: #f97316; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.08); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.86rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 12px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 9px 16px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.8rem; }
+        .title { font-weight: 800; color: var(--orange); font-size: 0.95rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--orange); }
+        .card h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--orange); }
+        .setting { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border-color); }
+        .setting small { display: block; color: var(--text-muted); font-size: 0.72rem; margin-top: 2px; }
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: #475569; border-radius: 24px; cursor: pointer; transition: .2s; }
+        .slider::before { content: ''; position: absolute; width: 18px; height: 18px; right: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+        .switch input:checked + .slider { background: var(--success); }
+        .switch input:checked + .slider::before { transform: translateX(-20px); }
+        input[type=number], input[type=text] { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        input[type=number] { width: 90px; }
+        .btn { border: none; border-radius: 10px; padding: 8px 16px; font-weight: 800; cursor: pointer; color: #fff; background: linear-gradient(135deg, #fb923c, #f97316); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-sm { padding: 4px 12px; border-radius: 8px; font-size: 0.76rem; }
+        .btn-ex { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-back { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid var(--success); }
+        .add-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .add-row input { flex: 1; min-width: 160px; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .chip { display: inline-flex; align-items: center; gap: 8px; background: rgba(239,68,68,.12); border: 1px solid var(--danger); color: var(--text-main); border-radius: 20px; padding: 4px 6px 4px 12px; font-weight: 700; }
+        .chip button { background: var(--danger); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; line-height: 1; font-weight: 900; }
+        .lrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--th-bg); margin-bottom: 7px; }
+        .lrow.excluded { opacity: .55; border-color: var(--danger); }
+        .pos { width: 30px; text-align: center; font-weight: 900; color: var(--text-muted); }
+        .pos.p1 { color: #fbbf24; } .pos.p2 { color: #cbd5e1; } .pos.p3 { color: #d97706; }
+        .lrow .info { flex: 1; min-width: 0; }
+        .lrow .nm { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lrow .sub { font-size: 0.72rem; color: var(--text-muted); }
+        .lrow .sc { font-weight: 900; color: var(--gold); }
+        .empty { text-align: center; padding: 22px; color: var(--text-muted); }
+        .note { font-size: 0.74rem; color: var(--text-muted); line-height: 1.8; margin-top: 8px; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; z-index: 99; display: none; }
+    </style>
+</head>
+<body data-theme="dark">
+<div class="container">
+    <div class="header">
+        <a href="admin.html" class="back-btn">&larr; لوحة الأدمن</a>
+        <div class="title">التحكم في لوحة المتصدرين</div>
+    </div>
+
+    <div class="card">
+        <h3>إعدادات اللوحة</h3>
+        <div class="setting"><div>إظهار اللوحة للطلاب<small>لو اتقفلت، القسم كله بيختفي من الصفحة الرئيسية</small></div><label class="switch"><input type="checkbox" id="enabled"><span class="slider"></span></label></div>
+        <div class="setting"><div>عدد المتصدرين المعروضين<small>من 3 لـ 50 (الافتراضي 20)</small></div><input type="number" id="topCount" min="3" max="50" value="20"></div>
+        <div style="margin-top:12px;"><button class="btn" id="saveBtn" onclick="saveCfg()">حفظ الإعدادات</button></div>
+        <div class="note">التغييرات بتظهر للطلاب خلال 5 دقايق كحد أقصى (مدة تخزين اللوحة في المتصفح).</div>
+    </div>
+
+    <div class="card">
+        <h3>طلاب مستبعدين من اللوحة</h3>
+        <div class="note" style="margin-top:0;">الطالب المستبعد مبيظهرش في اللوحة بس نقاطه ورتبته بيفضلوا زي ما هم.</div>
+        <div class="add-row">
+            <input type="text" id="exInput" placeholder="اكتب ID الطالب مثل STU-0001" dir="ltr" maxlength="20">
+            <button class="btn" onclick="addExcluded()">استبعاد</button>
+        </div>
+        <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="card">
+        <h3>أعلى الطلاب حالياً (معاينة)</h3>
+        <div id="list"><div class="empty">جاري التحميل...</div></div>
+        <div class="note">بتظهر أعلى 50 حساب بالنقاط. زرار «استبعاد» بيضيف الطالب لقائمة المستبعدين وبعدها اضغط «حفظ الإعدادات».</div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const cfgRef = doc(db, 'settings', 'leaderboard');
+    let excluded = [];
+    let top = [];
+
+    function renderChips() {
+        $('chips').innerHTML = excluded.length
+            ? excluded.map(id => '<span class="chip">' + esc(id) + '<button title="إرجاع" onclick="removeExcluded(\'' + esc(id) + '\')">×</button></span>').join('')
+            : '<span class="note">مفيش طلاب مستبعدين.</span>';
+    }
+
+    function renderList() {
+        if (!top.length) { $('list').innerHTML = '<div class="empty">مفيش طلاب بنقاط لسه.</div>'; return; }
+        let shown = 0;
+        $('list').innerHTML = top.map(r => {
+            const ex = excluded.includes(r.studentId);
+            if (!ex) shown++;
+            const p = ex ? '—' : shown;
+            return '<div class="lrow' + (ex ? ' excluded' : '') + '"><div class="pos ' + (!ex && shown <= 3 ? 'p' + shown : '') + '">' + p + '</div>' +
+                '<div class="info"><div class="nm">' + esc(r.name) + '</div><div class="sub" dir="ltr" style="text-align:right;">' + esc(r.studentId) + '</div></div>' +
+                '<div class="sc">' + r.score.toLocaleString('en-US') + '</div>' +
+                (ex ? '<button class="btn btn-sm btn-back" onclick="removeExcluded(\'' + esc(r.studentId) + '\')">إرجاع</button>'
+                    : '<button class="btn btn-sm btn-ex" onclick="quickExclude(\'' + esc(r.studentId) + '\')">استبعاد</button>') + '</div>';
+        }).join('');
+    }
+
+    async function loadCfg() {
+        try {
+            const s = await getDoc(cfgRef);
+            const d = s.exists() ? s.data() : {};
+            $('enabled').checked = d.enabled !== false;
+            $('topCount').value = Math.min(50, Math.max(3, parseInt(d.topCount, 10) || 20));
+            excluded = Array.isArray(d.excludedStudentIds) ? d.excludedStudentIds.map(x => String(x).toUpperCase()) : [];
+        } catch (e) { toast('تعذر تحميل الإعدادات'); }
+        renderChips();
+    }
+
+    async function loadTop() {
+        try {
+            const snap = await getDocs(query(collection(db, 'students'), orderBy('totalScore', 'desc'), limit(50)));
+            top = [];
+            snap.forEach(d => {
+                const x = d.data();
+                const score = Math.max(Number(x.totalScore) || 0, Number(x.points) || 0);
+                if (score <= 0) return;
+                if (x.status && x.status !== 'active') return;
+                top.push({ studentId: String(x.studentId || x.id || '').toUpperCase(), name: x.fullName || x.name || 'طالب', score });
+            });
+        } catch (e) { $('list').innerHTML = '<div class="empty">تعذر تحميل الطلاب.</div>'; return; }
+        renderList();
+    }
+
+    window.saveCfg = async function () {
+        const n = Math.min(50, Math.max(3, parseInt($('topCount').value, 10) || 20));
+        $('saveBtn').disabled = true;
+        try {
+            await setDoc(cfgRef, { enabled: $('enabled').checked, topCount: n, excludedStudentIds: excluded.slice(0, 40), updatedAt: Date.now() }, { merge: true });
+            $('topCount').value = n;
+            toast('تم حفظ إعدادات اللوحة');
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+        $('saveBtn').disabled = false;
+    };
+
+    window.addExcluded = function () {
+        const id = $('exInput').value.trim().toUpperCase();
+        if (!/^STU-\d{3,6}$/.test(id)) { toast('اكتب ID صحيح مثل STU-0001'); return; }
+        if (excluded.includes(id)) { toast('الطالب مستبعد بالفعل'); return; }
+        if (excluded.length >= 40) { toast('الحد الأقصى 40 طالب مستبعد'); return; }
+        excluded.push(id); $('exInput').value = '';
+        renderChips(); renderList();
+        toast('اتضاف — اضغط حفظ الإعدادات');
+    };
+    window.quickExclude = function (id) {
+        if (!excluded.includes(id) && excluded.length < 40) excluded.push(id);
+        renderChips(); renderList();
+        toast('اتضاف — اضغط حفظ الإعدادات');
+    };
+    window.removeExcluded = function (id) {
+        excluded = excluded.filter(x => x !== id);
+        renderChips(); renderList();
+        toast('اترجع — اضغط حفظ الإعدادات');
+    };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        await loadCfg();
+        loadTop();
+    });
+</script>
+</body>
+</html>

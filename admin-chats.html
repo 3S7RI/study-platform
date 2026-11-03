@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التحكم في الشاتات</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --pink: #ec4899;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.08); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+            --boys: #38bdf8; --girls: #f472b6; --public: #a78bfa;
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.86rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 12px; }
+        .container { max-width: 1150px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 9px 16px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 6px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.8rem; }
+        .title { font-weight: 800; color: var(--pink); font-size: 0.95rem; }
+        .rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 14px; }
+        .room { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+        .room::before { content: ''; position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--rc); }
+        .room.boys { --rc: var(--boys); } .room.girls { --rc: var(--girls); } .room.public { --rc: var(--public); }
+        .room-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .room-name { font-weight: 800; font-size: 1rem; color: var(--rc); }
+        .state { padding: 3px 12px; border-radius: 20px; font-weight: 800; font-size: 0.74rem; }
+        .state.open { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid var(--success); }
+        .state.closed { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid var(--danger); }
+        .stat-row { display: flex; gap: 8px; }
+        .stat { flex: 1; background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px; text-align: center; }
+        .stat b { display: block; font-size: 1.15rem; color: var(--rc); }
+        .stat span { font-size: 0.7rem; color: var(--text-muted); }
+        .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn { border: none; border-radius: 10px; padding: 8px 14px; font-weight: 800; cursor: pointer; color: #fff; flex: 1; min-width: 110px; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-open { background: var(--success); } .btn-close { background: #f59e0b; } .btn-danger { background: var(--danger); }
+        .btn-ghost { background: var(--th-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-pink { background: linear-gradient(135deg, #f472b6, #ec4899); }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.95rem; margin-bottom: 12px; color: var(--pink); }
+        .setting { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--border-color); }
+        .setting:last-of-type { border-bottom: none; }
+        .setting small { display: block; color: var(--text-muted); font-size: 0.72rem; margin-top: 2px; }
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: #475569; border-radius: 24px; cursor: pointer; transition: .2s; }
+        .slider::before { content: ''; position: absolute; width: 18px; height: 18px; right: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+        .switch input:checked + .slider { background: var(--success); }
+        .switch input:checked + .slider::before { transform: translateX(-20px); }
+        input[type=number], input[type=text], select { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        input[type=number] { width: 90px; } input[type=text] { width: 100%; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); cursor: pointer; font-weight: 700; }
+        .tab.active { border-color: var(--pink); background: rgba(236,72,153,.15); color: var(--pink); }
+        .msg { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--th-bg); margin-bottom: 7px; }
+        .msg .who { font-weight: 800; font-size: 0.8rem; } .msg .who small { color: var(--text-muted); font-weight: 600; margin-right: 6px; }
+        .msg .txt { margin-top: 3px; line-height: 1.6; word-break: break-word; color: var(--text-main); }
+        .msg .del { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid var(--danger); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-weight: 800; flex-shrink: 0; }
+        .empty { text-align: center; padding: 22px; color: var(--text-muted); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; z-index: 99; display: none; }
+        .note { font-size: 0.74rem; color: var(--text-muted); line-height: 1.8; margin-top: 8px; }
+    </style>
+</head>
+<body data-theme="dark">
+<div class="container">
+    <div class="header">
+        <a href="admin.html" class="back-btn">&larr; لوحة الأدمن</a>
+        <div class="title">التحكم في الشاتات</div>
+    </div>
+
+    <div class="rooms">
+        <div class="room boys" id="room-gender_male">
+            <div class="room-head"><div class="room-name">شات البنين</div><span class="state open" id="st-gender_male">شغّال</span></div>
+            <div class="stat-row"><div class="stat"><b id="cnt-gender_male">…</b><span>رسالة محفوظة</span></div></div>
+            <div class="row-btns">
+                <button class="btn btn-close" id="tg-gender_male" onclick="toggleRoom('gender_male')">قفل الشات</button>
+                <button class="btn btn-ghost" onclick="openChat('chat-boys.html')">دخول الشات</button>
+                <button class="btn btn-danger" onclick="clearRoom('gender_male','شات البنين')">مسح كل الرسائل</button>
+            </div>
+        </div>
+        <div class="room girls" id="room-gender_female">
+            <div class="room-head"><div class="room-name">شات البنات</div><span class="state open" id="st-gender_female">شغّال</span></div>
+            <div class="stat-row"><div class="stat"><b id="cnt-gender_female">…</b><span>رسالة محفوظة</span></div></div>
+            <div class="row-btns">
+                <button class="btn btn-close" id="tg-gender_female" onclick="toggleRoom('gender_female')">قفل الشات</button>
+                <button class="btn btn-ghost" onclick="openChat('chat-girls.html')">دخول الشات</button>
+                <button class="btn btn-danger" onclick="clearRoom('gender_female','شات البنات')">مسح كل الرسائل</button>
+            </div>
+        </div>
+        <div class="room public" id="room-public_general_room">
+            <div class="room-head"><div class="room-name">الشات العام</div><span class="state open" id="st-public_general_room">شغّال</span></div>
+            <div class="stat-row"><div class="stat"><b id="cnt-public_general_room">…</b><span>رسالة محفوظة</span></div></div>
+            <div class="row-btns">
+                <button class="btn btn-close" id="tg-public_general_room" onclick="toggleRoom('public_general_room')">قفل الشات</button>
+                <button class="btn btn-ghost" onclick="openChat('chat-boys.html')">دخول الشات</button>
+                <button class="btn btn-danger" onclick="clearRoom('public_general_room','الشات العام')">مسح كل الرسائل</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>إعدادات تسري على كل الشاتات</h3>
+        <div class="setting"><div>مسح الرسائل القديمة تلقائياً<small>بيتنفّذ لما أي طالب يفتح الشات (دفعات صغيرة)</small></div><label class="switch"><input type="checkbox" id="autoDelete" onchange="saveGlobal()"><span class="slider"></span></label></div>
+        <div class="setting"><div>مدة الاحتفاظ بالرسائل (ساعة)<small>من 1 لـ 720 ساعة</small></div><input type="number" id="retention" min="1" max="720" value="48" onchange="saveGlobal()"></div>
+        <div class="setting"><div>«منشن الكل» للأدمن فقط<small>زرار منشن الكل بيختفي عند الطلاب</small></div><label class="switch"><input type="checkbox" id="mentionRestrict" onchange="saveGlobal()"><span class="slider"></span></label></div>
+        <div class="setting" style="flex-direction:column;align-items:stretch;"><div>رسالة القفل اللي بتظهر للطلاب<small>اختياري، حد أقصى 200 حرف</small></div><input type="text" id="closedMessage" maxlength="200" placeholder="الشات مقفول مؤقتاً" onchange="saveGlobal()"></div>
+        <div class="note">الأدمن بيفضل يقدر يدخل ويكتب في كل الشاتات حتى لو مقفولة.</div>
+    </div>
+
+    <div class="card">
+        <h3>مراجعة الرسائل</h3>
+        <div class="tabs">
+            <button class="tab active" data-room="gender_male" onclick="loadMsgs('gender_male')">البنين</button>
+            <button class="tab" data-room="gender_female" onclick="loadMsgs('gender_female')">البنات</button>
+            <button class="tab" data-room="public_general_room" onclick="loadMsgs('public_general_room')">العام</button>
+        </div>
+        <div id="msgList"><div class="empty">جاري التحميل...</div></div>
+        <div class="note">بتظهر آخر 30 رسالة. الحذف نهائي.</div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs, getCountFromServer, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    // أسماء الحقول في settings/global_chat_state: isActive = العام، boysActive = البنين، girlsActive = البنات
+    const FIELD = { gender_male: 'boysActive', gender_female: 'girlsActive', public_general_room: 'isActive' };
+    const stateRef = doc(db, 'settings', 'global_chat_state');
+    let state = {};
+    let currentRoom = 'gender_male';
+
+    function paintRoom(room) {
+        const open = state[FIELD[room]] !== false;
+        const st = $('st-' + room);
+        st.textContent = open ? 'شغّال' : 'مقفول';
+        st.className = 'state ' + (open ? 'open' : 'closed');
+        const b = $('tg-' + room);
+        b.textContent = open ? 'قفل الشات' : 'فتح الشات';
+        b.className = 'btn ' + (open ? 'btn-close' : 'btn-open');
+    }
+
+    async function loadState() {
+        try {
+            const s = await getDoc(stateRef);
+            state = s.exists() ? s.data() : {};
+        } catch (e) { state = {}; toast('تعذر تحميل الإعدادات'); }
+        Object.keys(FIELD).forEach(paintRoom);
+        $('autoDelete').checked = state.autoDelete !== false;
+        $('retention').value = Number(state.retentionHours) > 0 ? Number(state.retentionHours) : 48;
+        $('mentionRestrict').checked = state.mentionRestrict === true;
+        $('closedMessage').value = state.closedMessage || '';
+    }
+
+    window.toggleRoom = async function (room) {
+        const open = state[FIELD[room]] !== false;
+        try {
+            await setDoc(stateRef, { [FIELD[room]]: !open }, { merge: true });
+            state[FIELD[room]] = !open;
+            paintRoom(room);
+            toast(open ? 'تم قفل الشات' : 'تم فتح الشات');
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    window.saveGlobal = async function () {
+        const hours = Math.min(720, Math.max(1, parseInt($('retention').value, 10) || 48));
+        try {
+            await setDoc(stateRef, {
+                autoDelete: $('autoDelete').checked,
+                retentionHours: hours,
+                mentionRestrict: $('mentionRestrict').checked,
+                closedMessage: $('closedMessage').value.trim().slice(0, 200)
+            }, { merge: true });
+            $('retention').value = hours;
+            toast('تم حفظ الإعدادات');
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    window.openChat = (url) => { window.location.href = url; };
+
+    async function loadCounts() {
+        for (const room of Object.keys(FIELD)) {
+            try {
+                const c = await getCountFromServer(collection(db, 'rooms', room, 'messages'));
+                $('cnt-' + room).textContent = c.data().count;
+            } catch (e) { $('cnt-' + room).textContent = '—'; }
+        }
+    }
+
+    // مسح كل رسائل الغرفة على دفعات 400
+    window.clearRoom = async function (room, label) {
+        if (!confirm('هتمسح كل رسائل ' + label + ' نهائياً. متأكد؟')) return;
+        if (!confirm('تأكيد أخير: الحذف مش بيرجع.')) return;
+        try {
+            let total = 0;
+            while (true) {
+                const snap = await getDocs(query(collection(db, 'rooms', room, 'messages'), limit(400)));
+                if (snap.empty) break;
+                const batch = writeBatch(db);
+                snap.docs.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                total += snap.size;
+                toast('اتمسح ' + total + ' رسالة...');
+                if (snap.size < 400) break;
+            }
+            toast('تم مسح ' + total + ' رسالة');
+        } catch (e) { toast('تعذر المسح، راجع قواعد Firestore'); }
+        loadCounts();
+        if (room === currentRoom) loadMsgs(room);
+    };
+
+    window.loadMsgs = async function (room) {
+        currentRoom = room;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.room === room));
+        $('msgList').innerHTML = '<div class="empty">جاري التحميل...</div>';
+        try {
+            const snap = await getDocs(query(collection(db, 'rooms', room, 'messages'), orderBy('timestamp', 'desc'), limit(30)));
+            if (snap.empty) { $('msgList').innerHTML = '<div class="empty">مفيش رسائل في الغرفة دي.</div>'; return; }
+            $('msgList').innerHTML = snap.docs.map(d => {
+                const m = d.data();
+                const ts = m.timestamp && m.timestamp.toDate ? m.timestamp.toDate().toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                const body = m.text || m.question || (m.fileName ? 'ملف: ' + m.fileName : '(رسالة بدون نص)');
+                return '<div class="msg" id="m-' + esc(d.id) + '"><div><div class="who">' + esc(m.name || 'طالب') + '<small>' + esc(m.studentId || '') + ' • ' + esc(ts) + '</small></div><div class="txt">' + esc(body) + '</div></div><button class="del" onclick="delMsg(\'' + esc(room) + '\',\'' + esc(d.id) + '\')">حذف</button></div>';
+            }).join('');
+        } catch (e) { $('msgList').innerHTML = '<div class="empty">تعذر تحميل الرسائل.</div>'; }
+    };
+
+    window.delMsg = async function (room, id) {
+        if (!confirm('حذف الرسالة دي؟')) return;
+        try {
+            await deleteDoc(doc(db, 'rooms', room, 'messages', id));
+            const el = $('m-' + id); if (el) el.remove();
+            toast('تم الحذف');
+            loadCounts();
+        } catch (e) { toast('تعذر الحذف'); }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        loadState();
+        loadCounts();
+        loadMsgs('gender_male');
+    });
+</script>
+</body>
+</html>

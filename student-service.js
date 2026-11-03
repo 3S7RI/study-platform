@@ -536,7 +536,7 @@ export async function fetchLeaderboard(db, n = 20, force = false) {
             const raw = sessionStorage.getItem(LB_CACHE_KEY);
             if (raw) {
                 const c = JSON.parse(raw);
-                if (c && Date.now() - c.t < LB_TTL_MS && Array.isArray(c.rows)) return { rows: c.rows, at: c.t, cached: true };
+                if (c && c.n === n && Date.now() - c.t < LB_TTL_MS && Array.isArray(c.rows)) return { rows: c.rows, at: c.t, cached: true };
             }
         }
     } catch (e) {}
@@ -561,7 +561,7 @@ export async function fetchLeaderboard(db, n = 20, force = false) {
         });
     });
     const at = Date.now();
-    try { sessionStorage.setItem(LB_CACHE_KEY, JSON.stringify({ t: at, rows })); } catch (e) {}
+    try { sessionStorage.setItem(LB_CACHE_KEY, JSON.stringify({ t: at, rows, n })); } catch (e) {}
     return { rows, at, cached: false };
 }
 

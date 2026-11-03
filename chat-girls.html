@@ -1495,7 +1495,9 @@
                     autoDelete: d.autoDelete !== false,
                     retentionHours: Number(d.retentionHours) > 0 ? Number(d.retentionHours) : 48,
                     closedMessage: d.closedMessage || '',
-                    mentionRestrict: d.mentionRestrict === true
+                    mentionRestrict: d.mentionRestrict === true,
+                    boysActive: d.boysActive !== false,
+                    girlsActive: d.girlsActive !== false
                 };
                 applyChatState();
                 if (currentUser.isAdmin) fillAdminChatControls();
@@ -1503,7 +1505,13 @@
         }
 
         function isPublicRoom() { return currentRoomId === 'public_general_room'; }
-        function chatWritable() { return !(isPublicRoom() && chatState.isActive === false && !currentUser.isAdmin); }
+        function roomClosedNow() {
+            if (currentRoomId === 'public_general_room') return chatState.isActive === false;
+            if (currentRoomId === 'gender_male') return chatState.boysActive === false;
+            if (currentRoomId === 'gender_female') return chatState.girlsActive === false;
+            return false;
+        }
+        function chatWritable() { return !(roomClosedNow() && !currentUser.isAdmin); }
 
         function applyChatState() {
             const mentionBtn = document.getElementById('mentionAttachBtn');
