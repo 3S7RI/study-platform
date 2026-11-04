@@ -207,9 +207,14 @@ function aiClean(v, n) { return String(v == null ? "" : v).replace(/\r\n?/g, "\n
 // نسخة للقيم القصيرة اللي بتتحط جوه البرومبت (اسم الطالب...): من غير سطور ولا أقواس
 function aiCleanLine(v, n) { return String(v == null ? "" : v).replace(/[\u0000-\u001f<>]/g, " ").trim().slice(0, n); }
 
+// KV "best-effort": أي فشل (حد الكتابة اليومي في الخطة المجانية مثلاً) مايكسرش الإرسال
+async function kvGet(env, key) { try { return await env.OTP_KV.get(key); } catch (e) { console.log("kv get failed", String(e)); return null; } }
+async function kvPut(env, key, val, ttl) { try { await env.OTP_KV.put(key, val, { expirationTtl: ttl }); return true; } catch (e) { console.log("kv put failed", String(e)); return false; } }
+async function kvDel(env, key) { try { await env.OTP_KV.delete(key); } catch (e) { console.log("kv del failed", String(e)); } }
+
 async function aiBump(env, key, ttl) {
-  const n = (Number(await env.OTP_KV.get(key)) || 0) + 1;
-  await env.OTP_KV.put(key, String(n), { expirationTtl: ttl });
+  const n = (Number(await kvGet(env, key)) || 0) + 1;
+  await kvPut(env, key, String(n), ttl);
   return n;
 }
 
@@ -284,6 +289,17 @@ async function handleChat(req, env, cors) {
 
 export default {
   async fetch(req, env) {
+    try { return await handle(req, env); }
+    catch (e) {
+      console.log("worker crash", String(e && e.stack || e));
+      const o = req.headers.get("Origin") || "";
+      return json({ error: "server_error" }, 500, { "Access-Control-Allow-Origin": ALLOWED.includes(o) ? o : ALLOWED[0] });
+    }
+  },
+};
+
+async function handle(req, env) {
+  {
     const origin = req.headers.get("Origin") || "";
     const cors = {
       "Access-Control-Allow-Origin": ALLOWED.includes(origin) ? origin : ALLOWED[0],
@@ -329,7 +345,7 @@ export default {
       const dayKey = "dc:" + email + ":" + cairoDay;
       let dayCount = 0;
       if (env.OTP_KV) {
-        dayCount = Number(await env.OTP_KV.get(dayKey)) || 0;
+        dayCount = Number(await kvGet(env, dayKey)) || 0;
         if (dayCount >= DAILY_MAX) return json({ error: "daily_limit", max: DAILY_MAX }, 429, cors);
       }
 
@@ -337,12 +353,12 @@ export default {
       const RL_SECONDS = 90;
       const rlKey = "rl:" + email;
       if (env.OTP_KV) {
-        const last = Number(await env.OTP_KV.get(rlKey));
+        const last = Number(await kvGet(env, rlKey));
         if (last) {
           const left = Math.ceil((last + RL_SECONDS * 1000 - Date.now()) / 1000);
           if (left > 0) return json({ error: "rate_limited", retryAfter: left }, 429, cors);
         }
-        await env.OTP_KV.put(rlKey, String(Date.now()), { expirationTtl: RL_SECONDS });
+        await kvPut(env, rlKey, String(Date.now()), RL_SECONDS);
       }
 
       const code = String(100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000));
@@ -355,32 +371,42 @@ export default {
         subject = "كود التحقق الإداري - منصة رحلة دراسية";
         html = adminHtml(name, code, pick(adminQuotes));
       } else {
-        subject = "كود التحقق الخاص بك - منصة رحلة دراسية";
+        subject = `${code} هو كود التحقق - منصة رحلة دراسية`; // الكود في العنوان: بيظهر في الإشعار ومعاينة الإيميل
         html = studentHtml(code, pick(dailyMessages));
       }
 
-      const r = await fetch("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: { "accept": "application/json", "api-key": env.BREVO_API_KEY, "content-type": "application/json" },
-        body: JSON.stringify({
-          sender: { name: "منصة رحلة دراسية", email: env.SENDER_EMAIL },
-          to: [{ email }],
-          replyTo: { name: "منصة رحلة دراسية", email: env.REPLY_TO_EMAIL || env.SENDER_EMAIL },
-          subject,
-          htmlContent: html,
-          // نسخة نصية بسيطة: غيابها من أشهر أسباب السبام
-          textContent: (type === "admin"
-            ? `كود التحقق الإداري الخاص بك في منصة رحلة دراسية: ${code}`
-            : `كود التحقق الخاص بك في منصة رحلة دراسية: ${code}`)
-            + `\nالكود صالح لمدة 10 دقائق. لا تشاركه مع أي شخص.\nلو ماطلبتش الكود ده تجاهل الرسالة.`,
-          tags: ["otp"],
-        }),
-      });
-      if (!r.ok) {
-        if (env.OTP_KV) await env.OTP_KV.delete(rlKey); // الإرسال فشل: متحسبش المحاولة على الطالب
-        return json({ error: "send failed", status: r.status }, 502, cors);
+      let r;
+      try {
+        r = await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "accept": "application/json", "api-key": env.BREVO_API_KEY, "content-type": "application/json" },
+          body: JSON.stringify({
+            sender: { name: "منصة رحلة دراسية", email: env.SENDER_EMAIL },
+            to: [{ email }],
+            replyTo: { name: "منصة رحلة دراسية", email: env.REPLY_TO_EMAIL || env.SENDER_EMAIL },
+            subject,
+            htmlContent: html,
+            // نسخة نصية بسيطة: غيابها من أشهر أسباب السبام
+            textContent: (type === "admin"
+              ? `كود التحقق الإداري الخاص بك في منصة رحلة دراسية: ${code}`
+              : `كود التحقق الخاص بك في منصة رحلة دراسية: ${code}`)
+              + `\nالكود صالح لمدة 10 دقائق. لا تشاركه مع أي شخص.\nلو ماطلبتش الكود ده تجاهل الرسالة.`,
+            tags: ["otp"],
+          }),
+        });
+      } catch (e) {
+        await kvDel(env, rlKey);
+        console.log("brevo fetch failed", String(e));
+        return json({ error: "send failed", status: 0, detail: "network" }, 502, cors);
       }
-      if (env.OTP_KV) await env.OTP_KV.put(dayKey, String(dayCount + 1), { expirationTtl: 172800 });
+      if (!r.ok) {
+        await kvDel(env, rlKey); // الإرسال فشل: متحسبش المحاولة على الطالب
+        let detail = "";
+        try { const b = await r.json(); detail = String(b.code || "") + ":" + String(b.message || ""); } catch (e) {}
+        console.log("brevo error", r.status, detail); // يظهر في Workers Logs
+        return json({ error: "send failed", status: r.status, detail: detail.slice(0, 160) }, 502, cors);
+      }
+      await kvPut(env, dayKey, String(dayCount + 1), 172800);
       return json({ ok: true, exp, sig, left: Math.max(0, DAILY_MAX - dayCount - 1) }, 200, cors);
     }
 
@@ -393,18 +419,18 @@ export default {
       const vaKey = "va:" + email + ":" + exp;
       let tries = 0;
       if (env.OTP_KV) {
-        tries = Number(await env.OTP_KV.get(vaKey)) || 0;
+        tries = Number(await kvGet(env, vaKey)) || 0;
         if (tries >= MAX_TRIES) return json({ ok: false, error: "too_many_attempts" }, 429, cors);
       }
 
       const expected = await hmac(env.OTP_SECRET, `${email}|${exp}|${String(body.code || "").trim()}`);
       const good = expected === body.sig;
       if (env.OTP_KV) {
-        if (good) await env.OTP_KV.delete(vaKey);
-        else await env.OTP_KV.put(vaKey, String(tries + 1), { expirationTtl: 900 });
+        if (good) await kvDel(env, vaKey);
+        else await kvPut(env, vaKey, String(tries + 1), 900);
       }
       return json({ ok: good, left: good ? undefined : Math.max(0, MAX_TRIES - tries - 1) }, 200, cors);
     }
     return json({ error: "not found" }, 404, cors);
-  },
-};
+  }
+}

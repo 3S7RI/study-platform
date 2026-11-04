@@ -431,7 +431,7 @@
     </div>
 
     <script type="module">
-        import { sendEmailOtpProcess, verifyEmailOtp } from './otp-service.js';
+        import { sendEmailOtpProcess, verifyEmailOtpDetailed } from './otp-service.js';
 
         const secretTrigger = document.getElementById('secretAdminTrigger');
         const adminModal = document.getElementById('adminModal');
@@ -602,6 +602,14 @@
                 return;
             }
 
+            const typoMap = { 'gmial.com':'gmail.com','gmai.com':'gmail.com','gamil.com':'gmail.com','gmail.co':'gmail.com','gmail.con':'gmail.com','gmail.cm':'gmail.com','gnail.com':'gmail.com','gmil.com':'gmail.com','gmaill.com':'gmail.com','hotmial.com':'hotmail.com','hotmal.com':'hotmail.com','hotmail.con':'hotmail.com','yahho.com':'yahoo.com','yaho.com':'yahoo.com','yahoo.con':'yahoo.com','outlok.com':'outlook.com','outlook.con':'outlook.com' };
+            const emailDomain = emailInput.split('@')[1] || '';
+            if (typoMap[emailDomain]) {
+                emailError.textContent = 'تقصد ' + emailInput.split('@')[0] + '@' + typoMap[emailDomain] + ' ؟ صحّح الإيميل الأول عشان الكود يوصلك.';
+                emailError.style.display = 'block';
+                return;
+            }
+
             sendBtn.textContent = 'جاري التحقق...';
             sendBtn.disabled = true;
 
@@ -632,7 +640,7 @@
 
             if (result.success) {
                 emailOtpProof = result.proof;
-                emailSuccess.textContent = 'تم إرسال كود التحقق بنجاح إلى بريدك الإلكتروني!';
+                emailSuccess.textContent = 'تم إرسال الكود إلى ' + emailInput + ' — لو مظهرش في الوارد دوّر في Spam أو Promotions (الترويجات).';
                 emailSuccess.style.display = 'block';
                 document.getElementById('emailOtpGroup').style.display = 'block';
             } else {
@@ -717,8 +725,19 @@
                 alert('الرجاء إرسال وإدخال كود التحقق الخاص بالبريد الإلكتروني أولاً!');
                 return;
             }
-            if (!(await verifyEmailOtp(email, enteredEmailOtp, emailOtpProof))) {
-                document.getElementById('emailOtpError').style.display = 'block';
+            const vr = await verifyEmailOtpDetailed(email, enteredEmailOtp, emailOtpProof);
+            if (!vr.ok) {
+                const msgs = {
+                    wrong: 'كود التحقق للبريد غير صحيح',
+                    expired: 'الكود انتهت صلاحيته (10 دقائق)، اطلب كود جديد',
+                    too_many: 'محاولات خاطئة كتير، اطلب كود جديد',
+                    network: 'تعذر الاتصال، تأكد من الإنترنت وجرّب تاني',
+                    server: 'مشكلة مؤقتة في التحقق، جرّب تاني بعد لحظات',
+                    no_proof: 'اطلب كود تحقق أولاً'
+                };
+                const eo = document.getElementById('emailOtpError');
+                eo.textContent = msgs[vr.reason] || msgs.wrong;
+                eo.style.display = 'block';
                 return;
             }
 
