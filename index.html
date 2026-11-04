@@ -56,7 +56,7 @@
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // استدعاء الدوال من ملف الخدمات الخارجي المنظم
-        import { findStudentDocument, createStudentAccount, sendWelcomeNotification } from './student-service.js';
+        import { findStudentDocument, createStudentAccount, sendWelcomeNotification, registerReferral } from './student-service.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -80,6 +80,16 @@
         window.fetchSignInMethodsForEmail = fetchSignInMethodsForEmail;
         window.findStudentDocument = (email) => findStudentDocument(db, email);
         window.createStudentAccount = (email, data) => createStudentAccount(db, email, data, { grantTrial: true });
+        (function () {
+            try {
+                const q = new URLSearchParams(location.search).get('ref');
+                if (q && /^[A-Za-z0-9\-]{3,12}$/.test(q)) localStorage.setItem('pending_ref', q.toUpperCase());
+                const saved = localStorage.getItem('pending_ref');
+                const fill = () => { const el = document.getElementById('refCode'); if (el && saved && !el.value) el.value = saved; };
+                if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fill); else fill();
+            } catch (e) {}
+        })();
+        window.registerReferral = (data, code) => registerReferral(db, data, code);
         window.sendWelcomeNotification = (email, name, trial) => sendWelcomeNotification(db, email, name, trial === true);
         window.getDoc = getDoc;
         window.doc = doc;
@@ -365,6 +375,11 @@
                 <div class="error-msg" id="parentPhoneError">رقم هاتف غير صحيح أو مطابق لرقم الهاتف الشخصي</div>
             </div>
             
+            <div class="input-group">
+                <label for="refCode">كود الدعوة (اختياري)</label>
+                <input type="text" id="refCode" maxlength="12" placeholder="لو حد دعاك اكتب كوده، مثال STU-0001" dir="ltr" style="text-transform:uppercase;">
+            </div>
+
             <div class="input-group">
                 <label>صورة البروفايل الشخصية (اختياري)</label>
                 <div class="file-upload-wrapper">
@@ -765,6 +780,12 @@
                 }
 
                 const fullStudentData = createdObj.data;
+                // نظام الدعوات: لو الطالب كتب كود دعوة (أو جه من رابط دعوة) بنسجّل الدعوة، ولو فشلت مبتعطّلش التسجيل
+                try {
+                    const refInput = (document.getElementById('refCode').value || '').trim().toUpperCase();
+                    if (refInput && createdObj.created) await window.registerReferral(fullStudentData, refInput);
+                    try { localStorage.removeItem('pending_ref'); } catch (e) {}
+                } catch (e) { console.warn('referral skipped', e); }
                 await window.sendWelcomeNotification(email, name, createdObj.trialGranted === true);
 
                 // الجلسة تُحفظ في localStorage لمدة 48 ساعة

@@ -63,6 +63,7 @@
         <h3>إعدادات المنافسات</h3>
         <p class="hint" style="margin-bottom:6px;">أنواع المنافسات الظاهرة للطلاب</p>
         <p class="hint">اقفل أو افتح أي نوع. النوع المقفول بيختفي من بطاقة المنافسات عند الطلاب (المنافسات اللي جواه بتفضل محفوظة).</p>
+        <div class="sw" style="margin-bottom:12px;border-color:var(--gold);"><span><b>إظهار بطاقة «المنافسات» عند الطلاب كلها</b><br><small style="color:var(--text-muted);">لو اتقفلت البطاقة بتختفي من الصفحة الرئيسية ومحدش يقدر يدخل صفحة المنافسات.</small></span><input type="checkbox" id="tc"></div>
         <div class="grid">
             <div class="sw"><span>منافسة الأسبوع (نقاط)</span><input type="checkbox" id="tw"></div>
             <div class="sw"><span>تحديات 1 ضد 1</span><input type="checkbox" id="td"></div>
@@ -169,13 +170,14 @@
     async function loadTypes() {
         const s = await getDoc(doc(db, 'config', 'competitions'));
         const t = (s.exists() && s.data().types) || {};
+        $('tc').checked = !(s.exists() && s.data().cardEnabled === false);
         $('tw').checked = t.weekly !== false;
         $('td').checked = t.duel === true;
         $('tt').checked = t.team === true;
     }
     window.saveTypes = async () => {
         try {
-            await setDoc(doc(db, 'config', 'competitions'), { types: { weekly: $('tw').checked, duel: $('td').checked, team: $('tt').checked }, updatedAt: Date.now(), updatedBy: adminName }, { merge: true });
+            await setDoc(doc(db, 'config', 'competitions'), { cardEnabled: $('tc').checked, types: { weekly: $('tw').checked, duel: $('td').checked, team: $('tt').checked }, updatedAt: Date.now(), updatedBy: adminName }, { merge: true });
             toast('تم الحفظ');
         } catch (e) { toast('حصل خطأ في الحفظ'); }
     };

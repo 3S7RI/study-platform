@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة نظام الدعوات</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24; --teal: #14b8a6;
+            --th-bg: rgba(255,255,255,0.04); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --teal: #0d9488; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--teal); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.92rem; margin-bottom: 4px; }
+        .hint { color: var(--text-muted); font-size: 0.74rem; line-height: 1.8; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        option { color: #1e293b; }
+        .btn { border: none; border-radius: 8px; padding: 8px 16px; font-weight: 800; cursor: pointer; color: #fff; background: var(--primary); }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-bad { background: var(--danger); }
+        .btn-ghost { background: var(--th-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
+        th { color: var(--text-muted); font-size: 0.72rem; }
+        .tag { padding: 2px 9px; border-radius: 15px; font-weight: 800; font-size: 0.7rem; white-space: nowrap; }
+        .tag.counted { background: rgba(16,185,129,.15); color: var(--success); }
+        .tag.pending { background: rgba(251,191,36,.15); color: var(--gold); }
+        .tag.revoked { background: rgba(239,68,68,.15); color: var(--danger); }
+        .empty { text-align: center; color: var(--text-muted); padding: 18px; }
+        .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--teal); padding: 8px 18px; border-radius: 10px; display: none; z-index: 99; }
+        .sw { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--th-bg); }
+        .sw input { width: 20px; height: 20px; accent-color: var(--success); }
+        .trow { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 8px; margin-bottom: 6px; align-items: center; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><a href="admin.html" class="back-btn">&larr; لوحة الأدمن</a><span class="title">إدارة نظام الدعوات</span></div>
+
+    <div class="card">
+        <h3>إعدادات النظام</h3>
+        <p class="hint">كود الدعوة هو الـ ID بتاع الطالب (STU-0001). كل مستوى جايزة بيتاخد مرة واحدة لكل طالب، والأيام بتتضاف على المتبقي من اشتراكه.</p>
+        <div class="grid">
+            <div class="sw"><span><b>تشغيل نظام الدعوات</b><br><small style="color:var(--text-muted);">لو اتقفل البطاقة بتختفي عند الطلاب.</small></span><input type="checkbox" id="enabled"></div>
+            <div><label>متى تتحسب الدعوة؟</label>
+                <select id="countOn">
+                    <option value="register">أول ما الصاحب يسجّل حساب</option>
+                    <option value="activity">بعد ما الصاحب ياخد أول نقاط (أكثر أماناً من الحسابات الوهمية)</option>
+                </select></div>
+        </div>
+        <h3 style="margin-top:14px;">مستويات الجوايز</h3>
+        <p class="hint">عدد الدعوات المطلوب ← عدد أيام الاشتراك المجاني (مثال: 5 دعوات = 7 أيام، 25 = 30 يوم، 100 = 90 يوم).</p>
+        <div class="trow" style="color:var(--text-muted);font-weight:700;"><span>عدد الدعوات</span><span>أيام الاشتراك</span><span></span></div>
+        <div id="tiers"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addTier()">+ مستوى</button>
+        <div style="margin-top:12px;"><button class="btn btn-gold" onclick="save()">حفظ الإعدادات</button></div>
+    </div>
+
+    <div class="card">
+        <h3>أكتر الطلاب دعوة</h3>
+        <div id="top"><div class="empty">جاري التحميل...</div></div>
+    </div>
+
+    <div class="card">
+        <h3>آخر الدعوات</h3>
+        <p class="hint">لو لقيت دعوة مشبوهة (حساب وهمي مثلاً) اضغط «إلغاء» وهتتشال من عدّاد الداعي.</p>
+        <div id="recent"><div class="empty">جاري التحميل...</div></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getReferralConfig, findStudentByStudentId } from "./student-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nf = (n) => Number(n || 0).toLocaleString('ar-EG');
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2800); };
+    let adminName = 'admin';
+
+    function tierRow(t = {}) {
+        const d = document.createElement('div'); d.className = 'trow';
+        d.innerHTML = '<input type="number" min="1" class="tc" value="' + (t.count || '') + '" placeholder="مثلاً 5"><input type="number" min="1" class="td" value="' + (t.days || '') + '" placeholder="مثلاً 7"><button class="btn btn-bad btn-sm" type="button">×</button>';
+        d.querySelector('button').onclick = () => d.remove();
+        $('tiers').appendChild(d);
+    }
+    window.addTier = () => tierRow({});
+
+    async function loadCfg() {
+        const cfg = await getReferralConfig(db);
+        $('enabled').checked = cfg.enabled; $('countOn').value = cfg.countOn;
+        $('tiers').innerHTML = ''; cfg.tiers.forEach(tierRow);
+    }
+    window.save = async () => {
+        const tiers = Array.from($('tiers').children).map(r => ({ count: Math.floor(Number(r.querySelector('.tc').value) || 0), days: Math.floor(Number(r.querySelector('.td').value) || 0) })).filter(t => t.count > 0 && t.days > 0);
+        if (!tiers.length) return toast('ضيف مستوى واحد على الأقل');
+        if (new Set(tiers.map(t => t.count)).size !== tiers.length) return toast('فيه مستويين بنفس عدد الدعوات');
+        tiers.sort((a, b) => a.count - b.count);
+        try {
+            await setDoc(doc(db, 'config', 'referrals'), { enabled: $('enabled').checked, countOn: $('countOn').value, tiers, updatedAt: Date.now(), updatedBy: adminName }, { merge: true });
+            toast('تم الحفظ'); loadCfg();
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    async function loadTop() {
+        try {
+            const snap = await getDocs(query(collection(db, 'students'), orderBy('inviteCount', 'desc'), limit(15)));
+            const rows = []; snap.forEach(d => { const x = d.data(); if ((Number(x.inviteCount) || 0) > 0) rows.push(x); });
+            $('top').innerHTML = rows.length ? '<table><tr><th>#</th><th>الطالب</th><th>ID</th><th>الدعوات</th><th>جوايز مستلمة</th></tr>' + rows.map((x, i) =>
+                '<tr><td>' + (i + 1) + '</td><td>' + esc(x.fullName || x.name) + '</td><td dir="ltr">' + esc(x.studentId) + '</td><td>' + nf(x.inviteCount) + '</td><td>' + nf((x.claimedTiers || []).length) + '</td></tr>').join('') + '</table>' : '<div class="empty">لسه مفيش دعوات.</div>';
+        } catch (e) { $('top').innerHTML = '<div class="empty">تعذر التحميل.</div>'; }
+    }
+
+    const ST = { counted: 'محسوبة', pending: 'مستنية نشاط', revoked: 'ملغية' };
+    async function loadRecent() {
+        try {
+            const snap = await getDocs(query(collection(db, 'referrals'), orderBy('createdAt', 'desc'), limit(30)));
+            const rows = []; snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
+            $('recent').innerHTML = rows.length ? '<table><tr><th>المدعو</th><th>الداعي</th><th>التاريخ</th><th>الحالة</th><th></th></tr>' + rows.map(r =>
+                '<tr><td>' + esc(r.inviteeName) + ' <small dir="ltr">(' + esc(r.inviteeId) + ')</small></td><td dir="ltr">' + esc(r.inviterId) + '</td><td>' + new Date(r.createdAt || 0).toLocaleDateString('ar-EG') + '</td><td><span class="tag ' + esc(r.status) + '">' + (ST[r.status] || '') + '</span></td><td>' +
+                (r.status !== 'revoked' ? '<button class="btn btn-bad btn-sm" onclick="revoke(\'' + esc(r.id) + '\')">إلغاء</button>' : '') + '</td></tr>').join('') + '</table>' : '<div class="empty">مفيش دعوات.</div>';
+        } catch (e) { $('recent').innerHTML = '<div class="empty">تعذر التحميل.</div>'; }
+    }
+    window.revoke = async (id) => {
+        if (!confirm('إلغاء الدعوة دي وإنقاص عدّاد الداعي؟')) return;
+        try {
+            const rref = doc(db, 'referrals', id);
+            const pre = await getDoc(rref); if (!pre.exists()) return;
+            const inv = await findStudentByStudentId(db, pre.data().inviterId);
+            await runTransaction(db, async (tx) => {
+                const r = await tx.get(rref); if (!r.exists() || r.data().status === 'revoked') return;
+                const wasCounted = r.data().status === 'counted';
+                let invSnap = null; if (inv && wasCounted) invSnap = await tx.get(inv.ref);
+                tx.update(rref, { status: 'revoked', revokedAt: Date.now(), revokedBy: adminName });
+                if (invSnap && invSnap.exists()) tx.update(inv.ref, { inviteCount: Math.max(0, (Number(invSnap.data().inviteCount) || 0) - 1) });
+            });
+            toast('تم الإلغاء'); loadTop(); loadRecent();
+        } catch (e) { console.warn(e); toast('حصل خطأ'); }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        if (sessionStorage.getItem('isAdmin') !== 'true') { window.location.href = 'login.html'; return; }
+        adminName = sessionStorage.getItem('adminEmail') || user.email || 'admin';
+        loadCfg(); loadTop(); loadRecent();
+    });
+</script>
+</body>
+</html>

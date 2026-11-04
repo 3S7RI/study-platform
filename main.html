@@ -199,6 +199,12 @@
         .pd-3 .pd-block { height: 50px; background: linear-gradient(180deg, #fdba74, #d97706 60%, #92400e); box-shadow: 0 0 16px rgba(217,119,6,0.4); }
         .pd-me-tag { font-size: 0.62rem; font-weight: 800; background: #6366f1; color: #fff; padding: 1px 8px; border-radius: 10px; margin-bottom: 4px; }
 
+        /* التاج أكبر في لوحة المتصدرين + الاسم الثلاثي يتكسر على سطرين بدل ما يتقطع */
+        .pd-av .lv-crown { font-size: calc(var(--s) * 0.62); top: calc(var(--s) * -0.42); }
+        .pd-av .lv-spark { font-size: calc(var(--s) * 0.16); }
+        .lb-row .lv-avatar .lv-crown { font-size: 34px; top: -24px; }
+        .lb-row .lv-avatar.lv-t6, .lb-row .lv-avatar.lv-t7 { margin-top: 26px; }
+        .pd-name { white-space: normal; line-height: 1.35; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
         .lb-list { display: flex; flex-direction: column; gap: 7px; position: relative; }
         .lb-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--th-bg); border: 1px solid var(--border-color); }
         .lb-row.me { border-color: #6366f1; background: rgba(99,102,241,0.12); box-shadow: 0 0 14px rgba(99,102,241,0.25); }
@@ -316,6 +322,14 @@
                 </div>
                 <a href="mistakes.html" class="card-btn" style="background-color: #f43f5e;">شوف أخطائي <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><path d='M19 12H5M12 19l-7-7 7-7'/></svg></a>
             </div>
+
+            <div class="card" style="border-top-color: #14b8a6;" data-free="1" data-href="invites.html" data-onclick="" id="cardInvites">
+                <div>
+                    <h3>نـظـام الـدعـوات <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#14b8a6' aria-hidden='true'><path d='M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z'/></svg></h3>
+                    <p>ادعُ أصحابك واكسب أيام اشتراك مجانية.</p>
+                </div>
+                <a href="invites.html" class="card-btn" style="background-color: #14b8a6;">ادعُ أصحابك <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><path d='M19 12H5M12 19l-7-7 7-7'/></svg></a>
+            </div>
         </main>
 
         <section class="lb-section" id="leaderboardSection">
@@ -369,6 +383,10 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // قفل/فتح بطاقات المنافسات والدعوات من لوحة الأدمن
+        getDoc(doc(db, 'config', 'competitions')).then(function(d) { if (d.exists() && d.data().cardEnabled === false) { var c = document.getElementById('cardWeekly'); if (c) c.style.display = 'none'; } }).catch(function() {});
+        getDoc(doc(db, 'config', 'referrals')).then(function(d) { if (d.exists() && d.data().enabled === false) { var c = document.getElementById('cardInvites'); if (c) c.style.display = 'none'; } }).catch(function() {});
 
         let currentStudentEmailGlobal = "";
         let currentStudentNameGlobal = "";
@@ -434,6 +452,7 @@
 
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => {
+                if (card.getAttribute('data-free') === '1') return; // بطاقات مفتوحة للجميع (مثلاً نظام الدعوات)
                 const btn = card.querySelector('.card-btn');
                 const targetHref = card.getAttribute('data-href');
                 const targetOnclick = card.getAttribute('data-onclick');
@@ -577,7 +596,8 @@
 
         function lbFmt(n) { return Number(n || 0).toLocaleString('en-US'); }
         function lbIsMe(r) { return !!lbMe && r.email === lbMe.email; }
-        function lbNameOf(r) { return (r.hidden && !lbIsMe(r)) ? 'طالب مخفي' : LV.shortName(r.name); }
+        function lbTriple(n) { var p = String(n || '').trim().split(/\s+/).filter(Boolean); return p.length ? p.slice(0, 3).join(' ') : 'طالب'; }
+        function lbNameOf(r) { return (r.hidden && !lbIsMe(r)) ? 'طالب مخفي' : lbTriple(r.name); }
         function lbAvatarOf(r, size) {
             const hide = r.hidden && !lbIsMe(r);
             const src = hide ? LB_DEFAULT_AVATAR : (PS.safeUrl(r.avatar) || LB_DEFAULT_AVATAR);

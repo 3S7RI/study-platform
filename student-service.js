@@ -378,9 +378,11 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd, opt
     try {
         const studentObj = await findStudentDocument(db, studentIdentifier);
         if (!studentObj) return false;
+        let referralSid = null; // لو الطالب اتدعى وأول نقاط ليه، بنحتسب الدعوة بعد الـ Transaction (وضع «بعد أول نشاط»)
         await runTransaction(db, async (tx) => {
             const snap = await tx.get(studentObj.ref);
             const d = snap.data() || {};
+            if (delta > 0 && d.referredBy && d.referralCounted !== true) referralSid = String(d.studentId || d.id || '').trim();
             const current = Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
             const newTotal = Math.max(0, current + delta);
             const r = calculateStudentRank(newTotal);
@@ -409,6 +411,7 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd, opt
             }
             tx.update(studentObj.ref, upd);
         });
+        if (referralSid) { countReferral(db, referralSid).catch(() => {}); }
         return true;
     } catch (e) {
         console.error("خطأ في إضافة النقاط:", e);
@@ -673,3 +676,104 @@ export async function getWeeklyConfig(db) {
     } catch (e) { return { prizes: [7, 3, 1] }; }
 }
 
+
+
+/* ------------------------------------------------------------------ */
+/* نظام الدعوات                                                         */
+/* كود الدعوة = studentId للطالب الداعي (STU-0001)                       */
+/* referrals/{inviteeStudentId} = { inviterId, inviteeId, inviteeName, status: pending|counted|revoked } */
+/* config/referrals = { enabled, countOn: register|activity, tiers:[{count, days}] }                    */
+/* students: inviteCount, claimedTiers[], referredBy, referralCounted                                   */
+/* ------------------------------------------------------------------ */
+export const DEFAULT_REFERRAL_CONFIG = {
+    enabled: true,
+    countOn: 'register',
+    tiers: [{ count: 5, days: 7 }, { count: 25, days: 30 }, { count: 100, days: 90 }]
+};
+
+export async function getReferralConfig(db) {
+    try {
+        const s = await getDoc(doc(db, 'config', 'referrals'));
+        const d = s.exists() ? s.data() : {};
+        let tiers = Array.isArray(d.tiers) ? d.tiers.map(t => ({ count: Math.max(1, Math.floor(Number(t.count) || 0)), days: Math.max(1, Math.floor(Number(t.days) || 0)) })).filter(t => t.count > 0 && t.days > 0) : [];
+        if (!tiers.length) tiers = DEFAULT_REFERRAL_CONFIG.tiers;
+        tiers.sort((a, b) => a.count - b.count);
+        return { enabled: d.enabled !== false, countOn: d.countOn === 'activity' ? 'activity' : 'register', tiers };
+    } catch (e) { return { ...DEFAULT_REFERRAL_CONFIG }; }
+}
+
+/** تسجيل دعوة عند إنشاء حساب جديد. inviteeData = وثيقة الطالب الجديد، code = كود الداعي */
+export async function registerReferral(db, inviteeData, code) {
+    try {
+        const cfg = await getReferralConfig(db);
+        if (!cfg.enabled) return { ok: false, reason: 'disabled' };
+        const inviteeSid = String(inviteeData.studentId || '').trim();
+        const inviterSid = String(code || '').trim().toUpperCase();
+        if (!inviteeSid || !inviterSid || inviteeSid === inviterSid) return { ok: false, reason: 'invalid' };
+        const inviter = await findStudentByStudentId(db, inviterSid);
+        if (!inviter) return { ok: false, reason: 'not_found' };
+        const inviteeRef = doc(db, 'students', String(inviteeData.email || '').toLowerCase().trim());
+        const refDoc = doc(db, 'referrals', inviteeSid);
+        const countNow = cfg.countOn === 'register';
+        await runTransaction(db, async (tx) => {
+            const ex = await tx.get(refDoc);
+            if (ex.exists()) return;
+            const inv = await tx.get(inviter.ref);
+            if (!inv.exists()) return;
+            tx.set(refDoc, {
+                inviterId: inviterSid, inviterEmail: String(inviter.id || '').toLowerCase(),
+                inviteeId: inviteeSid, inviteeName: String(inviteeData.fullName || inviteeData.name || 'طالب').slice(0, 60),
+                status: countNow ? 'counted' : 'pending', createdAt: Date.now()
+            });
+            if (countNow) tx.update(inviter.ref, { inviteCount: (Number(inv.data().inviteCount) || 0) + 1 });
+            tx.update(inviteeRef, { referredBy: inviterSid, referralCounted: countNow });
+        });
+        return { ok: true, counted: countNow };
+    } catch (e) { console.warn('registerReferral', e); return { ok: false, reason: 'error' }; }
+}
+
+/** وضع «بعد أول نشاط»: بيحتسب الدعوة لما المدعو ياخد أول نقاط */
+export async function countReferral(db, inviteeSid) {
+    const cfg = await getReferralConfig(db);
+    if (!cfg.enabled || cfg.countOn !== 'activity') return false;
+    const refDoc = doc(db, 'referrals', String(inviteeSid));
+    const pre = await getDoc(refDoc);
+    if (!pre.exists() || pre.data().status !== 'pending') return false;
+    const inviter = await findStudentByStudentId(db, pre.data().inviterId);
+    const invitee = await findStudentByStudentId(db, inviteeSid);
+    if (!inviter || !invitee) return false;
+    return await runTransaction(db, async (tx) => {
+        const r = await tx.get(refDoc);
+        if (!r.exists() || r.data().status !== 'pending') return false;
+        const inv = await tx.get(inviter.ref);
+        tx.update(refDoc, { status: 'counted', countedAt: Date.now() });
+        tx.update(inviter.ref, { inviteCount: (Number(inv.data().inviteCount) || 0) + 1 });
+        tx.update(invitee.ref, { referralCounted: true });
+        return true;
+    });
+}
+
+/** استلام جايزة مستوى دعوات (مرة واحدة لكل مستوى) — بتضيف الأيام على المتبقي */
+export async function claimReferralTier(db, studentEmail, tierCount) {
+    const cfg = await getReferralConfig(db);
+    const tier = cfg.tiers.find(t => t.count === Number(tierCount));
+    if (!cfg.enabled || !tier) return { ok: false, reason: 'no_tier' };
+    const ref = doc(db, 'students', String(studentEmail).toLowerCase().trim());
+    return await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return { ok: false, reason: 'no_student' };
+        const st = snap.data();
+        const claimed = Array.isArray(st.claimedTiers) ? st.claimedTiers.map(String) : [];
+        if (claimed.includes(String(tier.count))) return { ok: false, reason: 'claimed' };
+        if ((Number(st.inviteCount) || 0) < tier.count) return { ok: false, reason: 'not_enough' };
+        let base = Date.now();
+        if (st.subscriptionExpiry) { const c = new Date(st.subscriptionExpiry).getTime(); if (c > base) base = c; }
+        const expiry = new Date(base + tier.days * 86400000).toISOString();
+        tx.update(ref, {
+            isSubscribed: true, accountType: 'vip', subscriptionExpiry: expiry,
+            subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: tier.days, lastPlanName: 'جايزة نظام الدعوات', lastPlanSource: 'referral',
+            claimedTiers: claimed.concat(String(tier.count)), lastUpdated: new Date().toISOString()
+        });
+        return { ok: true, days: tier.days, expiry };
+    });
+}

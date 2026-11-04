@@ -16,8 +16,12 @@
                         <span class="ai-status">متصل الآن • 3rd Prep AI</span>
                     </div>
                 </div>
-                <button id="ai-close-btn" class="ai-close-btn">&times;</button>
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <button id="ai-chats-btn" class="ai-close-btn" title="دردشاتي" style="font-size:13px;display:flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid #334155;border-radius:14px;margin-left:6px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg><span id="ai-chats-count">دردشاتي</span></button>
+                    <button id="ai-close-btn" class="ai-close-btn">&times;</button>
+                </div>
             </div>
+            <div id="ai-chats-panel" class="ai-chats-panel" style="display:none;"></div>
 
             <div id="ai-chat-messages" class="ai-chat-messages">
                 <div class="ai-msg bot-msg">
@@ -84,6 +88,18 @@
     @keyframes aiDot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
     .ai-chat-input-area button:disabled { opacity: .5; cursor: not-allowed; }
     .ai-msg { user-select: text; }
+    .ai-chats-panel { position: absolute; top: 69px; left: 0; right: 0; bottom: 0; background: #0b0f19; z-index: 6; overflow-y: auto; padding: 12px; border-radius: 0 0 20px 20px; }
+    .ai-cp-title { color: #f8fafc; font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+    .ai-cp-sub { color: #94a3b8; font-size: 11.5px; line-height: 1.7; margin-bottom: 10px; }
+    .ai-cp-new { width: 100%; background: #3b82f6; color: #fff; border: none; border-radius: 10px; padding: 10px; font-weight: 800; font-size: 13px; cursor: pointer; margin-bottom: 10px; }
+    .ai-cp-new:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+    .ai-cp-item { display: flex; align-items: center; gap: 8px; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 9px 10px; margin-bottom: 8px; }
+    .ai-cp-item.cur { border-color: #3b82f6; }
+    .ai-cp-main { flex: 1; min-width: 0; cursor: pointer; }
+    .ai-cp-main b { display: block; color: #f1f5f9; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ai-cp-main small { color: #94a3b8; font-size: 10.5px; }
+    .ai-cp-del { background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 8px; padding: 4px 9px; font-size: 11.5px; cursor: pointer; font-weight: 700; }
+    .ai-cp-warn { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.4); color: #fbbf24; border-radius: 10px; padding: 8px 10px; font-size: 11.5px; line-height: 1.7; margin-bottom: 10px; }
     @media(max-width: 480px) { .ai-chat-box { width: 90vw; right: -10px; height: 450px; } }
     `;
 
@@ -187,6 +203,7 @@
     const AI_ENDPOINT = 'https://otp.mohamad91xm.workers.dev/chat';
     const QUICK_FAQ = ['ازاي أفعل الـ VIP؟', 'نظام النقاط والمستويات', 'فين قناة اليوتيوب؟', 'التواصل مع الدعم'];
     const history = [];      // آخر الرسائل (user / assistant) اللي بتتبعت للـ AI
+    let transcript = [];     // المحادثة كلها للحفظ: { r:'u'|'b', c:نص, h:true لو HTML جاهز }
     let busy = false;
 
     function esc(t) {
@@ -257,6 +274,7 @@
     const SUPPORT_HTML = '<br>لو المشكلة مستمرة كلّم الدعم: <a href="https://wa.me/201038783039" target="_blank" rel="noopener noreferrer" style="color:#60a5fa;">واتساب 01038783039</a>';
 
     async function askAi() {
+        let ok = false;
         const typing = appendMessage('<span class="ai-typing"><i></i><i></i><i></i></span>', 'bot', true);
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 45000);
@@ -274,6 +292,8 @@
             if (!(res.ok && data.reply)) console.warn('[AI] status', res.status, data);
             if (res.ok && data.reply) {
                 history.push({ role: 'assistant', content: data.reply });
+                transcript.push({ r: 'b', c: data.reply });
+                ok = true;
                 html = formatAi(data.reply);
             } else if (res.status === 429) {
                 history.pop();
@@ -295,6 +315,7 @@
             clearTimeout(timer);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
+        return ok;
     }
 
     function setBusy(b) {
@@ -309,19 +330,31 @@
         const text = userInput.value.trim().slice(0, 1000);
         if (!text) return;
 
+        // أول رسالة في دردشة جديدة: لازم يكون فيه مكان (حد أقصى 5 دردشات محفوظة)
+        if (SID && !chatId) {
+            await loadChats();
+            if (savedChats.length >= MAX_CHATS) { openPanel(true); return; }
+            chatId = SID + '_' + Date.now();
+        }
+
         appendMessage(text, 'user', false);
         userInput.value = '';
+        transcript.push({ r: 'u', c: text });
 
         // الأسئلة السريعة (الأزرار) بترد فوراً من غير AI
         if (QUICK_FAQ.indexOf(text) !== -1) {
-            setTimeout(() => appendMessage(legacyFaq(text), 'bot', true), 250);
+            const faq = legacyFaq(text);
+            setTimeout(() => appendMessage(faq, 'bot', true), 250);
+            transcript.push({ r: 'b', c: faq, h: true });
+            saveChat();
             return;
         }
 
         history.push({ role: 'user', content: text });
         if (history.length > 10) history.splice(0, history.length - 10);
         setBusy(true);
-        await askAi();
+        const ok = await askAi();
+        if (!ok) transcript.pop(); else saveChat();
         setBusy(false);
     }
 
@@ -331,4 +364,122 @@
             if (e.key === 'Enter') sendUserMessage();
         });
     }
+
+    // ===== نظام الدردشات المحفوظة (حد أقصى 5 لكل طالب) — Firestore: aiChats/{studentId}_{timestamp} =====
+    const MAX_CHATS = 5;
+    const FS_VER = '10.8.0';
+    const FB_CFG = { apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U", authDomain: "study-trip-1.firebaseapp.com", projectId: "study-trip-1", storageBucket: "study-trip-1.firebasestorage.app", messagingSenderId: "632096690853", appId: "1:632096690853:web:f9622d14de73a761dcf34c" };
+    const WELCOME_HTML = chatMessages ? chatMessages.innerHTML : '';
+    const SID = (function () { try { if (window.PS && !PS.isAdminSession() && PS.studentId()) return String(PS.studentId()).toUpperCase(); } catch (e) {} return ''; })();
+    let chatId = null, savedChats = [], chatsLoaded = false, fsCache = null;
+
+    async function fsApi() {
+        if (fsCache) return fsCache;
+        const A = await import('https://www.gstatic.com/firebasejs/' + FS_VER + '/firebase-app.js');
+        const F = await import('https://www.gstatic.com/firebasejs/' + FS_VER + '/firebase-firestore.js');
+        let app; try { app = A.getApp('ai-chats'); } catch (e) { app = A.initializeApp(FB_CFG, 'ai-chats'); }
+        fsCache = { F, db: F.getFirestore(app) };
+        return fsCache;
+    }
+
+    async function loadChats(force) {
+        if (!SID) return [];
+        if (chatsLoaded && !force) return savedChats;
+        try {
+            const { F, db } = await fsApi();
+            const snap = await F.getDocs(F.query(F.collection(db, 'aiChats'), F.where('studentId', '==', SID)));
+            savedChats = []; snap.forEach(d => savedChats.push({ id: d.id, ...d.data() }));
+            savedChats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            chatsLoaded = true;
+        } catch (e) { console.warn('[AI] chats load', e); }
+        updateCount();
+        return savedChats;
+    }
+
+    function updateCount() {
+        const el = document.getElementById('ai-chats-count');
+        if (el && SID) el.textContent = 'دردشاتي ' + (chatsLoaded ? savedChats.length + '/' + MAX_CHATS : '');
+    }
+
+    async function saveChat() {
+        if (!SID || !chatId || !transcript.length) return;
+        try {
+            const { F, db } = await fsApi();
+            const firstUser = transcript.find(m => m.r === 'u');
+            const messages = transcript.slice(-60).map(m => ({ r: m.r, c: String(m.c).slice(0, 4000), h: m.h === true }));
+            const data = { studentId: SID, title: String(firstUser ? firstUser.c : 'دردشة').slice(0, 40), messages, updatedAt: Date.now() };
+            await F.setDoc(F.doc(db, 'aiChats', chatId), data, { merge: true });
+            const i = savedChats.findIndex(c => c.id === chatId);
+            if (i >= 0) savedChats[i] = { id: chatId, ...data }; else savedChats.unshift({ id: chatId, ...data });
+            savedChats.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+            updateCount();
+        } catch (e) { console.warn('[AI] chat save', e); }
+    }
+
+    function renderTranscript() {
+        chatMessages.innerHTML = WELCOME_HTML;
+        transcript.forEach(m => {
+            if (m.r === 'u') appendMessage(m.c, 'user', false);
+            else appendMessage(m.h ? m.c : formatAi(m.c), 'bot', true);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function startNewChat() {
+        chatId = null; transcript = []; history.length = 0;
+        chatMessages.innerHTML = WELCOME_HTML;
+        closePanel();
+        if (userInput) userInput.focus();
+    }
+
+    async function openChat(id) {
+        const c = savedChats.find(x => x.id === id); if (!c) return;
+        chatId = id;
+        transcript = (c.messages || []).map(m => ({ r: m.r, c: m.c, h: m.h === true }));
+        history.length = 0;
+        transcript.slice(-10).forEach(m => { if (!m.h) history.push({ role: m.r === 'u' ? 'user' : 'assistant', content: m.c }); });
+        while (history.length && history[0].role !== 'user') history.shift();
+        renderTranscript();
+        closePanel();
+    }
+
+    async function deleteChat(id) {
+        if (!confirm('تحذف الدردشة دي نهائياً؟')) return;
+        try {
+            const { F, db } = await fsApi();
+            await F.deleteDoc(F.doc(db, 'aiChats', id));
+            savedChats = savedChats.filter(c => c.id !== id);
+            if (chatId === id) { chatId = null; transcript = []; history.length = 0; chatMessages.innerHTML = WELCOME_HTML; }
+            updateCount();
+            openPanel(false);
+        } catch (e) { console.warn('[AI] chat delete', e); }
+    }
+
+    const panel = document.getElementById('ai-chats-panel');
+    function closePanel() { if (panel) panel.style.display = 'none'; }
+    async function openPanel(limitHit) {
+        if (!panel) return;
+        panel.style.display = 'block';
+        if (!SID) { panel.innerHTML = '<div class="ai-cp-title">دردشاتي</div><div class="ai-cp-sub">لازم تسجل دخول كطالب عشان دردشاتك تتحفظ.</div>'; return; }
+        panel.innerHTML = '<div class="ai-cp-sub">جاري التحميل...</div>';
+        await loadChats();
+        const full = savedChats.length >= MAX_CHATS;
+        panel.innerHTML = '<div class="ai-cp-title">دردشاتي (' + savedChats.length + '/' + MAX_CHATS + ')</div>' +
+            (limitHit ? '<div class="ai-cp-warn">وصلت للحد الأقصى (' + MAX_CHATS + ' دردشات). احذف دردشة عشان تقدر تبدأ واحدة جديدة، وبعدها ابعت سؤالك تاني.</div>' : '<div class="ai-cp-sub">دردشاتك بتتحفظ تلقائي وتقدر ترجعلها في أي وقت. لو عايز تحفظ أكتر من ' + MAX_CHATS + ' لازم تحذف واحدة.</div>') +
+            '<button class="ai-cp-new" id="ai-cp-new"' + (full ? ' disabled' : '') + '>+ دردشة جديدة' + (full ? ' (احذف واحدة الأول)' : '') + '</button>' +
+            (savedChats.length ? savedChats.map(c => '<div class="ai-cp-item' + (c.id === chatId ? ' cur' : '') + '"><div class="ai-cp-main" data-open="' + esc(c.id) + '"><b>' + esc(c.title || 'دردشة') + '</b><small>' + new Date(c.updatedAt || 0).toLocaleString('ar-EG', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) + ' · ' + (c.messages ? c.messages.length : 0) + ' رسالة</small></div><button class="ai-cp-del" data-del="' + esc(c.id) + '">حذف</button></div>').join('') : '<div class="ai-cp-sub">مفيش دردشات محفوظة لسه.</div>');
+    }
+
+    const chatsBtn = document.getElementById('ai-chats-btn');
+    if (chatsBtn) chatsBtn.addEventListener('click', (e) => { e.stopPropagation(); (panel.style.display === 'block') ? closePanel() : openPanel(false); });
+    chatsBtn && chatsBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    if (panel) {
+        panel.addEventListener('mousedown', (e) => e.stopPropagation());
+        panel.addEventListener('click', (e) => {
+            if (e.target.id === 'ai-cp-new') { if (!e.target.disabled) startNewChat(); return; }
+            const o = e.target.closest('[data-open]'); if (o) { openChat(o.getAttribute('data-open')); return; }
+            const d = e.target.closest('[data-del]'); if (d) deleteChat(d.getAttribute('data-del'));
+        });
+    }
+    if (SID) loadChats().catch(() => {});
 })();
