@@ -26,8 +26,8 @@
         { key: 'legendary',   min: 5000, label: 'أسطوري',    frame: 'frame-legendary' }
     ];
 
-    // المستوى (1-50) محسوب من النقاط بنفس معادلة levels.js: 25 × (n-1)^1.6
-    function lvPoints(n) { return Math.round(25 * Math.pow(Math.max(1, n) - 1, 1.6) / 5) * 5; }
+    // المستوى (1-50) محسوب من النقاط بنفس معادلة levels.js: 25000 × ((n-1)/49)^1.7
+    function lvPoints(n) { return Math.round(25000 * Math.pow(Math.max(1, n) - 1, 1.7) / Math.pow(49, 1.7) / 5) * 5; }
     function levelNum(score) {
         var s = Math.max(0, Number(score) || 0), l = 1;
         while (l < 50 && s >= lvPoints(l + 1)) l++;

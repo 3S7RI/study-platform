@@ -452,7 +452,7 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
 
 export function calculateStudentRank(totalScore) {
     const score = Number(totalScore) || 0;
-    const lvPts = (n) => Math.round(25 * Math.pow(Math.max(1, n) - 1, 1.6) / 5) * 5; // نفس منحنى levels.js
+    const lvPts = (n) => Math.round(25000 * Math.pow(Math.max(1, n) - 1, 1.7) / Math.pow(49, 1.7) / 5) * 5; // نفس منحنى levels.js
     let lvNum = 1; while (lvNum < 50 && score >= lvPts(lvNum + 1)) lvNum++;
     const lvTitle = 'Lv.' + lvNum; // المستوى بدل أسماء الرتب
     if (score >= 5000) {
