@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنافسات</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--gold); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.92rem; margin-bottom: 4px; }
+        .hint { color: var(--text-muted); font-size: 0.74rem; line-height: 1.8; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input, select, textarea { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        textarea { resize: vertical; min-height: 60px; }
+        option { color: #1e293b; }
+        .btn { border: none; border-radius: 8px; padding: 8px 16px; font-weight: 800; cursor: pointer; color: #fff; background: var(--primary); }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-ok { background: var(--success); }
+        .btn-bad { background: var(--danger); }
+        .btn-ghost { background: var(--th-bg); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-sm { padding: 4px 10px; font-size: 0.72rem; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        th { color: var(--text-muted); font-size: 0.72rem; }
+        .tag { padding: 2px 9px; border-radius: 15px; font-weight: 800; font-size: 0.7rem; white-space: nowrap; }
+        .tag.draft { background: rgba(148,163,184,.15); color: var(--text-muted); }
+        .tag.open { background: rgba(16,185,129,.15); color: var(--success); }
+        .tag.closed { background: rgba(251,191,36,.15); color: var(--gold); }
+        .tag.live { background: rgba(239,68,68,.15); color: var(--danger); }
+        .tag.finished, .tag.cancelled { background: rgba(148,163,184,.15); color: var(--text-muted); }
+        .empty { text-align: center; color: var(--text-muted); padding: 18px; }
+        .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 10px; display: none; z-index: 99; }
+        .sw { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--th-bg); }
+        .sw input { width: 20px; height: 20px; accent-color: var(--success); }
+        .prow { display: grid; grid-template-columns: 60px 1.2fr 1fr 1.4fr 34px; gap: 6px; margin-bottom: 6px; align-items: center; }
+        .acts { display: flex; flex-wrap: wrap; gap: 5px; }
+        .chk { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+        .chk input { width: 18px; height: 18px; }
+        @media (max-width: 560px) { .prow { grid-template-columns: 50px 1fr 1fr; } .prow input:nth-child(4) { grid-column: 1 / 4; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><a href="admin.html" class="back-btn">&larr; لوحة الأدمن</a><span class="title">إدارة المنافسات</span></div>
+
+    <div class="card">
+        <h3>أنواع المنافسات الظاهرة للطلاب</h3>
+        <p class="hint">اقفل أو افتح أي نوع. النوع المقفول بيختفي من بطاقة المنافسات عند الطلاب (المنافسات اللي جواه بتفضل محفوظة).</p>
+        <div class="grid">
+            <div class="sw"><span>منافسة الأسبوع (نقاط)</span><input type="checkbox" id="tw"></div>
+            <div class="sw"><span>تحديات 1 ضد 1</span><input type="checkbox" id="td"></div>
+            <div class="sw"><span>فريق ضد فريق</span><input type="checkbox" id="tt"></div>
+        </div>
+        <button class="btn btn-gold" style="margin-top:12px;" onclick="saveTypes()">حفظ</button>
+        <a href="admin-weekly.html" class="back-btn" style="margin-right:8px;display:inline-block;">إدارة المنافسة الأسبوعية</a>
+    </div>
+
+    <div class="card" id="formCard">
+        <h3 id="formTitle">منافسة جديدة</h3>
+        <p class="hint">الطلاب بيسجلوا لوحدهم، أو يدخلوا مع بعض (اتنين في التحدي، أو فريق). وانت تقدر تضيف وتختار المشاركين بنفسك من «المسجلين» تحت.</p>
+        <div class="grid">
+            <div><label>النوع</label><select id="fType"><option value="duel">تحدي 1 ضد 1</option><option value="team">فريق ضد فريق</option></select></div>
+            <div style="grid-column: span 2;"><label>الاسم</label><input id="fTitle" maxlength="80" placeholder="مثال: تحدي الجبر"></div>
+            <div><label>المعاد (بتوقيت القاهرة)</label><input type="datetime-local" id="fStart"></div>
+            <div><label>الحالة</label><select id="fStatus">
+                <option value="draft">مسودة (مخفية)</option><option value="open">التسجيل مفتوح</option><option value="closed">التسجيل مقفول</option>
+                <option value="live">لايف</option><option value="finished">خلصت</option><option value="cancelled">ملغية</option></select></div>
+            <div><label>أقصى عدد مسجلين (0 = بدون حد)</label><input type="number" min="0" id="fMax" value="0"></div>
+            <div id="teamSizeBox"><label>أقصى حجم الفريق</label><input type="number" min="2" max="10" id="fTeam" value="3"></div>
+        </div>
+        <div style="margin-top:10px;"><label>وصف / قواعد</label><textarea id="fDesc" maxlength="500" placeholder="اشرح للطلاب المنافسة ده بتتم إزاي"></textarea></div>
+        <div class="chk"><input type="checkbox" id="fVip"><label style="margin:0;">للمشتركين VIP فقط</label></div>
+
+        <h3 style="margin-top:14px;">الجوايز</h3>
+        <p class="hint">أي جايزة تحب: نقاط، أيام VIP، فلوس، شهادة، حصة فري، أو أي حاجة تكتبها. اترك الكمية فاضية لو الجايزة مش رقم.</p>
+        <div id="prizes"></div>
+        <button class="btn btn-ghost btn-sm" onclick="addPrize()">+ جايزة</button>
+
+        <div class="chk"><input type="checkbox" id="fNotify"><label style="margin:0;">ابعت إشعار لكل الطلاب لما أحفظ</label></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-ok" onclick="saveComp()">حفظ المنافسة</button>
+            <button class="btn btn-ghost" onclick="resetForm()">جديد</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>المنافسات</h3>
+        <div id="list"><div class="empty">جاري التحميل...</div></div>
+    </div>
+
+    <div class="card" id="entriesCard" style="display:none;">
+        <h3 id="entTitle">المسجلين</h3>
+        <p class="hint">المجموعات الناقصة معناها إن فيه عضو لسه ما وافقش على الدعوة. تقدر تضيف طالب أو مجموعة بنفسك (من غير موافقة) بكتابة IDs بينهم فاصلة.</p>
+        <div class="grid" style="align-items:end;">
+            <div style="grid-column: span 2;"><label>أضف مشارك: ID أو أكتر (STU-0001, STU-0002)</label><input id="addIds" dir="ltr" placeholder="واحد = تسجيل فردي، أكتر = تحدي أو فريق"></div>
+            <div><label>اسم الفريق (اختياري)</label><input id="addName" maxlength="30"></div>
+            <div><button class="btn btn-ok" onclick="addEntry()">إضافة</button></div>
+        </div>
+        <div id="entries"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { findStudentByStudentId } from "./student-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nf = (n) => Number(n || 0).toLocaleString('ar-EG');
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); };
+
+    const STATUS = { draft: 'مسودة', open: 'التسجيل مفتوح', closed: 'التسجيل مقفول', live: 'لايف', finished: 'خلصت', cancelled: 'ملغية' };
+    const TYPE = { duel: '1 ضد 1', team: 'فريق' };
+    const KINDS = { points: 'نقاط', vip_days: 'أيام VIP', cash: 'فلوس (جنيه)', certificate: 'شهادة تقدير', free_lesson: 'حصة فري', other: 'أخرى (نص)' };
+
+    let adminName = 'admin', editingId = null, comps = [], curEntriesId = null;
+
+    /* ===== توقيت القاهرة ===== */
+    function cairoOffset(ts) {
+        const f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ts));
+        const g = (k) => Number(f.find(x => x.type === k).value);
+        return Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute')) - Math.floor(ts / 60000) * 60000;
+    }
+    function cairoToMs(s) {
+        if (!s) return 0;
+        const [d, t] = s.split('T'); const [y, mo, da] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number);
+        const guess = Date.UTC(y, mo - 1, da, h, mi);
+        return guess - cairoOffset(guess - cairoOffset(guess));
+    }
+    function msToInput(ms) {
+        if (!ms) return '';
+        return new Date(ms + cairoOffset(ms)).toISOString().slice(0, 16);
+    }
+    const fmt = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—';
+
+    /* ===== أنواع المنافسات ===== */
+    async function loadTypes() {
+        const s = await getDoc(doc(db, 'config', 'competitions'));
+        const t = (s.exists() && s.data().types) || {};
+        $('tw').checked = t.weekly !== false;
+        $('td').checked = t.duel === true;
+        $('tt').checked = t.team === true;
+    }
+    window.saveTypes = async () => {
+        try {
+            await setDoc(doc(db, 'config', 'competitions'), { types: { weekly: $('tw').checked, duel: $('td').checked, team: $('tt').checked }, updatedAt: Date.now(), updatedBy: adminName }, { merge: true });
+            toast('تم الحفظ');
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    /* ===== الجوايز ===== */
+    function prizeRow(p = {}) {
+        const d = document.createElement('div'); d.className = 'prow';
+        d.innerHTML = '<input type="number" min="1" class="pr" value="' + (p.rank || '') + '" placeholder="مركز">' +
+            '<select class="pk">' + Object.keys(KINDS).map(k => '<option value="' + k + '"' + (p.kind === k ? ' selected' : '') + '>' + KINDS[k] + '</option>').join('') + '</select>' +
+            '<input type="number" min="0" class="pa" value="' + (p.amount !== undefined && p.amount !== null ? p.amount : '') + '" placeholder="الكمية">' +
+            '<input class="pt" maxlength="80" value="' + esc(p.text || '') + '" placeholder="ملاحظة / وصف">' +
+            '<button class="btn btn-bad btn-sm" type="button">×</button>';
+        d.querySelector('button').onclick = () => d.remove();
+        $('prizes').appendChild(d);
+    }
+    window.addPrize = () => { const n = $('prizes').children.length + 1; prizeRow({ rank: n, kind: 'points' }); };
+    function readPrizes() {
+        return Array.from($('prizes').children).map(r => ({
+            rank: Math.max(1, Math.floor(Number(r.querySelector('.pr').value) || 1)),
+            kind: r.querySelector('.pk').value,
+            amount: r.querySelector('.pa').value === '' ? null : Math.max(0, Number(r.querySelector('.pa').value) || 0),
+            text: r.querySelector('.pt').value.trim().slice(0, 80)
+        })).sort((a, b) => a.rank - b.rank);
+    }
+    function prizeSummary(p) {
+        const k = p.kind;
+        let s = k === 'certificate' || k === 'free_lesson' ? KINDS[k] : (k === 'other' ? (p.text || 'جايزة') : nf(p.amount) + ' ' + KINDS[k].replace(/ \(جنيه\)/, ''));
+        if (p.text && k !== 'other') s += ' (' + p.text + ')';
+        return s;
+    }
+
+    /* ===== النموذج ===== */
+    function syncTeamBox() { $('teamSizeBox').style.display = $('fType').value === 'team' ? 'block' : 'none'; }
+    $('fType').addEventListener('change', syncTeamBox);
+    window.resetForm = () => {
+        editingId = null; $('formTitle').textContent = 'منافسة جديدة';
+        $('fType').value = 'duel'; $('fTitle').value = ''; $('fStart').value = ''; $('fStatus').value = 'draft';
+        $('fMax').value = 0; $('fTeam').value = 3; $('fDesc').value = ''; $('fVip').checked = false; $('fNotify').checked = false;
+        $('prizes').innerHTML = ''; addPrize(); syncTeamBox();
+    };
+    window.editComp = (id) => {
+        const c = comps.find(x => x.id === id); if (!c) return;
+        editingId = id; $('formTitle').textContent = 'تعديل: ' + c.title;
+        $('fType').value = c.type; $('fTitle').value = c.title || ''; $('fStart').value = msToInput(c.startAt); $('fStatus').value = c.status || 'draft';
+        $('fMax').value = c.maxEntries || 0; $('fTeam').value = c.teamSize || 3; $('fDesc').value = c.desc || ''; $('fVip').checked = c.vipOnly === true; $('fNotify').checked = false;
+        $('prizes').innerHTML = ''; (c.prizes || []).forEach(p => prizeRow(p)); if (!(c.prizes || []).length) addPrize();
+        syncTeamBox(); $('formCard').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    async function notifyAll(title, message) {
+        await setDoc(doc(collection(db, 'adminNotifications')), { title, message, target: 'all', sender: 'المنافسات', createdAt: serverTimestamp() });
+    }
+
+    window.saveComp = async () => {
+        const title = $('fTitle').value.trim();
+        if (!title) return toast('اكتب اسم المنافسة');
+        const type = $('fType').value;
+        const data = {
+            type, title, desc: $('fDesc').value.trim(), status: $('fStatus').value,
+            startAt: cairoToMs($('fStart').value), maxEntries: Math.max(0, Math.floor(Number($('fMax').value) || 0)),
+            teamSize: type === 'team' ? Math.min(10, Math.max(2, Math.floor(Number($('fTeam').value) || 3))) : 2,
+            vipOnly: $('fVip').checked, prizes: readPrizes(), updatedAt: Date.now(), updatedBy: adminName
+        };
+        try {
+            const ref = editingId ? doc(db, 'competitions', editingId) : doc(collection(db, 'competitions'));
+            if (!editingId) data.createdAt = Date.now();
+            await setDoc(ref, data, { merge: true });
+            if ($('fNotify').checked && data.status !== 'draft' && data.status !== 'cancelled') {
+                const pr = data.prizes.map(prizeSummary).filter(Boolean).slice(0, 3).join('، ');
+                await notifyAll((type === 'duel' ? 'تحدي جديد: ' : 'منافسة فريق جديدة: ') + title,
+                    (data.startAt ? 'المعاد: ' + new Date(data.startAt).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }) + '. ' : '') +
+                    (pr ? 'الجوايز: ' + pr + '. ' : '') + 'ادخل صفحة المنافسات وسجّل دلوقتي!');
+            }
+            toast('تم الحفظ'); resetForm(); loadList();
+        } catch (e) { console.warn(e); toast('حصل خطأ في الحفظ'); }
+    };
+
+    /* ===== القائمة ===== */
+    async function loadList() {
+        try {
+            const snap = await getDocs(collection(db, 'competitions'));
+            comps = []; snap.forEach(d => comps.push({ id: d.id, ...d.data() }));
+            comps.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            if (!comps.length) { $('list').innerHTML = '<div class="empty">مفيش منافسات لسه.</div>'; return; }
+            $('list').innerHTML = '<table><tr><th>الاسم</th><th>النوع</th><th>المعاد</th><th>الحالة</th><th></th></tr>' + comps.map(c =>
+                '<tr><td>' + esc(c.title) + '</td><td>' + (TYPE[c.type] || '') + '</td><td>' + fmt(c.startAt) + '</td><td><span class="tag ' + esc(c.status) + '">' + (STATUS[c.status] || '') + '</span></td>' +
+                '<td><div class="acts"><button class="btn btn-sm" onclick="showEntries(\'' + c.id + '\')">المسجلين</button><button class="btn btn-ghost btn-sm" onclick="editComp(\'' + c.id + '\')">تعديل</button>' +
+                '<button class="btn btn-ghost btn-sm" onclick="remind(\'' + c.id + '\')">إشعار</button><button class="btn btn-bad btn-sm" onclick="delComp(\'' + c.id + '\')">حذف</button></div></td></tr>').join('') + '</table>';
+        } catch (e) { console.warn(e); $('list').innerHTML = '<div class="empty">تعذر التحميل.</div>'; }
+    }
+    window.remind = async (id) => {
+        const c = comps.find(x => x.id === id); if (!c) return;
+        const msg = prompt('نص الإشعار للطلاب:', 'تذكير: «' + c.title + '» ' + (c.startAt ? 'بتبدأ ' + new Date(c.startAt).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', hour: 'numeric', minute: '2-digit' }) : 'قريب') + '. سجّل من صفحة المنافسات!');
+        if (!msg) return;
+        try { await notifyAll('تذكير بالمنافسة', msg.slice(0, 300)); toast('اتبعت الإشعار'); } catch (e) { toast('حصل خطأ'); }
+    };
+    window.delComp = async (id) => {
+        if (!confirm('حذف المنافسة وكل المسجلين فيها؟')) return;
+        try {
+            const es = await getDocs(collection(db, 'competitions', id, 'entries'));
+            for (const e of es.docs) await deleteDoc(e.ref);
+            await deleteDoc(doc(db, 'competitions', id));
+            if (curEntriesId === id) $('entriesCard').style.display = 'none';
+            toast('اتحذفت'); loadList();
+        } catch (e) { toast('حصل خطأ'); }
+    };
+
+    /* ===== المسجلين ===== */
+    window.showEntries = async (id) => {
+        curEntriesId = id;
+        const c = comps.find(x => x.id === id);
+        $('entriesCard').style.display = 'block';
+        $('entTitle').textContent = 'المسجلين في: ' + (c ? c.title : '');
+        $('entries').innerHTML = '<div class="empty">جاري التحميل...</div>';
+        $('entriesCard').scrollIntoView({ behavior: 'smooth' });
+        try {
+            const es = await getDocs(collection(db, 'competitions', id, 'entries'));
+            const rows = []; es.forEach(d => rows.push({ id: d.id, ...d.data() }));
+            rows.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            if (!rows.length) { $('entries').innerHTML = '<div class="empty">لسه مفيش مسجلين.</div>'; return; }
+            $('entries').innerHTML = '<table><tr><th>#</th><th>النوع</th><th>الاسم / الأعضاء</th><th>الحالة</th><th></th></tr>' + rows.map((r, i) => {
+                const ok = (r.memberIds || []).every(x => (r.accepted || []).includes(x));
+                const names = (r.members || []).map(m => esc(m.name) + ' <small dir="ltr">(' + esc(m.studentId) + ')</small>' + ((r.accepted || []).includes(m.studentId) ? '' : ' ⏳')).join('<br>');
+                return '<tr><td>' + (i + 1) + '</td><td>' + (r.kind === 'group' ? (c && c.type === 'duel' ? 'زوج' : 'فريق') : 'فردي') + (r.source === 'admin' ? ' <small>(أنت)</small>' : '') + '</td><td>' + (r.name ? '<b>' + esc(r.name) + '</b><br>' : '') + names + '</td><td><span class="tag ' + (ok ? 'open' : 'closed') + '">' + (ok ? 'مكتمل' : 'ناقص') + '</span></td>' +
+                    '<td><button class="btn btn-bad btn-sm" onclick="delEntry(\'' + id + '\',\'' + r.id + '\')">إزالة</button></td></tr>';
+            }).join('') + '</table>';
+        } catch (e) { $('entries').innerHTML = '<div class="empty">تعذر التحميل.</div>'; }
+    };
+    window.delEntry = async (cid, eid) => {
+        if (!confirm('إزالة المشارك ده؟')) return;
+        try { await deleteDoc(doc(db, 'competitions', cid, 'entries', eid)); showEntries(cid); } catch (e) { toast('حصل خطأ'); }
+    };
+    window.addEntry = async () => {
+        const cid = curEntriesId; if (!cid) return;
+        const ids = $('addIds').value.split(/[,،\s]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+        if (!ids.length || new Set(ids).size !== ids.length) return toast('اكتب IDs صحيحة من غير تكرار');
+        try {
+            const es = await getDocs(collection(db, 'competitions', cid, 'entries'));
+            const taken = new Set(); es.forEach(d => (d.data().memberIds || []).forEach(x => taken.add(x)));
+            const members = [];
+            for (const sid of ids) {
+                if (taken.has(sid)) return toast(sid + ' مسجل بالفعل');
+                const f = await findStudentByStudentId(db, sid);
+                if (!f) return toast('الـ ID ' + sid + ' مش موجود');
+                const d = f.data || {};
+                members.push({ studentId: sid, name: String(d.fullName || d.name || 'طالب').slice(0, 60), gender: d.gender || 'male', email: String(d.email || f.id || '') });
+            }
+            const ref = ids.length === 1 ? doc(db, 'competitions', cid, 'entries', 's_' + ids[0]) : doc(collection(db, 'competitions', cid, 'entries'));
+            await setDoc(ref, {
+                kind: ids.length === 1 ? 'solo' : 'group', name: $('addName').value.trim().slice(0, 30), leaderId: ids[0],
+                members: members.map(m => ({ studentId: m.studentId, name: m.name, gender: m.gender })), memberIds: ids, accepted: ids, createdAt: Date.now(), source: 'admin'
+            });
+            const c = comps.find(x => x.id === cid);
+            for (const m of members) {
+                try { await setDoc(doc(collection(db, 'adminNotifications')), { title: 'اتسجلت في منافسة', message: 'الإدارة سجّلتك في «' + (c ? c.title : 'منافسة') + '». تابع صفحة المنافسات.', target: 'single', recipientEmail: m.email.toLowerCase(), sender: 'المنافسات', createdAt: serverTimestamp() }); } catch (e) {}
+            }
+            $('addIds').value = ''; $('addName').value = '';
+            toast('تمت الإضافة'); showEntries(cid);
+        } catch (e) { console.warn(e); toast('حصل خطأ'); }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        if (sessionStorage.getItem('isAdmin') !== 'true') { window.location.href = 'login.html'; return; }
+        adminName = sessionStorage.getItem('adminEmail') || user.email || 'admin';
+        resetForm(); loadTypes(); loadList();
+    });
+</script>
+</body>
+</html>

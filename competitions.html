@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المنافسات | رحلة دراسية</title>
+    <script src="session.js"></script>
+    <script src="levels.js"></script>
+    <script>PS.guard();</script>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.1); --shadow: 0 8px 20px rgba(0,0,0,0.18);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --hover-bg: rgba(79,70,229,0.07); --shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 12px; font-size: 0.9rem; }
+        .wrap { max-width: 760px; margin: 0 auto; }
+        .top { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 8px 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .top a { text-decoration: none; color: var(--text-main); background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; }
+        .top b { color: var(--gold); font-size: 0.95rem; }
+        .hero { background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid #ef4444; border-radius: 20px; padding: 18px 16px; text-align: center; box-shadow: var(--shadow); margin-bottom: 14px; }
+        .hero h1 { font-size: 1.3rem; font-weight: 900; }
+        .hero p { color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; line-height: 1.7; }
+        .sec-title { font-size: 1rem; font-weight: 900; margin: 18px 4px 8px; display: flex; align-items: center; gap: 8px; }
+        .sec-title small { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 16px 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
+        .card h2 { font-size: 1.02rem; font-weight: 800; margin-bottom: 4px; }
+        .card .sub { color: var(--text-muted); font-size: 0.78rem; line-height: 1.7; margin-bottom: 10px; }
+        .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .chip { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 11px; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+        .chip.gold { color: var(--gold); border-color: rgba(251,191,36,.4); }
+        .tag { padding: 2px 10px; border-radius: 15px; font-weight: 800; font-size: 0.7rem; }
+        .tag.open { background: rgba(16,185,129,.15); color: var(--success); }
+        .tag.closed { background: rgba(251,191,36,.15); color: var(--gold); }
+        .tag.live { background: rgba(239,68,68,.15); color: var(--danger); }
+        .tag.finished { background: rgba(148,163,184,.15); color: var(--text-muted); }
+        .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .btn { border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); border-radius: 10px; padding: 8px 14px; cursor: pointer; font-weight: 800; font-size: 0.78rem; }
+        .btn.main { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .btn.ok { background: var(--success); border-color: var(--success); color: #fff; }
+        .btn.bad { background: transparent; border-color: var(--danger); color: var(--danger); }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .box { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-size: 0.8rem; line-height: 1.8; }
+        .box.mine { border-color: var(--primary); background: rgba(99,102,241,.1); }
+        .box.invite { border-color: var(--gold); background: rgba(251,191,36,.08); }
+        input { width: 100%; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; margin-top: 6px; font-size: 0.85rem; }
+        label { font-size: 0.74rem; color: var(--text-muted); font-weight: 700; display: block; margin-top: 8px; }
+        .empty { text-align: center; padding: 22px 8px; color: var(--text-muted); font-size: 0.84rem; line-height: 1.9; }
+        .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--gold); padding: 9px 18px; border-radius: 10px; display: none; z-index: 99; font-weight: 700; max-width: 90vw; text-align: center; }
+        .wk-card { border-top: 4px solid var(--gold); }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="top"><a href="main.html">&rarr; الرئيسية</a><b>المنافسات</b></div>
+
+    <section class="hero">
+        <h1>ساحة المنافسات</h1>
+        <p>تحديات ومنافسات وجوايز. اختار منافسة وسجّل، وتابع مواعيدها من هنا.</p>
+    </section>
+
+    <div id="invites"></div>
+    <div id="content"><div class="empty">جاري التحميل...</div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, getCountFromServer, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { findStudentByStudentId } from "./student-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nf = (n) => Number(n || 0).toLocaleString('ar-EG');
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3200); };
+    const me = PS.getStudent() || {};
+    const mySid = String(PS.studentId() || '').toUpperCase();
+    const myName = String(me.fullName || me.name || 'طالب').slice(0, 60);
+    const myGender = me.gender || 'male';
+    const isAdmin = PS.isAdminSession();
+
+    const DEFAULT_TYPES = { weekly: true, duel: false, team: false };
+    const STATUS_LBL = { open: 'التسجيل مفتوح', closed: 'التسجيل اتقفل', live: 'لايف دلوقتي', finished: 'خلصت' };
+    const PRIZE_LBL = { points: 'نقطة', vip_days: 'يوم VIP', cash: 'جنيه', certificate: 'شهادة تقدير', free_lesson: 'حصة فري', other: '' };
+
+    const fmtTime = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }) : 'المعاد هيتحدد قريب';
+    function prizeText(p) {
+        const k = p.kind || 'other';
+        if (k === 'certificate' || k === 'free_lesson') return PRIZE_LBL[k];
+        if (k === 'other') return p.text || '';
+        return nf(p.amount) + ' ' + PRIZE_LBL[k];
+    }
+
+    let cfgTypes = { ...DEFAULT_TYPES };
+    let comps = [];       // [{id, ...data, count, mine}]
+    const ORD = ['الأول', 'التاني', 'التالت', 'الرابع', 'الخامس', 'السادس'];
+
+    async function load() {
+        try {
+            const cs = await getDoc(doc(db, 'config', 'competitions'));
+            if (cs.exists() && cs.data().types) cfgTypes = { ...DEFAULT_TYPES, ...cs.data().types };
+            const snap = await getDocs(collection(db, 'competitions'));
+            const list = [];
+            snap.forEach(d => { const x = d.data(); if (['open', 'closed', 'live', 'finished'].includes(x.status) && cfgTypes[x.type]) list.push({ id: d.id, ...x }); });
+            await Promise.all(list.map(async c => {
+                const er = collection(db, 'competitions', c.id, 'entries');
+                try { c.count = (await getCountFromServer(er)).data().count; } catch (e) { c.count = 0; }
+                try {
+                    const q = await getDocs(query(er, where('memberIds', 'array-contains', mySid)));
+                    c.mine = q.empty ? null : { id: q.docs[0].id, ...q.docs[0].data() };
+                } catch (e) { c.mine = null; }
+            }));
+            comps = list;
+        } catch (e) { console.warn(e); $('content').innerHTML = '<div class="empty">تعذر تحميل المنافسات دلوقتي، جرّب بعد شوية.</div>'; return; }
+        render();
+    }
+
+    function entryComplete(en) { return en && (en.memberIds || []).every(x => (en.accepted || []).includes(x)); }
+
+    function render() {
+        // دعوات ليّا
+        const inv = comps.filter(c => c.mine && !(c.mine.accepted || []).includes(mySid));
+        $('invites').innerHTML = inv.map(c => {
+            const en = c.mine;
+            const leader = (en.members || []).find(m => m.studentId === en.leaderId) || {};
+            return '<div class="box invite"><b>دعوة للانضمام:</b> ' + esc(leader.name || 'زميلك') + ' عايزك تدخل معاه ' + (c.type === 'duel' ? 'تحدي' : 'فريق') + ' في «' + esc(c.title) + '».' +
+                '<div class="btns"><button class="btn ok" data-act="accept" data-c="' + esc(c.id) + '">موافق</button><button class="btn bad" data-act="decline" data-c="' + esc(c.id) + '">لأ</button></div></div>';
+        }).join('');
+
+        let html = '';
+        if (cfgTypes.weekly) {
+            html += '<div class="sec-title">منافسة الأسبوع</div>' +
+                '<div class="card wk-card"><h2>منافسة الأسبوع (نقاط)</h2><p class="sub">تنافس على امتحانات الحصص واكسب أيام VIP وادخل لوحة الشرف.</p>' +
+                '<div class="btns"><a class="btn main" href="weekly.html" style="text-decoration:none;">ادخل المنافسة</a></div></div>';
+        }
+        const group = (type, title, hint) => {
+            if (!cfgTypes[type]) return '';
+            const list = comps.filter(c => c.type === type).sort((a, b) => (a.status === 'finished') - (b.status === 'finished') || (a.startAt || 9e15) - (b.startAt || 9e15));
+            const shown = list.filter(c => c.status !== 'finished').concat(list.filter(c => c.status === 'finished').slice(0, 3));
+            return '<div class="sec-title">' + title + ' <small>' + hint + '</small></div>' +
+                (shown.length ? shown.map(card).join('') : '<div class="card"><div class="empty">مفيش منافسات دلوقتي، ترقّب الإعلان الجاي.</div></div>');
+        };
+        html += group('duel', 'تحديات 1 ضد 1', 'ادخل قصاد زميلك لايف');
+        html += group('team', 'فريق ضد فريق', 'كوّن فريقك وادخل المنافسة');
+        if (!html) html = '<div class="card"><div class="empty">مفيش منافسات مفتوحة دلوقتي.<br>هيوصلك إشعار أول ما تتفتح منافسة جديدة.</div></div>';
+        $('content').innerHTML = html;
+    }
+
+    function card(c) {
+        const prizes = (c.prizes || []).map((p, i) => '<span class="chip gold">المركز ' + (ORD[(p.rank || i + 1) - 1] || (p.rank || i + 1)) + ': ' + esc(prizeText(p)) + '</span>').join('');
+        const meta = '<div class="meta"><span class="chip">' + esc(fmtTime(c.startAt)) + '</span><span class="chip">المسجلين: ' + nf(c.count) + '</span>' +
+            (c.type === 'team' && c.teamSize ? '<span class="chip">الفريق لحد ' + nf(c.teamSize) + '</span>' : '') +
+            (c.vipOnly ? '<span class="chip">للمشتركين VIP</span>' : '') + '</div>';
+        let action = '';
+        const en = c.mine;
+        if (en && (en.accepted || []).includes(mySid)) {
+            const names = (en.members || []).map(m => esc(m.name) + ((en.accepted || []).includes(m.studentId) ? '' : ' (مستني الموافقة)')).join('، ');
+            const done = entryComplete(en);
+            action = '<div class="box mine"><b>' + (done ? 'تم تسجيلك ✔' : 'تسجيلك مستني موافقة زمايلك') + '</b><br>' + (en.kind === 'group' ? (en.name ? 'الاسم: ' + esc(en.name) + '<br>' : '') + 'الأعضاء: ' + names : 'تسجيل فردي، الإدارة هتحدد الخصم أو الفريق.') + '</div>' +
+                (c.status === 'open' ? '<div class="btns"><button class="btn bad" data-act="cancel" data-c="' + esc(c.id) + '">إلغاء التسجيل</button></div>' : '');
+        } else if (en) {
+            action = '<div class="box invite">عندك دعوة للمنافسة دي، ردّ عليها من فوق.</div>';
+        } else if (c.status === 'open') {
+            if (c.vipOnly && !PS.isVip() && !isAdmin) action = '<div class="box">المنافسة دي للمشتركين VIP بس.</div>';
+            else if (c.maxEntries && c.count >= c.maxEntries) action = '<div class="box">العدد اكتمل.</div>';
+            else {
+                const gl = c.type === 'duel' ? 'تحدّى زميلك (ادخلوا مع بعض)' : 'كوّن فريق';
+                action = '<div class="btns"><button class="btn main" data-act="solo" data-c="' + esc(c.id) + '">سجّل لوحدك</button><button class="btn" data-act="grp" data-c="' + esc(c.id) + '">' + gl + '</button></div>' +
+                    '<div id="gf-' + esc(c.id) + '" style="display:none;"></div>';
+            }
+        } else if (c.status === 'live') {
+            action = '<div class="box">المنافسة شغالة دلوقتي. الدخول والمشاهدة اللايف هتتفتح هنا قريب.</div>';
+        } else if (c.status === 'finished') {
+            action = '<div class="box">المنافسة خلصت.</div>';
+        } else {
+            action = '<div class="box">التسجيل اتقفل.</div>';
+        }
+        return '<div class="card"><div class="head"><h2>' + esc(c.title) + '</h2><span class="tag ' + esc(c.status) + '">' + STATUS_LBL[c.status] + '</span></div>' +
+            (c.desc ? '<p class="sub">' + esc(c.desc) + '</p>' : '') + meta + (prizes ? '<div class="meta">' + prizes + '</div>' : '') + action + '</div>';
+    }
+
+    const compOf = (id) => comps.find(c => c.id === id);
+    const meMember = () => ({ studentId: mySid, name: myName, gender: myGender });
+
+    async function myOtherEntry(c, sid) {
+        const q = await getDocs(query(collection(db, 'competitions', c.id, 'entries'), where('memberIds', 'array-contains', sid)));
+        return !q.empty;
+    }
+    async function freshOpen(c) {
+        const s = await getDoc(doc(db, 'competitions', c.id));
+        return s.exists() && s.data().status === 'open';
+    }
+    async function notifyOne(email, title, message) {
+        try {
+            await setDoc(doc(collection(db, 'adminNotifications')), { title, message, target: 'single', recipientEmail: String(email || '').toLowerCase(), sender: 'المنافسات', createdAt: serverTimestamp() });
+        } catch (e) {}
+    }
+
+    async function regSolo(c) {
+        if (!(await freshOpen(c))) { toast('التسجيل اتقفل'); return load(); }
+        if (await myOtherEntry(c, mySid)) { toast('انت مسجل بالفعل'); return load(); }
+        await setDoc(doc(db, 'competitions', c.id, 'entries', 's_' + mySid), { kind: 'solo', leaderId: mySid, members: [meMember()], memberIds: [mySid], accepted: [mySid], createdAt: Date.now(), source: 'student' });
+        toast('تم تسجيلك ✔');
+        load();
+    }
+
+    function showGroupForm(c) {
+        const box = $('gf-' + c.id);
+        if (box.style.display === 'block') { box.style.display = 'none'; return; }
+        const max = c.type === 'duel' ? 1 : Math.max(1, (Number(c.teamSize) || 3) - 1);
+        let inputs = '';
+        for (let i = 0; i < max; i++) inputs += '<input class="mid" placeholder="رقم ID ' + (c.type === 'duel' ? 'زميلك' : 'العضو ' + (i + 1)) + ' (مثال STU-0001)" dir="ltr">';
+        box.style.display = 'block';
+        box.innerHTML = '<div class="box">' + (c.type === 'team' ? '<label>اسم الفريق</label><input id="tn-' + esc(c.id) + '" maxlength="30" placeholder="مثال: النجوم">' : '') +
+            '<label>' + (c.type === 'duel' ? 'اكتب ID زميلك (هيوصله إشعار ولازم يوافق)' : 'اكتب IDs زمايلك (لازم كل واحد يوافق، والباقي ممكن تسيبه فاضي)') + '</label>' + inputs +
+            '<div class="btns"><button class="btn ok" data-act="send" data-c="' + esc(c.id) + '">إرسال الدعوة وتسجيل</button></div></div>';
+    }
+
+    async function regGroup(c) {
+        const box = $('gf-' + c.id);
+        const ids = Array.from(box.querySelectorAll('.mid')).map(i => i.value.trim().toUpperCase()).filter(Boolean);
+        if (!ids.length) return toast('اكتب ID واحد على الأقل');
+        if (new Set(ids).size !== ids.length || ids.includes(mySid)) return toast('فيه ID مكرر أو ID بتاعك انت');
+        if (!(await freshOpen(c))) { toast('التسجيل اتقفل'); return load(); }
+        if (await myOtherEntry(c, mySid)) { toast('انت مسجل بالفعل'); return load(); }
+        const members = [meMember()], emails = [];
+        for (const sid of ids) {
+            const f = await findStudentByStudentId(db, sid);
+            if (!f) return toast('الـ ID ' + sid + ' مش موجود');
+            if (await myOtherEntry(c, sid)) return toast(sid + ' مسجل في المنافسة دي بالفعل');
+            const d = f.data || {};
+            if (c.vipOnly && !PS.isVip(d)) return toast(sid + ' مش مشترك VIP');
+            members.push({ studentId: sid, name: String(d.fullName || d.name || 'طالب').slice(0, 60), gender: d.gender || 'male' });
+            emails.push(String(d.email || f.id || ''));
+        }
+        const tn = c.type === 'team' ? String(($('tn-' + c.id) || {}).value || '').trim().slice(0, 30) : '';
+        await setDoc(doc(collection(db, 'competitions', c.id, 'entries')), { kind: 'group', name: tn, leaderId: mySid, members, memberIds: members.map(m => m.studentId), accepted: [mySid], createdAt: Date.now(), source: 'student' });
+        for (const em of emails) await notifyOne(em, 'دعوة للانضمام: ' + c.title, myName + ' عايزك تدخل معاه ' + (c.type === 'duel' ? 'تحدي' : 'فريق') + ' في «' + c.title + '». افتح صفحة المنافسات ووافق.');
+        toast('اتبعتت الدعوات ✔');
+        load();
+    }
+
+    async function respond(c, accept) {
+        const en = c.mine; if (!en) return;
+        const ref = doc(db, 'competitions', c.id, 'entries', en.id);
+        if (accept) {
+            await updateDoc(ref, { accepted: arrayUnion(mySid) });
+            toast('وافقت ✔');
+        } else {
+            await deleteDoc(ref);
+            const leader = (en.members || []).find(m => m.studentId === en.leaderId);
+            if (leader) { const f = await findStudentByStudentId(db, leader.studentId); if (f) await notifyOne((f.data || {}).email || f.id, 'رفض الدعوة', myName + ' رفض الانضمام ليك في «' + c.title + '».'); }
+            toast('تم الرفض');
+        }
+        load();
+    }
+
+    document.addEventListener('click', async (e) => {
+        const b = e.target.closest('button[data-act]'); if (!b) return;
+        const c = compOf(b.dataset.c); if (!c) return;
+        b.disabled = true;
+        try {
+            const a = b.dataset.act;
+            if (a === 'solo') await regSolo(c);
+            else if (a === 'grp') { showGroupForm(c); b.disabled = false; return; }
+            else if (a === 'send') await regGroup(c);
+            else if (a === 'accept') await respond(c, true);
+            else if (a === 'decline') await respond(c, false);
+            else if (a === 'cancel') {
+                if (!confirm('تأكيد إلغاء التسجيل؟')) { b.disabled = false; return; }
+                await deleteDoc(doc(db, 'competitions', c.id, 'entries', c.mine.id));
+                toast('اتلغى تسجيلك'); load();
+            }
+        } catch (err) { console.warn(err); toast('حصل خطأ، جرّب تاني'); }
+        b.disabled = false;
+    });
+
+    load();
+</script>
+</body>
+</html>
