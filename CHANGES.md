@@ -55,3 +55,11 @@
 - `chat-boys.html` / `chat-girls.html`: الأدمن بيدخل الشات بهويته من `admins` (الاسم والصورة والإيميل من جلسة الأدمن)، ومبقاش بيقرأ `students` ولا بيستخدم studentId أو بيانات طالب محفوظة في المتصفح (كان بيحصل لما إيميل الأدمن بيبقى ليه حساب طالب كمان). زرار «الرئيسية» للأدمن بقى «إدارة الشات» ويرجّعه لـ `admin-chats.html`.
 - `admin-profile.html`: ترتيب تحديد حساب الأدمن بقى زي `admin.html` (إيميل الجلسة الأول).
 
+# الدفعة 6 (المنافسة الأسبوعية + لوحة الشرف + جوايز VIP) — الخطوة 1 من خطة المنافسات
+- **`student-service.js`**: `addPointsToStudent(db, id, pts, { weekly: true })` — لو weekly بيحدّث `weekNo` و`weekPoints` على وثيقة الطالب، وبيكتب `weeklyBoards/{weekNo}/scores/{studentId}` (الاسم، النوع، النقاط، hidden) في نفس الـ Transaction. دوال جديدة: `weekNoOf` `weekRange` `weekMsLeft` (الأسبوع من السبت 12 بالليل لحد الجمعة 12 بالليل بتوقيت القاهرة) و`fetchWeeklyBoard` (أفضل 20، كاش 5 دقايق) و`getMyWeeklyRank` و`fetchWeeklyWinners` و`getWeeklyConfig`.
+- **`lesson-exam.html`**: نقاط الامتحان بس بتدخل المنافسة (`weekly: true`). فتح الفيديو والملزمة والملخص مبيدخلش.
+- **`weekly.html` (جديد)**: صفحة الطالب: عدّاد تنازلي، نقاطي وترتيبي، أفضل 20، الجوايز، لوحة الشرف، القواعد. «طالب مخفي» لو قفل المقارنة.
+- **`admin-weekly.html` (جديد)**: الأدمن يضبط جوايز أيام VIP للمراكز 1–5 (`config/weekly`)، يراجع أول 10، ويعتمد الأسبوع المنتهي: بيكتب `weeklyWinners/{weekNo}` ويوزّع الأيام على المتبقي في Transaction لكل فايز (مفيش تكرار)، ويبعت إشعار، ويزوّد `weeklyWins` للمركز الأول.
+- **`main.html` / `admin.html`**: بانر «منافسة الأسبوع» فوق لوحة المتصدرين، وكارت «المنافسة الأسبوعية» في لوحة الأدمن.
+- Firestore: collections جديدة `weeklyBoards` و`weeklyWinners` وحقل `config/weekly`، وحقول `weekNo` `weekPoints` `weeklyWins` على students. مفيش Index مطلوب (الاستعلامات على حقل واحد). القواعد المفتوحة بتشمل الجديد.
+

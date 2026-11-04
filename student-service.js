@@ -372,7 +372,7 @@ export async function updateStudentData(db, studentIdentifier, updateFields = {}
 }
 
 /** إضافة نقاط (أو خصمها لو القيمة سالبة، بحد أدنى صفر) وتحديث الرتبة والمستوى ذرياً */
-export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
+export async function addPointsToStudent(db, studentIdentifier, pointsToAdd, opts = {}) {
     const delta = Number(pointsToAdd);
     if (!studentIdentifier || !delta) return false;
     try {
@@ -384,11 +384,30 @@ export async function addPointsToStudent(db, studentIdentifier, pointsToAdd) {
             const current = Math.max(Number(d.totalScore) || 0, Number(d.points) || 0);
             const newTotal = Math.max(0, current + delta);
             const r = calculateStudentRank(newTotal);
-            tx.update(studentObj.ref, {
+            const upd = {
                 totalScore: newTotal, points: newTotal,
                 rank: r.rankKey, level: r.rankKey,
                 lastUpdated: new Date().toISOString()
-            });
+            };
+            // المنافسة الأسبوعية: بتتحسب بس نقاط الامتحانات (opts.weekly) — weekNo/weekPoints على الطالب + وثيقة في weeklyBoards
+            if (opts && opts.weekly && delta > 0) {
+                const wk = weekNoOf();
+                const wp = (Number(d.weekNo) === wk ? (Number(d.weekPoints) || 0) : 0) + delta;
+                upd.weekNo = wk;
+                upd.weekPoints = wp;
+                const sid = String(d.studentId || d.id || studentObj.id || '').trim();
+                if (sid) {
+                    tx.set(doc(db, 'weeklyBoards', String(wk), 'scores', sid), {
+                        studentId: sid,
+                        name: String(d.fullName || d.name || 'طالب').slice(0, 60),
+                        gender: d.gender || 'male',
+                        points: wp,
+                        hidden: d.allowComparison === false,
+                        updatedAt: Date.now()
+                    });
+                }
+            }
+            tx.update(studentObj.ref, upd);
         });
         return true;
     } catch (e) {
@@ -577,3 +596,80 @@ export async function getMyLeaderboardRank(db, myScore) {
         return null;
     }
 }
+
+/* ------------------------------------------------------------------ */
+/* المنافسة الأسبوعية (الأسبوع بيبدأ السبت 12 بالليل بتوقيت القاهرة)     */
+/* weeklyBoards/{weekNo}/scores/{studentId}  = نقاط الأسبوع (امتحانات بس) */
+/* weeklyWinners/{weekNo}                    = لوحة الشرف بعد اعتماد الأدمن */
+/* config/weekly                              = جوايز الأيام (VIP) للمراكز */
+/* ------------------------------------------------------------------ */
+export function weekNoOf(ts = Date.now()) {
+    const p = cairoDay(ts).split('-').map(Number);
+    const days = Math.floor(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000);
+    return Math.floor((days - 2) / 7); // 1970-01-01 كان خميس، فالسبت = اليوم رقم 2
+}
+
+/** تاريخ بداية ونهاية الأسبوع (YYYY-MM-DD) */
+export function weekRange(no) {
+    const start = no * 7 + 2;
+    const iso = (d) => new Date(d * 86400000).toISOString().slice(0, 10);
+    return { start: iso(start), end: iso(start + 6) };
+}
+
+/** الوقت (ms) المتبقي لنهاية الأسبوع الحالي (الجمعة 12 بالليل بتوقيت القاهرة) */
+export function weekMsLeft(ts = Date.now()) {
+    const wk = weekNoOf(ts);
+    const target = (wk * 7 + 9) * 86400000; // السبت الجاي 00:00 بتوقيت UTC، نصلّحه بفرق القاهرة
+    const t0 = target - 3 * 3600000;
+    // فرق توقيت القاهرة عند اللحظة دي (ساعتين أو 3 مع التوقيت الصيفي)
+    const f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Cairo', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(t0 + 3 * 3600000));
+    const g = (k) => Number((f.find(x => x.type === k) || {}).value);
+    const wall = Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'));
+    const off = wall - (t0 + 3 * 3600000);
+    return Math.max(0, target - off - ts);
+}
+
+const WK_TTL_MS = 5 * 60 * 1000;
+
+export async function fetchWeeklyBoard(db, weekNo, n = 20, force = false) {
+    const key = 'wk_lb_' + weekNo + '_' + n;
+    try {
+        if (!force) {
+            const raw = sessionStorage.getItem(key);
+            if (raw) { const c = JSON.parse(raw); if (c && Date.now() - c.t < WK_TTL_MS && Array.isArray(c.rows)) return { rows: c.rows, at: c.t, cached: true }; }
+        }
+    } catch (e) {}
+    const snap = await getDocs(query(collection(db, 'weeklyBoards', String(weekNo), 'scores'), orderBy('points', 'desc'), limit(n)));
+    const rows = [];
+    snap.forEach(d => { const x = d.data(); if ((Number(x.points) || 0) > 0) rows.push({ studentId: x.studentId || d.id, name: x.name || 'طالب', gender: x.gender || 'male', points: Number(x.points) || 0, hidden: x.hidden === true }); });
+    const at = Date.now();
+    try { sessionStorage.setItem(key, JSON.stringify({ t: at, rows })); } catch (e) {}
+    return { rows, at, cached: false };
+}
+
+/** ترتيب طالب في أسبوع معيّن (قراءة count واحدة) */
+export async function getMyWeeklyRank(db, weekNo, myPoints) {
+    try {
+        const p = Number(myPoints) || 0;
+        if (p <= 0) return null;
+        const c = await getCountFromServer(query(collection(db, 'weeklyBoards', String(weekNo), 'scores'), where('points', '>', p)));
+        return c.data().count + 1;
+    } catch (e) { return null; }
+}
+
+export async function fetchWeeklyWinners(db, n = 8) {
+    const snap = await getDocs(query(collection(db, 'weeklyWinners'), orderBy('weekNo', 'desc'), limit(n)));
+    const out = [];
+    snap.forEach(d => out.push(d.data()));
+    return out;
+}
+
+export async function getWeeklyConfig(db) {
+    try {
+        const s = await getDoc(doc(db, 'config', 'weekly'));
+        const d = s.exists() ? s.data() : {};
+        const prizes = Array.isArray(d.prizes) ? d.prizes.map(x => Math.max(0, Math.floor(Number(x) || 0))) : [7, 3, 1];
+        return { prizes: prizes.length ? prizes : [7, 3, 1] };
+    } catch (e) { return { prizes: [7, 3, 1] }; }
+}
+

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منافسة الأسبوع | رحلة دراسية</title>
+    <script src="session.js"></script>
+    <script src="levels.js"></script>
+    <script>PS.guard();</script>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.1); --shadow: 0 8px 20px rgba(0,0,0,0.18);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --hover-bg: rgba(79,70,229,0.07); --shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 12px; font-size: 0.9rem; }
+        .wrap { max-width: 760px; margin: 0 auto; }
+        .top { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 8px 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .top a { text-decoration: none; color: var(--text-main); background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; }
+        .top b { color: var(--gold); font-size: 0.95rem; }
+        .hero { background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--gold); border-radius: 20px; padding: 20px 16px; text-align: center; box-shadow: var(--shadow); position: relative; overflow: hidden; margin-bottom: 14px; }
+        .hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 140px; background: radial-gradient(70% 100% at 50% 0%, rgba(251,191,36,0.2), transparent 70%); pointer-events: none; }
+        .hero > * { position: relative; }
+        .hero h1 { font-size: 1.35rem; font-weight: 900; }
+        .hero .dates { color: var(--text-muted); font-size: 0.78rem; margin-top: 4px; }
+        .cd { display: flex; justify-content: center; gap: 10px; margin: 14px 0 4px; direction: ltr; }
+        .cd div { min-width: 62px; background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px 4px; }
+        .cd b { display: block; font-size: 1.4rem; font-weight: 900; color: var(--gold); }
+        .cd small { font-size: 0.64rem; color: var(--text-muted); font-weight: 700; }
+        .me { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .me div { background: rgba(99,102,241,0.12); border: 1px solid var(--primary); border-radius: 12px; padding: 8px 18px; }
+        .me b { display: block; font-size: 1.2rem; font-weight: 900; }
+        .me small { color: var(--text-muted); font-size: 0.68rem; font-weight: 700; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 18px; padding: 16px 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h2 { font-size: 1.02rem; font-weight: 800; margin-bottom: 4px; }
+        .card .sub { color: var(--text-muted); font-size: 0.74rem; line-height: 1.7; margin-bottom: 12px; }
+        .row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; background: var(--th-bg); border: 1px solid var(--border-color); margin-bottom: 7px; }
+        .row.me-row { border-color: var(--primary); background: rgba(99,102,241,0.14); box-shadow: 0 0 14px rgba(99,102,241,0.25); }
+        .pos { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; flex-shrink: 0; background: var(--hover-bg); color: var(--text-muted); }
+        .pos.p1 { background: linear-gradient(135deg, #fde047, #f59e0b); color: #422006; }
+        .pos.p2 { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #1e293b; }
+        .pos.p3 { background: linear-gradient(135deg, #fdba74, #d97706); color: #431407; }
+        .nm { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nm small { display: block; font-size: 0.66rem; color: var(--gold); font-weight: 700; }
+        .pt { font-weight: 900; text-align: left; flex-shrink: 0; }
+        .pt small { display: block; font-size: 0.62rem; color: var(--text-muted); font-weight: 700; }
+        .empty { text-align: center; padding: 22px 8px; color: var(--text-muted); font-size: 0.84rem; line-height: 1.9; }
+        .prizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+        .prize { text-align: center; background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 10px 6px; }
+        .prize b { display: block; font-size: 1.15rem; color: var(--gold); font-weight: 900; }
+        .prize span { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; }
+        .hw { border: 1px solid var(--border-color); border-radius: 14px; background: var(--th-bg); padding: 10px 12px; margin-bottom: 9px; }
+        .hw h3 { font-size: 0.82rem; font-weight: 800; margin-bottom: 6px; color: var(--gold); }
+        .hw div { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-size: 0.8rem; }
+        .hw small { color: var(--text-muted); }
+        .rules { list-style: none; line-height: 2; font-size: 0.78rem; color: var(--text-muted); }
+        .rules li::before { content: "•"; color: var(--gold); margin-left: 8px; font-weight: 900; }
+        .btn { border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); border-radius: 10px; padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: 0.76rem; }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="top"><a href="main.html">&rarr; الرئيسية</a><b>منافسة الأسبوع</b></div>
+
+    <section class="hero">
+        <h1>منافسة الأسبوع</h1>
+        <div class="dates" id="wkDates">...</div>
+        <div class="cd" id="cd"></div>
+        <div class="dates">الوقت المتبقي لنهاية الأسبوع (الجمعة 12 بالليل بتوقيت القاهرة)</div>
+        <div class="me" id="meBox"></div>
+    </section>
+
+    <section class="card">
+        <div class="head">
+            <div>
+                <h2>أفضل 20 طالب الأسبوع ده</h2>
+                <p class="sub">النقاط هنا من <b>امتحانات الحصص</b> بس (بدرجتك الفعلية)، وبتتصفّر كل أسبوع.</p>
+            </div>
+            <button class="btn" id="refreshBtn">تحديث</button>
+        </div>
+        <div id="board"><div class="empty">جاري التحميل...</div></div>
+    </section>
+
+    <section class="card">
+        <h2>جوايز الأسبوع</h2>
+        <p class="sub">الجوايز أيام VIP بتتضاف على اشتراكك، وبتتوزع بعد ما الإدارة تعتمد النتيجة في نهاية الأسبوع.</p>
+        <div class="prizes" id="prizes"></div>
+    </section>
+
+    <section class="card">
+        <h2>لوحة الشرف</h2>
+        <p class="sub">أبطال الأسابيع اللي فاتت.</p>
+        <div id="honor"><div class="empty">جاري التحميل...</div></div>
+    </section>
+
+    <section class="card">
+        <h2>قواعد المنافسة</h2>
+        <ul class="rules">
+            <li>الأسبوع بيبدأ السبت 12 بالليل وبينتهي الجمعة 12 بالليل بتوقيت القاهرة.</li>
+            <li>بتتحسب نقاط امتحانات الحصص فقط. فتح الفيديوهات والملازم مش بيدخل في المنافسة.</li>
+            <li>إعادة الامتحان مفيهاش نقاط إلا لو درجتك اتحسنت، وبتاخد الفرق بس.</li>
+            <li>لو قفلت «المقارنة مع الأصدقاء» من البروفايل هيظهر اسمك «طالب مخفي» للباقي.</li>
+            <li>الإدارة بتراجع النتيجة قبل توزيع الجوايز.</li>
+        </ul>
+    </section>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { weekNoOf, weekRange, weekMsLeft, fetchWeeklyBoard, getMyWeeklyRank, fetchWeeklyWinners, getWeeklyConfig } from "./student-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nf = (n) => Number(n || 0).toLocaleString('ar-EG');
+    const me = PS.getStudent() || {};
+    const mySid = String(PS.studentId() || '');
+    const wk = weekNoOf();
+    const ORD = ['الأول', 'التاني', 'التالت', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن', 'التاسع', 'العاشر'];
+    const fmtDay = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+    const r = weekRange(wk);
+    $('wkDates').textContent = 'من ' + fmtDay(r.start) + ' إلى ' + fmtDay(r.end);
+
+    function tick() {
+        let ms = weekMsLeft();
+        const d = Math.floor(ms / 86400000); ms -= d * 86400000;
+        const h = Math.floor(ms / 3600000); ms -= h * 3600000;
+        const m = Math.floor(ms / 60000); ms -= m * 60000;
+        const s = Math.floor(ms / 1000);
+        const box = (v, l) => '<div><b>' + String(v).padStart(2, '0') + '</b><small>' + l + '</small></div>';
+        $('cd').innerHTML = box(d, 'يوم') + box(h, 'ساعة') + box(m, 'دقيقة') + box(s, 'ثانية');
+    }
+    tick(); setInterval(tick, 1000);
+
+    function nameOf(x) {
+        const mine = mySid && x.studentId === mySid;
+        if (x.hidden && !mine) return 'طالب مخفي';
+        return x.name || 'طالب';
+    }
+
+    async function loadBoard(force) {
+        const btn = $('refreshBtn'); btn.disabled = true;
+        try {
+            const res = await fetchWeeklyBoard(db, wk, 20, force);
+            const rows = res.rows;
+            if (!rows.length) {
+                $('board').innerHTML = '<div class="empty">لسه مفيش حد خد نقاط الأسبوع ده.<br>حلّ امتحان حصة وكن أول اسم على اللوحة!</div>';
+            } else {
+                $('board').innerHTML = rows.map((x, i) => {
+                    const mine = mySid && x.studentId === mySid;
+                    const cls = i < 3 ? ' p' + (i + 1) : '';
+                    return '<div class="row' + (mine ? ' me-row' : '') + '"><div class="pos' + cls + '">' + (i + 1) + '</div>' +
+                        '<div class="nm">' + esc(nameOf(x)) + (mine ? '<small>(أنت)</small>' : '') + '</div>' +
+                        '<div class="pt">' + nf(x.points) + '<small>نقطة</small></div></div>';
+                }).join('');
+            }
+            // نقاطي وترتيبي
+            const mineRow = rows.find(x => mySid && x.studentId === mySid);
+            let myPts = mineRow ? mineRow.points : 0;
+            if (!mineRow && Number(me.weekNo) === wk) myPts = Number(me.weekPoints) || 0;
+            let rank = mineRow ? rows.indexOf(mineRow) + 1 : (myPts > 0 ? await getMyWeeklyRank(db, wk, myPts) : null);
+            $('meBox').innerHTML = '<div><b>' + nf(myPts) + '</b><small>نقاطك الأسبوع ده</small></div>' +
+                '<div><b>' + (rank ? '#' + nf(rank) : '—') + '</b><small>ترتيبك</small></div>';
+        } catch (e) {
+            console.warn(e);
+            $('board').innerHTML = '<div class="empty">تعذر تحميل اللوحة دلوقتي، جرّب بعد شوية.</div>';
+        }
+        btn.disabled = false;
+    }
+    $('refreshBtn').addEventListener('click', () => { loadBoard(true); });
+
+    async function loadPrizes() {
+        const cfg = await getWeeklyConfig(db);
+        const items = cfg.prizes.map((d, i) => d > 0 ? '<div class="prize"><b>' + nf(d) + ' يوم VIP</b><span>المركز ' + ORD[i] + '</span></div>' : '').join('');
+        $('prizes').innerHTML = items || '<div class="empty">هيتم الإعلان عن الجوايز قريب.</div>';
+    }
+
+    async function loadHonor() {
+        try {
+            const list = await fetchWeeklyWinners(db, 8);
+            if (!list.length) { $('honor').innerHTML = '<div class="empty">لسه مفيش أسابيع اتعتمدت. هتظهر هنا أسماء الفايزين بعد أول أسبوع.</div>'; return; }
+            $('honor').innerHTML = list.map(w => {
+                const rg = weekRange(w.weekNo);
+                const rows = (w.winners || []).slice(0, 3).map(x => {
+                    const nm = (x.hidden && String(x.studentId) !== mySid) ? 'طالب مخفي' : (x.name || 'طالب');
+                    return '<div><span>' + (x.rank) + '. ' + esc(nm) + '</span><span>' + nf(x.points) + ' نقطة' + (x.prizeDays ? ' <small>(+' + nf(x.prizeDays) + ' يوم)</small>' : '') + '</span></div>';
+                }).join('');
+                return '<div class="hw"><h3>أسبوع ' + esc(fmtDay(rg.start)) + ' &larr; ' + esc(fmtDay(rg.end)) + '</h3>' + (rows || '<small>مفيش فايزين</small>') + '</div>';
+            }).join('');
+        } catch (e) {
+            console.warn(e);
+            $('honor').innerHTML = '<div class="empty">تعذر تحميل لوحة الشرف.</div>';
+        }
+    }
+
+    loadBoard(false);
+    loadPrizes();
+    loadHonor();
+</script>
+</body>
+</html>

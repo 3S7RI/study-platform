@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المنافسة الأسبوعية</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--gold); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.92rem; margin-bottom: 4px; }
+        .hint { color: var(--text-muted); font-size: 0.74rem; line-height: 1.8; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input, select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        option { color: #1e293b; }
+        .btn { border: none; border-radius: 8px; padding: 8px 16px; font-weight: 800; cursor: pointer; color: #fff; }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-ok { background: var(--success); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        th, td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--border-color); }
+        th { color: var(--text-muted); font-size: 0.72rem; }
+        .tag { padding: 2px 9px; border-radius: 15px; font-weight: 800; font-size: 0.7rem; }
+        .tag.done { background: rgba(16,185,129,.15); color: var(--success); }
+        .tag.open { background: rgba(251,191,36,.15); color: var(--gold); }
+        .tag.live { background: rgba(99,102,241,.15); color: var(--primary); }
+        .empty { text-align: center; color: var(--text-muted); padding: 18px; }
+        .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--gold); padding: 8px 18px; border-radius: 10px; display: none; z-index: 99; }
+        .bar { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+        .bar > div { flex: 1; min-width: 150px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><a href="admin.html" class="back-btn">&larr; لوحة الأدمن</a><span class="title">إدارة المنافسة الأسبوعية</span></div>
+
+    <div class="card">
+        <h3>جوايز الأسبوع (أيام VIP)</h3>
+        <p class="hint">عدد الأيام اللي بتتضاف على اشتراك كل فايز (على المتبقي). اكتب 0 لو مفيش جايزة للمركز. بتظهر للطلاب في صفحة المنافسة.</p>
+        <div class="grid">
+            <div><label>المركز 1</label><input type="number" min="0" max="365" id="pz0"></div>
+            <div><label>المركز 2</label><input type="number" min="0" max="365" id="pz1"></div>
+            <div><label>المركز 3</label><input type="number" min="0" max="365" id="pz2"></div>
+            <div><label>المركز 4</label><input type="number" min="0" max="365" id="pz3"></div>
+            <div><label>المركز 5</label><input type="number" min="0" max="365" id="pz4"></div>
+        </div>
+        <button class="btn btn-gold" style="margin-top:12px;" onclick="saveCfg()">حفظ الجوايز</button>
+    </div>
+
+    <div class="card">
+        <h3>اعتماد أسبوع وتوزيع الجوايز</h3>
+        <p class="hint">اختار أسبوع انتهى، راجع أول 10، وبعدين اضغط اعتماد. الجوايز بتتوزع مرة واحدة بس لكل أسبوع، وبتتسجل في لوحة الشرف وبيوصل إشعار للفايزين.</p>
+        <div class="bar">
+            <div><label>الأسبوع</label><select id="weekSel" onchange="loadWeek()"></select></div>
+            <button class="btn btn-ok" id="finBtn" onclick="finalizeWeek()" disabled>اعتماد وتوزيع الجوايز</button>
+        </div>
+        <div id="status" style="margin-top:10px;"></div>
+        <div id="tbl"><div class="empty">جاري التحميل...</div></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { weekNoOf, weekRange, fetchWeeklyBoard, getWeeklyConfig, findStudentDocument } from "./student-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nf = (n) => Number(n || 0).toLocaleString('ar-EG');
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2800); };
+    const fmtDay = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+    const cur = weekNoOf();
+    let adminName = 'admin';
+    let cfg = { prizes: [7, 3, 1] };
+    let rowsNow = [];
+    let winnersDoc = null;
+
+    function fillWeeks() {
+        const opts = [];
+        for (let i = 1; i <= 6; i++) { const n = cur - i; const r = weekRange(n); opts.push('<option value="' + n + '">' + fmtDay(r.start) + ' ← ' + fmtDay(r.end) + (i === 1 ? ' (الأسبوع اللي فات)' : '') + '</option>'); }
+        const r = weekRange(cur);
+        opts.push('<option value="' + cur + '">' + fmtDay(r.start) + ' ← ' + fmtDay(r.end) + ' (الأسبوع الحالي، لسه شغال)</option>');
+        $('weekSel').innerHTML = opts.join('');
+    }
+
+    async function loadCfg() {
+        cfg = await getWeeklyConfig(db);
+        for (let i = 0; i < 5; i++) $('pz' + i).value = cfg.prizes[i] !== undefined ? cfg.prizes[i] : 0;
+    }
+
+    window.saveCfg = async function () {
+        const prizes = [];
+        for (let i = 0; i < 5; i++) prizes.push(Math.min(365, Math.max(0, Math.floor(Number($('pz' + i).value) || 0))));
+        try {
+            await setDoc(doc(db, 'config', 'weekly'), { prizes, updatedAt: Date.now(), updatedBy: adminName }, { merge: true });
+            cfg.prizes = prizes;
+            toast('تم حفظ الجوايز');
+            loadWeek();
+        } catch (e) { toast('حصل خطأ في الحفظ'); }
+    };
+
+    window.loadWeek = async function () {
+        const no = Number($('weekSel').value);
+        $('tbl').innerHTML = '<div class="empty">جاري التحميل...</div>';
+        $('finBtn').disabled = true;
+        try {
+            const [res, wd] = await Promise.all([fetchWeeklyBoard(db, no, 10, true), getDoc(doc(db, 'weeklyWinners', String(no)))]);
+            rowsNow = res.rows;
+            winnersDoc = wd.exists() ? wd.data() : null;
+            const finished = no < cur;
+            let st;
+            if (winnersDoc) {
+                const pending = (winnersDoc.winners || []).filter(w => w.prizeDays > 0 && !w.given).length;
+                st = pending ? '<span class="tag open">اتسجل لكن فيه ' + pending + ' جايزة لسه متوزعتش، اضغط اعتماد لإكمالها</span>' : '<span class="tag done">الأسبوع ده اتعتمد والجوايز اتوزعت</span>';
+            } else st = finished ? '<span class="tag open">الأسبوع انتهى وبانتظار اعتمادك</span>' : '<span class="tag live">الأسبوع لسه شغال، مينفعش يتعتمد دلوقتي</span>';
+            $('status').innerHTML = st;
+            $('finBtn').disabled = !finished || (!rowsNow.length && !winnersDoc) || (winnersDoc && !(winnersDoc.winners || []).some(w => w.prizeDays > 0 && !w.given));
+            if (!rowsNow.length && !winnersDoc) { $('tbl').innerHTML = '<div class="empty">مفيش نقاط في الأسبوع ده.</div>'; return; }
+            const list = winnersDoc ? winnersDoc.winners : rowsNow.map((x, i) => ({ rank: i + 1, studentId: x.studentId, name: x.name, points: x.points, prizeDays: cfg.prizes[i] || 0 }));
+            $('tbl').innerHTML = '<table><tr><th>المركز</th><th>الطالب</th><th>ID</th><th>النقاط</th><th>الجايزة</th></tr>' +
+                list.map(w => '<tr><td>' + w.rank + '</td><td>' + esc(w.name) + '</td><td dir="ltr">' + esc(w.studentId) + '</td><td>' + nf(w.points) + '</td><td>' + (w.prizeDays ? nf(w.prizeDays) + ' يوم' + (winnersDoc ? (w.given ? ' ✔' : ' …') : '') : '—') + '</td></tr>').join('') + '</table>';
+        } catch (e) {
+            console.warn(e);
+            $('tbl').innerHTML = '<div class="empty">تعذر تحميل الأسبوع.</div>';
+        }
+    };
+
+    window.finalizeWeek = async function () {
+        const no = Number($('weekSel').value);
+        if (no >= cur) return toast('الأسبوع لسه شغال');
+        if (!confirm('تأكيد اعتماد الأسبوع وتوزيع الجوايز؟ العملية دي بتتعمل مرة واحدة.')) return;
+        const btn = $('finBtn'); btn.disabled = true;
+        const wref = doc(db, 'weeklyWinners', String(no));
+        try {
+            let ws = await getDoc(wref);
+            if (!ws.exists()) {
+                if (!rowsNow.length) { toast('مفيش نقاط في الأسبوع ده'); return; }
+                const winners = rowsNow.map((x, i) => ({
+                    rank: i + 1, studentId: x.studentId, name: x.name, gender: x.gender || 'male', hidden: x.hidden === true,
+                    points: x.points, prizeDays: cfg.prizes[i] || 0, given: false
+                }));
+                await setDoc(wref, { weekNo: no, startDay: weekRange(no).start, endDay: weekRange(no).end, winners, finalizedAt: Date.now(), finalizedBy: adminName });
+                ws = await getDoc(wref);
+            }
+            const total = (ws.data().winners || []).length;
+            let ok = 0, failed = 0;
+            for (let i = 0; i < total; i++) {
+                try {
+                    const w = ws.data().winners[i];
+                    const found = await findStudentDocument(db, w.studentId);
+                    if (!found) { failed++; continue; }
+                    const stRef = found.ref;
+                    const given = await runTransaction(db, async (tx) => {
+                        const wd = await tx.get(wref);
+                        const arr = (wd.data().winners || []).slice();
+                        if (!arr[i] || arr[i].given) return false;
+                        const ss = await tx.get(stRef);
+                        if (!ss.exists()) throw new Error('NO_STUDENT');
+                        const st = ss.data();
+                        const upd = { lastUpdated: new Date().toISOString() };
+                        const days = Number(arr[i].prizeDays) || 0;
+                        if (days > 0) {
+                            let base = Date.now();
+                            if (st.subscriptionExpiry) { const c = new Date(st.subscriptionExpiry).getTime(); if (c > base) base = c; }
+                            upd.isSubscribed = true;
+                            upd.subscriptionExpiry = new Date(base + days * 86400000).toISOString();
+                            upd.accountType = 'vip';
+                            upd.subscriptionActivatedAt = new Date().toISOString();
+                            upd.lastPlanDays = days;
+                            upd.lastPlanName = 'جايزة المنافسة الأسبوعية';
+                            upd.lastPlanSource = 'weekly';
+                        }
+                        if (arr[i].rank === 1) upd.weeklyWins = (Number(st.weeklyWins) || 0) + 1;
+                        tx.update(stRef, upd);
+                        arr[i] = { ...arr[i], given: true };
+                        tx.update(wref, { winners: arr });
+                        return true;
+                    });
+                    if (given) {
+                        ok++;
+                        try {
+                            const email = String(found.id || '').toLowerCase();
+                            const w2 = ws.data().winners[i];
+                            await setDoc(doc(collection(db, 'adminNotifications')), {
+                                title: 'مبروك! أنت من أبطال المنافسة الأسبوعية',
+                                message: 'جبت المركز ' + w2.rank + ' بـ ' + w2.points + ' نقطة' + (w2.prizeDays ? ' واتضاف على اشتراكك ' + w2.prizeDays + ' يوم VIP هدية.' : '.') + ' كمّل وخليك في الصدارة!',
+                                target: 'single',
+                                recipientEmail: email,
+                                sender: 'إدارة المنصة',
+                                createdAt: serverTimestamp()
+                            });
+                        } catch (e) {}
+                    }
+                } catch (e) { console.warn(e); failed++; }
+            }
+            toast('اتوزعت جوايز ' + ok + (failed ? ' (وفشل ' + failed + ')' : ''));
+        } catch (e) {
+            console.warn(e);
+            toast('حصل خطأ، جرّب تاني');
+        }
+        loadWeek();
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        if (sessionStorage.getItem('isAdmin') !== 'true') { window.location.href = 'login.html'; return; }
+        adminName = sessionStorage.getItem('adminEmail') || user.email || 'admin';
+        fillWeeks();
+        loadCfg().then(loadWeek);
+    });
+</script>
+</body>
+</html>
