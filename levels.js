@@ -8,19 +8,21 @@
  *  - كل مميزات المستويات تجميلية وفعلية: إطار الصورة، الهالة، الجزيئات، التاج، تأثير الاسم،
  *    خلفية بطاقة البروفايل، واللقب. بتظهر في البروفايل ولوحة المتصدرين والإحصائيات.
  *
- * المعادلة: النقاط المطلوبة للوصول لمستوى n  =  10 × (n-1)²
- *   Lv.2 = 10 ، Lv.5 = 160 ، Lv.10 = 810 ، Lv.20 = 3610 ، Lv.30 = 8410 ، Lv.50 = 24010
+ * المعادلة: النقاط المطلوبة للوصول لمستوى n  =  25 × (n-1)^1.6 (مقرّبة لأقرب 5)
+ *   Lv.2 = 25 ، Lv.5 = 230 ، Lv.10 = 840 ، Lv.20 = 2780 ، Lv.30 = 5470 ، Lv.50 = 12600
  */
 (function (global) {
     'use strict';
 
     var MAX_LEVEL = 50;
-    var K = 10;
+    var K = 25, P = 1.6;
 
-    function pointsFor(n) { return Math.round(K * Math.pow(Math.max(1, n) - 1, 2)); }
+    /* منحنى مستويات متدرّج: لازم يفضل متطابق مع session.js و student-service.js */
+    function pointsFor(n) { return Math.round(K * Math.pow(Math.max(1, n) - 1, P) / 5) * 5; }
     function levelOf(score) {
-        var s = Math.max(0, Number(score) || 0);
-        return Math.min(MAX_LEVEL, Math.floor(Math.sqrt(s / K)) + 1);
+        var s = Math.max(0, Number(score) || 0), l = 1;
+        while (l < MAX_LEVEL && s >= pointsFor(l + 1)) l++;
+        return l;
     }
 
     /* ===== أيقونات SVG (بدل الإيموجي) — stroke بلون النص الحالي ===== */

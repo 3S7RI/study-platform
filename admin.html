@@ -391,7 +391,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, getDocs, getCountFromServer, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -517,12 +517,16 @@
                 el.textContent = st.enabled === false ? 'مخفية' : 'ظاهرة';
             }).catch(() => { document.getElementById('lbStatusBadge').textContent = '—'; });
 
+            // عدّ بدون قراءة كل الوثائق (قراءة واحدة لكل 1000 وثيقة) — لو فشل يرجع للطريقة القديمة
+            const countOf = (name) => getCountFromServer(collection(db, name))
+                .then(r => ({ size: r.data().count }))
+                .catch(() => getDocs(collection(db, name)).catch(() => ({ size: 0 })));
             Promise.all([
-                getDocs(collection(db, "lessons")).catch(() => ({ size: 0 })),
-                getDocs(collection(db, "activationCodes")).catch(() => ({ size: 0 })),
-                getDocs(collection(db, "exams")).catch(() => ({ size: 0 })),
-                getDocs(collection(db, "forumPosts")).catch(() => ({ size: 0 })),
-                getDocs(collection(db, "students")).catch(() => ({ size: 0 }))
+                countOf("lessons"),
+                countOf("activationCodes"),
+                countOf("exams"),
+                countOf("forumPosts"),
+                countOf("students")
             ]).then(([lessonsSnap, codesSnap, examsSnap, forumSnap, usersSnap]) => {
                 let counters = {
                     notes: lessonsSnap.size,

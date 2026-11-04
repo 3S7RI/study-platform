@@ -26,9 +26,12 @@
         { key: 'legendary',   min: 5000, label: 'أسطوري',    frame: 'frame-legendary' }
     ];
 
-    // المستوى (1-50) محسوب من النقاط بنفس معادلة levels.js: 10 × (n-1)²
+    // المستوى (1-50) محسوب من النقاط بنفس معادلة levels.js: 25 × (n-1)^1.6
+    function lvPoints(n) { return Math.round(25 * Math.pow(Math.max(1, n) - 1, 1.6) / 5) * 5; }
     function levelNum(score) {
-        return Math.min(50, Math.floor(Math.sqrt(Math.max(0, Number(score) || 0) / 10)) + 1);
+        var s = Math.max(0, Number(score) || 0), l = 1;
+        while (l < 50 && s >= lvPoints(l + 1)) l++;
+        return l;
     }
 
     // أسماء الرتب القديمة (ضعيف..أسطوري) اتشالت من العرض: label بقى "Lv.N".

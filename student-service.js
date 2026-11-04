@@ -452,7 +452,9 @@ export async function sendWelcomeNotification(db, studentEmail, studentName, tri
 
 export function calculateStudentRank(totalScore) {
     const score = Number(totalScore) || 0;
-    const lvTitle = 'Lv.' + Math.min(50, Math.floor(Math.sqrt(score / 10)) + 1); // المستوى بدل أسماء الرتب
+    const lvPts = (n) => Math.round(25 * Math.pow(Math.max(1, n) - 1, 1.6) / 5) * 5; // نفس منحنى levels.js
+    let lvNum = 1; while (lvNum < 50 && score >= lvPts(lvNum + 1)) lvNum++;
+    const lvTitle = 'Lv.' + lvNum; // المستوى بدل أسماء الرتب
     if (score >= 5000) {
         return { rankKey: 'legendary', title: lvTitle, frameClass: 'frame-legendary', badgeClass: 'badge-legendary', color: '#f472b6' };
     } else if (score >= 3000) {
