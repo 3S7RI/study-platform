@@ -199,8 +199,8 @@
     }
 
 
-    // ===== المساعد الذكي: بيكلّم Cloudflare Worker (/chat) والمفاتيح محفوظة هناك =====
-    const AI_ENDPOINT = 'https://otp.mohamad91xm.workers.dev/chat';
+    // ===== المساعد الذكي: بيكلّم Worker منفصل للمساعد (ai-worker.js) والمفاتيح محفوظة هناك =====
+    const AI_ENDPOINT = 'https://study-ai.mohamad91xm.workers.dev/chat'; // Worker منفصل (ai-worker.js)
     const QUICK_FAQ = ['ازاي أفعل الـ VIP؟', 'نظام النقاط والمستويات', 'فين قناة اليوتيوب؟', 'التواصل مع الدعم'];
     const history = [];      // آخر الرسائل (user / assistant) اللي بتتبعت للـ AI
     let transcript = [];     // المحادثة كلها للحفظ: { r:'u'|'b', c:نص, h:true لو HTML جاهز }
