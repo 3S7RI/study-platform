@@ -483,6 +483,7 @@
             let totalScore = 0;
             let maxScore = 0;
             let questions = currentExamData.questions || [];
+            let mistakes = []; // الأسئلة اللي اتجاوبت غلط (أو اتسابت) — بتظهر للطالب في صفحة «أخطائي»
 
             questions.forEach((q, qIdx) => {
                 let qMarks = Number(q.marks || 1);
@@ -490,12 +491,20 @@
 
                 if (q.options && q.options.length > 0) {
                     let checkedInputs = document.querySelectorAll(`input[name="q_${qIdx}"]:checked`);
-                    if (checkedInputs.length > 0) {
-                        let selectedVal = parseInt(checkedInputs[0].value);
-                        let correctVal = parseInt(q.correct);
-                        if (selectedVal === correctVal) {
-                            totalScore += qMarks;
-                        }
+                    let selectedVal = checkedInputs.length > 0 ? parseInt(checkedInputs[0].value) : -1;
+                    let correctVal = parseInt(q.correct);
+                    if (checkedInputs.length > 0 && selectedVal === correctVal) {
+                        totalScore += qMarks;
+                    } else if (!isNaN(correctVal)) {
+                        mistakes.push({
+                            idx: qIdx,
+                            text: String(q.text || '').slice(0, 1500),
+                            imageUrl: q.imageUrl ? String(q.imageUrl) : '',
+                            marks: qMarks,
+                            options: q.options.map(o => String(o).slice(0, 400)),
+                            selected: selectedVal,
+                            correct: correctVal
+                        });
                     }
                 }
             });
@@ -544,7 +553,9 @@
                         attempts: (Number(prev.attempts) || 0) + 1,
                         bestScore: bestScore,
                         bestMaxScore: maxScore,
-                        pointsAwarded: newAwardedTotal
+                        pointsAwarded: newAwardedTotal,
+                        mistakes: mistakes,
+                        mistakesAt: nowIso
                     }, { merge: true });
 
                     // النقاط والرتبة تتحدثان معاً (points + totalScore + rank + level)
@@ -583,6 +594,7 @@
                     <span style="font-size: 1.05rem; font-weight: bold; color: var(--text-main);">
                         الدرجة: ${totalScore} من ${maxScore} (${percentage}%)
                     </span>
+                    ${mistakes.length ? `<br><br><a href="mistakes.html" style="display:inline-block; padding:8px 18px; border-radius:10px; background:var(--danger); color:#fff; font-weight:800; text-decoration:none;">شوف أخطاءك (${mistakes.length})</a>` : ''}
                 `;
 
             }, 1800);
