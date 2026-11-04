@@ -380,8 +380,23 @@ export default {
     if (path === "/verify") {
       const exp = Number(body.exp);
       if (!exp || Date.now() > exp) return json({ ok: false, error: "expired" }, 200, cors);
+
+      // حد محاولات التحقق: 5 محاولات غلط لكل كود (إيميل + وقت انتهاء)، وبعدها الكود ده يتقفل لحد ما يتطلب كود جديد
+      const MAX_TRIES = 5;
+      const vaKey = "va:" + email + ":" + exp;
+      let tries = 0;
+      if (env.OTP_KV) {
+        tries = Number(await env.OTP_KV.get(vaKey)) || 0;
+        if (tries >= MAX_TRIES) return json({ ok: false, error: "too_many_attempts" }, 429, cors);
+      }
+
       const expected = await hmac(env.OTP_SECRET, `${email}|${exp}|${String(body.code || "").trim()}`);
-      return json({ ok: expected === body.sig }, 200, cors);
+      const good = expected === body.sig;
+      if (env.OTP_KV) {
+        if (good) await env.OTP_KV.delete(vaKey);
+        else await env.OTP_KV.put(vaKey, String(tries + 1), { expirationTtl: 900 });
+      }
+      return json({ ok: good, left: good ? undefined : Math.max(0, MAX_TRIES - tries - 1) }, 200, cors);
     }
     return json({ error: "not found" }, 404, cors);
   },
