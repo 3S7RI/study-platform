@@ -51,6 +51,13 @@ table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1p
 
 <div class="card"><h3>الخدمات: Firebase و Brevo والاستضافة</h3><div class="svc" id="svc"></div></div>
 
+<div class="card"><h3><span>الاستهلاك اليومي (تقدير)</span><span class="mut" style="font-size:.72rem">الرقم الفعلي الدقيق في Firebase Console ← Usage</span></h3>
+<div class="grid" id="usage"></div>
+<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:.76rem;margin-bottom:4px"><span>القراءات المقدّرة النهاردة من 50,000 (الحصة المجانية)</span><b id="usagePct">—</b></div>
+<div style="height:10px;border-radius:10px;background:var(--th);border:1px solid var(--bd);overflow:hidden"><div id="usageBar" style="height:100%;width:0;background:var(--ok);transition:width .6s"></div></div>
+<div class="mut" style="font-size:.72rem;margin-top:8px;line-height:1.8">التقدير = (طلاب نشطين النهاردة) × (متوسط قراءات الطالب في اليوم). عدّل المتوسط لو لقيت الرقم الحقيقي في الـ Console مختلف:
+<input id="rpsInput" type="number" min="1" max="500" style="width:70px;margin:0 6px;padding:3px 6px;border-radius:8px;border:1px solid var(--bd);background:var(--th);color:var(--tx)" onchange="setRps(this.value)"> قراءة/طالب</div></div></div>
+
 <div class="card"><h3>السرعة (بالمللي ثانية)</h3>
 <div class="two">
 <div class="ch"><h4>قياس حي كل 5 ثواني</h4><div id="chLive"></div><div class="lg"><span><i style="background:#22d3ee"></i>Firestore</span><span><i style="background:#a78bfa"></i>الاستضافة</span><span><i style="background:#fbbf24"></i>Worker</span></div></div>
@@ -170,6 +177,41 @@ async function loadStats(){
   if(st===null)probs.push(['bad','تعذر قراءة عدد الطلاب (صلاحيات أو اتصال).']);
 }
 
+
+/* ---------- الاستهلاك اليومي والطلاب النشطين ---------- */
+const cairoToday=(ts=Date.now())=>new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts));
+const RPS_KEY='health_reads_per_student';
+const getRps=()=>{try{return Math.max(1,Number(localStorage.getItem(RPS_KEY))||60);}catch(e){return 60;}};
+window.setRps=v=>{try{localStorage.setItem(RPS_KEY,String(Math.max(1,Math.min(500,Number(v)||60))));}catch(e){}loadUsage().then(paintProblems);};
+function quotaResetIn(){
+  // الحصة المجانية بتتصفّر منتصف الليل بتوقيت المحيط الهادي (لوس أنجلوس)
+  const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
+  const g=t=>Number((p.find(x=>x.type===t)||{}).value)%24||0;
+  const left=86400-(g('hour')*3600+g('minute')*60+g('second'));
+  return Math.floor(left/3600)+' س '+Math.floor(left%3600/60)+' د';
+}
+async function loadUsage(){
+  const C=collection(db,'students'),today=cairoToday(),wk=cairoToday(Date.now()-6*864e5);
+  const now=new Date().toISOString(),in3=new Date(Date.now()+3*864e5).toISOString();
+  const [act,act7,exp3,banned,locked]=await Promise.all([
+    cnt(query(C,where('lastActiveDay','==',today))),
+    cnt(query(C,where('lastActiveDay','>=',wk))),
+    cnt(query(C,where('subscriptionExpiry','>=',now),where('subscriptionExpiry','<=',in3))),
+    cnt(query(C,where('isBanned','==',true))),
+    cnt(query(C,where('codeLockUntil','>',Date.now())))]);
+  const rps=getRps();$('rpsInput').value=rps;
+  const est=act==null?null:act*rps,pct=est==null?null:Math.round(est/500)/1;
+  const t=[['نشطين النهاردة',act],['نشطين آخر 7 أيام',act7],['اشتراكات هتنتهي خلال 3 أيام',exp3],['حسابات محظورة',banned],['مقفولين بسبب أكواد غلط',locked]];
+  $('usage').innerHTML=t.map(x=>`<div class="tile"><b>${x[1]==null?'—':x[1].toLocaleString('en-US')}</b><span>${x[0]}</span></div>`).join('')+
+    `<div class="tile"><b>${est==null?'—':est.toLocaleString('en-US')}</b><span>قراءات مقدّرة النهاردة</span></div><div class="tile"><b>${quotaResetIn()}</b><span>باقي على تصفير الحصة</span></div>`;
+  const c=pct==null?'var(--mut)':pct>=85?'var(--bad)':pct>=60?'var(--warn)':'var(--ok)';
+  $('usagePct').textContent=pct==null?'—':pct+'%';$('usageBar').style.width=Math.min(100,pct||0)+'%';$('usageBar').style.background=c;
+  if(pct!=null&&pct>=85)probs.push(['bad','القراءات المقدّرة النهاردة '+pct+'% من الحصة المجانية. راجع Firebase Console وفكّر في Blaze + Budget Alert.']);
+  else if(pct!=null&&pct>=60)probs.push(['warn','القراءات المقدّرة النهاردة '+pct+'% من الحصة المجانية.']);
+  if(exp3>0)probs.push(['warn',exp3+' اشتراك VIP/تجربة هينتهي خلال 3 أيام.']);
+  if(act==null)probs.push(['warn','تعذر حساب الطلاب النشطين (غالباً حقل lastActiveDay أو الصلاحيات).']);
+}
+
 async function loadGrowth(){
   try{
     const s=await getDocs(query(collection(db,'students'),orderBy('createdAt','desc'),limit(400)));
@@ -246,7 +288,7 @@ window.runAll=async function(){
   $('re').disabled=true;probs=[];$('overall').textContent='جاري الفحص...';$('overall').className='big mut';
   const lat=await sample();
   await checkServices(lat);
-  await Promise.all([loadStats(),loadGrowth(),loadErrors(),loadRules()]);
+  await Promise.all([loadStats(),loadUsage(),loadGrowth(),loadErrors(),loadRules()]);
   await loadHistory(lat);
   paintProblems();
   clearInterval(liveTimer);liveTimer=setInterval(sample,5000);
