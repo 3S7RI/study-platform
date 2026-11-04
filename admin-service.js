@@ -1,5 +1,5 @@
 // admin-service.js - ملف الخدمات الشامل والموحد لإدارة المشرفين داخل مجموعة admins (Firebase Modular SDK)
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 /**
  * 1. البحث عن وثيقة المشرف بدقة داخل مجموعة users باستخدام الإيميل، الـ AdminId، أو الـ UID
@@ -120,3 +120,20 @@ export async function deleteAdminAccount(db, adminIdentifier) {
 }
 
 export const deleteAdminAdminAccount = deleteAdminAccount;
+
+
+/**
+ * سجل عمليات الأدمن (adminLogs): مين عمل إيه ومتى. بيفشل بصمت ومبيعطّلش العملية الأصلية.
+ */
+export async function logAdminAction(db, actor, action, target = '', details = '') {
+    try {
+        await addDoc(collection(db, "adminLogs"), {
+            actor: String(actor || 'admin').slice(0, 100),
+            action: String(action || '').slice(0, 60),
+            target: String(target || '').slice(0, 120),
+            details: String(details || '').slice(0, 300),
+            t: new Date().toISOString(),
+            createdAt: serverTimestamp()
+        });
+    } catch (e) { console.warn('adminLogs:', e && e.message); }
+}

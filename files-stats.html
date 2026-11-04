@@ -506,6 +506,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { logAdminAction } from "./admin-service.js";
         import { findStudentDocument, addPointsToStudent, calculateStudentRank, deleteStudentAccountDoc } from "./student-service.js";
 
         const firebaseConfig = {
@@ -982,6 +983,7 @@
                     let colName = studentDoc ? studentDoc.collectionName : "students";
                     let studentRef = doc(db, colName, currentEditingStudentId);
                     await updateDoc(studentRef, { isBanned: true });
+                    logAdminAction(db, (auth && auth.currentUser && auth.currentUser.email) || 'admin', 'ban_student', String(currentEditingStudentId), 'حظر من الإحصائيات');
                     alert("تم حظر الطالب بنجاح.");
                     closeStudentModal();
                 } catch (err) {

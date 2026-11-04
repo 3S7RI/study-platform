@@ -410,6 +410,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, deleteUser, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { logAdminAction } from './admin-service.js';
         import { createStudentAccount, deleteStudentAccountDoc, rebuildStudentIdCounter } from './student-service.js';
 
         const firebaseConfig = {
@@ -666,6 +667,7 @@
             rankBadgeBox.className = `level-badge-box ${rankInfo.badge}`;
             document.getElementById('profileRankText').textContent = `${rankInfo.label} • ${points} نقطة`;
 
+            { const bt = document.getElementById('btnBanText'); if (bt && bt.lastChild) bt.lastChild.textContent = activeStudentData.isBanned === true ? ' فك الحظر' : ' حظر الطالب'; }
             document.getElementById('profileEmail').textContent = activeStudentData.email || 'غير متوفر';
             document.getElementById('profileId').textContent = activeStudentData.studentId || activeStudentData.id;
             document.getElementById('profilePhone').textContent = activeStudentData.phone || '---';
@@ -863,9 +865,19 @@
             }
         }
 
-        window.banStudent = function() {
-            showPlatformToast('تم حظر الطالب بنجاح', 'warning');
-            setTimeout(() => { window.location.href = '404.html'; }, 1000);
+        window.banStudent = async function() {
+            if (!activeDocId || !activeStudentData) return;
+            const willBan = activeStudentData.isBanned !== true;
+            if (!confirm(willBan ? 'هل أنت متأكد من حظر هذا الطالب؟ مش هيقدر يدخل المنصة.' : 'فك الحظر عن الطالب؟')) return;
+            try {
+                await db.collection('students').doc(activeDocId).update({ isBanned: willBan });
+                activeStudentData.isBanned = willBan;
+                const bt = document.getElementById('btnBanText');
+                if (bt) bt.lastChild.textContent = willBan ? ' فك الحظر' : ' حظر الطالب';
+                let who = 'admin'; try { who = getAuth(app).currentUser.email || 'admin'; } catch (x) {}
+                logAdminAction(mdb, who, willBan ? 'ban_student' : 'unban_student', String(activeDocId), '');
+                showPlatformToast(willBan ? 'تم حظر الطالب' : 'تم فك الحظر', willBan ? 'warning' : 'success');
+            } catch (e) { console.error(e); showPlatformToast('حصل خطأ أثناء تنفيذ العملية', 'error'); }
         }
 
         // حذف الطالب مع التحديث الفوري للقائمة بدون تحديث الصفحة
