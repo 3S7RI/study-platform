@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة حسابات المنصة</title>
     <!-- تضمين مكتبات Firebase SDK المطلوبة للمزامنة السحابية -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --bg-main: #0f172a;
@@ -408,8 +406,8 @@
     <!-- الجزء البرمجي والخدمات السحابية المحدثة بالكامل -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, deleteUser, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, deleteUser, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection as fsCollection, doc as fsDoc, getDoc as fsGetDoc, getDocs as fsGetDocs, setDoc as fsSetDoc, updateDoc as fsUpdateDoc, deleteDoc as fsDeleteDoc, query as fsQuery, where as fsWhere, limit as fsLimit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { logAdminAction } from './admin-service.js';
         import { createStudentAccount, deleteStudentAccountDoc, rebuildStudentIdCounter } from './student-service.js';
 
@@ -422,14 +420,42 @@
             appId: "1:632096690853:web:f9622d14de73a761dcf34c"
         };
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const mdb = getFirestore(app); // نسخة modular لخدمات الطالب (الـ ID التسلسلي)
+        const mdb = getFirestore(app); // نسخة modular (بتستخدم جلسة تسجيل الدخول => الرولز بتشوف request.auth)
+
+        // غلاف بيحاكي واجهة compat القديمة (collection/doc/get/set/update/delete/where/limit)
+        // لكن فوق الـ modular SDK عشان كل الطلبات تتبعت بتوكن المستخدم المسجّل.
+        const wrapDocSnap = (snap) => ({ id: snap.id, exists: snap.exists(), data: () => snap.data(), ref: snap.ref });
+        const wrapQuerySnap = (snap) => ({
+            docs: snap.docs.map(wrapDocSnap), size: snap.size, empty: snap.empty,
+            forEach: (cb) => snap.docs.map(wrapDocSnap).forEach(cb)
+        });
+        const makeQuery = (name, constraints) => ({
+            where: (f, op, v) => makeQuery(name, [...constraints, fsWhere(f, op, v)]),
+            limit: (n) => makeQuery(name, [...constraints, fsLimit(n)]),
+            get: async () => wrapQuerySnap(await fsGetDocs(constraints.length ? fsQuery(fsCollection(mdb, name), ...constraints) : fsCollection(mdb, name)))
+        });
+        const db = {
+            collection: (name) => ({
+                ...makeQuery(name, []),
+                doc: (id) => {
+                    const ref = fsDoc(mdb, name, String(id));
+                    return {
+                        id: ref.id,
+                        get: async () => wrapDocSnap(await fsGetDoc(ref)),
+                        set: (data, opts) => opts ? fsSetDoc(ref, data, opts) : fsSetDoc(ref, data),
+                        update: (data) => fsUpdateDoc(ref, data),
+                        delete: () => fsDeleteDoc(ref)
+                    };
+                }
+            })
+        };
+
+        // انتظر استرجاع جلسة تسجيل الدخول قبل أول قراءة (وإلا request.auth = null والرولز بترفض)
+        const authReady = new Promise((resolve) => {
+            const unsub = onAuthStateChanged(auth, (user) => { unsub(); resolve(user); });
+        });
         // تطبيق ثانوي لإنشاء حسابات الطلاب حتى لا تتبدل جلسة الأدمن الحالية بجلسة الطالب الجديد
         const creatorApp = initializeApp(firebaseConfig, 'student-creator');
         const creatorAuth = getAuth(creatorApp);
@@ -494,6 +520,8 @@
         initCloudManagement();
 
         async function initCloudManagement() {
+            const user = await authReady;
+            if (!user) { window.location.href = 'login.html'; return; }
             await fetchStudentsFromCloud();
             await fetchAdminsFromCloud();
         }
