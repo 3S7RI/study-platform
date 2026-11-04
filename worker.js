@@ -365,8 +365,15 @@ export default {
         body: JSON.stringify({
           sender: { name: "منصة رحلة دراسية", email: env.SENDER_EMAIL },
           to: [{ email }],
+          replyTo: { name: "منصة رحلة دراسية", email: env.REPLY_TO_EMAIL || env.SENDER_EMAIL },
           subject,
           htmlContent: html,
+          // نسخة نصية بسيطة: غيابها من أشهر أسباب السبام
+          textContent: (type === "admin"
+            ? `كود التحقق الإداري الخاص بك في منصة رحلة دراسية: ${code}`
+            : `كود التحقق الخاص بك في منصة رحلة دراسية: ${code}`)
+            + `\nالكود صالح لمدة 10 دقائق. لا تشاركه مع أي شخص.\nلو ماطلبتش الكود ده تجاهل الرسالة.`,
+          tags: ["otp"],
         }),
       });
       if (!r.ok) {
