@@ -966,7 +966,37 @@
             soundEnabled: localStorage.getItem('chat_sound_enabled') !== 'false'
         };
 
-        localStorage.setItem('chat_uid', currentUser.uid);
+        /* ===== هوية الأدمن في الشات: من admins بس، مش من بيانات أي طالب (حتى لو الإيميل واحد) ===== */
+        if (currentUser.isAdmin) {
+            let _a = null;
+            try { _a = JSON.parse(sessionStorage.getItem('adminUser') || 'null'); } catch (e) {}
+            const _em = String(sessionStorage.getItem('adminEmail') || (_a && _a.email) || '').toLowerCase().trim();
+            currentUser.uid = 'ADMIN-' + PS.safeId(sessionStorage.getItem('currentAdminId') || (_a && _a.adminId) || _em || 'admin');
+            currentUser.studentId = '';
+            currentUser.email = _em;
+            currentUser.phone = (_a && _a.phone) || '';
+            currentUser.name = (_a && (_a.name || _a.fullname)) || 'مشرف المنصة';
+            currentUser.avatar = (_a && (_a.profileImage || _a.avatar)) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e293b'/><circle cx='50' cy='38' r='18' fill='%236366f1'/><path d='M22 86c4-18 18-26 28-26s24 8 28 26z' fill='%236366f1'/></svg>";
+            currentUser.points = 5000;
+            currentUser.rank = 'legendary';
+            currentUser.frame = 'frame-legendary';
+        } else {
+            localStorage.setItem('chat_uid', currentUser.uid);
+        }
+
+        async function loadAdminChatIdentity() {
+            try {
+                if (!currentUser.email) return;
+                const s = await db.collection('admins').doc(currentUser.email).get();
+                if (s.exists) {
+                    const d = s.data();
+                    currentUser.name = d.name || d.fullname || currentUser.name;
+                    currentUser.avatar = d.profileImage || d.avatar || currentUser.avatar;
+                    currentUser.phone = d.phone || currentUser.phone;
+                    try { sessionStorage.setItem('adminUser', JSON.stringify(d)); } catch (e) {}
+                }
+            } catch (e) { console.warn('تعذر جلب بيانات الأدمن للشات:', e); }
+        }
 
 
         /* ===== فحص نوع الطالب: الولاد في شات الولاد والبنات في شات البنات ===== */
@@ -996,6 +1026,13 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initTheme();
+            if (currentUser.isAdmin) {
+                const _h = document.querySelector('.home-btn');
+                if (_h) {
+                    _h.setAttribute('href', 'admin-chats.html');
+                    _h.childNodes.forEach(n => { if (n.nodeType === 3 && n.textContent.trim()) n.textContent = ' إدارة الشات'; });
+                }
+            }
             checkAdminPrivileges();
             if (!chatGenderOk) { showGenderBlock(); return; }
             initRoomsBar();
@@ -1018,6 +1055,7 @@
 
         async function syncStudentCloudProfile() {
             try {
+                if (currentUser.isAdmin) { await loadAdminChatIdentity(); updateUserProfileUI(); return; }
                 let emailKey = currentUser.email || localStorage.getItem('currentStudentEmail');
                 let docSnap = null;
                 if(emailKey) {
