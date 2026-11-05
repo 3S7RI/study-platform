@@ -832,7 +832,14 @@
                     if (!codeSnap.exists()) throw new Error('INVALID');
                     if (!stSnap.exists()) throw new Error('NO_STUDENT');
                     const c = codeSnap.data();
-                    if (c.isUsed) throw new Error('USED');
+                    // كود عام (هدية لكل الطلاب): كل طالب يفعّله مرة واحدة فقط، ومفيش isUsed إلا لو وصل لأقصى عدد
+                    const isPublic = c.multiUse === true;
+                    const claimedArr = Array.isArray(stSnap.data().claimedCodes) ? stSnap.data().claimedCodes.map(String) : [];
+                    if (isPublic) {
+                        if (claimedArr.includes(String(codeSnap.id))) throw new Error('CLAIMED');
+                        const cap = Number(c.maxUses) || 0;
+                        if (cap > 0 && (Number(c.usedCount) || 0) >= cap) throw new Error('USED');
+                    } else if (c.isUsed) throw new Error('USED');
                     if ((Number(stSnap.data().codeLockUntil) || 0) > Date.now()) throw new Error('LOCKED');
 
                     let days = Number(c.durationDays);
@@ -853,8 +860,13 @@
                     const expiry = new Date(base + days * 86400000);
                     newExpiryIso = expiry.toISOString();
 
-                    tx.update(codeRef, { isUsed: true, usedBy: myEmailKey(), usedByStudentId: myStudentId(), usedAt: new Date().toISOString() });
-                    tx.update(studentRef, { isSubscribed: true, subscriptionExpiry: newExpiryIso, accountType: 'vip', codeAttempts: 0, codeLockUntil: 0, subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: days, lastPlanSource: 'code', lastUpdated: new Date().toISOString() });
+                    if (isPublic) {
+                        const nUsed = (Number(c.usedCount) || 0) + 1, capN = Number(c.maxUses) || 0;
+                        tx.update(codeRef, Object.assign({ usedCount: nUsed, lastUsedAt: new Date().toISOString() }, (capN > 0 && nUsed >= capN) ? { isUsed: true } : {}));
+                    } else {
+                        tx.update(codeRef, { isUsed: true, usedBy: myEmailKey(), usedByStudentId: myStudentId(), usedAt: new Date().toISOString() });
+                    }
+                    tx.update(studentRef, Object.assign({ isSubscribed: true, subscriptionExpiry: newExpiryIso, accountType: 'vip', codeAttempts: 0, codeLockUntil: 0, subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: days, lastPlanSource: isPublic ? 'gift' : 'code', lastUpdated: new Date().toISOString() }, isPublic ? { claimedCodes: claimedArr.concat(String(codeSnap.id)) } : {}));
                 });
 
                 currentStudentData.isSubscribed = true;
@@ -871,6 +883,7 @@
                 console.error(error);
                 const m = String(error && error.message || '');
                 if (m.includes('LOCKED')) { showCodeLock(Number((currentStudentData || {}).codeLockUntil) || (Date.now() + CODE_LOCK_MS)); }
+                else if (m.includes('CLAIMED')) showToast('إنت فعّلت الكود ده قبل كده، الهدية مرة واحدة لكل طالب.', '🎁');
                 else if (m.includes('USED')) await failed('عذراً، هذا الكود تم استخدامه من قبل!');
                 else if (m.includes('INVALID')) await failed('كود التفعيل غير صحيح!');
                 else showToast('حدث خطأ أثناء تفعيل الكود.', '❌');

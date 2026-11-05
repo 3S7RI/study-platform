@@ -166,6 +166,11 @@
                     <option value="1095">3 سنوات</option>
                     <option value="9999">سارية بلا حدود</option>
                 </select>
+                <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-main);cursor:pointer" title="كود واحد يفعّله كل طالب مرة واحدة">
+                    <input type="checkbox" id="publicCodeChk"> كود عام لكل الطلاب
+                </label>
+                <input type="text" id="publicCodeText" class="input-num" style="width:130px;text-transform:uppercase" maxlength="24" placeholder="الكود (اختياري)" title="للكود العام فقط: اتركه فاضي لتوليد كود تلقائي">
+                <input type="number" id="publicMaxUses" class="input-num" style="width:120px" min="1" placeholder="أقصى عدد طلاب" title="للكود العام فقط: فاضي = بلا حد">
                 <button onclick="generateVipCodes()" class="btn-generate">توليد الأكواد <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#fbbf24' aria-hidden='true'><path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/></svg></button>
             </div>
         </div>
@@ -218,7 +223,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, doc, setDoc, deleteDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -251,12 +256,36 @@
             return `VIP-${pick(0)}-${pick(4)}-${pick(8)}`;
         }
 
+        // كود عام (هدية): كود واحد يفعّله كل طالب مرة واحدة، مدة الاشتراك = المدة المختارة
+        async function generatePublicCode(days) {
+            let code = (document.getElementById('publicCodeText').value || '').trim().toUpperCase();
+            if (code && !/^[A-Z0-9_-]{4,24}$/.test(code)) { alert("الكود لازم يكون 4 إلى 24 حرف إنجليزي/أرقام/شرطة بدون مسافات."); return; }
+            if (!code) code = generateComplexCode();
+            const maxUses = Math.max(0, parseInt(document.getElementById('publicMaxUses').value) || 0);
+            try {
+                const dup = await getDocs(query(collection(db, "activationCodes"), where("code", "==", code)));
+                if (!dup.empty) { alert("الكود ده موجود قبل كده، اختار كود تاني."); return; }
+                const exp = new Date(); exp.setDate(exp.getDate() + days);
+                await setDoc(doc(db, "activationCodes", `gift_${Date.now()}_${Math.floor(Math.random()*1000)}`), {
+                    code, isUsed: false, usedBy: null, multiUse: true, maxUses, usedCount: 0,
+                    durationDays: days, createdAt: serverTimestamp(), expiresAt: Timestamp.fromDate(exp)
+                });
+                document.getElementById('publicCodeText').value = '';
+                alert("تم إنشاء الكود العام: " + code + "\nكل طالب يفعّله مرة واحدة ويحصل على " + days + " يوم." + (maxUses ? "\nأقصى عدد طلاب: " + maxUses : ""));
+                loadCodesTable();
+            } catch (error) {
+                console.error(error);
+                alert("حدث خطأ أثناء إنشاء الكود العام.\n" + ((error && (error.code || error.message)) || ""));
+            }
+        }
+
         // دالة توليد الأكواد مع الصلاحية المختارة
         window.generateVipCodes = async function() {
             const countInput = document.getElementById('codesCountInput');
             const validitySelect = document.getElementById('codeValiditySelect');
             const count = parseInt(countInput.value) || 10;
             const validityDays = parseInt(validitySelect.value) || 365;
+            if (document.getElementById('publicCodeChk').checked) { return generatePublicCode(validityDays); }
             
             if (count < 1 || count > 50) {
                 alert("يرجى إدخال عدد ما بين 1 و 50.");
@@ -362,6 +391,11 @@
                     
                     let usedByText = item.usedBy ? item.usedBy : '<span style="color: var(--text-muted);">---</span>';
                     
+                    if (item.multiUse) {
+                        statusBadge = '<span class="badge-status ' + (item.isUsed ? 'badge-used' : 'badge-available') + '">عام · ' + (Number(item.usedCount) || 0) + (Number(item.maxUses) ? '/' + Number(item.maxUses) : '') + ' طالب</span>';
+                        usedByText = '<span style="color: var(--text-muted);">كود عام</span>';
+                    }
+
                     let dateFormatted = item.createdAt?.toMillis 
                         ? new Date(item.createdAt.toMillis()).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' }) 
                         : 'منذ قليل';
