@@ -41,8 +41,6 @@
                     { t: 'كراسة الأخطاء' },
                     { t: 'إحصائيات كاملة' },
                     { t: 'منافسات الـ VIP' },
-                    { t: 'تجميد الستريك مرة في الشهر', soon: true },
-                    { t: 'امتحان تلقائي من أخطائك', soon: true },
                     { t: 'دعم بأولوية' }
                 ]
             },
@@ -58,12 +56,18 @@
                     { t: 'كراسة الأخطاء' },
                     { t: 'إحصائيات كاملة + مقارنة بالمتصدرين' },
                     { t: 'منافسات الـ VIP' },
-                    { t: 'تجميد الستريك 3 مرات في الشهر', soon: true },
-                    { t: 'امتحان تلقائي من أخطائك', soon: true },
                     { t: 'دعم مباشر على واتساب' }
                 ]
             }
         },
+        // باقة الشلة: مجموعة طلاب (الليدر + أصحابه) بتشتري Pro بسعر مخفّض للفرد. كل عضو بياخد مميزات Pro كاملة.
+        // الأسعار تقدر تتعدل من config/plans (حقل groups) من غير تعديل الكود.
+        groups: [
+            { id: 'grp3_28', tier: 'pro', size: 3, days: 28, price: 249, label: 'شلة 3 طلاب - 28 يوم' },
+            { id: 'grp5_28', tier: 'pro', size: 5, days: 28, price: 379, label: 'شلة 5 طلاب - 28 يوم' },
+            { id: 'grp3_90', tier: 'pro', size: 3, days: 90, price: 649, label: 'شلة 3 طلاب - 3 شهور' },
+            { id: 'grp5_90', tier: 'pro', size: 5, days: 90, price: 949, label: 'شلة 5 طلاب - 3 شهور' }
+        ],
         options: [
             { id: 'plus_7',    tier: 'plus',  days: 7,   price: 25,  label: '7 أيام' },
             { id: 'plus_28',   tier: 'plus',  days: 28,  price: 79,  label: '28 يوم' },
@@ -152,7 +156,16 @@
             return Math.round((1 - opt.price / ref) * 100);
         },
         optionsOf: function (tier) { return cfg.options.filter(function (o) { return o.tier === tier; }).sort(function (a, b) { return a.days - b.days; }); },
-        optionById: function (id) { return cfg.options.filter(function (o) { return o.id === id; })[0] || null; },
+        optionById: function (id) { return cfg.options.filter(function (o) { return o.id === id; })[0] || P.groupById(id); },
+        groups: function () { return (cfg.groups || []).slice().sort(function (a, b) { return a.size - b.size || a.days - b.days; }); },
+        groupById: function (id) { return (cfg.groups || []).filter(function (o) { return o.id === id; })[0] || null; },
+        /** نسبة توفير الشلة مقارنة بشراء كل عضو لنفسه Pro بنفس المدة (بسعر الـ 28 يوم الأساسي) */
+        groupDiscountOf: function (g) {
+            var t = cfg.tiers[g.tier]; if (!t) return 0;
+            var same = cfg.options.filter(function (o) { return o.tier === g.tier && o.days === g.days; })[0];
+            var ind = (same ? Number(same.price) : (Number(t.base28) / 28) * g.days) * g.size;
+            return ind > g.price ? Math.round((1 - g.price / ind) * 100) : 0;
+        },
         daysText: function (n) { return n === 7 ? '7 أيام' : n === 28 ? '28 يوم' : n === 90 ? '3 شهور' : n === 150 ? 'حتى آخر الترم' : n + ' يوم'; },
 
         /**

@@ -738,6 +738,7 @@
                 <div class="profile-actions-bar">
                     <button class="profile-action-btn" onclick="openSettingsModal()">${ic('settings')} <span>التعديل</span></button>
                     <button class="profile-action-btn" onclick="openFriendsModal()">${ic('users')} <span>الأصدقاء</span></button>
+                    <button class="profile-action-btn" onclick="sendParentReport()">${ic('inbox')} <span>تقرير لولي الأمر</span></button>
                     <button class="profile-action-btn" onclick="openFriendRequestsModal()" style="position:relative;">
                         ${ic('inbox')} <span>الطلبات</span>
                         <span class="badge-dot" id="requestsBadgeDot">0</span>
@@ -1438,5 +1439,43 @@
             }
         };
     </script>
+
+<script type="module">
+import { getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { createReport, messageText, whatsappLink, normalizeEgyptPhone } from "./parent-report-service.js";
+
+// زر «تقرير لولي الأمر»: بيجهّز التقرير ويفتح واتساب لولي الأمر برسالة جاهزة (الطالب بيضغط إرسال بس)
+window.sendParentReport = async function () {
+    const btnToast = (m) => {
+        const t = document.createElement('div');
+        t.textContent = m;
+        t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#f8fafc;padding:12px 18px;border-radius:12px;z-index:99999;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center';
+        document.body.appendChild(t); setTimeout(() => t.remove(), 2800);
+    };
+    try {
+        const db = getFirestore(getApp());
+        const email = String(PS.email() || '').toLowerCase();
+        const snap = await getDoc(doc(db, 'students', email));
+        if (!snap.exists()) { btnToast('مش لاقي بياناتك، سجّل دخول تاني.'); return; }
+        const st = snap.data();
+        let phone = st.parentPhone || st.guardianPhone || '';
+        if (!normalizeEgyptPhone(phone)) {
+            const typed = prompt('اكتب رقم واتساب ولي أمرك (مثال 01012345678):');
+            if (!typed) return;
+            if (!normalizeEgyptPhone(typed)) { btnToast('الرقم غير صحيح، لازم 11 رقم بيبدأ بـ 01'); return; }
+            phone = typed.replace(/\D/g, '');
+            await updateDoc(doc(db, 'students', email), { parentPhone: phone, guardianPhone: phone });
+        }
+        btnToast('بنجهّز التقرير...');
+        const { url, snapshot } = await createReport(db, email, st);
+        const link = whatsappLink(phone, messageText(snapshot, url));
+        window.open(link, '_blank');
+    } catch (e) {
+        console.error(e);
+        btnToast('حصل خطأ، جرّب تاني.');
+    }
+};
+</script>
 </body>
 </html>

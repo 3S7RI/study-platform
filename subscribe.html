@@ -109,10 +109,16 @@
         <h2>1️⃣ اختار الباقة والمدة</h2>
         <div id="promoBar"></div>
         <div class="tiers" id="plans"></div>
+        <div id="groupBox"></div>
         <p class="hint" id="upgradeHint"></p>
     </div>
 
     <div class="card" id="payCard" style="display:none;">
+        <div id="groupMembersBox" style="display:none;margin-bottom:14px;">
+            <h2>👥 أصحابك في الشلة</h2>
+            <p class="hint" style="margin-top:0">اكتب رقم الـ ID بتاع كل صاحب (مثال STU-0123). هتلاقيه في بروفايله. كل واحد لازم يكون عنده حساب على المنصة. هتتفعل لهم الباقة كلهم مع بعض بعد مراجعة الدفع.</p>
+            <div id="groupMembersInputs"></div>
+        </div>
         <h2>2️⃣ اختار طريقة الدفع</h2>
         <div class="methods" id="methods"></div>
         <label for="couponInput">عندك كود خصم؟ (اختياري)</label>
@@ -196,7 +202,7 @@
         $('promoBar').innerHTML = promoOn ? `<div class="promo-bar">${PS.esc(pr.label || 'عرض خاص')} — خصم ${Number(pr.percent)}%${pr.endsAt ? ' لحد ' + new Date(Number(pr.endsAt)).toLocaleDateString('ar-EG', { dateStyle: 'medium' }) : ''}</div>` : '';
         $('plans').innerHTML = PL.tiers().map(k => {
             const t = PL.tier(k);
-            const feats = (t.features || []).map(f => `<li class="${f.soon ? 'soon' : ''}">${PS.esc(f.t)}${f.soon ? '<em>قريباً</em>' : ''}</li>`).join('');
+            const feats = (t.features || []).filter(f => !f.soon).map(f => `<li>${PS.esc(f.t)}</li>`).join('');
             const opts = PL.optionsOf(k).map(o => {
                 const p = priceFor(o), dsc = PL.discountOf(o);
                 const hasCut = p.price < o.price;
@@ -209,7 +215,34 @@
                 <h3 style="color:${t.color}">${PS.esc(t.name)}</h3>
                 <ul>${feats}</ul>${opts}</div>`;
         }).join('');
+        renderGroups();
         updateUpgradeHint();
+    }
+
+    function renderGroups() {
+        const gs = PL.groups(); const box = $('groupBox');
+        if (!box) return;
+        if (!gs.length) { box.innerHTML = ''; return; }
+        const t = PL.tier(gs[0].tier) || {};
+        box.innerHTML = `<div class="tier" style="margin-top:14px;border-color:${t.color || '#a78bfa'}">
+            <span class="pop">وفّروا مع بعض 👥</span>
+            <h3 style="color:${t.color || '#a78bfa'}">باقة الشلة</h3>
+            <p class="hint" style="margin:0 0 8px">ذاكروا مع أصحابكم: كل واحد في الشلة بياخد مميزات ${PS.esc(t.name || 'Pro')} كاملة بسعر أقل للفرد.</p>
+            ${gs.map(g => {
+                const p = priceFor(g), per = Math.round(p.price / g.size), dsc = PL.groupDiscountOf(g);
+                return `<button type="button" class="opt ${selected && selected.id === g.id ? 'selected' : ''}" onclick="selectPlan('${g.id}')">
+                    <span>${PS.esc(g.label)}<span class="off">${per} ج للفرد${dsc ? ' • وفّر ' + dsc + '%' : ''}</span></span>
+                    <span class="p">${p.price} ج</span></button>`;
+            }).join('')}</div>`;
+    }
+
+    function renderMembers() {
+        const wrap = $('groupMembersBox'); if (!wrap) return;
+        if (!selected || !selected.size) { wrap.style.display = 'none'; return; }
+        wrap.style.display = 'block';
+        const old = Array.from(document.querySelectorAll('.gm-in')).map(x => x.value);
+        $('groupMembersInputs').innerHTML = Array.from({ length: selected.size - 1 }, (_, i) =>
+            `<input type="text" class="gm-in" dir="ltr" maxlength="12" placeholder="ID صاحبك رقم ${i + 1} (STU-0000)" autocomplete="off" style="text-transform:uppercase;margin-bottom:8px;" value="${PS.esc(old[i] || '')}">`).join('');
     }
 
     function updateUpgradeHint() {
@@ -243,7 +276,9 @@
     function refreshOrder() {
         const p = priceFor(selected);
         $('payAmount').textContent = p.price + ' جنيه';
-        $('orderSummary').textContent = 'باقة ' + PL.tier(selected.tier).name + ' • ' + selected.label;
+        $('orderSummary').textContent = selected.size
+            ? 'باقة الشلة (' + selected.size + ' طلاب) • ' + PL.tier(selected.tier).name + ' • ' + PL.daysText(selected.days)
+            : 'باقة ' + PL.tier(selected.tier).name + ' • ' + selected.label;
     }
 
     function methodList() {
@@ -292,6 +327,7 @@
     window.selectPlan = function (id) {
         selected = PL.optionById(id);
         renderPlans();
+        renderMembers();
         refreshOrder();
         renderMethods();
         $('payCard').style.display = hasPending ? 'none' : 'block';
@@ -384,13 +420,30 @@
             const chk = await getDocs(query(collection(db, 'subscriptionRequests'), where('studentId', '==', sid), where('status', '==', 'pending'), limit(1)));
             if (!chk.empty) { renderPending({ ...chk.docs[0].data() }); return; }
 
+            // باقة الشلة: نتأكد من الأصحاب (موجودين، مش مكررين، مش أنت)
+            let groupMembers = [];
+            if (selected.size) {
+                const ids = Array.from(document.querySelectorAll('.gm-in')).map(x => x.value.trim().toUpperCase());
+                if (ids.length !== selected.size - 1 || ids.some(x => !/^STU-\d{3,}$/.test(x))) { fail('اكتب ID كل أصحابك بالشكل الصحيح (مثال STU-0123).'); return; }
+                if (new Set(ids).size !== ids.length || ids.includes(String(sid).toUpperCase())) { fail('الـ IDs لازم تكون مختلفة، ومتكتبش الـ ID بتاعك.'); return; }
+                for (const id of ids) {
+                    const q = await getDocs(query(collection(db, 'students'), where('studentId', '==', id), limit(1)));
+                    if (q.empty) { fail('مفيش طالب بالـ ID ده: ' + id); return; }
+                    const m = q.docs[0].data();
+                    groupMembers.push({ studentId: id, email: String(q.docs[0].id).toLowerCase(), name: String(m.fullName || m.name || '').slice(0, 60) });
+                }
+            }
+
             const req = {
+                isGroup: !!selected.size,
+                groupSize: selected.size || 0,
+                groupMembers: groupMembers,
                 studentId: sid,
                 email: PS.email(),
                 studentName: (student && (student.fullName || student.name)) || '',
                 plan: selected.id,
                 planTier: selected.tier,
-                planName: PL.tier(selected.tier).name + ' - ' + selected.label,
+                planName: selected.size ? ('شلة ' + selected.size + ' - ' + PL.tier(selected.tier).name + ' - ' + PL.daysText(selected.days)) : (PL.tier(selected.tier).name + ' - ' + selected.label),
                 amount: priceFor(selected).price,
                 originalAmount: selected.price,
                 couponCode: coupon ? coupon.code : '',

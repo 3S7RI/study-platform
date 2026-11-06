@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقارير أولياء الأمور</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.08); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--gold); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.9rem; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        input:focus { border-color: var(--gold); }
+        .btn { border: none; border-radius: 8px; padding: 7px 14px; font-weight: 800; cursor: pointer; color: #fff; }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-ok { background: var(--success); } .btn-no { background: var(--danger); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); cursor: pointer; font-weight: 700; }
+        .tab.active { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
+        .req { border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--th-bg); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .req .info { line-height: 1.9; }
+        .req .info b { color: var(--gold); }
+        .req .acts { display: flex; gap: 8px; align-items: center; }
+        .badge { padding: 2px 8px; border-radius: 15px; font-size: 0.7rem; font-weight: 800; }
+        .b-pending { background: rgba(251,191,36,0.15); color: var(--gold); } .b-approved { background: rgba(16,185,129,0.15); color: var(--success); } .b-rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .muted { color: var(--text-muted); }
+        .empty { text-align: center; padding: 24px; color: var(--text-muted); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; z-index: 99; display: none; }
+    </style>
+    <style>
+        .st { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border:1px solid var(--border-color); border-radius:12px; padding:10px 12px; margin-bottom:8px; background:var(--th-bg); }
+        .st .meta { line-height:1.8; }
+        .btn-wa { background:#25d366; color:#fff; } .btn-wa:disabled { background:#64748b; }
+        .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:.7rem; font-weight:800; }
+        .p-ok { background:rgba(16,185,129,.15); color:var(--success); } .p-no { background:rgba(239,68,68,.15); color:var(--danger); }
+        .queue { border:2px solid #25d366; }
+        .queue .big { font-size:1.1rem; font-weight:900; margin:6px 0; }
+    </style>
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <a href="admin.html" class="back-btn">رجوع</a>
+        <div class="title">تقارير أولياء الأمور (واتساب)</div>
+    </div>
+
+    <div class="card">
+        <h3>إزاي بتشتغل؟</h3>
+        <p style="line-height:1.9;color:var(--text-muted)">لكل طالب بيتجهّز تقرير بسيط (حالة بالألوان + وقت المذاكرة + الامتحانات) برابط يتفتح من غير تسجيل دخول وفيه زر «اسمع التقرير» بصوت. بالضغط على زرار واتساب بيفتح لك المحادثة مع ولي الأمر والرسالة جاهزة، وأنت بتضغط إرسال بس. واتساب مبيسمحش بإرسال أوتوماتيك كامل من غير خدمة WhatsApp Business API المدفوعة، فالإرسال بيتم بضغطة منك.</p>
+    </div>
+
+    <div class="card">
+        <div class="grid">
+            <div><label>بحث بالاسم أو الـ ID أو الرقم</label><input type="text" id="q" placeholder="اكتب للبحث..." oninput="render()"></div>
+            <div><label>عرض</label>
+                <select id="flt" onchange="render()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);background:var(--th-bg);color:var(--text-main)">
+                    <option value="all">كل الطلاب</option>
+                    <option value="has">اللي عندهم رقم ولي أمر</option>
+                    <option value="no">اللي ناقصهم الرقم</option>
+                    <option value="week">ما اتبعتلهمش من أسبوع</option>
+                </select>
+            </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-wa" onclick="startQueue()">▶ ابدأ إرسال بالدور (للمعروضين)</button>
+            <span class="muted" id="count" style="align-self:center;color:var(--text-muted)"></span>
+        </div>
+    </div>
+
+    <div class="card queue" id="queueCard" style="display:none">
+        <h3>الإرسال بالدور</h3>
+        <div class="big" id="qName"></div>
+        <div style="color:var(--text-muted)" id="qInfo"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-wa" id="qSend" onclick="queueSend()">📲 افتح واتساب وجهّز الرسالة</button>
+            <button class="btn" style="background:#64748b" onclick="queueSkip()">تخطي</button>
+            <button class="btn btn-no" onclick="stopQueue()">إيقاف</button>
+        </div>
+    </div>
+
+    <div class="card"><div id="list"><div class="empty">جاري تحميل الطلاب...</div></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { createReport, messageText, whatsappLink, normalizeEgyptPhone } from "./parent-report-service.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const esc = (t) => String(t === undefined || t === null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    const WEEK = 7 * 86400000;
+
+    let students = [];   // { email, ...data }
+    let shown = [];
+    let queue = [], qi = 0;
+
+    async function load() {
+        try {
+            const snap = await getDocs(collection(db, 'students'));
+            students = snap.docs.map(d => ({ email: d.id, ...d.data() })).filter(s => s.role !== 'admin');
+            students.sort((a, b) => String(a.studentId || '').localeCompare(String(b.studentId || '')));
+        } catch (e) { console.error(e); $('list').innerHTML = '<div class="empty">تعذر تحميل الطلاب.</div>'; return; }
+        render();
+    }
+
+    window.render = function () {
+        const q = $('q').value.trim().toLowerCase(), f = $('flt').value;
+        shown = students.filter(s => {
+            const ph = s.parentPhone || s.guardianPhone || '';
+            const ok = !!normalizeEgyptPhone(ph);
+            if (f === 'has' && !ok) return false;
+            if (f === 'no' && ok) return false;
+            if (f === 'week' && (!ok || (s.parentReportPrev && Date.now() - s.parentReportPrev.at < WEEK))) return false;
+            if (!q) return true;
+            return [s.fullName, s.name, s.studentId, ph, s.email].some(x => String(x || '').toLowerCase().includes(q));
+        });
+        $('count').textContent = shown.length + ' طالب';
+        if (!shown.length) { $('list').innerHTML = '<div class="empty">مفيش نتايج.</div>'; return; }
+        $('list').innerHTML = shown.slice(0, 200).map(s => {
+            const ph = s.parentPhone || s.guardianPhone || '';
+            const ok = !!normalizeEgyptPhone(ph);
+            const last = s.parentReportPrev && s.parentReportPrev.at ? new Date(s.parentReportPrev.at).toLocaleDateString('ar-EG', { dateStyle: 'medium' }) : 'لسه';
+            return `<div class="st"><div class="meta"><b>${esc(s.fullName || s.name || 'طالب')}</b> <span style="color:var(--text-muted)">(${esc(s.studentId)})</span><br>
+                ولي الأمر: <b dir="ltr">${esc(ph) || '—'}</b> <span class="pill ${ok ? 'p-ok' : 'p-no'}">${ok ? 'رقم صالح' : 'ناقص/غلط'}</span><br>
+                <span style="color:var(--text-muted)">آخر تقرير: ${last}</span></div>
+                <button class="btn btn-wa" ${ok ? '' : 'disabled'} onclick="sendOne('${esc(s.email)}', this)">📲 واتساب</button></div>`;
+        }).join('') + (shown.length > 200 ? '<div class="empty">معروض أول 200، استخدم البحث.</div>' : '');
+    };
+
+    async function prepare(email) {
+        const s = students.find(x => x.email === email);
+        const { url, snapshot } = await createReport(db, email, s);
+        s.parentReportPrev = { studySeconds: Number(s.studySeconds) || 0, at: Date.now() };
+        return whatsappLink(s.parentPhone || s.guardianPhone, messageText(snapshot, url));
+    }
+
+    window.sendOne = async function (email, btn) {
+        btn.disabled = true;
+        try {
+            const w = window.open('', '_blank');   // نفتح النافذة فوراً عشان المتصفح ميمنعهاش
+            const link = await prepare(email);
+            if (w) w.location.href = link; else location.href = link;
+            render();
+        } catch (e) { console.error(e); toast('حصل خطأ أثناء تجهيز التقرير'); btn.disabled = false; }
+    };
+
+    window.startQueue = function () {
+        queue = shown.filter(s => normalizeEgyptPhone(s.parentPhone || s.guardianPhone)).map(s => s.email);
+        if (!queue.length) { toast('مفيش طلاب بأرقام صالحة في العرض الحالي'); return; }
+        qi = 0; showQueue();
+    };
+    function showQueue() {
+        if (qi >= queue.length) { $('queueCard').style.display = 'none'; toast('خلصت القائمة'); render(); return; }
+        const s = students.find(x => x.email === queue[qi]);
+        $('queueCard').style.display = 'block';
+        $('qName').textContent = (qi + 1) + ' / ' + queue.length + ' — ' + (s.fullName || s.name || '');
+        $('qInfo').textContent = 'ولي الأمر: ' + (s.parentPhone || s.guardianPhone);
+        $('qSend').disabled = false;
+    }
+    window.queueSend = async function () {
+        $('qSend').disabled = true;
+        try {
+            const w = window.open('', '_blank');
+            const link = await prepare(queue[qi]);
+            if (w) w.location.href = link; else location.href = link;
+            qi++; showQueue();
+        } catch (e) { console.error(e); toast('حصل خطأ، جرّب تاني'); $('qSend').disabled = false; }
+    };
+    window.queueSkip = function () { qi++; showQueue(); };
+    window.stopQueue = function () { $('queueCard').style.display = 'none'; render(); };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        load();
+    });
+</script>
+</body>
+</html>

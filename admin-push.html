@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إشعارات الموبايل</title>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --hover-bg: rgba(99,102,241,0.08); --shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.82rem; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 10px; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 8px 15px; border-radius: 14px; margin-bottom: 14px; border: 1px solid var(--border-color); box-shadow: var(--shadow); }
+        .back-btn { text-decoration: none; color: var(--text-main); background: var(--th-bg); padding: 5px 12px; border-radius: 10px; border: 1px solid var(--border-color); font-weight: 700; font-size: 0.78rem; }
+        .title { font-weight: 800; color: var(--gold); font-size: 0.9rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 15px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .card h3 { font-size: 0.9rem; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        label { display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; font-weight: 700; }
+        input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); outline: none; }
+        input:focus { border-color: var(--gold); }
+        .btn { border: none; border-radius: 8px; padding: 7px 14px; font-weight: 800; cursor: pointer; color: #fff; }
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #fbbf24, #d97706); color: #1e293b; }
+        .btn-ok { background: var(--success); } .btn-no { background: var(--danger); }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        .tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); cursor: pointer; font-weight: 700; }
+        .tab.active { border-color: var(--gold); background: rgba(251,191,36,0.15); color: var(--gold); }
+        .req { border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: var(--th-bg); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .req .info { line-height: 1.9; }
+        .req .info b { color: var(--gold); }
+        .req .acts { display: flex; gap: 8px; align-items: center; }
+        .badge { padding: 2px 8px; border-radius: 15px; font-size: 0.7rem; font-weight: 800; }
+        .b-pending { background: rgba(251,191,36,0.15); color: var(--gold); } .b-approved { background: rgba(16,185,129,0.15); color: var(--success); } .b-rejected { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .muted { color: var(--text-muted); }
+        .empty { text-align: center; padding: 24px; color: var(--text-muted); }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; z-index: 99; display: none; }
+    </style>
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <a href="admin.html" class="back-btn">رجوع</a>
+        <div class="title">إشعارات الموبايل (Push)</div>
+    </div>
+
+    <div class="card">
+        <h3>1) إعداد مرة واحدة</h3>
+        <p style="color:var(--text-muted);line-height:1.9;margin-bottom:10px">من Firebase Console → Project settings → Cloud Messaging → Web Push certificates → Generate key pair، وانسخ المفتاح العام. وارفع <b>push-worker.js</b> كـ Worker جديد على Cloudflare (والخطوات في PUSH-SETUP.md) وحط رابطه هنا.</p>
+        <div class="grid">
+            <div><label>مفتاح VAPID العام</label><input type="text" id="vapid" dir="ltr" placeholder="B...."></div>
+            <div><label>رابط Worker الإشعارات</label><input type="text" id="wurl" dir="ltr" placeholder="https://studytrip-push.xxx.workers.dev"></div>
+        </div>
+        <div style="margin-top:10px"><button class="btn btn-gold" onclick="saveCfg()">حفظ الإعدادات</button> <span id="tokCount" style="color:var(--text-muted);margin-inline-start:10px"></span></div>
+    </div>
+
+    <div class="card">
+        <h3>2) ابعت إشعار</h3>
+        <div class="grid">
+            <div><label>العنوان</label><input type="text" id="t" maxlength="80" placeholder="مثال: امتحان جديد نزل 📝"></div>
+            <div><label>الرابط اللي يفتح (اختياري)</label><input type="text" id="u" dir="ltr" placeholder="exams.html"></div>
+        </div>
+        <label style="margin-top:10px">النص</label>
+        <input type="text" id="b" maxlength="200" placeholder="مثال: ادخل حل امتحان الوحدة التانية دلوقتي">
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-no" style="background:#64748b" onclick="send(true)">تجربة على جهازي بس</button>
+            <button class="btn btn-ok" onclick="send(false)">ابعت لكل الطلاب</button>
+        </div>
+        <div id="res" style="margin-top:10px;color:var(--text-muted)"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app), db = getFirestore(app);
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    let tokens = [];   // { token, email }
+
+    async function load() {
+        try {
+            const c = await getDoc(doc(db, 'config', 'push'));
+            if (c.exists()) { $('vapid').value = c.data().vapidKey || ''; $('wurl').value = c.data().workerUrl || ''; }
+        } catch (e) {}
+        try {
+            const s = await getDocs(collection(db, 'pushTokens'));
+            tokens = s.docs.map(d => ({ token: d.id, email: String(d.data().email || '').toLowerCase() }));
+            $('tokCount').textContent = tokens.length + ' جهاز مسجّل';
+        } catch (e) { $('tokCount').textContent = 'تعذر قراءة الأجهزة'; }
+    }
+
+    window.saveCfg = async function () {
+        try {
+            await setDoc(doc(db, 'config', 'push'), { vapidKey: $('vapid').value.trim(), workerUrl: $('wurl').value.trim().replace(/\/$/, '') }, { merge: true });
+            toast('تم الحفظ');
+        } catch (e) { toast('فشل الحفظ'); }
+    };
+
+    window.send = async function (testOnly) {
+        const title = $('t').value.trim(), body = $('b').value.trim();
+        const wurl = $('wurl').value.trim().replace(/\/$/, '');
+        if (!title) return toast('اكتب العنوان');
+        if (!wurl) return toast('حط رابط الـ Worker الأول');
+        const me = (auth.currentUser.email || '').toLowerCase();
+        const list = (testOnly ? tokens.filter(t => t.email === me) : tokens).map(t => t.token);
+        if (!list.length) return toast(testOnly ? 'مفيش جهاز مسجّل بحسابك. فعّل التنبيهات من main.html الأول.' : 'مفيش أجهزة مسجّلة');
+        if (!testOnly && !confirm('هتبعت الإشعار لـ ' + list.length + ' جهاز. تأكيد؟')) return;
+        $('res').textContent = 'جاري الإرسال...';
+        let sent = 0, failed = 0, dead = [];
+        try {
+            const idToken = await auth.currentUser.getIdToken();
+            for (let i = 0; i < list.length; i += 400) {
+                const r = await fetch(wurl + '/send', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken }, body: JSON.stringify({ title, body, url: $('u').value.trim() || 'main.html', tokens: list.slice(i, i + 400) }) });
+                const j = await r.json();
+                if (!r.ok) throw new Error(j.error || r.status);
+                sent += j.sent; failed += j.failed; dead = dead.concat(j.dead || []);
+            }
+            for (const t of dead) { try { await deleteDoc(doc(db, 'pushTokens', t)); } catch (e) {} }
+            $('res').textContent = 'اتبعت لـ ' + sent + ' جهاز' + (failed ? ' • فشل ' + failed : '') + (dead.length ? ' • اتمسح ' + dead.length + ' جهاز قديم' : '');
+            load();
+        } catch (e) { console.error(e); $('res').textContent = 'فشل الإرسال: ' + (e.message || e); }
+    };
+
+    onAuthStateChanged(auth, (user) => { if (!user) { window.location.href = 'login.html'; return; } load(); });
+</script>
+</body>
+</html>

@@ -157,6 +157,7 @@
                         <span class="badge b-${esc(r.status)}">${STAT[r.status] || ''}</span><br>
                         الباقة: <b>${esc(r.planName)}</b> • المبلغ: <b>${esc(r.amount)} جنيه</b> • المدة: ${esc(r.days)} يوم<br>
                         رقم الدفع: <b dir="ltr">${esc(r.payerPhone)}</b> • الطريقة: ${esc(METHODS[r.method] || r.method)}<br>
+                        ${r.isGroup && Array.isArray(r.groupMembers) ? '<b>👥 شلة ' + esc(r.groupSize) + ' طلاب</b> — الأصحاب: ' + r.groupMembers.map(m => esc(m.name || '') + ' (' + esc(m.studentId) + ')').join('، ') + '<br>' : ''}
                         ${r.reference ? 'المرجع: ' + esc(r.reference) + '<br>' : ''}
                         <span class="muted">${esc(r.email)} • ${fmt(r.createdAtMs)}</span>
                         ${r.reviewNote ? '<br><span class="muted">ملاحظة: ' + esc(r.reviewNote) + '</span>' : ''}
@@ -190,10 +191,23 @@
                 const days = Number(r.days) || 0;
                 if (days < 1) throw new Error('BAD_DAYS');
                 const tier = r.planTier || (PSPlans.optionById(r.plan) || {}).tier || 'plus';
+                // باقة الشلة: نقرأ كل الأعضاء الأول (كل القراءات قبل أي كتابة) وبعدين نفعّل للكل
+                const members = [];
+                if (r.isGroup && Array.isArray(r.groupMembers)) {
+                    for (const m of r.groupMembers) {
+                        const mRef = doc(db, 'students', String(m.email).toLowerCase().trim());
+                        const mSnap = await tx.get(mRef);
+                        if (!mSnap.exists()) throw new Error('NO_MEMBER');
+                        members.push({ ref: mRef, st: mSnap.data() });
+                    }
+                }
                 const g = PSPlans.grant(st, tier, days);
                 const cRef = r.couponCode ? doc(db, 'coupons', String(r.couponCode)) : null;
                 const cSnap = cRef ? await tx.get(cRef) : null;
-                tx.update(stRef, Object.assign(g, { lastPlanName: String(r.planName || ''), lastPlanSource: 'payment', lastUpdated: new Date().toISOString() }));
+                tx.update(stRef, Object.assign(g, { lastPlanName: String(r.planName || ''), lastPlanSource: r.isGroup ? 'group' : 'payment', lastUpdated: new Date().toISOString() }));
+                members.forEach(m => {
+                    tx.update(m.ref, Object.assign(PSPlans.grant(m.st, tier, days), { lastPlanName: String(r.planName || ''), lastPlanSource: 'group', lastUpdated: new Date().toISOString() }));
+                });
                 if (cSnap && cSnap.exists()) tx.update(cRef, { usedCount: (Number(cSnap.data().usedCount) || 0) + 1, lastUsedAt: Date.now() });
                 tx.update(reqRef, { status: 'approved', reviewedAt: Date.now(), reviewedBy: adminName, reviewNote: '' });
             });
@@ -201,7 +215,7 @@
             toast('تم تفعيل الاشتراك');
         } catch (e) {
             const m = String(e && e.message || '');
-            toast(m.includes('DONE') ? 'الطلب اتراجع قبل كده' : m.includes('NO_STUDENT') ? 'مفيش حساب طالب بالإيميل ده' : 'حصل خطأ، جرّب تاني');
+            toast(m.includes('DONE') ? 'الطلب اتراجع قبل كده' : m.includes('NO_STUDENT') ? 'مفيش حساب طالب بالإيميل ده' : m.includes('NO_MEMBER') ? 'واحد من أعضاء الشلة حسابه مش موجود' : 'حصل خطأ، جرّب تاني');
         }
         loadRequests();
     };

@@ -1,0 +1,247 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ============================ دوال مساعدة ============================ */
+    function signedIn() { return request.auth != null && request.auth.token.email != null; }
+    function me() { return request.auth.token.email.lower(); }
+    function adminDoc() { return get(/databases/$(database)/documents/admins/$(me())); }
+    // الأدمن = مسجّل دخول + عنده وثيقة في admins (وحالته مش محظور). الوثائق القديمة من غير status بتتحسب نشطة.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(me()))
+        && !(adminDoc().data.get('status', 'active') in ['banned', 'blocked', 'suspended', 'disabled', 'inactive']);
+    }
+    function isSelf(email) { return signedIn() && me() == email.lower(); }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function num(v, d) { return v is number ? v : d; }
+    // حقل هوية: ممنوع يتغيّر لو موجود بالفعل (لكن الحسابات القديمة تقدر تكمّله لو كان ناقص)
+    function frozen(k) { return k in resource.data && k in changed(); }
+
+    /* ============================ الأدمن ============================ */
+    // إنشاء أدمن جديد: أدمن موجود، أو شخص معاه الرمز السري للمطور (config/adminAccess.secretKey) في حقل devKey.
+    // مفيش حد يقدر يقرأ الرمز من برّه (config/adminAccess للأدمن بس)، والقواعد بتقارن من جوّه.
+    match /admins/{email} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        || (isSelf(email)
+            && request.resource.data.get('devKey', '') is string
+            && request.resource.data.get('devKey', '') != ''
+            && exists(/databases/$(database)/documents/config/adminAccess)
+            && request.resource.data.devKey == get(/databases/$(database)/documents/config/adminAccess).data.get('secretKey', null));
+      allow update, delete: if isAdmin();
+    }
+
+    /* ============================ الشات ============================ */
+    match /rooms/{roomId}/{sub=**} {
+      allow read, write: if signedIn();
+    }
+    match /chats/{chatId}/{sub=**} {
+      allow read, write: if signedIn();
+    }
+    // إعدادات الدردشة العامة: القراءة للمسجلين، الكتابة للأدمن
+    match /settings/{d} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    /* ============================ الطلاب ============================ */
+    match /students/{email} {
+      // قراءة وثيقة واحدة عامة (للدخول والتسجيل). القائمة والاستعلامات للمسجلين فقط.
+      allow get: if true;
+      allow list: if signedIn();
+
+      // إنشاء الحساب: صاحبه فقط، بحقول آمنة (مفيش VIP ولا نقاط جاهزة)، والتجربة المجانية 24 ساعة بس
+      allow create: if isAdmin()
+        || (isSelf(email)
+            && request.resource.data.get('role', 'student') == 'student'
+            && request.resource.data.get('status', 'active') == 'active'
+            && num(request.resource.data.get('totalScore', 0), 0) <= 100
+            && request.resource.data.get('accountType', 'free') in ['free', 'trial']
+            && (request.resource.data.get('accountType', 'free') == 'free'
+                ? request.resource.data.get('isSubscribed', false) == false
+                : true));
+
+      allow update: if isAdmin()
+        // الطالب يعدّل وثيقته بس، ومينفعش يغيّر هويته أو يرفع حالته أو يفك الحظر أو يقفز بالنقاط
+        || (isSelf(email)
+            && !frozen('role') && !frozen('email') && !frozen('studentId') && !frozen('id')
+            && (!('status' in changed()) || (request.resource.data.status == 'active' && resource.data.get('status', 'active') == 'active'))
+            && (!('isBanned' in changed()))
+            && (!('totalScore' in changed()) || num(request.resource.data.totalScore, 0) - num(resource.data.get('totalScore', 0), 0) <= 2000)
+            && (!('weekPoints' in changed()) || num(request.resource.data.weekPoints, 0) - num(resource.data.get('weekPoints', 0), 0) <= 2000))
+        // طالب تاني: بس حقول الدعوات (تسجيل دعوة / إكمالها)
+        || (signedIn() && changed().hasOnly(['inviteCount', 'referralCounted', 'lastUpdated']));
+
+      allow delete: if isSelf(email) || isAdmin();
+
+      match /{sub=**} {
+        allow read: if signedIn();
+        allow write: if isSelf(email) || isAdmin();
+      }
+    }
+    match /phones/{p} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    /* ============================ الإعدادات ============================ */
+    // ملحوظة مهمة: قواعد Firestore بتتجمّع (لو أي قاعدة سمحت، الطلب بيعدّي)، عشان كده الاستثناء جوّه شرط واحد.
+    // قراءة عامة (الصفحات بتقراها من غير دخول) ما عدا config/adminAccess اللي فيه الرمز السري (للأدمن بس).
+    // الكتابة للأدمن، ما عدا عدّاد أرقام الطلاب (STU-0001) اللي بيتحدّث وقت التسجيل.
+    match /config/{d} {
+      allow read: if d != 'adminAccess' || isAdmin();
+      allow write: if isAdmin() || (d == 'studentIdCounter' && signedIn());
+    }
+
+    /* ============================ الاشتراكات والأكواد ============================ */
+    match /activationCodes/{c} {
+      allow get: if signedIn();
+      // الطالب بيبحث بكود واحد (limit 1). الأدمن بيعرض الكل.
+      allow list: if isAdmin() || (signedIn() && request.query.limit <= 1);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (signedIn() && changed().hasOnly(['isUsed', 'usedBy', 'usedByStudentId', 'usedAt', 'usedCount', 'lastUsedAt']));
+    }
+    match /subscriptionRequests/{r} {
+      allow create: if signedIn()
+        && request.resource.data.email.lower() == me()
+        && request.resource.data.status == 'pending';
+      allow read: if isAdmin() || (signedIn() && resource.data.email.lower() == me());
+      allow update, delete: if isAdmin();
+    }
+    match /coupons/{c} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    /* ============================ المحتوى والامتحانات ============================ */
+    match /lessons/{l} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /lessonExams/{e} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /exams/{e} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      // الطالب بيسلّم إجابته في examSubmissions بس
+      allow update: if isAdmin() || (signedIn() && changed().hasOnly(['examSubmissions']));
+    }
+    match /studentExamResults/{r} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if isAdmin();
+    }
+
+    /* ============================ المنافسات والمتصدرين ============================ */
+    match /competitions/{c} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      match /entries/{e} {
+        allow read, write: if signedIn();
+      }
+    }
+    match /weeklyBoards/{w} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      match /scores/{s} {
+        allow read: if signedIn();
+        allow write: if signedIn();
+      }
+    }
+    match /weeklyWinners/{w} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /referrals/{r} {
+      allow read, write: if signedIn();
+    }
+
+    /* ============================ المنتدى والأصدقاء ============================ */
+    match /forumSettings/{d} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /forumPosts/{p} {
+      allow read, write: if signedIn();
+    }
+    match /pendingPosts/{p} {
+      allow read, write: if signedIn();
+    }
+    match /friends/{f} {
+      allow read, write: if signedIn();
+    }
+    match /friendRequests/{f} {
+      allow read, write: if signedIn();
+    }
+
+    /* ============================ الإشعارات والتقارير ============================ */
+    match /adminNotifications/{n} {
+      allow read, create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+    match /pushTokens/{t} {
+      allow create, update: if signedIn() && request.resource.data.email.lower() == me();
+      allow read, delete: if isAdmin() || (signedIn() && resource.data.email.lower() == me());
+    }
+    // تقرير ولي الأمر: صفحة عامة بتوكن عشوائي (get بس، مفيش list). بيتكتب من الطالب أو الأدمن، وبعد كده ثابت (ملوش تعديل). مفيش إيميل ولا تليفون جواه.
+    match /parentReports/{token} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if signedIn();
+      allow update, delete: if isAdmin();
+    }
+    match /problemReports/{id} {
+      allow create: if signedIn()
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 500;
+      allow read, update, delete: if isAdmin();
+    }
+    match /errorLogs/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+    match /adminLogs/{id} {
+      allow create, read: if isAdmin();
+    }
+    match /adminNotes/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /platformHealth/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    /* ============================ المساعد الذكي ============================ */
+    match /aiUsage/{sid} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+                    && request.resource.data.studentId == sid
+                    && request.resource.data.count == 1;
+      allow update: if signedIn()
+        && request.resource.data.studentId == sid
+        && (request.resource.data.day == resource.data.day
+            ? (request.resource.data.count >= 0
+               && request.resource.data.count <= resource.data.count + 1)
+            : request.resource.data.count == 1);
+    }
+    match /aiChats/{id} {
+      allow read, write: if signedIn();
+    }
+
+    /* ============================ قديم ============================ */
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
+
+    match /messagestore/{id} {
+      allow read, write: if signedIn();
+    }
+
+    // أي مجموعة مش مذكورة فوق = ممنوعة (deny by default). لو ظهر «permission denied» في ميزة جديدة، ضيف لها قاعدة هنا.
+  }
+}

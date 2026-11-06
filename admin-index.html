@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, getDocs, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, getDocs, collection, query, orderBy, limit, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -31,6 +31,7 @@
         window.doc = doc;
         window.getDoc = getDoc;
         window.setDoc = setDoc;
+        window.deleteField = deleteField;
         window.getDocs = getDocs;
         window.collection = collection;
         window.query = query;
@@ -591,6 +592,8 @@
                 }
 
                 // 4. تخزين بيانات الأدمن أوتوماتيك في جدول admins بـ Firestore
+                // الرمز السري للمطور (اتخزّن في الجلسة لما عدّى بوابة المطور) — قواعد Firestore بتقارنه بـ config/adminAccess
+                const devKey = sessionStorage.getItem('adminDevKey') || '';
                 const adminData = {
                     adminId: assignedAdminId,
                     uid: user.uid,
@@ -607,7 +610,16 @@
                     createdAt: new Date().toISOString()
                 };
 
-                await window.setDoc(window.doc(window.firebaseDb, "admins", email), adminData);
+                try {
+                    await window.setDoc(window.doc(window.firebaseDb, "admins", email), Object.assign({ devKey: devKey }, adminData));
+                } catch (permErr) {
+                    // الرمز غلط أو القواعد رفضت: نمسح الحساب اللي اتعمل في Auth عشان ميفضلش حساب يتيم
+                    try { await user.delete(); } catch (e2) {}
+                    throw new Error('تعذر إنشاء حساب الأدمن: رمز المطور غير صحيح أو غير مصرّح.');
+                }
+                // نشيل الرمز من الوثيقة بعد الإنشاء (الأدمن الجديد بقى نشط وبيقدر يعدّل وثيقته)
+                try { await window.setDoc(window.doc(window.firebaseDb, "admins", email), { devKey: window.deleteField() }, { merge: true }); } catch (e3) {}
+                sessionStorage.removeItem('adminDevKey');
 
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('isAdmin', 'true');
