@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="plans.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>طلبات الدفع</title>
@@ -186,10 +187,12 @@
                 const st = ss.data();
                 const days = Number(r.days) || 0;
                 if (days < 1) throw new Error('BAD_DAYS');
-                let base = Date.now();
-                if (st.subscriptionExpiry) { const cur = new Date(st.subscriptionExpiry).getTime(); if (cur > base) base = cur; }
-                const expiry = new Date(base + days * 86400000).toISOString();
-                tx.update(stRef, { isSubscribed: true, subscriptionExpiry: expiry, accountType: 'vip', subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: days, lastPlanName: String(r.planName || ''), lastPlanSource: 'payment', lastUpdated: new Date().toISOString() });
+                const tier = r.planTier || (PSPlans.optionById(r.plan) || {}).tier || 'plus';
+                const g = PSPlans.grant(st, tier, days);
+                const cRef = r.couponCode ? doc(db, 'coupons', String(r.couponCode)) : null;
+                const cSnap = cRef ? await tx.get(cRef) : null;
+                tx.update(stRef, Object.assign(g, { lastPlanName: String(r.planName || ''), lastPlanSource: 'payment', lastUpdated: new Date().toISOString() }));
+                if (cSnap && cSnap.exists()) tx.update(cRef, { usedCount: (Number(cSnap.data().usedCount) || 0) + 1, lastUsedAt: Date.now() });
                 tx.update(reqRef, { status: 'approved', reviewedAt: Date.now(), reviewedBy: adminName, reviewNote: '' });
             });
             logAdminAction(db, adminName, 'approve_payment', id, 'تفعيل اشتراك من طلب دفع');

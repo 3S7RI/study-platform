@@ -768,12 +768,18 @@ export async function claimReferralTier(db, studentEmail, tierCount) {
         const claimed = Array.isArray(st.claimedTiers) ? st.claimedTiers.map(String) : [];
         if (claimed.includes(String(tier.count))) return { ok: false, reason: 'claimed' };
         if ((Number(st.inviteCount) || 0) < tier.count) return { ok: false, reason: 'not_enough' };
-        let base = Date.now();
-        if (st.subscriptionExpiry) { const c = new Date(st.subscriptionExpiry).getTime(); if (c > base) base = c; }
-        const expiry = new Date(base + tier.days * 86400000).toISOString();
+        // جايزة الدعوات = أيام Plus (بتتضاف كما هي لو الطالب في باقة أعلى)
+        const P = globalThis.PSPlans;
+        let g;
+        if (P) g = P.grant(st, 'plus', tier.days, { raw: true });
+        else {
+            let base = Date.now();
+            if (st.subscriptionExpiry) { const c = new Date(st.subscriptionExpiry).getTime(); if (c > base) base = c; }
+            g = { isSubscribed: true, accountType: 'vip', subscriptionExpiry: new Date(base + tier.days * 86400000).toISOString(), subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: tier.days };
+        }
+        const expiry = g.subscriptionExpiry;
         tx.update(ref, {
-            isSubscribed: true, accountType: 'vip', subscriptionExpiry: expiry,
-            subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: tier.days, lastPlanName: 'جايزة نظام الدعوات', lastPlanSource: 'referral',
+            ...g, lastPlanName: 'جايزة نظام الدعوات', lastPlanSource: 'referral',
             claimedTiers: claimed.concat(String(tier.count)), lastUpdated: new Date().toISOString()
         });
         return { ok: true, days: tier.days, expiry };

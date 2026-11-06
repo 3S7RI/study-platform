@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="plans.js"></script>
     <script src="session.js"></script>
     <script src="levels.js"></script>
     <script>PS.guard();</script>
@@ -703,7 +704,7 @@
                     ${LV.avatar(avatarUrl, lv.level, 112, { id: 'profileAvatarDisplay', extra: `<div class="upload-badge" onclick="openAvatarModal()" title="تغيير الصورة">${ic('camera')}</div>` })}
                     <div class="student-name-row">
                         <div class="student-name ${LV.nameClass(lv.level)}" id="profileNameDisplay">${esc(data.fullName || data.name || 'طالب متميز')}</div>
-                        ${isSubscribed ? (data.accountType === 'trial' ? `<span class="trial-badge-glow" title="تجربة مجانية">${ic('gift')} تجربة</span>` : `<span class="vip-badge-glow">VIP</span>`) : ''}
+                        ${isSubscribed ? (data.accountType === 'trial' ? `<span class="trial-badge-glow" title="تجربة مجانية">${ic('gift')} تجربة</span>` : `<span class="vip-badge-glow">VIP</span>${(window.PSPlans && PSPlans.badgeHtml(data)) || ''}`) : ''}
                         ${getGenderSvgHtml(studentGender)}
                     </div>
                     <div class="pf-sub">${customTitle ? `${ic('tag')} ${esc(customTitle)}` : esc(lv.tier.name)}</div>
@@ -823,7 +824,7 @@
 
                 const codeRef = snap.docs[0].ref;
                 const studentRef = myStudentRef();
-                let newExpiryIso = null;
+                let newExpiryIso = null, grantFields = null;
 
                 // العملية ذرية: الكود يُستهلك والاشتراك يُفعّل معاً، ولا يمكن لطالبين استخدام نفس الكود
                 await runTransaction(db, async (tx) => {
@@ -850,15 +851,11 @@
                         days = (created && exp && exp > created) ? Math.round((exp - created) / 86400000) : 30;
                     }
 
-                    // لو الطالب مشترك بالفعل نضيف المدة على المتبقي بدل ما تضيع أيامه
+                    // الباقة اللي الكود بيفتحها (الأكواد القديمة من غير planTier = Pro) — الأيام بتتضاف/بتتحوّل حسب باقة الطالب الحالية
                     const st = stSnap.data();
-                    let base = Date.now();
-                    if (st.subscriptionExpiry) {
-                        const curExp = new Date(st.subscriptionExpiry).getTime();
-                        if (curExp > base) base = curExp;
-                    }
-                    const expiry = new Date(base + days * 86400000);
-                    newExpiryIso = expiry.toISOString();
+                    const codeTier = (c.planTier && PSPlans.tier(c.planTier)) ? c.planTier : PSPlans.config().legacyTier;
+                    grantFields = PSPlans.grant(st, codeTier, days, { raw: true });
+                    newExpiryIso = grantFields.subscriptionExpiry;
 
                     if (isPublic) {
                         const nUsed = (Number(c.usedCount) || 0) + 1, capN = Number(c.maxUses) || 0;
@@ -866,12 +863,13 @@
                     } else {
                         tx.update(codeRef, { isUsed: true, usedBy: myEmailKey(), usedByStudentId: myStudentId(), usedAt: new Date().toISOString() });
                     }
-                    tx.update(studentRef, Object.assign({ isSubscribed: true, subscriptionExpiry: newExpiryIso, accountType: 'vip', codeAttempts: 0, codeLockUntil: 0, subscriptionActivatedAt: new Date().toISOString(), lastPlanDays: days, lastPlanSource: isPublic ? 'gift' : 'code', lastUpdated: new Date().toISOString() }, isPublic ? { claimedCodes: claimedArr.concat(String(codeSnap.id)) } : {}));
+                    tx.update(studentRef, Object.assign({}, grantFields, { codeAttempts: 0, codeLockUntil: 0, lastPlanSource: isPublic ? 'gift' : 'code', lastUpdated: new Date().toISOString() }, isPublic ? { claimedCodes: claimedArr.concat(String(codeSnap.id)) } : {}));
                 });
 
                 currentStudentData.isSubscribed = true;
                 currentStudentData.subscriptionExpiry = newExpiryIso;
                 currentStudentData.accountType = 'vip';
+                currentStudentData.planTier = grantFields.planTier;
                 currentStudentData.codeAttempts = 0;
                 currentStudentData.codeLockUntil = 0;
                 PS.saveStudent(currentStudentData);

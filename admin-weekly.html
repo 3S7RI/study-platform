@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="plans.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة المنافسة الأسبوعية</title>
@@ -189,13 +190,8 @@
                         const upd = { lastUpdated: new Date().toISOString() };
                         const days = Number(arr[i].prizeDays) || 0;
                         if (days > 0) {
-                            let base = Date.now();
-                            if (st.subscriptionExpiry) { const c = new Date(st.subscriptionExpiry).getTime(); if (c > base) base = c; }
-                            upd.isSubscribed = true;
-                            upd.subscriptionExpiry = new Date(base + days * 86400000).toISOString();
-                            upd.accountType = 'vip';
-                            upd.subscriptionActivatedAt = new Date().toISOString();
-                            upd.lastPlanDays = days;
+                            // المركز 1 و2 = أيام Pro، والباقي = Plus (الأيام بتتضاف كما هي من غير تنزيل لو الطالب في باقة أعلى)
+                            Object.assign(upd, PSPlans.grant(st, arr[i].rank <= 2 ? 'pro' : 'plus', days, { raw: true }));
                             upd.lastPlanName = 'جايزة المنافسة الأسبوعية';
                             upd.lastPlanSource = 'weekly';
                         }

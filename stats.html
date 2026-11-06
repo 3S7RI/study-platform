@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="plans.js"></script>
     <script src="session.js"></script>
     <script src="levels.js"></script>
     <script>PS.guard({vip:true});</script>
@@ -217,6 +218,7 @@
 
         function render(root, ctx) {
             const { d, sid, score, myRank, totalStudents, lessons, lessonResults, exams, reqs, postsCnt, pendCnt, friendsCnt } = ctx;
+            const LIM = PS.limits(d);
             const lv = LV.info(score);
             const rankInfo = PS.rank(score);
             const name = d.fullName || d.name || 'طالب';
@@ -253,8 +255,8 @@
                 sAccess += access;
                 if (access > 0 || done > 0) sStarted++;
                 if (parts > 0 && done === parts) sDone++;
-                const maxAccess = (st.lessonAttempts !== undefined && st.lessonAttempts !== '') ? num(st.lessonAttempts) : 5;
-                const maxExamAtt = (st.attempts !== undefined && st.attempts !== '') ? num(st.attempts) : 1;
+                const maxAccess = ((st.lessonAttempts !== undefined && st.lessonAttempts !== '') ? num(st.lessonAttempts) : 5) + LIM.lessonBonus;
+                const maxExamAtt = ((st.attempts !== undefined && st.attempts !== '') ? num(st.attempts) : 1) + LIM.examBonus;
                 const examUsed = num(a.examSubmissionsCount);
                 const p = pctOf(done, parts);
                 const chips = [
@@ -294,7 +296,7 @@
                 const subs = (ex.examSubmissions || []).filter(s => String(s.studentEmail || '').toLowerCase() === me);
                 const done = subs.filter(s => s.isInitialOpen !== true);
                 const opened = subs.some(s => s.isInitialOpen === true);
-                const allowed = parseInt((ex.settings || {}).attempts) || 1;
+                const allowed = (parseInt((ex.settings || {}).attempts) || 1) + LIM.examBonus;
                 const pub = done.filter(s => s.published === true);
                 const last = pub.length ? pub[pub.length - 1] : (done.length ? done[done.length - 1] : null);
                 let status, pill;
@@ -432,6 +434,19 @@
                     <a class="sub-cta" style="background:linear-gradient(135deg,#818cf8,#a855f7); color:#fff;" href="profile.html"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> افتح بروفايلك ومميزات المستويات</a>
                 </div>`;
             root.innerHTML = html;
+
+            /* ---------- باقة Plus: إحصائيات أساسية — تفاصيل الامتحانات والمجتمع لـ Pro وأعلى ---------- */
+            try {
+                if (!PS.isAdminSession() && PSPlans.rank(LIM.tier) < PSPlans.rank('pro')) {
+                    ['lessonExamsSection', 'examsSection', 'communitySection'].forEach(function (id) {
+                        const el = document.getElementById(id); if (!el) return;
+                        const h = el.querySelector('h3');
+                        el.innerHTML = (h ? '<h3>' + h.innerHTML + '</h3>' : '') + '<div class="empty">الإحصائيات الكاملة متاحة في باقة Pro وأعلى. <a href="subscribe.html" style="color:var(--gold);font-weight:800;">رقّي باقتك</a></div>';
+                    });
+                }
+                const tn = LIM.tier && PSPlans.tier(LIM.tier);
+                if (tn) { document.querySelectorAll('#subSection .rows .row, #subSection .rows > div').forEach(function (r) { if (/الخطة \/ الباقة/.test(r.textContent)) { const v = r.lastElementChild; if (v) v.innerHTML = '<b style="color:' + tn.color + '">' + tn.name + '</b>'; } }); }
+            } catch (e) { console.warn('tier ui', e); }
 
             /* ---------- عدّاد الاشتراك الحي ---------- */
             clearInterval(countdownTimer);

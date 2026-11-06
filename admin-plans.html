@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <script src="plans.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الباقات والخصومات</title>
+    <style>
+        :root { --bg-main:#0f172a; --bg-card:#1e293b; --text-main:#f8fafc; --text-muted:#94a3b8; --border-color:#334155; --primary:#6366f1; --success:#10b981; --danger:#ef4444; --gold:#fbbf24; --th-bg:rgba(255,255,255,0.04); }
+        [data-theme="light"] { --bg-main:#f1f5f9; --bg-card:#fff; --text-main:#1e293b; --text-muted:#64748b; --border-color:#e2e8f0; --gold:#d97706; --th-bg:rgba(0,0,0,0.03); }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; font-size:.82rem; }
+        body { background:var(--bg-main); color:var(--text-main); min-height:100vh; padding:10px; }
+        .container { max-width:960px; margin:0 auto; }
+        .header { display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px 15px; border-radius:14px; margin-bottom:12px; border:1px solid var(--border-color); }
+        .header a { text-decoration:none; color:var(--text-main); background:var(--th-bg); padding:5px 12px; border-radius:10px; border:1px solid var(--border-color); font-weight:700; }
+        .title { font-weight:800; color:var(--gold); font-size:.95rem; }
+        .card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; padding:15px; margin-bottom:14px; }
+        .card h3 { font-size:.95rem; margin-bottom:4px; } .hint { color:var(--text-muted); font-size:.74rem; line-height:1.8; margin-bottom:10px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+        label { display:block; font-size:.74rem; color:var(--text-muted); margin-bottom:4px; font-weight:700; }
+        input, select, textarea { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border-color); background:var(--th-bg); color:var(--text-main); outline:none; }
+        textarea { min-height:140px; line-height:1.7; }
+        option { color:#1e293b; }
+        .btn { border:none; border-radius:8px; padding:8px 16px; font-weight:800; cursor:pointer; color:#fff; background:var(--primary); }
+        .btn-gold { background:linear-gradient(135deg,#fef08a,#fbbf24,#d97706); color:#1e293b; } .btn-bad { background:var(--danger); } .btn-sm { padding:4px 10px; font-size:.72rem; }
+        table { width:100%; border-collapse:collapse; margin:8px 0; } th,td { padding:6px; text-align:right; border-bottom:1px solid var(--border-color); } th { color:var(--text-muted); font-size:.72rem; }
+        td input, td select { padding:5px 7px; }
+        .tier-box { border:1px solid var(--border-color); border-radius:12px; padding:12px; margin-bottom:10px; }
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 18px; border-radius:12px; z-index:99; display:none; }
+        .row { display:flex; gap:8px; align-items:end; flex-wrap:wrap; } .row > div { flex:1; min-width:120px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"><a href="admin.html">&rarr; رجوع</a><span class="title">إدارة الباقات والخصومات</span></div>
+
+    <div class="card">
+        <h3>الباقات والحدود</h3>
+        <p class="hint">«إضافة لدخول الحصة» و«إضافة لمحاولات الامتحان» بتتجمع على اللي المعلم ضابطه في كل حصة/امتحان (مثلاً الحصة 5 مرات + Pro 3 = 8). سعر الـ 28 يوم الأساسي بيُستخدم في تحويل الأيام عند الترقية وحساب نسبة التوفير. المميزات: سطر لكل ميزة، وابدأ السطر بـ ~ لو «قريباً».</p>
+        <div id="tiers"></div>
+        <div class="grid"><div><label>حد المساعد الذكي للمجاني (يومياً)</label><input type="number" id="freeAi" min="0"></div></div>
+    </div>
+
+    <div class="card">
+        <h3>الخيارات (المدد والأسعار)</h3>
+        <p class="hint">كل صف = خيار اشتراك بيظهر تحت الباقة. امسح الصف لو مش عايزه.</p>
+        <table><thead><tr><th>الباقة</th><th>الاسم</th><th>الأيام</th><th>السعر (ج)</th><th></th></tr></thead><tbody id="opts"></tbody></table>
+        <button class="btn btn-sm" onclick="addOpt()">+ خيار جديد</button>
+    </div>
+
+    <div class="card">
+        <h3>عرض عام (خصم على كل الأسعار)</h3>
+        <div class="grid">
+            <div><label>مفعّل؟</label><select id="pEnabled"><option value="0">لا</option><option value="1">نعم</option></select></div>
+            <div><label>نسبة الخصم %</label><input type="number" id="pPct" min="0" max="90"></div>
+            <div><label>الاسم الظاهر</label><input type="text" id="pLabel" maxlength="40" placeholder="عرض قبل الامتحانات"></div>
+            <div><label>ينتهي في</label><input type="date" id="pEnds"></div>
+            <div><label>على باقات (اختياري)</label><select id="pTier"><option value="">كل الباقات</option></select></div>
+        </div>
+    </div>
+
+    <div style="margin-bottom:14px;"><button class="btn btn-gold" id="saveBtn" onclick="saveAll()">حفظ كل الإعدادات</button></div>
+
+    <div class="card">
+        <h3>كوبونات الخصم</h3>
+        <p class="hint">الطالب يكتب الكود في صفحة الاشتراك. بيتحسب الاستخدام وقت موافقتك على طلب الدفع.</p>
+        <div class="row">
+            <div><label>الكود</label><input id="cCode" maxlength="24" placeholder="RAMADAN20" style="direction:ltr;text-transform:uppercase"></div>
+            <div><label>النوع</label><select id="cType"><option value="percent">نسبة %</option><option value="amount">مبلغ ثابت (ج)</option></select></div>
+            <div><label>القيمة</label><input type="number" id="cVal" min="1"></div>
+            <div><label>أقصى استخدام (0 = بلا حد)</label><input type="number" id="cMax" min="0" value="0"></div>
+            <div><label>ينتهي في</label><input type="date" id="cEnds"></div>
+            <div><label>على باقة</label><select id="cTier"><option value="">كل الباقات</option></select></div>
+            <div style="flex:0"><button class="btn" onclick="addCoupon()">إنشاء</button></div>
+        </div>
+        <table><thead><tr><th>الكود</th><th>الخصم</th><th>الاستخدام</th><th>ينتهي</th><th>الباقة</th><th></th></tr></thead><tbody id="coupons"></tbody></table>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({ apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U", authDomain: "study-trip-1.firebaseapp.com", projectId: "study-trip-1", storageBucket: "study-trip-1.firebasestorage.app", messagingSenderId: "632096690853", appId: "1:632096690853:web:f9622d14de73a761dcf34c" });
+    const auth = getAuth(app), db = getFirestore(app);
+    document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+    const $ = (id) => document.getElementById(id);
+    const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
+    const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const PL = window.PSPlans;
+    let cfg, opts = [];
+
+    function tierOptions(sel, blank) { return (blank ? '<option value="">كل الباقات</option>' : '') + PL.tiers().map(k => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(PL.tier(k).name)}</option>`).join(''); }
+
+    function render() {
+        cfg = PL.config();
+        $('tiers').innerHTML = PL.tiers().map(k => {
+            const t = cfg.tiers[k];
+            const ftxt = (t.features || []).map(f => (f.soon ? '~' : '') + f.t).join('\n');
+            return `<div class="tier-box" data-k="${k}"><b style="color:${t.color}">${esc(t.name)}</b>
+                <div class="grid" style="margin-top:8px;">
+                    <div><label>سعر 28 يوم الأساسي</label><input type="number" class="f-base" value="${t.base28}"></div>
+                    <div><label>إضافة لدخول الحصة</label><input type="number" class="f-lb" value="${t.limits.lessonBonus}"></div>
+                    <div><label>إضافة لمحاولات الامتحان</label><input type="number" class="f-eb" value="${t.limits.examBonus}"></div>
+                    <div><label>أسئلة المساعد يومياً</label><input type="number" class="f-ai" value="${t.limits.aiDaily}"></div>
+                </div>
+                <label style="margin-top:8px;">المميزات (سطر لكل ميزة)</label><textarea class="f-feat">${esc(ftxt)}</textarea></div>`;
+        }).join('');
+        $('freeAi').value = cfg.free.aiDaily;
+        opts = cfg.options.map(o => ({ ...o }));
+        renderOpts();
+        const p = cfg.promo || {};
+        $('pEnabled').value = p.enabled ? '1' : '0'; $('pPct').value = p.percent || 0; $('pLabel').value = p.label || '';
+        $('pEnds').value = p.endsAt ? new Date(Number(p.endsAt)).toISOString().slice(0, 10) : '';
+        $('pTier').innerHTML = tierOptions((p.tiers || [])[0] || '', true);
+        $('cTier').innerHTML = tierOptions('', true);
+    }
+
+    function renderOpts() {
+        $('opts').innerHTML = opts.map((o, i) => `<tr>
+            <td><select onchange="opts_[${i}].tier=this.value">${tierOptions(o.tier)}</select></td>
+            <td><input value="${esc(o.label)}" onchange="opts_[${i}].label=this.value"></td>
+            <td><input type="number" min="1" value="${o.days}" onchange="opts_[${i}].days=Number(this.value)"></td>
+            <td><input type="number" min="1" value="${o.price}" onchange="opts_[${i}].price=Number(this.value)"></td>
+            <td><button class="btn btn-bad btn-sm" onclick="delOpt(${i})">حذف</button></td></tr>`).join('');
+        window.opts_ = opts;
+    }
+    window.addOpt = () => { opts.push({ id: 'o_' + Date.now(), tier: PL.tiers()[0], days: 28, price: 100, label: '28 يوم' }); renderOpts(); };
+    window.delOpt = (i) => { opts.splice(i, 1); renderOpts(); };
+
+    window.saveAll = async function () {
+        const tiers = {};
+        document.querySelectorAll('.tier-box').forEach(b => {
+            const k = b.dataset.k;
+            tiers[k] = {
+                base28: Number(b.querySelector('.f-base').value) || cfg.tiers[k].base28,
+                limits: { lessonBonus: Number(b.querySelector('.f-lb').value) || 0, examBonus: Number(b.querySelector('.f-eb').value) || 0, aiDaily: Number(b.querySelector('.f-ai').value) || 0 },
+                features: b.querySelector('.f-feat').value.split('\n').map(x => x.trim()).filter(Boolean).map(x => x[0] === '~' ? { t: x.slice(1).trim(), soon: true } : { t: x })
+            };
+        });
+        const bad = opts.find(o => !(o.days >= 1) || !(o.price >= 1) || !PL.tier(o.tier));
+        if (bad) return toast('راجع الأيام والأسعار في الخيارات');
+        const options = opts.map((o, i) => ({ id: o.id || (o.tier + '_' + o.days + '_' + i), tier: o.tier, days: o.days, price: o.price, label: String(o.label || PL.daysText(o.days)).slice(0, 40) }));
+        const ends = $('pEnds').value ? new Date($('pEnds').value + 'T23:59:59').getTime() : 0;
+        const promo = { enabled: $('pEnabled').value === '1', percent: Math.min(90, Number($('pPct').value) || 0), label: $('pLabel').value.trim(), endsAt: ends, tiers: $('pTier').value ? [$('pTier').value] : [] };
+        try {
+            await setDoc(doc(db, 'config', 'plans'), { tiers, options, promo, free: { aiDaily: Number($('freeAi').value) || 0 }, updatedAt: Date.now() }, { merge: true });
+            PL.setConfig({ tiers, options, promo, free: { aiDaily: Number($('freeAi').value) || 0 } });
+            toast('تم الحفظ');
+        } catch (e) { console.error(e); toast('حصل خطأ في الحفظ'); }
+    };
+
+    async function loadCoupons() {
+        try {
+            const ss = await getDocs(collection(db, 'coupons'));
+            $('coupons').innerHTML = ss.docs.map(d => { const c = d.data(); return `<tr>
+                <td dir="ltr"><b>${esc(d.id)}</b></td><td>${c.type === 'amount' ? esc(c.value) + ' ج' : esc(c.value) + '%'}</td>
+                <td>${Number(c.usedCount) || 0} / ${Number(c.maxUses) || '∞'}</td>
+                <td>${c.expiresAt ? new Date(Number(c.expiresAt)).toLocaleDateString('ar-EG') : '—'}</td>
+                <td>${(c.tiers || []).length ? esc((c.tiers || []).map(k => (PL.tier(k) || {}).name || k).join('، ')) : 'الكل'}</td>
+                <td><button class="btn btn-bad btn-sm" onclick="delCoupon('${esc(d.id)}')">حذف</button></td></tr>`; }).join('') || '<tr><td colspan="6" style="color:var(--text-muted)">مفيش كوبونات.</td></tr>';
+        } catch (e) { console.warn(e); }
+    }
+    window.addCoupon = async function () {
+        const code = $('cCode').value.trim().toUpperCase().replace(/[^A-Z0-9_\-]/g, '');
+        const value = Number($('cVal').value) || 0;
+        if (code.length < 3) return toast('الكود 3 حروف/أرقام على الأقل');
+        if (value < 1 || ($('cType').value === 'percent' && value > 90)) return toast('قيمة الخصم غير صحيحة (النسبة لحد 90)');
+        const ex = await getDoc(doc(db, 'coupons', code));
+        if (ex.exists()) return toast('الكود ده موجود');
+        await setDoc(doc(db, 'coupons', code), { type: $('cType').value, value, maxUses: Math.max(0, Number($('cMax').value) || 0), usedCount: 0, active: true,
+            expiresAt: $('cEnds').value ? new Date($('cEnds').value + 'T23:59:59').getTime() : 0, tiers: $('cTier').value ? [$('cTier').value] : [], createdAt: Date.now() });
+        $('cCode').value = ''; toast('تم إنشاء الكوبون'); loadCoupons();
+    };
+    window.delCoupon = async function (id) { if (!confirm('حذف الكوبون ' + id + '؟')) return; await deleteDoc(doc(db, 'coupons', id)); loadCoupons(); };
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        if (sessionStorage.getItem('isAdmin') !== 'true') { window.location.href = 'login.html'; return; }
+        await PL.refresh(db, getDoc, doc);
+        render(); loadCoupons();
+    });
+</script>
+</body>
+</html>

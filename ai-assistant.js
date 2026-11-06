@@ -520,6 +520,8 @@
     }
     function isVipNow() { const c = studentContext(); return !!(c && c.plan === 'VIP'); }
     function dailyLimit() {
+        // الحد حسب الباقة (Plus/Pro/Elite) من plans.js؛ لو مش متاح نرجع للأرقام القديمة
+        try { if (window.PS && PS.limits) { const l = PS.limits(); if (l && l.aiDaily) return l.aiDaily; } } catch (e) {}
         const c = studentContext();
         return c && c.plan === 'VIP' ? AI_LIMITS.vip : (c && c.plan === 'تجربة مجانية' ? AI_LIMITS.trial : AI_LIMITS.free);
     }
@@ -527,7 +529,7 @@
 
     function limitMsg() {
         return 'وصلت للحد اليومي من أسئلة المساعد (' + dailyLimit() + ' سؤال). بيتجدد الساعة 12 بالليل بتوقيت القاهرة، والأزرار السريعة لسه شغالة.' +
-            (isVipNow() ? '' : '<br>مشتركين الـ VIP حدهم اليومي ' + AI_LIMITS.vip + ' سؤال.');
+            (isVipNow() ? '' : '<br>المشتركين حدهم اليومي أعلى حسب الباقة (من ' + ((window.PSPlans && PSPlans.tier('plus')) ? PSPlans.tier('plus').limits.aiDaily : AI_LIMITS.vip) + ' سؤال).');
     }
 
     function renderUsage() {

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" data-theme="dark">
 <head>
+    <script src="plans.js"></script>
     <script src="session.js"></script>
     <script>PS.guard();</script>
     <meta charset="UTF-8">
@@ -62,6 +63,26 @@
         .status-row { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; }
         .status-row:last-child { border-bottom: none; }
         .st-pending { color: var(--gold); font-weight: 800; } .st-approved { color: var(--success); font-weight: 800; } .st-rejected { color: var(--danger); font-weight: 800; }
+
+        .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; align-items: stretch; }
+        .tier { position: relative; border: 2px solid var(--border-color); border-radius: 16px; padding: 16px 12px 14px; background: var(--th-bg); display: flex; flex-direction: column; }
+        .tier.popular { border-color: var(--gold); box-shadow: 0 0 18px rgba(251,191,36,0.25); }
+        .tier .pop { position: absolute; top: -11px; right: 14px; background: var(--gold); color: #1e293b; font-size: .68rem; font-weight: 900; padding: 2px 10px; border-radius: 999px; }
+        .tier h3 { font-size: 1.15rem; font-weight: 900; margin-bottom: 8px; }
+        .tier ul { list-style: none; margin: 8px 0 12px; font-size: .76rem; line-height: 1.75; color: var(--text-main); flex: 1; }
+        .tier li::before { content: '✓ '; color: var(--success); font-weight: 900; }
+        .tier li.soon { color: var(--text-muted); } .tier li.soon::before { content: '⏳ '; }
+        .tier li.soon em { font-style: normal; font-size: .62rem; background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 0 5px; margin-inline-start: 4px; }
+        .opt { display: flex; justify-content: space-between; align-items: center; gap: 6px; width: 100%; border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-main); border-radius: 10px; padding: 8px 10px; margin-top: 6px; cursor: pointer; font-size: .78rem; font-weight: 700; text-align: right; }
+        .opt:hover { border-color: var(--primary); }
+        .opt.selected { border-color: var(--gold); box-shadow: 0 0 12px rgba(251,191,36,0.3); }
+        .opt .p { font-weight: 900; color: var(--gold); white-space: nowrap; }
+        .opt .p s { color: var(--text-muted); font-weight: 600; font-size: .7rem; margin-inline-end: 4px; }
+        .opt .off { background: var(--success); color: #fff; font-size: .62rem; font-weight: 900; padding: 1px 6px; border-radius: 6px; margin-inline-start: 4px; }
+        .promo-bar { background: linear-gradient(135deg,#f59e0b,#ef4444); color: #fff; border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: .85rem; text-align: center; margin-bottom: 12px; }
+        .coupon-row { display: flex; gap: 8px; } .coupon-row input { flex: 1; text-transform: uppercase; direction: ltr; }
+        .coupon-row button { white-space: nowrap; padding: 0 16px; border: none; border-radius: 10px; background: var(--primary); color: #fff; font-weight: 800; cursor: pointer; }
+        .coupon-msg { font-size: .76rem; margin-top: 6px; font-weight: 700; }
         .err { color: var(--danger); font-size: 0.78rem; margin-top: 6px; display: none; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 0.85rem; z-index: 99; display: none; }
     </style>
@@ -77,14 +98,20 @@
     <div id="pendingNotice"></div>
 
     <div class="card" id="planCard">
-        <h2>1️⃣ اختار الباقة</h2>
-        <div class="plans" id="plans"></div>
+        <h2>1️⃣ اختار الباقة والمدة</h2>
+        <div id="promoBar"></div>
+        <div class="tiers" id="plans"></div>
+        <p class="hint" id="upgradeHint"></p>
     </div>
 
     <div class="card" id="payCard" style="display:none;">
         <h2>2️⃣ اختار طريقة الدفع</h2>
         <div class="methods" id="methods"></div>
-        <div class="pay-box" id="payBox">
+        <label for="couponInput">عندك كود خصم؟ (اختياري)</label>
+        <div class="coupon-row"><input type="text" id="couponInput" maxlength="24" placeholder="CODE" autocomplete="off"><button type="button" onclick="applyCoupon()">تطبيق</button></div>
+        <div class="coupon-msg" id="couponMsg"></div>
+        <div class="pay-box" id="payBox" style="margin-top:12px;">
+            <div id="orderSummary" style="font-size:.82rem; font-weight:800; margin-bottom:4px;"></div>
             <div style="font-size:0.8rem; color:var(--text-muted);">حوّل بالظبط المبلغ ده</div>
             <div class="amount" id="payAmount"></div>
             <div style="font-size:0.8rem; color:var(--text-muted);" id="walletLabel"></div>
@@ -124,11 +151,8 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const PLANS = [
-        { id: 'week',   name: '7 أيام',  days: 7,  price: 25 },
-        { id: 'month',  name: '28 يوم',  days: 28, price: 100 },
-        { id: 'quarter', name: '3 شهور', days: 90, price: 220 }
-    ];
+    const PL = window.PSPlans;
+    let coupon = null;   // { code, type, value }
     const METHOD_LABELS = { etisalat_cash: 'اتصالات كاش', fawry: 'فوري', instapay: 'InstaPay', bank_iban: 'فيزا / تحويل بنكي', vodafone_cash: 'فودافون كاش', other_wallet: 'محفظة أخرى' };
 
     /* بيانات الدفع الافتراضية (تشتغل حتى لو مفيش حاجة متسجلة في لوحة الأدمن).
@@ -148,13 +172,70 @@
     const toast = (m) => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); };
     const fmtDate = (ms) => ms ? new Date(ms).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
 
+    function priceFor(opt) {
+        const base = PL.priceOf(opt);
+        let price = base.price, cut = 0;
+        if (coupon && (!coupon.tiers || !coupon.tiers.length || coupon.tiers.includes(opt.tier))) {
+            cut = coupon.type === 'amount' ? Math.min(price - 1, Number(coupon.value) || 0) : Math.round(price * Math.min(90, Number(coupon.value) || 0) / 100);
+            price = Math.max(1, price - cut);
+        }
+        return { price, original: opt.price, promoPct: base.promoPct, couponCut: cut };
+    }
+
     function renderPlans() {
-        $('plans').innerHTML = PLANS.map(p => `
-            <div class="plan ${selected && selected.id === p.id ? 'selected' : ''}" onclick="selectPlan('${p.id}')">
-                <div class="name">${p.name}</div>
-                <div class="price">${p.price} <small>ج</small></div>
-                <div class="days">اشتراك VIP لمدة ${p.days} يوم</div>
-            </div>`).join('');
+        const pr = PL.config().promo || {};
+        const promoOn = pr.enabled && Number(pr.percent) > 0 && (!pr.endsAt || Number(pr.endsAt) > Date.now());
+        $('promoBar').innerHTML = promoOn ? `<div class="promo-bar">${PS.esc(pr.label || 'عرض خاص')} — خصم ${Number(pr.percent)}%${pr.endsAt ? ' لحد ' + new Date(Number(pr.endsAt)).toLocaleDateString('ar-EG', { dateStyle: 'medium' }) : ''}</div>` : '';
+        $('plans').innerHTML = PL.tiers().map(k => {
+            const t = PL.tier(k);
+            const feats = (t.features || []).map(f => `<li class="${f.soon ? 'soon' : ''}">${PS.esc(f.t)}${f.soon ? '<em>قريباً</em>' : ''}</li>`).join('');
+            const opts = PL.optionsOf(k).map(o => {
+                const p = priceFor(o), dsc = PL.discountOf(o);
+                const hasCut = p.price < o.price;
+                return `<button type="button" class="opt ${selected && selected.id === o.id ? 'selected' : ''}" onclick="selectPlan('${o.id}')">
+                    <span>${PS.esc(o.label)}${dsc ? `<span class="off">وفّر ${dsc}%</span>` : ''}</span>
+                    <span class="p">${hasCut ? `<s>${o.price}</s>` : ''}${p.price} ج</span></button>`;
+            }).join('');
+            return `<div class="tier ${t.popular ? 'popular' : ''}" style="${selected && selected.tier === k ? '' : ''}">
+                ${t.popular ? '<span class="pop">الأكثر طلباً</span>' : ''}
+                <h3 style="color:${t.color}">${PS.esc(t.name)}</h3>
+                <ul>${feats}</ul>${opts}</div>`;
+        }).join('');
+        updateUpgradeHint();
+    }
+
+    function updateUpgradeHint() {
+        const el = $('upgradeHint'); if (!el) return;
+        const cur = PL.tierOf(student), isTrial = student && student.accountType === 'trial';
+        if (!selected || !cur || isTrial) { el.textContent = ''; return; }
+        if (PL.rank(selected.tier) > PL.rank(cur)) el.textContent = 'ترقية: أيامك المتبقية في باقة ' + PL.tier(cur).name + ' هتتحوّل تلقائياً لأيام في باقة ' + PL.tier(selected.tier).name + ' وتتضاف عليها المدة الجديدة.';
+        else if (PL.rank(selected.tier) < PL.rank(cur)) el.textContent = 'انتبه: باقتك الحالية ' + PL.tier(cur).name + ' أعلى، فالأيام الجديدة هتتحوّل وتتضاف على باقتك الحالية بدون تنزيل.';
+        else el.textContent = 'التجديد بيتضاف على المتبقي من اشتراكك.';
+    }
+
+    window.applyCoupon = async function () {
+        const code = $('couponInput').value.trim().toUpperCase().replace(/[^A-Z0-9_\-]/g, '');
+        const msg = $('couponMsg');
+        coupon = null;
+        if (!code) { msg.textContent = ''; renderPlans(); if (selected) refreshOrder(); return; }
+        try {
+            const sn = await getDoc(doc(db, 'coupons', code));
+            const c = sn.exists() ? sn.data() : null;
+            const used = c ? Number(c.usedCount) || 0 : 0, cap = c ? Number(c.maxUses) || 0 : 0;
+            if (!c || c.active === false) throw new Error('الكود غير صحيح');
+            if (c.expiresAt && Number(c.expiresAt) < Date.now()) throw new Error('الكود منتهي');
+            if (cap > 0 && used >= cap) throw new Error('الكود اتستخدم بالكامل');
+            coupon = { code, type: c.type === 'amount' ? 'amount' : 'percent', value: Number(c.value) || 0, tiers: Array.isArray(c.tiers) ? c.tiers : [] };
+            msg.style.color = 'var(--success)';
+            msg.textContent = 'تم تطبيق الكود: خصم ' + (coupon.type === 'amount' ? coupon.value + ' جنيه' : coupon.value + '%');
+        } catch (e) { msg.style.color = 'var(--danger)'; msg.textContent = e.message || 'تعذر التحقق من الكود'; }
+        renderPlans(); if (selected) refreshOrder();
+    };
+
+    function refreshOrder() {
+        const p = priceFor(selected);
+        $('payAmount').textContent = p.price + ' جنيه';
+        $('orderSummary').textContent = 'باقة ' + PL.tier(selected.tier).name + ' • ' + selected.label;
     }
 
     function methodList() {
@@ -201,9 +282,9 @@
     };
 
     window.selectPlan = function (id) {
-        selected = PLANS.find(p => p.id === id);
+        selected = PL.optionById(id);
         renderPlans();
-        $('payAmount').textContent = selected.price + ' جنيه';
+        refreshOrder();
         renderMethods();
         $('payCard').style.display = hasPending ? 'none' : 'block';
         $('payCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -226,7 +307,7 @@
                 const hrs = Math.max(1, Math.ceil((exp - Date.now()) / 3600000));
                 $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> أنت دلوقتي في <b>التجربة المجانية</b> وباقي عليها حوالي <b>${hrs}</b> ساعة. لو اشتركت دلوقتي الأيام بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
             } else {
-                $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg> اشتراكك شغال وباقي عليه <b>${left}</b> يوم. لو اشتركت تاني الأيام الجديدة بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
+                $('currentSub').innerHTML = `<div class="notice ok" style="margin-bottom:16px;"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg> اشتراكك شغال (باقة ${PS.esc((PL.tier(PL.tierOf(student))||{}).name||'')}) وباقي عليه <b>${left}</b> يوم. لو اشتركت تاني الأيام الجديدة بتتضاف على المتبقي ومش بتضيع منك حاجة.</div>`;
             }
         }
     }
@@ -254,6 +335,7 @@
         payCfg = { ...DEFAULT_PAY, workFrom: '', workTo: '' };
         Object.keys(fsCfg).forEach(k => { if (fsCfg[k] !== undefined && fsCfg[k] !== null && String(fsCfg[k]).trim() !== '') payCfg[k] = fsCfg[k]; });
 
+        await PL.refresh(db, getDoc, doc);
         renderCurrentSub();
         renderPlans();
 
@@ -299,8 +381,11 @@
                 email: PS.email(),
                 studentName: (student && (student.fullName || student.name)) || '',
                 plan: selected.id,
-                planName: selected.name,
-                amount: selected.price,
+                planTier: selected.tier,
+                planName: PL.tier(selected.tier).name + ' - ' + selected.label,
+                amount: priceFor(selected).price,
+                originalAmount: selected.price,
+                couponCode: coupon ? coupon.code : '',
                 days: selected.days,
                 payerPhone: phone,
                 method: method,

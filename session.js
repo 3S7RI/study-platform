@@ -92,6 +92,23 @@
             return d.isSubscribed === true || d.accountType === 'vip';
         },
 
+        /** الباقة الحالية: 'plus' | 'pro' | 'elite' أو null لو مجاني (بتعتمد على plans.js) */
+        tier: function (d) {
+            d = d || PS.getStudent();
+            if (global.PSPlans) return global.PSPlans.tierOf(d);
+            return PS.isVip(d) ? 'pro' : null;
+        },
+        /** هل الطالب في الباقة دي أو أعلى؟ */
+        hasTier: function (min, d) {
+            d = d || PS.getStudent();
+            return global.PSPlans ? global.PSPlans.hasTier(d, min) : PS.isVip(d);
+        },
+        /** حدود الباقة: { lessonBonus, examBonus, aiDaily, tier } */
+        limits: function (d) {
+            d = d || PS.getStudent();
+            return global.PSPlans ? global.PSPlans.limits(d) : { lessonBonus: 0, examBonus: 0, aiDaily: 15, tier: null };
+        },
+
         /** يحفظ بيانات الطالب في كل المفاتيح التي تقرأها صفحات المنصة (كلها في localStorage) */
         saveStudent: function (data) {
             if (!data) return;
@@ -142,6 +159,7 @@
         /**
          * حارس الصفحات المحمية.
          * opts.vip      : يتطلب اشتراك VIP (الأدمن مستثنى)
+         * opts.tier     : يتطلب باقة معينة أو أعلى ('plus' | 'pro' | 'elite')
          * opts.redirect : صفحة الدخول (الافتراضي login.html)
          * @returns {boolean} true لو مسموح
          */
@@ -154,6 +172,11 @@
             if (!PS.isFresh() || !PS.email() || !PS.studentId()) {
                 PS.clearStudent();
                 global.location.replace(login);
+                return false;
+            }
+            if (opts.tier && !PS.hasTier(opts.tier)) {
+                try { global.sessionStorage.setItem('vipRequiredNotice', '1'); } catch (e) {}
+                global.location.replace('profile.html');
                 return false;
             }
             if (opts.vip && !PS.isVip()) {

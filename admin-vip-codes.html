@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <script src="plans.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة أكواد الـ VIP</title>
@@ -155,6 +156,11 @@
             </div>
             <div class="actions-group">
                 <input type="number" id="codesCountInput" class="input-num" value="10" min="1" max="50" title="العدد">
+                <select id="codeTierSelect" class="select-control" title="الباقة اللي الكود بيفتحها">
+                    <option value="plus">باقة Plus</option>
+                    <option value="pro" selected>باقة Pro</option>
+                    <option value="elite">باقة Elite</option>
+                </select>
                 <select id="codeValiditySelect" class="select-control" title="مدة الصلاحية">
                     <option value="1">يوم واحد (1 يوم)</option>
                     <option value="7">أسبوع واحد (7 أيام)</option>
@@ -268,7 +274,7 @@
                 const exp = new Date(); exp.setDate(exp.getDate() + days);
                 await setDoc(doc(db, "activationCodes", `gift_${Date.now()}_${Math.floor(Math.random()*1000)}`), {
                     code, isUsed: false, usedBy: null, multiUse: true, maxUses, usedCount: 0,
-                    durationDays: days, createdAt: serverTimestamp(), expiresAt: Timestamp.fromDate(exp)
+                    durationDays: days, planTier: document.getElementById('codeTierSelect').value, createdAt: serverTimestamp(), expiresAt: Timestamp.fromDate(exp)
                 });
                 document.getElementById('publicCodeText').value = '';
                 alert("تم إنشاء الكود العام: " + code + "\nكل طالب يفعّله مرة واحدة ويحصل على " + days + " يوم." + (maxUses ? "\nأقصى عدد طلاب: " + maxUses : ""));
@@ -323,6 +329,7 @@
                         isUsed: false,
                         usedBy: null,
                         durationDays: validityDays,   // مدة الاشتراك التي يحصل عليها الطالب عند التفعيل
+                        planTier: document.getElementById('codeTierSelect').value,
                         createdAt: serverTimestamp(),
                         expiresAt: Timestamp.fromDate(expiryDate)
                     });
@@ -401,7 +408,7 @@
                         : 'منذ قليل';
 
                     let dDays = Number(item.durationDays) || (item.expiresAt?.toMillis && item.createdAt?.toMillis ? Math.round((item.expiresAt.toMillis() - item.createdAt.toMillis()) / 86400000) : 0);
-                    let expiresFormatted = dDays >= 9999 ? 'بلا حدود' : (dDays ? dDays + ' يوم' : '30 يوم');
+                    let expiresFormatted = (dDays >= 9999 ? 'بلا حدود' : (dDays ? dDays + ' يوم' : '30 يوم')) + ' • ' + ((window.PSPlans && PSPlans.tier(item.planTier || 'pro')) ? PSPlans.tier(item.planTier || 'pro').name : 'Pro');
 
                     html += `
                         <tr>
