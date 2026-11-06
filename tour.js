@@ -1,5 +1,6 @@
 /* tour.js — الجولة التعريفية التفاعلية لمنصة رحلة دراسية
- * بتشتغل في main.html لما الرابط يكون main.html?tour=1 (بعد التسجيل مباشرة).
+ * جزءين: (1) الجولة المنوّرة: بتشتغل في main.html لما الرابط يكون main.html?tour=1 (بعد التسجيل مباشرة).
+ *        (2) «دليل المنصة»: زرار دايم في الهيدر فيه شرح تفصيلي لكل الميزات + تقدّم محفوظ + تلميح يومي لحد ما الطالب يخلّص كل المواضيع.
  * - بتنوّر على العناصر الحقيقية في الصفحة وتقول للطالب «اضغط هنا وده بيعمل كذا».
  * - في الآخر شاشة ترحيب + موسيقى مولّدة بالكود (Web Audio، من غير أي ملفات صوت).
  * - بتتحفظ «خلصت» لكل طالب في localStorage، والتخطي متاح في أي لحظة (Esc كمان).
@@ -10,7 +11,7 @@
     window.__psTourLoaded = true;
 
     var params = new URLSearchParams(location.search);
-    if (params.get('tour') !== '1') return;
+    var TOUR = params.get('tour') === '1';
     if (window.PS && PS.isAdminSession && PS.isAdminSession()) return;
 
     var REDUCE = false;
@@ -19,24 +20,27 @@
     function studentKey() { try { return (PS.email() || PS.studentId() || 'guest'); } catch (e) { return 'guest'; } }
     function markDone() {
         try { localStorage.setItem('ps_tour_done_' + studentKey(), '1'); } catch (e) {}
-        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        if (TOUR) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
     }
 
     /* ------------------------------ الخطوات ------------------------------ */
     var STEPS = [
-        { sel: ['.profile-nav-btn'], title: 'ملفك الشخصي', text: 'اضغط هنا تفتح بروفايلك: صورتك ونقاطك ومستواك وأصحابك، ومن هنا برضه بتفعّل اشتراك VIP بالكود.' },
-        { sel: ['.nav-notif-btn'], title: 'الإشعارات', text: 'اضغط هنا تشوف رسايل الإدارة والتنبيهات المهمة. الرقم الأحمر معناه إن فيه إشعار جديد.' },
-        { sel: ['#themeToggleBtn'], title: 'الوضع الليلي والفاتح', text: 'اضغط هنا تبدّل بين الوضع الداكن والفاتح على حسب اللي يريّح عينيك.' },
-        { sel: ['#cardFiles'], title: 'الحصص', text: 'اضغط هنا تدخل على حصصك: فيديوهات وملازم وملخصات، وكل حصة ليها امتحان. كل ما تذاكر بتكسب نقاط.' },
-        { sel: ['#cardExams'], title: 'الامتحانات الشاملة', text: 'اضغط هنا تحل امتحانات شاملة على المنهج وتشوف درجتك ومحاولاتك المتبقية.' },
-        { sel: ['#cardChat'], title: 'الدردشة', text: 'اضغط هنا تدخل شات زمايلك. الولاد في شات الولاد والبنات في شات البنات، وبتشوف الشجرة بتاعة الاستريك كمان.' },
-        { sel: ['#cardStats'], title: 'إحصائياتك', text: 'اضغط هنا تشوف تقدمك بالأرقام: نقاطك وترتيبك ووقت مذاكرتك وحصصك وامتحاناتك.' },
-        { sel: ['#cardForum'], title: 'المنتدى', text: 'اضغط هنا تسأل أي سؤال وتجاوب على زمايلك، وسؤالك بيظهر بعد ما الإدارة توافق عليه.' },
-        { sel: ['#cardWeekly'], title: 'المنافسة الأسبوعية', text: 'اضغط هنا تدخل المنافسة. نقاط الامتحانات بتدخلك السباق، وأفضل الطلبة بيكسبوا أيام VIP هدية كل أسبوع.' },
-        { sel: ['#cardMistakes'], title: 'أخطائي', text: 'اضغط هنا تراجع الأسئلة اللي غلطت فيها في الامتحانات عشان متغلطش فيها تاني.' },
-        { sel: ['#cardInvites'], title: 'نظام الدعوات', text: 'اضغط هنا تاخد كود الدعوة بتاعك. كل صاحب بتدعوه بيقرّبك من أيام اشتراك مجانية.' },
-        { sel: ['#leaderboardSection .lb-head', '#leaderboardSection'], title: 'لوحة المتصدرين', text: 'هنا أفضل 20 طالب في المنصة. ذاكر واجمع نقاط وشوف اسمك بيطلع إزاي بين الأوائل.' },
-        { sel: ['#ai-toggle-btn'], title: 'المساعد الذكي', text: 'اضغط هنا تسأل «مستر» في أي مادة أو أي حاجة في المنصة، وهيشرحلك خطوة بخطوة.' }
+        { topic: 'profile', sel: ['.profile-nav-btn'], title: 'ملفك الشخصي ومستواك', text: 'اضغط هنا تفتح بروفايلك: صورتك ونقاطك وأصحابك. مستواك من Lv.1 لحد Lv.50 بيتحسب من نقاطك، وكل فئة ليها إطار مميز حوالين صورتك. ومن البروفايل برضه بتفعّل كود VIP.' },
+        { topic: 'basics', sel: ['.nav-notif-btn'], title: 'الإشعارات', text: 'اضغط هنا تشوف رسايل الإدارة والتنبيهات المهمة. الرقم الأحمر معناه إن فيه إشعار جديد.' },
+        { topic: 'basics', sel: ['#themeToggleBtn'], title: 'الوضع الليلي والفاتح', text: 'اضغط هنا تبدّل بين الوضع الداكن والفاتح على حسب اللي يريّح عينيك.' },
+        { topic: 'lessons', sel: ['#cardFiles'], title: 'الحصص', text: 'اضغط هنا تدخل على حصصك: كل حصة فيها فيديو وملزمة وملخص وامتحان. عدد مرات دخولك لكل حصة بيزيد حسب باقتك، وكل ما تذاكر بتكسب نقاط.' },
+        { topic: 'exams', sel: ['#cardExams'], title: 'الامتحانات الشاملة', text: 'اضغط هنا تحل امتحانات شاملة على المنهج وتشوف درجتك ومحاولاتك المتبقية.' },
+        { topic: 'streak', sel: ['#cardChat'], title: 'الدردشة وشجرة الاستريك', text: 'اضغط هنا تدخل شات زمايلك (الولاد مع الولاد والبنات مع البنات). وهناك هتشوف شجرة الاستريك: كل يوم بتدخل فيه بتطلع ليها ورقة جديدة، ومبيتصفّرش أبداً.' },
+        { topic: 'stats', sel: ['#cardStats'], title: 'إحصائياتك', text: 'اضغط هنا تشوف تقدمك بالأرقام: نقاطك وترتيبك ووقت مذاكرتك، وباقي كام دخول لكل حصة، ودرجات امتحاناتك، وعدّاد اشتراكك.' },
+        { topic: 'forum', sel: ['#cardForum'], title: 'المنتدى', text: 'اضغط هنا تسأل أي سؤال وتجاوب على زمايلك. سؤالك بيظهر بعد ما الإدارة توافق عليه.' },
+        { topic: 'weekly', sel: ['#cardWeekly'], title: 'المنافسات والمنافسة الأسبوعية', text: 'اضغط هنا تدخل ساحة المنافسات. منافسة الأسبوع بتبدأ السبت وتخلص الجمعة، ونقاط امتحانات الحصص هي اللي بتدخلك السباق، وأفضل الطلبة بيكسبوا أيام اشتراك هدية.' },
+        { topic: 'exams', sel: ['#cardMistakes'], title: 'أخطائي', text: 'اضغط هنا تراجع كل سؤال غلطت فيه في الامتحانات عشان متغلطش فيه تاني.' },
+        { topic: 'invites', sel: ['#cardInvites'], title: 'نظام الدعوات', text: 'اضغط هنا تاخد كود الدعوة بتاعك. كل صاحب بتدعوه بيقرّبك من أيام اشتراك مجانية.' },
+        { topic: 'leaderboard', sel: ['#leaderboardSection .lb-head', '#leaderboardSection'], title: 'لوحة المتصدرين', text: 'هنا أفضل 20 طالب في المنصة. لو انت برّه أول 20 هتشوف ترتيبك وباقيلك كام نقطة تدخل. ذاكر واجمع نقاط.' },
+        { topic: 'ai', sel: ['#ai-toggle-btn'], title: 'المساعد الذكي «مستر»', text: 'الأيقونة دي بتفتح المساعد الذكي: اسأله في أي مادة وهيشرحلك خطوة بخطوة، وتقدر تسحبها لأي مكان. عدد أسئلتك اليومي بيزيد حسب باقتك.' },
+        { topic: 'report', sel: ['#ps-rep-btn'], title: 'الإبلاغ عن مشكلة', text: 'زرار العلم ⚑ تحت أيقونة المساعد مباشرة. لو حاجة مش شغالة اضغط عليه واكتب المشكلة، والصفحة وبياناتك بتتبعت تلقائي وبتوصل للإدارة.' },
+        { topic: 'app', sel: ['#psPushBar'], title: 'الإشعارات وتثبيت التطبيق', text: 'من الشريط ده فعّل إشعارات الموبايل عشان توصلك تنبيهات الامتحانات والمنافسات حتى والتطبيق مقفول.' },
+        { topic: null, sel: ['#psg-btn'], title: 'دليل المنصة', text: 'ده زرار «الدليل»: فيه شرح تفصيلي لكل حاجة في المنصة (الباقات، النقاط، المنافسة، الاستريك...). هفضل معاك وأفكّرك بحاجة جديدة كل يوم لحد ما تعرف المنصة كلها.' }
     ];
 
     /* ------------------------------ الستايل ------------------------------ */
@@ -96,7 +100,7 @@
         (REDUCE ? '#pst-hole,#pst-card,#pst-arrow,#pst-tap{transition:none!important}#pst-hole::before,#pst-tap,#pst-fbox .pst-logo{animation:none!important}' : '');
 
     /* ------------------------------ البناء ------------------------------ */
-    var root, hole, tap, card, arrow, introEl, finalEl, bar, steps = [], idx = -1, busy = false, ended = false;
+    var root, hole, tap, card, arrow, introEl, finalEl, bar, steps = [], idx = -1, busy = false, ended = false, single = false;
 
     function el(tag, attrs, html) {
         var e = document.createElement(tag);
@@ -140,7 +144,7 @@
         var name = firstName();
         introEl = el('div', { id: 'pst-intro' },
             '<div id="pst-ibox"><h2>أهلاً بيك' + (name ? ' يا ' + esc(name) : '') + '!</h2>' +
-            '<p>تعالى نعمل جولة سريعة (أقل من دقيقة) أوريك فيها كل حاجة في المنصة وأقولك تضغط فين وده بيعمل إيه.</p>' +
+            '<p>تعالى نعمل جولة سريعة أوريك فيها أهم الأماكن وأقولك تضغط فين وده بيعمل إيه. وبعدها هتلاقي زرار «الدليل» معاك بالتفصيل لكل حاجة، وهفضل أفكّرك لحد ما تعرف المنصة تمام.</p>' +
             '<div class="pst-row"><button class="pst-btn pst-next" id="pst-start" type="button">يلا نبدأ الجولة</button>' +
             '<button class="pst-skip" id="pst-iskip" type="button" style="margin:8px 0 0">تخطي، هستكشف لوحدي</button></div></div>');
         root.appendChild(introEl);
@@ -149,7 +153,7 @@
             '<button id="pst-mute" type="button" aria-label="كتم الموسيقى"></button>' +
             '<div id="pst-fbox"><div class="pst-logo"><svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>' +
             '<h2>أهلاً بيك يا <span id="pst-fname"></span> في عالمك الجديد!</h2>' +
-            '<p>خلصنا الجولة. كل اللي عليك دلوقتي إنك تبدأ، وأنا واثق إنك هتوصل للقمة.</p>' +
+            '<p>خلصنا الجولة السريعة. افتح زرار «الدليل» في أي وقت عشان تقرأ الشرح التفصيلي لكل ميزة، وأنا هفضل أفكّرك بحاجة جديدة كل يوم لحد ما تعرف المنصة كلها. وأنا واثق إنك هتوصل للقمة.</p>' +
             '<div id="pst-trial"></div><div id="pst-quote"></div>' +
             '<button id="pst-go" type="button">ابدأ رحلتك</button></div>');
         root.appendChild(finalEl);
@@ -184,7 +188,7 @@
 
     function go(i) {
         if (busy || ended) return;
-        if (i >= steps.length) { showFinal(); return; }
+        if (i >= steps.length) { if (single) closeAll(); else showFinal(); return; }
         busy = true;
         idx = i;
         var s = steps[i], target = findTarget(s.sel);
@@ -198,7 +202,7 @@
             setTimeout(function () { busy = false; try { card.querySelector('#pst-next').focus({ preventScroll: true }); } catch (e) {} }, REDUCE ? 0 : 420);
         });
     }
-    function next() { if (busy) return; if (idx >= steps.length - 1) showFinal(); else go(idx + 1); }
+    function next() { if (busy) return; if (idx >= steps.length - 1) { if (single) closeAll(); else showFinal(); } else go(idx + 1); }
     function prev() { if (busy || idx <= 0) return; go(idx - 1); }
 
     function fill(s, i) {
@@ -207,7 +211,7 @@
         card.querySelector('#pst-p').textContent = s.text;
         card.querySelector('#pst-c').textContent = (i + 1) + ' / ' + steps.length;
         card.querySelector('#pst-prev').style.visibility = i === 0 ? 'hidden' : 'visible';
-        card.querySelector('#pst-next').textContent = i === steps.length - 1 ? 'إنهاء الجولة' : 'التالي';
+        card.querySelector('#pst-next').textContent = i === steps.length - 1 ? (single ? 'تمام' : 'إنهاء الجولة') : 'التالي';
         bar.style.width = Math.round(((i + 1) / steps.length) * 100) + '%';
     }
 
@@ -291,6 +295,8 @@
             }
         } catch (e) {}
         finalEl.classList.add('on');
+        markSeen(steps.map(function (x) { return x.topic; }));
+        updateBtn();
         markDone();
         setTimeout(function () { confetti3(); music.play(); }, 250);
         try { finalEl.querySelector('#pst-go').focus({ preventScroll: true }); } catch (e) {}
@@ -299,8 +305,9 @@
     function closeAll() {
         if (ended) return;
         ended = true;
+        var wasSingle = single;
         music.stop(true);
-        markDone();
+        if (!wasSingle) markDone();
         document.removeEventListener('keydown', onKey, true);
         window.removeEventListener('resize', reposition);
         window.removeEventListener('scroll', reposition);
@@ -308,10 +315,12 @@
         setTimeout(function () {
             if (root && root.parentNode) root.parentNode.removeChild(root);
             var st = document.getElementById('pst-style'); if (st) st.remove();
-            try { window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+            if (!wasSingle) { try { window.scrollTo({ top: 0, behavior: REDUCE ? 'auto' : 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
+            root = null; single = false; // جاهز لتنوير جديد من الدليل
+            if (wasSingle) { ended = false; busy = false; idx = -1; }
         }, 400);
     }
-    function skipAll() { markDone(); closeAll(); }
+    function skipAll() { if (!single) markDone(); closeAll(); }
 
     /* ------------------------------ Confetti ------------------------------ */
     function confetti3() {
@@ -443,12 +452,340 @@
         music.setMuted(muted); setMuteIcon();
     }
 
+    /* ================================================================
+     * دليل المنصة (Hub): شرح تفصيلي لكل ميزة + تقدّم محفوظ + تلميح يومي.
+     * بيفضل مع الطالب لحد ما يعلّم كل المواضيع «فهمت». الحالة في localStorage لكل طالب.
+     * ================================================================ */
+    var IC = {
+        user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+        bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+        bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+        flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+        book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V22h16"/>',
+        check: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+        chart: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+        trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0z"/>',
+        cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+        star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+        key: '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3"/>',
+        bot: '<rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4M8 14h.01M16 14h.01"/>',
+        flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+        chat: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+        help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+        users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+        gift: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+        phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+        card: '<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>'
+    };
+    function icon(k) { return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (IC[k] || IC.help) + '</svg>'; }
+
+    // sel = عنصر في الصفحة الرئيسية نقدر ننوّر عليه («وريني»)، href = الصفحة اللي الميزة فيها
+    var TOPICS = [
+        { id: 'profile', g: 'البداية', ic: 'user', title: 'ملفك الشخصي ومستوياتك', sel: ['.profile-nav-btn'], href: 'profile.html', pts: [
+            'من هنا بتفتح بروفايلك: صورتك واسمك ونقاطك ومستواك وأصحابك.',
+            'مستواك بيتحسب من نقاطك، من Lv.1 لحد Lv.50. كل ما نقاطك تزيد مستواك بيعلى.',
+            'كل فئة من المستويات ليها إطار مختلف حوالين صورتك: مستكشف، مجتهد، متميز، محترف، خبير، أسطورة، وإمبراطور (أقوى إطار).',
+            'كل 5 مستويات بتفتح ميزة شكلية جديدة، منها: صورة خلفية للبروفايل عند Lv.30، ولقب مخصص عند Lv.35، ولون للبروفايل عند Lv.45.',
+            'اضغط «مميزات المستويات» جوه البروفايل تشوف إيه اللي اتفتح وإيه اللي لسه مقفول.' ] },
+        { id: 'basics', g: 'البداية', ic: 'bell', title: 'الإشعارات والوضع الليلي', sel: ['.nav-notif-btn'], pts: [
+            'الجرس فوق فيه رسايل الإدارة والتنبيهات المهمة. الرقم الأحمر معناه إن فيه إشعار جديد ماقريتوش.',
+            'زرار الشمس/القمر بيبدّل بين الوضع الداكن والفاتح، واختيارك بيتحفظ.',
+            'قبل ما اشتراكك يخلص بيومين هيظهرلك شريط تنبيه في الصفحة الرئيسية عشان تجدّد في الوقت المناسب.' ] },
+        { id: 'lessons', g: 'المذاكرة', ic: 'book', title: 'الحصص (فيديو وملزمة وملخص وامتحان)', sel: ['#cardFiles'], href: 'files.html', pts: [
+            'كل حصة فيها فيديو شرح وملزمة وملخص وامتحان خاص بيها.',
+            'عدد مرات دخولك لكل حصة محدود وبيزيد حسب باقتك: Plus = 5 مرات، Pro = 8، Elite = 15. وفي صفحة «إحصائياتي» بتشوف باقي كام دخول لكل حصة.',
+            'امتحان الحصة ليه عدد محاولات حدده المعلم، وPro بياخد محاولة زيادة وElite محاولتين زيادة.',
+            'النقاط: كل ما تذاكر وتحل بتكسب نقاط ومستواك بيعلى.' ] },
+        { id: 'points', g: 'المذاكرة', ic: 'bolt', title: 'النقاط: بتيجي منين وإزاي بتتحسب', sel: ['#cardFiles'], href: 'files.html', pts: [
+            'نقاطك بتيجي من الحصص والملازم والملخصات وامتحانات الحصص والامتحانات الشاملة.',
+            'نقاط امتحان الحصة بتتحسب حسب درجتك: كل ما درجتك أعلى كل ما النقاط أكتر، وفيه مكافأة إضافية لو جبت الدرجة النهائية.',
+            'لو أعدت امتحان الحصة، بتاخد الفرق بس لو درجتك اتحسنت عن قبل. يعني الإعادة من غير تحسن مفيهاش نقاط جديدة.',
+            'النقاط دي هي اللي بتحدد مستواك وترتيبك في لوحة المتصدرين.' ] },
+        { id: 'exams', g: 'المذاكرة', ic: 'check', title: 'الامتحانات الشاملة وكراسة الأخطاء', sel: ['#cardExams', '#cardMistakes'], href: 'exams.html', pts: [
+            'الامتحانات الشاملة بتغطي المنهج كله، وبتشوف حالتها ومحاولاتك المتبقية ودرجتك المعتمدة.',
+            '«أخطائي»: كل سؤال غلطت فيه في أي امتحان بيتسجل هناك، راجعه قبل الامتحان الجاي عشان متغلطش فيه تاني.',
+            'كل ما تراجع أخطائك أكتر، درجتك في الامتحانات الجاية بتتحسن.' ] },
+        { id: 'stats', g: 'المذاكرة', ic: 'chart', title: 'إحصائياتك ووقت مذاكرتك', sel: ['#cardStats'], href: 'stats.html', pts: [
+            'صفحة إحصائياتك فيها: مستواك وترتيبك العام، واشتراكك وعدّاد تنازلي لحد ما يخلص.',
+            'تفاصيل كل حصة: دخلت كام مرة وباقي كام، ودرجات امتحانات الحصص ومتوسطك وأعلى درجة.',
+            'الامتحانات الشاملة والاستريك والمنتدى والأصحاب كلهم في نفس الصفحة.',
+            'وقت المذاكرة بيتعد بس لما المنصة تكون ظاهرة قدامك على الشاشة، فمفيش وقت بيتحسب وانت مش بتذاكر.',
+            'باقة Plus بتديك إحصائيات أساسية، وPro وElite بتفتح التفاصيل الكاملة.' ] },
+        { id: 'streak', g: 'التحفيز', ic: 'flame', title: 'الاستريك وشجرة الاستريك', sel: ['#cardChat'], pts: [
+            'كل يوم بتدخل فيه المنصة (بتوقيت القاهرة) بيزيد الاستريك بتاعك +1، ومفيش حاجة بتصفّره أبداً.',
+            'شجرة الاستريك بتظهر في الدردشة: كل يوم بتطلعلها ورقة جديدة وبتكبر وتتفرع.',
+            'عند 365 يوم الشجرة بتكتمل بالأزهار والثمار الذهبية.',
+            'وبعد كده بيفضل الاستريك يكمّل، وكل يوم بتزيد ثمرة ذهبية جديدة (لحد 100) مع عدّاد السنين.' ] },
+        { id: 'leaderboard', g: 'التحفيز', ic: 'trophy', title: 'لوحة المتصدرين', sel: ['#leaderboardSection .lb-head', '#leaderboardSection'], pts: [
+            'أفضل 20 طالب في المنصة بنقاطهم: منصة للأول والتاني والتالت، وتحتهم باقي القايمة.',
+            'لو انت برّه أول 20 بتشوف ترتيبك وباقيلك كام نقطة تدخل.',
+            'اللوحة بتتحدّث كل 5 دقايق، وزرار التحديث فوق ليها (مرة كل دقيقة بالكتير).',
+            'لو قفلت المقارنة من إعداداتك، اسمك بيظهر للناس «طالب مخفي».' ] },
+        { id: 'weekly', g: 'التحفيز', ic: 'cal', title: 'المنافسة الأسبوعية', sel: ['#cardWeekly'], href: 'weekly.html', pts: [
+            'كل أسبوع بيبدأ السبت 12 بالليل وبيخلص الجمعة 12 بالليل (بتوقيت القاهرة)، وفيه عدّاد تنازلي في الصفحة.',
+            'اللي بيدخلك السباق هو نقاط امتحانات الحصص بس. فتح الفيديو أو الملزمة أو الملخص مبيدخلش في المنافسة.',
+            'أفضل الطلاب بيكسبوا أيام اشتراك هدية: المركزين الأول والتاني بياخدوا Pro، والباقي Plus، وعدد الأيام بتحدده الإدارة.',
+            'الفايزين بيتسجلوا في «لوحة الشرف». ادخل من كارت «المنافسات» وبعدين «منافسة الأسبوع».' ] },
+        { id: 'plans', g: 'الاشتراك', ic: 'star', title: 'الباقات: Plus وPro وElite وباقة الشلة', href: 'subscribe.html', pts: [
+            'فيه 3 باقات: Plus (الأساسية)، Pro (الأشهر)، Elite (الأقوى). كل باقة بتزوّد دخول الحصص ومحاولات الامتحانات وأسئلة المساعد الذكي اليومية.',
+            'المدد: 7 أيام أو 28 يوم أو 3 شهور، وكل ما المدة أطول التوفير أكبر. والعروض والخصومات بتظهر في صفحة الاشتراك.',
+            'باقة الشلة: 3 أو 5 طلاب بيشتركوا مع بعض في Pro بسعر أقل للفرد. القايد بيكتب IDs أصحابه (STU-0001...) والكل بيتفعّل بعد موافقة الإدارة.',
+            'عندك كود خصم؟ اكتبه في صفحة الاشتراك قبل ما تأكد الطلب.',
+            'الدفع: اتصالات كاش أو فوري، أو فيزا/تحويل بنكي (InstaPay لما يتاح). حوّل المبلغ بالظبط واكتب بياناتك، والإدارة بتراجع وتفعّل.',
+            'مسموح بطلب واحد معلّق في المرة. وأيام اشتراكك الجديدة بتتضاف على الأيام المتبقية، ولو رقّيت باقتك الأيام بتتحول للباقة الأعلى.' ] },
+        { id: 'trial', g: 'الاشتراك', ic: 'key', title: 'التجربة المجانية وتفعيل الكود', href: 'profile.html', pts: [
+            'أول ما عملت حسابك أخدت تجربة مجانية 24 ساعة بمميزات Pro، ومرة واحدة لكل إيميل ولكل رقم تليفون.',
+            'عندك كود VIP؟ ادخل بروفايلك واكتب الكود في خانة التفعيل وهيتفعّل اشتراكك فوراً.',
+            'لو كتبت الكود غلط 3 مرات بيتقفل التفعيل 30 دقيقة، فراجع الكود كويس قبل ما تكتبه.',
+            'لو اشتراكك لسه شغال وفعّلت كود جديد، الأيام بتتضاف على المتبقي ومبتضيعش.' ] },
+        { id: 'ai', g: 'أدوات', ic: 'bot', title: 'المساعد الذكي «مستر»', sel: ['#ai-toggle-btn'], pts: [
+            'الأيقونة العايمة في الشمال تحت (فوق زرار الإبلاغ): اضغط عليها تفتح الشات، وتقدر تسحبها لأي مكان يريّحك.',
+            'اسأله في أي مادة وهيشرحلك خطوة بخطوة، أو اسأله عن أي حاجة في المنصة (الأسعار، النقاط، المنافسة...).',
+            'عدد أسئلتك اليومي بيعتمد على باقتك: 15 للحساب المجاني، 30 Plus، 60 Pro، و120 Elite، وبتشوف الباقي جوه الشات.',
+            'اكتب سؤالك بشكل محدد (اسم الدرس والجزء اللي مش فاهمه) تاخد إجابة أدق.',
+            'تقدر ترجع لمحادثاتك القديمة من قايمة المحادثات جوه الشات.' ] },
+        { id: 'report', g: 'أدوات', ic: 'flag', title: 'الإبلاغ عن مشكلة', sel: ['#ps-rep-btn'], pts: [
+            'زرار العلم ⚑ تحت أيقونة المساعد الذكي مباشرة. اضغط عليه لو حاجة مش شغالة.',
+            'اكتب المشكلة بوضوح (مثال: «الفيديو مش بيشتغل في حصة كذا»). الصفحة اللي انت فيها وبياناتك بتتبعت تلقائي.',
+            'البلاغ بيوصل لصفحة «بلاغات الطلاب» عند الإدارة وبيتراجع.',
+            'مسموح بلاغ واحد كل دقيقة. ولو ظهرلك إن جلسة الدخول انتهت، اعمل تسجيل خروج وادخل تاني وابعت البلاغ.' ] },
+        { id: 'chat', g: 'التواصل', ic: 'chat', title: 'الدردشة', sel: ['#cardChat'], pts: [
+            'الولاد بيدخلوا شات الولاد والبنات شات البنات (المنصة بتحوّلك تلقائياً للشات الصح).',
+            'تقدر تعمل منشن لزميلك، وزرار «منشن الكل» للإدارة بس لما الإدارة تفعّل التقييد.',
+            'الإدارة ممكن تقفل الدردشة مؤقتاً أو تمسح الرسايل القديمة تلقائياً، فلو الشات مقفول هتظهرلك رسالة بالسبب.',
+            'شجرة الاستريك بتظهر هنا.' ] },
+        { id: 'forum', g: 'التواصل', ic: 'help', title: 'المنتدى', sel: ['#cardForum'], href: 'forum.html', pts: [
+            'اسأل أي سؤال في المنهج وجاوب على أسئلة زمايلك.',
+            'سؤالك بيظهر للناس بعد ما الإدارة توافق عليه، فمتقلقش لو مظهرش فوراً.' ] },
+        { id: 'friends', g: 'التواصل', ic: 'users', title: 'الأصدقاء والـ ID بتاعك', sel: ['.profile-nav-btn'], href: 'profile.html', pts: [
+            'كل طالب ليه رقم ثابت شكله STU-0001. بتلاقي رقمك في بروفايلك.',
+            'أصحابك بيضيفوك بالـ ID ده، وبتحتاجه كمان في باقة الشلة.',
+            'من بروفايلك تشوف قايمة أصحابك وتدخل على بروفايل أي صديق منهم.' ] },
+        { id: 'invites', g: 'التواصل', ic: 'gift', title: 'نظام الدعوات', sel: ['#cardInvites'], href: 'invites.html', pts: [
+            'خد كود الدعوة بتاعك من صفحة الدعوات وابعته لأصحابك.',
+            'كل صاحب يسجّل بالكود بيقرّبك من أيام اشتراك مجانية (باقة Plus).',
+            'فيه مستويات جوايز: كل ما عدد اللي دعيتهم يزيد، تقدر تستلم جايزة جديدة من نفس الصفحة.' ] },
+        { id: 'parent', g: 'أدوات', ic: 'phone', title: 'تقرير ولي الأمر', href: 'profile.html', pts: [
+            'اكتب رقم ولي أمرك في بروفايلك (خانة رقم هاتف ولي الأمر).',
+            'الإدارة بتبعتله تقرير بسيط على واتساب: حالتك بالألوان، ووقت مذاكرتك، وامتحاناتك.',
+            'التقرير ليه رابط فيه زرار «اسمع التقرير» بصوت، مناسب لو ولي الأمر مش بيقرأ كتير.' ] },
+        { id: 'app', g: 'أدوات', ic: 'card', title: 'تثبيت التطبيق وإشعارات الموبايل', sel: ['#psPushBar'], pts: [
+            'تقدر تثبّت المنصة كتطبيق على موبايلك: على أندرويد اضغط «ثبّت التطبيق» من الشريط اللي بيظهر في الصفحة الرئيسية.',
+            'على آيفون: من متصفح Safari اضغط زرار المشاركة ثم «إضافة إلى الشاشة الرئيسية».',
+            'فعّل الإشعارات من الشريط (زرار «فعّل») عشان توصلك تنبيهات الامتحانات والمنافسات حتى والتطبيق مقفول. على آيفون الإشعارات بتشتغل بس لو ضفت المنصة للشاشة الرئيسية (iOS 16.4 فما فوق).',
+            'التطبيق بيحتاج نت عشان يفتح.' ] }
+    ];
+
+    var GKEY = function () { return 'ps_guide_' + studentKey(); };
+    function gLoad() { try { var o = JSON.parse(localStorage.getItem(GKEY())); return (o && typeof o === 'object') ? o : {}; } catch (e) { return {}; } }
+    function gSave(o) { try { localStorage.setItem(GKEY(), JSON.stringify(o)); } catch (e) {} }
+    function gDoneCount(o) { return TOPICS.filter(function (t) { return o.done && o.done[t.id]; }).length; }
+    function markSeen(ids) {
+        var o = gLoad(); o.seen = o.seen || {};
+        ids.forEach(function (id) { if (id) o.seen[id] = 1; });
+        gSave(o);
+    }
+    function today() { try { return new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10); } catch (e) { return ''; } }
+
+    var hubCss = '' +
+        '#psg-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 12px;border-radius:20px;border:1px solid var(--border-color,#334155);background:var(--th-bg,rgba(255,255,255,.04));color:var(--text-main,#f8fafc);cursor:pointer;font:800 .78rem "Segoe UI",Tahoma,Arial,sans-serif}' +
+        '#psg-btn:hover{border-color:var(--primary,#6366f1);background:var(--hover-bg,rgba(99,102,241,.1))}' +
+        '#psg-btn .psg-n{background:var(--primary,#6366f1);color:#fff;border-radius:20px;padding:1px 7px;font-size:.68rem}' +
+        '#psg-btn.psg-ok .psg-n{background:#10b981}' +
+        '@media(max-width:480px){#psg-btn{padding:0 9px}#psg-btn>span:not(.psg-n){display:none}}' +
+        '#psg-btn.psg-pulse::after{content:"";position:absolute;top:-2px;right:-2px;width:10px;height:10px;border-radius:50%;background:#f59e0b;box-shadow:0 0 0 0 rgba(245,158,11,.7);animation:psgP 1.8s infinite}' +
+        '@keyframes psgP{0%{box-shadow:0 0 0 0 rgba(245,158,11,.6)}100%{box-shadow:0 0 0 10px rgba(245,158,11,0)}}' +
+        '#psg-fab{position:fixed;top:12px;left:12px;z-index:99980}' +
+        '#psg-ov{position:fixed;inset:0;z-index:2147482000;display:none;align-items:flex-end;justify-content:center;background:rgba(2,6,23,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);direction:rtl;font-family:"Segoe UI",Tahoma,Arial,sans-serif}' +
+        '#psg-ov.on{display:flex}' +
+        '#psg-sheet{width:100%;max-width:600px;max-height:88vh;display:flex;flex-direction:column;background:var(--bg-card,#1e293b);color:var(--text-main,#f8fafc);border:1px solid var(--border-color,#334155);border-radius:26px 26px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.5);animation:psgUp .35s cubic-bezier(.2,.9,.3,1) both}' +
+        '@keyframes psgUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}' +
+        '@media(min-width:640px){#psg-ov{align-items:center}#psg-sheet{border-radius:26px;max-height:84vh}}' +
+        '.psg-hd{padding:16px 18px 12px;border-bottom:1px solid var(--border-color,#334155)}' +
+        '.psg-hd-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}' +
+        '.psg-hd h2{margin:0;font-size:1.12rem;font-weight:900}' +
+        '.psg-x{width:32px;height:32px;border-radius:50%;border:1px solid var(--border-color,#334155);background:transparent;color:var(--text-main,#f8fafc);cursor:pointer;font-size:1rem}' +
+        '.psg-prog{height:8px;border-radius:8px;background:var(--border-color,#334155);overflow:hidden}' +
+        '.psg-prog b{display:block;height:100%;width:0;border-radius:8px;background:linear-gradient(90deg,var(--primary,#6366f1),#22d3ee);transition:width .5s ease}' +
+        '.psg-sub{margin:8px 0 0;font-size:.8rem;color:var(--text-muted,#94a3b8);line-height:1.7}' +
+        '.psg-chips{display:flex;gap:6px;margin-top:10px}' +
+        '.psg-chip{border:1px solid var(--border-color,#334155);background:transparent;color:var(--text-muted,#94a3b8);border-radius:20px;padding:5px 13px;font:700 .76rem "Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer}' +
+        '.psg-chip.on{background:var(--primary,#6366f1);border-color:var(--primary,#6366f1);color:#fff}' +
+        '.psg-list{overflow-y:auto;padding:12px 14px 18px;flex:1}' +
+        '.psg-g{margin:12px 4px 6px;font-size:.74rem;font-weight:800;color:var(--text-muted,#94a3b8);letter-spacing:.3px}' +
+        '.psg-it{border:1px solid var(--border-color,#334155);border-radius:16px;margin-bottom:8px;background:var(--th-bg,rgba(255,255,255,.03));overflow:hidden}' +
+        '.psg-it.done{border-color:rgba(16,185,129,.5)}' +
+        '.psg-row{width:100%;display:flex;align-items:center;gap:11px;padding:11px 12px;background:none;border:none;color:inherit;cursor:pointer;text-align:right;font:inherit}' +
+        '.psg-ic{flex:none;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(99,102,241,.16);color:var(--primary,#818cf8)}' +
+        '.psg-it.done .psg-ic{background:rgba(16,185,129,.16);color:#10b981}' +
+        '.psg-tt{flex:1;font-weight:800;font-size:.9rem;line-height:1.5}' +
+        '.psg-tag{font-size:.68rem;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap}' +
+        '.psg-tag.ok{background:rgba(16,185,129,.16);color:#10b981}.psg-tag.seen{background:rgba(56,189,248,.16);color:#38bdf8}' +
+        '.psg-body{display:none;padding:2px 14px 14px}' +
+        '.psg-it.open .psg-body{display:block}' +
+        '.psg-body ul{margin:0 0 12px;padding:0 18px 0 0;list-style:none}' +
+        '.psg-body li{position:relative;padding:4px 14px 4px 0;font-size:.86rem;line-height:1.85;color:var(--text-muted,#cbd5e1)}' +
+        '.psg-body li::before{content:"";position:absolute;right:-2px;top:.95em;width:6px;height:6px;border-radius:50%;background:var(--primary,#6366f1)}' +
+        '.psg-acts{display:flex;gap:7px;flex-wrap:wrap}' +
+        '.psg-a{border:1px solid var(--border-color,#334155);background:transparent;color:var(--text-main,#f8fafc);border-radius:11px;padding:8px 14px;font:800 .8rem "Segoe UI",Tahoma,Arial,sans-serif;cursor:pointer;text-decoration:none;display:inline-block}' +
+        '.psg-a.pri{background:var(--primary,#6366f1);border-color:var(--primary,#6366f1);color:#fff}' +
+        '.psg-a.ok{background:#10b981;border-color:#10b981;color:#fff}' +
+        '.psg-end{margin:8px 0 14px;padding:14px;border-radius:16px;text-align:center;background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(34,211,238,.15));border:1px solid rgba(16,185,129,.5);font-weight:800;line-height:1.8}' +
+        '#psg-nudge{position:fixed;left:12px;right:12px;top:64px;margin:0 auto;max-width:430px;z-index:99985;direction:rtl;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg-card,#1e293b);color:var(--text-main,#f8fafc);border:1px solid var(--primary,#6366f1);border-radius:18px;padding:13px 14px;box-shadow:0 14px 40px rgba(0,0,0,.45);animation:psgUp .4s ease both}' +
+        '#psg-nudge b{display:block;font-size:.86rem;margin-bottom:4px}#psg-nudge span{display:block;font-size:.8rem;line-height:1.7;color:var(--text-muted,#94a3b8);margin-bottom:10px}' +
+        (REDUCE ? '#psg-sheet,#psg-nudge,#psg-btn.psg-pulse::after{animation:none!important}' : '');
+
+    var hubEl = null, hubFilter = 'all', openId = null;
+
+    function ensureHubStyle() {
+        if (document.getElementById('psg-style')) return;
+        var st = el('style'); st.id = 'psg-style'; st.textContent = hubCss; document.head.appendChild(st);
+    }
+
+    function updateBtn() {
+        var b = document.getElementById('psg-btn'); if (!b) return;
+        var o = gLoad(), n = gDoneCount(o), all = TOPICS.length, ok = n >= all;
+        b.querySelector('.psg-n').textContent = ok ? '✓' : (n + '/' + all);
+        b.classList.toggle('psg-ok', ok);
+        b.classList.toggle('psg-pulse', !ok);
+        b.title = ok ? 'دليل المنصة (خلّصته كله)' : 'دليل المنصة: تعرّفت على ' + n + ' من ' + all;
+    }
+
+    function injectBtn() {
+        if (document.getElementById('psg-btn')) return;
+        ensureHubStyle();
+        var b = el('button', { id: 'psg-btn', type: 'button', 'aria-label': 'دليل المنصة' },
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V22h16"/></svg><span>الدليل</span><span class="psg-n">0/0</span>');
+        var host = document.querySelector('.header-right-side');
+        if (host) host.appendChild(b); else { b.id = 'psg-btn'; var w = el('div', { id: 'psg-fab' }); w.appendChild(b); document.body.appendChild(w); }
+        b.onclick = function () { openHub(); };
+        updateBtn();
+    }
+
+    function buildHub() {
+        ensureHubStyle();
+        hubEl = el('div', { id: 'psg-ov', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'دليل المنصة' },
+            '<div id="psg-sheet"><div class="psg-hd"><div class="psg-hd-top"><h2>دليل رحلة دراسية</h2><button class="psg-x" type="button" id="psg-close" aria-label="إغلاق">✕</button></div>' +
+            '<div class="psg-prog"><b id="psg-pb"></b></div><p class="psg-sub" id="psg-sub"></p>' +
+            '<div class="psg-chips"><button class="psg-chip on" data-f="all" type="button">الكل</button><button class="psg-chip" data-f="todo" type="button">لسه</button><button class="psg-chip" data-f="done" type="button">خلّصت</button></div></div>' +
+            '<div class="psg-list" id="psg-list"></div></div>');
+        document.body.appendChild(hubEl);
+        hubEl.addEventListener('click', function (e) { if (e.target === hubEl) closeHub(); });
+        hubEl.querySelector('#psg-close').onclick = closeHub;
+        hubEl.querySelectorAll('.psg-chip').forEach(function (c) {
+            c.onclick = function () {
+                hubFilter = c.getAttribute('data-f');
+                hubEl.querySelectorAll('.psg-chip').forEach(function (x) { x.classList.toggle('on', x === c); });
+                renderHub();
+            };
+        });
+    }
+
+    function renderHub() {
+        var o = gLoad(), n = gDoneCount(o), all = TOPICS.length;
+        hubEl.querySelector('#psg-pb').style.width = Math.round(n / all * 100) + '%';
+        hubEl.querySelector('#psg-sub').textContent = n >= all
+            ? 'ممتاز! عرفت كل حاجة في المنصة. الدليل هنا لو احتجت ترجع لأي نقطة.'
+            : 'تعرّفت على ' + n + ' من ' + all + ' موضوع. اقرأ كل موضوع واضغط «فهمت» لحد ما تخلّص الدليل كله، وأنا معاك لحد ما تعرف المنصة تمام.';
+        var list = hubEl.querySelector('#psg-list'); list.innerHTML = '';
+        if (n >= all) list.appendChild(el('div', { 'class': 'psg-end' }, 'مبروك! خلّصت دليل المنصة كله. دلوقتي إنت جاهز تستخدمها بأقصى استفادة.'));
+        var lastG = '', shown = 0;
+        TOPICS.forEach(function (t) {
+            var done = !!(o.done && o.done[t.id]), seen = !!(o.seen && o.seen[t.id]);
+            if (hubFilter === 'todo' && done) return;
+            if (hubFilter === 'done' && !done) return;
+            shown++;
+            if (t.g !== lastG) { lastG = t.g; list.appendChild(el('div', { 'class': 'psg-g' }, esc(t.g))); }
+            var it = el('div', { 'class': 'psg-it' + (done ? ' done' : '') + (openId === t.id ? ' open' : ''), 'data-id': t.id });
+            it.innerHTML = '<button type="button" class="psg-row"><span class="psg-ic">' + icon(t.ic) + '</span><span class="psg-tt">' + esc(t.title) + '</span>' +
+                (done ? '<span class="psg-tag ok">✓ فهمت</span>' : (seen ? '<span class="psg-tag seen">شفته في الجولة</span>' : '')) + '</button>' +
+                '<div class="psg-body"><ul>' + t.pts.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul><div class="psg-acts"></div></div>';
+            var acts = it.querySelector('.psg-acts');
+            if (t.sel && onPageTarget(t)) {
+                var s = el('button', { type: 'button', 'class': 'psg-a pri' }, 'وريني مكانه'); s.onclick = function () { spotlightTopic(t); }; acts.appendChild(s);
+            }
+            if (t.href) { var a = el('a', { 'class': 'psg-a', href: t.href }, 'افتح الصفحة'); acts.appendChild(a); }
+            var d = el('button', { type: 'button', 'class': 'psg-a ' + (done ? '' : 'ok') }, done ? 'رجّعه لـ «لسه»' : 'فهمت ✓');
+            d.onclick = function () {
+                var st = gLoad(); st.done = st.done || {};
+                if (done) delete st.done[t.id]; else st.done[t.id] = 1;
+                gSave(st); updateBtn();
+                if (!done) { // افتح الموضوع اللي بعده تلقائياً
+                    var i = TOPICS.indexOf(t), nx = TOPICS.slice(i + 1).concat(TOPICS.slice(0, i)).filter(function (x) { return !(st.done && st.done[x.id]); })[0];
+                    openId = nx ? nx.id : null;
+                }
+                renderHub();
+                var op = list.querySelector('.psg-it.open'); if (op && !done) { try { op.scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' }); } catch (e) {} }
+            };
+            acts.appendChild(d);
+            it.querySelector('.psg-row').onclick = function () { openId = (openId === t.id) ? null : t.id; renderHub(); };
+            list.appendChild(it);
+        });
+        if (!shown && n < all) list.appendChild(el('div', { 'class': 'psg-g' }, 'مفيش مواضيع هنا.'));
+    }
+
+    function onPageTarget(t) { return !!findTarget(t.sel); }
+
+    function openHub(topicId) {
+        if (!hubEl) buildHub();
+        if (topicId) openId = topicId;
+        else { var o = gLoad(); var nx = TOPICS.filter(function (t) { return !(o.done && o.done[t.id]); })[0]; openId = nx ? nx.id : null; }
+        hubFilter = 'all';
+        hubEl.querySelectorAll('.psg-chip').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-f') === 'all'); });
+        renderHub();
+        hubEl.classList.add('on');
+        document.body.style.overflow = 'hidden';
+        var op = hubEl.querySelector('.psg-it.open'); if (op) { try { op.scrollIntoView({ block: 'center' }); } catch (e) {} }
+    }
+    function closeHub() {
+        if (!hubEl) return;
+        hubEl.classList.remove('on'); document.body.style.overflow = '';
+        updateBtn();
+    }
+
+    // نوّر على عنصر واحد في الصفحة (وضع single من نفس محرك الجولة)
+    function spotlightTopic(t) {
+        closeHub();
+        if (root && !ended) return;
+        single = true; ended = false; busy = false; idx = -1;
+        build();
+        introEl.classList.add('off');
+        steps = [{ sel: t.sel, title: t.title, text: t.pts[0] }];
+        go(0);
+    }
+
+    // تلميح يومي خفيف لحد ما الطالب يخلّص الدليل
+    function maybeNudge() {
+        var o = gLoad(); if (gDoneCount(o) >= TOPICS.length) return;
+        o.nudge = o.nudge || {};
+        if (o.nudge.day === today()) return;
+        if (document.getElementById('pst-root') || document.getElementById('psg-ov') && document.getElementById('psg-ov').classList.contains('on')) return;
+        if (document.getElementById('ps-maint') || document.getElementById('psIntro')) return;
+        var pending = TOPICS.filter(function (t) { return !(o.done && o.done[t.id]); });
+        if (!pending.length) return;
+        var li = TOPICS.map(function (t) { return t.id; }).indexOf(o.nudge.last);
+        var pick = pending.filter(function (t) { return TOPICS.indexOf(t) > li; })[0] || pending[0];
+        o.nudge.day = today(); o.nudge.last = pick.id; gSave(o);
+        ensureHubStyle();
+        var n = el('div', { id: 'psg-nudge', role: 'status' },
+            '<b>هل تعرف: ' + esc(pick.title) + '؟</b><span>' + esc(pick.pts[0]) + '</span>' +
+            '<div class="psg-acts"><button type="button" class="psg-a pri" id="psg-nu-go">اعرف أكتر</button><button type="button" class="psg-a" id="psg-nu-x">بعدين</button></div>');
+        document.body.appendChild(n);
+        var kill = function () { if (n.parentNode) n.parentNode.removeChild(n); };
+        n.querySelector('#psg-nu-go').onclick = function () { kill(); openHub(pick.id); };
+        n.querySelector('#psg-nu-x').onclick = kill;
+        setTimeout(kill, 15000);
+    }
+
     /* ------------------------------ التشغيل ------------------------------ */
     function boot() {
         // نستنى الصفحة تستقر (الـ auth وبناء الواجهة) قبل ما نبدأ
         setTimeout(function () {
-            if (!document.body || document.getElementById('ps-maint')) return; // وضع الصيانة: مفيش جولة
-            build();
+            if (!document.body || document.getElementById('ps-maint')) return; // وضع الصيانة: مفيش جولة ولا دليل
+            injectBtn();
+            if (TOUR) { build(); return; }
+            if (params.get('guide') === '1') { openHub(); return; }
+            setTimeout(maybeNudge, 7000);
         }, 900);
     }
     if (document.readyState === 'complete') boot(); else window.addEventListener('load', boot);

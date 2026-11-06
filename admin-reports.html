@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بلاغات الطلاب | لوحة الأدمن</title>
+<script src="plans.js"></script>
+<script src="session.js"></script>
+<style>
+:root{--bg-main:#0f172a;--bg-card:#1e293b;--text-main:#f8fafc;--text-muted:#94a3b8;--border-color:#334155;--primary:#6366f1;--th-bg:rgba(255,255,255,.04);--shadow:0 10px 25px rgba(0,0,0,.15);
+--new:#f59e0b;--prog:#38bdf8;--done:#10b981;--bad:#ef4444}
+[data-theme=light]{--bg-main:#f1f5f9;--bg-card:#fff;--text-main:#1e293b;--text-muted:#64748b;--border-color:#e2e8f0;--primary:#4f46e5;--th-bg:rgba(0,0,0,.03);--shadow:0 10px 25px rgba(0,0,0,.05)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif;font-size:.9rem}
+body{background:var(--bg-main);color:var(--text-main);min-height:100vh;padding:14px}
+.wrap{max-width:980px;margin:0 auto}
+.hd{display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);padding:10px 16px;border-radius:30px;margin-bottom:16px;border:1px solid var(--border-color);box-shadow:var(--shadow)}
+.hd a{text-decoration:none;color:var(--text-main);background:var(--th-bg);padding:7px 14px;border-radius:20px;border:1px solid var(--border-color);font-weight:700}
+.hd a:hover{border-color:var(--primary)}
+.hd b{font-size:1rem}
+.btn{border:none;border-radius:10px;padding:7px 13px;font-weight:700;cursor:pointer;color:#fff;font-size:.8rem}
+.btn.prog{background:var(--prog);color:#0f172a}.btn.done{background:var(--done)}.btn.open{background:var(--new);color:#0f172a}
+.btn.ghost{background:var(--th-bg);color:var(--text-main);border:1px solid var(--border-color)}
+.btn.red{background:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.st{position:relative;overflow:hidden;background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;padding:14px 14px 12px;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.st:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.18)}
+.st::before{content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--c) 0%,transparent 70%);opacity:.35}
+.st.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.st small{display:block;color:var(--text-muted);font-size:.74rem;margin-bottom:4px}
+.st b{font-size:1.6rem;font-weight:800;color:var(--c)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tools input{flex:1;min-width:180px;padding:10px 14px;border-radius:14px;border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-main)}
+.tools input:focus{outline:none;border-color:var(--primary)}
+.rp{position:relative;background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;padding:14px 16px 14px;margin-bottom:10px;border-inline-start:5px solid var(--c);box-shadow:var(--shadow);animation:up .35s ease both}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rp.new{--c:var(--new)}.rp.progress{--c:var(--prog)}.rp.done{--c:var(--done);opacity:.8}
+.rp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rp-text{font-weight:700;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.tag{flex:none;padding:3px 11px;border-radius:20px;font-size:.72rem;font-weight:800;color:var(--c);border:1px solid var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.meta span{background:var(--th-bg);border:1px solid var(--border-color);border-radius:20px;padding:3px 10px;font-size:.72rem;color:var(--text-muted)}
+.note{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--border-color);background:var(--th-bg);color:var(--text-main);resize:vertical;margin-bottom:10px;font-size:.8rem}
+.note:focus{outline:none;border-color:var(--primary)}
+.acts{display:flex;flex-wrap:wrap;gap:7px}
+.empty{text-align:center;padding:40px 16px;color:var(--text-muted);background:var(--bg-card);border:1px dashed var(--border-color);border-radius:18px}
+#msg{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 18px;border-radius:12px;border:1px solid var(--border-color);display:none;z-index:99}
+</style>
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body data-theme="dark">
+<script src="intro.js"></script>
+<div class="wrap">
+  <div class="hd"><a href="admin.html">&larr; لوحة الأدمن</a><b>بلاغات الطلاب</b><button class="btn ghost" onclick="load()">تحديث</button></div>
+
+  <div class="stats">
+    <div class="st on" style="--c:#6366f1" data-f="all"><small>كل البلاغات</small><b id="nAll">0</b></div>
+    <div class="st" style="--c:#f59e0b" data-f="new"><small>جديدة</small><b id="nNew">0</b></div>
+    <div class="st" style="--c:#38bdf8" data-f="progress"><small>قيد المراجعة</small><b id="nProg">0</b></div>
+    <div class="st" style="--c:#10b981" data-f="done"><small>تم حلها</small><b id="nDone">0</b></div>
+  </div>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="ابحث في نص البلاغ أو اسم الطالب أو الـ ID أو الصفحة...">
+    <button class="btn red" id="clearDone" style="display:none" onclick="clearDone()">مسح المحلولة</button>
+  </div>
+
+  <div id="list"><div class="empty">جاري التحميل...</div></div>
+</div>
+<div id="msg"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, updateDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { logAdminAction } from "./admin-service.js";
+
+const app = initializeApp({apiKey:"AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",authDomain:"study-trip-1.firebaseapp.com",projectId:"study-trip-1",storageBucket:"study-trip-1.firebasestorage.app",messagingSenderId:"632096690853",appId:"1:632096690853:web:f9622d14de73a761dcf34c"});
+const auth = getAuth(app), db = getFirestore(app);
+const $ = id => document.getElementById(id);
+const esc = t => String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
+
+let who = 'admin', all = [], filter = 'all';
+const LBL = { new:'جديد', progress:'قيد المراجعة', done:'تم الحل' };
+const stOf = x => x.status === 'done' ? 'done' : (x.status === 'progress' ? 'progress' : 'new'); // أي حالة غير معروفة (مثلاً new) = جديد
+
+function toast(m){const e=$('msg');e.textContent=m;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2500);}
+function ago(t){
+  const ms = Date.now() - new Date(t).getTime();
+  if (isNaN(ms)) return '';
+  const m = Math.floor(ms/60000);
+  if (m < 1) return 'دلوقتي'; if (m < 60) return 'من ' + m + ' دقيقة';
+  const h = Math.floor(m/60); if (h < 24) return 'من ' + h + ' ساعة';
+  const d = Math.floor(h/24); if (d < 30) return 'من ' + d + ' يوم';
+  return new Date(t).toLocaleDateString('ar-EG');
+}
+function device(ua){
+  ua = String(ua||'');
+  const os = /iPhone|iPad/.test(ua) ? 'آيفون' : /Android/.test(ua) ? 'أندرويد' : /Windows/.test(ua) ? 'ويندوز' : /Mac/.test(ua) ? 'ماك' : '';
+  const br = /SamsungBrowser/.test(ua) ? 'Samsung' : /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome/.test(ua) ? 'Chrome' : /Firefox|FxiOS/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : '';
+  return [os, br].filter(Boolean).join(' • ');
+}
+
+function render(){
+  const n = { new:0, progress:0, done:0 };
+  all.forEach(x => n[stOf(x)]++);
+  $('nAll').textContent = all.length; $('nNew').textContent = n.new; $('nProg').textContent = n.progress; $('nDone').textContent = n.done;
+  $('clearDone').style.display = n.done ? '' : 'none';
+  document.querySelectorAll('.st').forEach(e => e.classList.toggle('on', e.dataset.f === filter));
+
+  const q = $('q').value.trim().toLowerCase();
+  const rows = all.filter(x => (filter === 'all' || stOf(x) === filter) &&
+    (!q || [x.text, x.name, x.studentId, x.page, x.adminNote].some(v => String(v||'').toLowerCase().includes(q))));
+  if (!rows.length) { $('list').innerHTML = '<div class="empty">' + (all.length ? 'مفيش بلاغات مطابقة.' : 'مفيش بلاغات لسه 🎉') + '</div>'; return; }
+  $('list').innerHTML = rows.map(x => {
+    const s = stOf(x), dev = device(x.ua);
+    return `<div class="rp ${s}" data-id="${esc(x._id)}">
+      <div class="rp-top"><div class="rp-text">${esc(x.text)}</div><span class="tag">${LBL[s]}</span></div>
+      <div class="meta">
+        <span>${esc(x.name || 'بدون اسم')}</span>
+        ${x.studentId ? `<span>${esc(x.studentId)}</span>` : ''}
+        ${x.page ? `<span>${esc(x.page)}</span>` : ''}
+        ${dev ? `<span>${esc(dev)}</span>` : ''}
+        <span>${esc(ago(x.t))}</span>
+      </div>
+      <textarea class="note" rows="2" maxlength="300" placeholder="ملاحظة داخلية (الطالب مش بيشوفها)..." data-note="${esc(x._id)}">${esc(x.adminNote||'')}</textarea>
+      <div class="acts">
+        ${s !== 'progress' ? `<button class="btn prog" data-act="progress">قيد المراجعة</button>` : ''}
+        ${s !== 'done' ? `<button class="btn done" data-act="done">تم الحل</button>` : `<button class="btn open" data-act="new">إعادة فتح</button>`}
+        <button class="btn ghost" data-act="note">حفظ الملاحظة</button>
+        ${x.studentId ? `<button class="btn ghost" data-act="copy" data-v="${esc(x.studentId)}">نسخ الـ ID</button>` : ''}
+        <button class="btn red" data-act="del">حذف</button>
+      </div></div>`;
+  }).join('');
+}
+
+async function load(){
+  try {
+    const s = await getDocs(query(collection(db,'problemReports'), orderBy('t','desc'), limit(300)));
+    all = s.docs.map(d => ({ _id: d.id, ...d.data() }));
+    render();
+  } catch (e) {
+    console.error(e);
+    $('list').innerHTML = '<div class="empty">تعذر تحميل البلاغات (راجع قواعد Firestore: لازم الأدمن يقدر يقرأ problemReports).</div>';
+  }
+}
+window.load = load;
+
+async function setStatus(id, status){
+  try {
+    await updateDoc(doc(db,'problemReports',id), { status, handledBy: who, handledAt: new Date().toISOString() });
+    const x = all.find(r => r._id === id); if (x) x.status = status;
+    logAdminAction(db, who, 'report_' + status, 'problemReports/' + id, '');
+    render(); toast(status === 'done' ? 'اتعلّم تم الحل' : status === 'progress' ? 'اتحوّل لقيد المراجعة' : 'اتفتح من جديد');
+  } catch (e) { toast('فشل التحديث'); }
+}
+
+$('list').addEventListener('click', async ev => {
+  const b = ev.target.closest('button[data-act]'); if (!b) return;
+  const id = b.closest('.rp').dataset.id, act = b.dataset.act;
+  if (act === 'progress' || act === 'done' || act === 'new') return setStatus(id, act);
+  if (act === 'copy') { try { await navigator.clipboard.writeText(b.dataset.v); toast('اتنسخ ' + b.dataset.v); } catch (e) { toast(b.dataset.v); } return; }
+  if (act === 'note') {
+    const v = b.closest('.rp').querySelector('.note').value.trim().slice(0,300);
+    try { await updateDoc(doc(db,'problemReports',id), { adminNote: v }); const x = all.find(r => r._id === id); if (x) x.adminNote = v; toast('اتحفظت الملاحظة'); } catch (e) { toast('فشل الحفظ'); }
+    return;
+  }
+  if (act === 'del') {
+    if (!confirm('تمسح البلاغ ده نهائياً؟')) return;
+    try { await deleteDoc(doc(db,'problemReports',id)); all = all.filter(r => r._id !== id); logAdminAction(db, who, 'report_delete', 'problemReports/' + id, ''); render(); toast('اتمسح'); } catch (e) { toast('فشل المسح'); }
+  }
+});
+
+window.clearDone = async function(){
+  const done = all.filter(x => stOf(x) === 'done');
+  if (!done.length || !confirm('هتمسح ' + done.length + ' بلاغ محلول نهائياً. متأكد؟')) return;
+  let ok = 0;
+  for (const x of done) { try { await deleteDoc(doc(db,'problemReports',x._id)); ok++; } catch (e) {} }
+  logAdminAction(db, who, 'report_clear_done', 'problemReports', ok + ' بلاغ');
+  toast('اتمسح ' + ok + ' بلاغ'); load();
+};
+
+document.querySelectorAll('.st').forEach(e => e.addEventListener('click', () => { filter = e.dataset.f; render(); }));
+$('q').addEventListener('input', render);
+
+if (!PS.isAdminSession()) { location.replace('admin-index.html'); }
+onAuthStateChanged(auth, u => { if (!u) { location.href = 'login.html'; return; } who = u.email || 'admin'; load(); });
+</script>
+</body>
+</html>

@@ -283,6 +283,28 @@
         var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index';
         var STUDENT_PAGES = ['index', 'login', 'welcome', 'main', 'profile', 'stats', 'files', 'files-lesson-view', 'lesson-exam',
             'exams', 'forum', 'chat-boys', 'chat-girls', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes'];
+        // توكن دخول Firebase للطالب الحالي: قواعد Firestore بتطلب مستخدم مسجّل، والـ fetch العادي من غير توكن كان بيترفض (permission denied).
+        var FB_VER = '10.8.0', FB_CFG = { apiKey: KEY, authDomain: 'study-trip-1.firebaseapp.com', projectId: 'study-trip-1', storageBucket: 'study-trip-1.firebasestorage.app', messagingSenderId: '632096690853', appId: '1:632096690853:web:f9622d14de73a761dcf34c' };
+        function getIdToken() {
+            return Promise.all([
+                import('https://www.gstatic.com/firebasejs/' + FB_VER + '/firebase-app.js'),
+                import('https://www.gstatic.com/firebasejs/' + FB_VER + '/firebase-auth.js')
+            ]).then(function (m) {
+                var app = m[0].getApps().length ? m[0].getApp() : m[0].initializeApp(FB_CFG);
+                var auth = m[1].getAuth(app);
+                return new Promise(function (resolve, reject) {
+                    var done = false;
+                    var finish = function (u) {
+                        if (done) return; done = true;
+                        if (!u) { var e = new Error('no-auth'); e.code = 'no-auth'; reject(e); return; }
+                        u.getIdToken().then(resolve, reject);
+                    };
+                    if (auth.currentUser) { finish(auth.currentUser); return; }
+                    var off = m[1].onAuthStateChanged(auth, function (u) { if (u) { off(); finish(u); } });
+                    setTimeout(function () { try { off(); } catch (x) {} finish(auth.currentUser); }, 5000);
+                });
+            });
+        }
         var REPORT_PAGES = ['main', 'profile', 'stats', 'files', 'files-lesson-view', 'exams', 'forum', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes'];
         if (STUDENT_PAGES.indexOf(page) < 0) return;
 
@@ -369,7 +391,7 @@
         // 3) زر "بلّغ عن مشكلة"
         if (REPORT_PAGES.indexOf(page) >= 0 && !PS.isAdminSession() && PS.isFresh()) {
             ready(function () {
-                var btn = el('<button id="ps-rep-btn" title="بلّغ عن مشكلة" aria-label="بلّغ عن مشكلة" style="position:fixed;bottom:25px;left:20px;z-index:99990;width:44px;height:44px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#f8fafc;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)">⚑</button>');
+                var btn = el('<button id="ps-rep-btn" title="بلّغ عن مشكلة" aria-label="بلّغ عن مشكلة" style="position:fixed;bottom:25px;left:23px;z-index:99990;width:44px;height:44px;border-radius:50%;border:1px solid #334155;background:#1e293b;color:#f8fafc;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)">⚑</button>');
                 var box = el('<div id="ps-rep" dir="rtl" style="display:none;position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px;font-family:Segoe UI,Tahoma,sans-serif">' +
                     '<div style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:16px;padding:18px;width:100%;max-width:380px">' +
                     '<h3 style="margin-bottom:6px;font-size:1rem">بلّغ عن مشكلة</h3><p style="font-size:.75rem;color:#94a3b8;margin-bottom:10px;line-height:1.7">اكتب المشكلة اللي واجهتك وهنراجعها (الصفحة وبياناتك بتتبعت تلقائي).</p>' +
@@ -391,14 +413,23 @@
                     var body = { fields: { text: f(txt), page: f(page + '.html'), studentId: f(PS.studentId()), name: f(s2.fullName || s2.name || ''),
                         ua: f((navigator.userAgent || '').slice(0, 150)), t: f(new Date().toISOString()), status: f('new') } };
                     msg('جاري الإرسال...');
-                    fetch(FS + 'problemReports?key=' + KEY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                        .then(function (r) {
-                            if (!r.ok) throw new Error('x');
-                            lsSet('ps_rep_last', String(Date.now()));
-                            document.getElementById('ps-rep-t').value = '';
-                            msg('وصلنا بلاغك، شكراً ليك ✔', '#34d399');
-                            setTimeout(function () { box.style.display = 'none'; }, 1400);
-                        }).catch(function () { msg('مقدرناش نبعت البلاغ دلوقتي، جرّب بعد شوية.', '#f87171'); });
+                    var sBtn = document.getElementById('ps-rep-s'); sBtn.disabled = true;
+                    getIdToken().then(function (tok) {
+                        return fetch(FS + 'problemReports', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify(body) });
+                    }).then(function (r) {
+                        if (!r.ok) { var e = new Error('http'); e.code = r.status; throw e; }
+                        lsSet('ps_rep_last', String(Date.now()));
+                        document.getElementById('ps-rep-t').value = '';
+                        msg('وصلنا بلاغك، شكراً ليك ✔', '#34d399');
+                        setTimeout(function () { box.style.display = 'none'; }, 1400);
+                    }).catch(function (err) {
+                        var m = 'مقدرناش نبعت البلاغ دلوقتي، جرّب بعد شوية.';
+                        if (err && err.code === 'no-auth') m = 'جلسة الدخول انتهت. اعمل تسجيل خروج وادخل تاني وبعدها ابعت البلاغ.';
+                        else if (err && (err.code === 401 || err.code === 403)) m = 'البلاغ اترفض من الخادم (' + err.code + '). كلّم الإدارة على واتساب.';
+                        else if (err && err.code) m = 'حصلت مشكلة في الخادم (' + err.code + '). جرّب بعد شوية.';
+                        else if (typeof navigator !== 'undefined' && navigator.onLine === false) m = 'مفيش اتصال بالنت. اتأكد منه وجرّب تاني.';
+                        msg(m, '#f87171');
+                    }).then(function () { sBtn.disabled = false; });
                 };
             });
         }
