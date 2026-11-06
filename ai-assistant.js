@@ -30,6 +30,8 @@
                 </div>
             </div>
 
+            <div id="ai-usage" class="ai-usage" style="display:none;"></div>
+
             <div class="ai-quick-chips">
                 <button onclick="sendQuickPrompt('ازاي أفعل الـ VIP؟')"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#22d3ee" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M2 9h20"/></svg> تفعيل الـ VIP</button>
                 <button onclick="sendQuickPrompt('نظام النقاط والمستويات')"><svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0;color:#fbbf24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-1.04 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98 1.04 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z"/></svg> نظام النقاط</button>
@@ -100,6 +102,14 @@
     .ai-cp-main small { color: #94a3b8; font-size: 10.5px; }
     .ai-cp-del { background: transparent; border: 1px solid #ef4444; color: #ef4444; border-radius: 8px; padding: 4px 9px; font-size: 11.5px; cursor: pointer; font-weight: 700; }
     .ai-cp-warn { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.4); color: #fbbf24; border-radius: 10px; padding: 8px 10px; font-size: 11.5px; line-height: 1.7; margin-bottom: 10px; }
+    .ai-usage { padding: 8px 14px 9px; background: #0f172a; border-top: 1px solid #1f2937; }
+    .ai-usage-row { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #94a3b8; margin-bottom: 5px; }
+    .ai-usage-row b { color: #93c5fd; font-size: 12px; }
+    .ai-usage-bar { height: 5px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+    .ai-usage-bar i { display: block; height: 100%; background: #3b82f6; border-radius: 4px; transition: width .4s ease; }
+    .ai-usage.low .ai-usage-row b { color: #fbbf24; } .ai-usage.low .ai-usage-bar i { background: #fbbf24; }
+    .ai-usage.out .ai-usage-row b { color: #f87171; } .ai-usage.out .ai-usage-bar i { background: #ef4444; }
+    .ai-usage-note { margin-top: 6px; font-size: 11px; line-height: 1.6; color: #fca5a5; }
     @media(max-width: 480px) { .ai-chat-box { width: 90vw; right: -10px; height: 450px; } }
     `;
 
@@ -158,7 +168,12 @@
     document.addEventListener('touchend', stopDrag);
 
     toggleBtn.addEventListener('click', () => {
-        if (!hasMoved) chatBox.classList.toggle('hidden');
+        if (!hasMoved) {
+            chatBox.classList.toggle('hidden');
+            if (!chatBox.classList.contains('hidden') && SID) {
+                if (usageDay && usageDay !== cairoDayStr()) loadUsage(); else renderUsage();
+            }
+        }
     });
 
     closeBtn.addEventListener('click', () => chatBox.classList.add('hidden'));
@@ -320,15 +335,20 @@
 
     function setBusy(b) {
         busy = b;
-        if (sendBtn) sendBtn.disabled = b;
-        if (userInput) userInput.disabled = b;
-        if (!b && userInput && !chatBox.classList.contains('hidden')) userInput.focus();
+        const locked = b || limitReached();
+        if (sendBtn) sendBtn.disabled = locked;
+        if (userInput) userInput.disabled = locked;
+        if (!locked && userInput && !chatBox.classList.contains('hidden')) userInput.focus();
     }
 
     async function sendUserMessage() {
         if (busy) return;
         const text = userInput.value.trim().slice(0, 1000);
         if (!text) return;
+        const isFaq = QUICK_FAQ.indexOf(text) !== -1;
+
+        // الحد اليومي (الأسئلة السريعة مش بتتحسب)
+        if (!isFaq && limitReached()) { renderUsage(); appendMessage(limitMsg(), 'bot', true); return; }
 
         // أول رسالة في دردشة جديدة: لازم يكون فيه مكان (حد أقصى 5 دردشات محفوظة)
         if (SID && !chatId) {
@@ -337,12 +357,19 @@
             chatId = SID + '_' + Date.now();
         }
 
+        // حجز سؤال من الحد اليومي (Transaction) قبل ما نبعت للـ AI
+        if (!isFaq) {
+            setBusy(true);
+            const got = await reserveSlot();
+            if (!got) { setBusy(false); appendMessage(limitMsg(), 'bot', true); return; }
+        }
+
         appendMessage(text, 'user', false);
         userInput.value = '';
         transcript.push({ r: 'u', c: text });
 
         // الأسئلة السريعة (الأزرار) بترد فوراً من غير AI
-        if (QUICK_FAQ.indexOf(text) !== -1) {
+        if (isFaq) {
             const faq = legacyFaq(text);
             setTimeout(() => appendMessage(faq, 'bot', true), 250);
             transcript.push({ r: 'b', c: faq, h: true });
@@ -352,9 +379,8 @@
 
         history.push({ role: 'user', content: text });
         if (history.length > 10) history.splice(0, history.length - 10);
-        setBusy(true);
         const ok = await askAi();
-        if (!ok) transcript.pop(); else saveChat();
+        if (!ok) { transcript.pop(); await refundSlot(); } else saveChat();   // لو الرد فشل السؤال مش بيتحسب
         setBusy(false);
     }
 
@@ -481,5 +507,95 @@
             const d = e.target.closest('[data-del]'); if (d) deleteChat(d.getAttribute('data-del'));
         });
     }
+
+    // ===== الحد اليومي لأسئلة المساعد — Firestore: aiUsage/{studentId} = { studentId, day, count, updatedAt } =====
+    // عدّل الأرقام هنا بس. اليوم بتوقيت القاهرة وبيتجدد 12 بالليل. الأدمن مالوش حد.
+    const AI_LIMITS = { free: 15, trial: 15, vip: 40 };
+    let usedToday = 0, usageDay = '', usageReady = false;
+    const INPUT_PLACEHOLDER = userInput ? userInput.placeholder : '';
+
+    function cairoDayStr() {
+        try { return new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }); }
+        catch (e) { return new Date().toISOString().slice(0, 10); }
+    }
+    function isVipNow() { const c = studentContext(); return !!(c && c.plan === 'VIP'); }
+    function dailyLimit() {
+        const c = studentContext();
+        return c && c.plan === 'VIP' ? AI_LIMITS.vip : (c && c.plan === 'تجربة مجانية' ? AI_LIMITS.trial : AI_LIMITS.free);
+    }
+    function limitReached() { return !!SID && usageReady && usedToday >= dailyLimit(); }
+
+    function limitMsg() {
+        return 'وصلت للحد اليومي من أسئلة المساعد (' + dailyLimit() + ' سؤال). بيتجدد الساعة 12 بالليل بتوقيت القاهرة، والأزرار السريعة لسه شغالة.' +
+            (isVipNow() ? '' : '<br>مشتركين الـ VIP حدهم اليومي ' + AI_LIMITS.vip + ' سؤال.');
+    }
+
+    function renderUsage() {
+        const el = document.getElementById('ai-usage');
+        if (!el) return;
+        if (!SID || !usageReady) { el.style.display = 'none'; return; }
+        const lim = dailyLimit(), left = Math.max(0, lim - usedToday);
+        const pct = Math.min(100, Math.round((usedToday / lim) * 100));
+        el.style.display = 'block';
+        el.className = 'ai-usage' + (left === 0 ? ' out' : left <= 3 ? ' low' : '');
+        el.innerHTML = '<div class="ai-usage-row"><span>أسئلتك النهارده</span><b>متبقي ' + left + ' من ' + lim + '</b></div>' +
+            '<div class="ai-usage-bar"><i style="width:' + pct + '%"></i></div>' +
+            (left === 0 ? '<div class="ai-usage-note">خلصت أسئلة النهارده. بيتجدد الساعة 12 بالليل بتوقيت القاهرة.</div>' : '');
+        if (userInput) userInput.placeholder = left === 0 ? 'خلصت حدك اليومي، بيتجدد بكرة' : INPUT_PLACEHOLDER;
+        setBusy(busy);
+    }
+
+    async function loadUsage() {
+        if (!SID) return;
+        try {
+            const { F, db } = await fsApi();
+            const snap = await F.getDoc(F.doc(db, 'aiUsage', SID));
+            const d = snap.exists() ? snap.data() : null;
+            usageDay = cairoDayStr();
+            usedToday = d && d.day === usageDay ? (Number(d.count) || 0) : 0;
+            usageReady = true;
+        } catch (e) { console.warn('[AI] usage load', e); }   // لو فشل (مثلاً القواعد لسه متضافتش) المساعد يكمّل عادي من غير حد
+        renderUsage();
+    }
+
+    // بيحجز سؤال واحد (+1) لو لسه فيه رصيد. بيرجّع false بس لو الحد خلص فعلاً.
+    async function reserveSlot() {
+        if (!SID) return true;
+        try {
+            const { F, db } = await fsApi();
+            const ref = F.doc(db, 'aiUsage', SID), day = cairoDayStr(), lim = dailyLimit();
+            const r = await F.runTransaction(db, async (tx) => {
+                const s = await tx.get(ref);
+                const d = s.exists() ? s.data() : {};
+                const cur = d.day === day ? (Number(d.count) || 0) : 0;
+                if (cur >= lim) return { ok: false, count: cur };
+                tx.set(ref, { studentId: SID, day: day, count: cur + 1, updatedAt: Date.now() });
+                return { ok: true, count: cur + 1 };
+            });
+            usageDay = day; usedToday = r.count; usageReady = true;
+            renderUsage();
+            return r.ok;
+        } catch (e) { console.warn('[AI] usage reserve', e); return true; }
+    }
+
+    // لو الرد فشل بنرجّع السؤال للطالب
+    async function refundSlot() {
+        if (!SID || !usageReady) return;
+        try {
+            const { F, db } = await fsApi();
+            const ref = F.doc(db, 'aiUsage', SID), day = cairoDayStr();
+            const n = await F.runTransaction(db, async (tx) => {
+                const s = await tx.get(ref);
+                const d = s.exists() ? s.data() : null;
+                if (!d || d.day !== day || !(Number(d.count) > 0)) return null;
+                tx.set(ref, { studentId: SID, day: day, count: Number(d.count) - 1, updatedAt: Date.now() });
+                return Number(d.count) - 1;
+            });
+            if (n !== null) usedToday = n;
+        } catch (e) { console.warn('[AI] usage refund', e); }
+        renderUsage();
+    }
+
+    if (SID) loadUsage().catch(() => {});
     if (SID) loadChats().catch(() => {});
 })();
