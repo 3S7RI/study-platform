@@ -229,6 +229,8 @@
         opts = opts || {};
         level = Math.max(1, Math.min(MAX_LEVEL, Number(level) || 1));
         size = size || 96;
+        // على الموبايل الصور أصغر شوية عشان الشاشة
+        try { if (window.innerWidth <= 480 && !(opts && opts.noScale)) size = Math.max(32, Math.round(size * 0.78)); } catch (e) {}
         var t = tierOf(level);
         var orbit = '';
         if (t.id >= 5) {
