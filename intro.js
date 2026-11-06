@@ -1,6 +1,8 @@
 /* intro.js — إنترو احترافي لمنصة رحلة دراسية
- * - ملف واحد مستقل: ضيف <script src="intro.js"></script> في <head> أي صفحة.
- * - بيظهر مرة واحدة لكل جلسة متصفح، وفيه زرار «تخطي» (أو اضغط في أي مكان / Esc).
+ * - ملف واحد مستقل: ضيف <script src="intro.js"></script> بعد وسم <body> في أي صفحة.
+ * - بيظهر في كل مرة الطالب يفتح التطبيق: فتح مباشر / رابط من برّه / Refresh / رجوع للتطبيق بعد غياب 5 دقايق.
+ *   مبيظهرش بس لما الطالب بيتنقل بين صفحات المنصة نفسها (عشان ميتعبش).
+ * - فيه زرار «تخطي» (أو اضغط في أي مكان / Esc).
  * - بيحترم prefers-reduced-motion، وبيشتغل بالثيم الغامق والفاتح.
  * - للتجربة: افتح الصفحة بـ ?intro=1 عشان يظهر حتى لو شفته قبل كده.
  */
@@ -9,9 +11,16 @@
     if (window.__psIntro) return;
     window.__psIntro = true;
 
-    var KEY = 'ps_intro_seen';
+    var AWAY_MS = 5 * 60 * 1000;
     var force = /[?&]intro=1/.test(location.search);
-    try { if (!force && sessionStorage.getItem(KEY)) return; } catch (e) {}
+    function internalNav() {
+        try {
+            var nav = performance.getEntriesByType('navigation')[0];
+            if (nav && nav.type === 'reload') return false;
+            return !!document.referrer && new URL(document.referrer).origin === location.origin;
+        } catch (e) { return false; }
+    }
+    if (!force && internalNav()) return;
 
     var REDUCE = false;
     try { REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
@@ -61,7 +70,6 @@
     function finish() {
         if (done) return; done = true;
         clearTimeout(timer);
-        try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
         document.removeEventListener('keydown', onKey);
         root.classList.add('out');
         setTimeout(function () {
@@ -82,4 +90,15 @@
     // نحط الإنترو بأسرع وقت ممكن عشان ميبانش وميض للصفحة تحته
     if (document.body) mount();
     else document.addEventListener('DOMContentLoaded', mount);
+
+    // رجوع للتطبيق بعد غياب (تطبيق PWA متقفّل في الخلفية وفتحه تاني)
+    var hiddenAt = 0;
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) { hiddenAt = Date.now(); return; }
+        if (hiddenAt && Date.now() - hiddenAt > AWAY_MS && done) {
+            hiddenAt = 0; done = false;
+            root.classList.remove('out');
+            mount();
+        }
+    });
 })();
