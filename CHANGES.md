@@ -80,3 +80,12 @@
 - **`main.html`**: كروت الأقسام في عمودين، لوحة المتصدرين ومنصة التتويج أصغر (طول الصفحة قل حوالي 36%).
 - **`levels.js`**: صور الطلاب بإطار المستوى بتتصغّر تلقائياً (×0.78) على الشاشات ≤ 480px.
 - **`profile.html`**: بطاقة وبانر أخف. **`setup.html`**: اتضاف الـ viewport meta (كانت بتتفتح بعرض سطح مكتب).
+
+# الدفعة 6 — تطبيق PWA (تثبيت المنصة على الموبايل)
+
+- ملفات جديدة: `manifest.webmanifest`، `sw.js`، `pwa.js`، `offline.html`، `icon-192.png`، `icon-512.png`، `icon-maskable-512.png`.
+- `sw.js`: الشبكة أولاً دايماً (الطالب ياخد آخر نسخة)، والكاش بس لو النت قطع + صفحة `offline.html`. بيتعامل مع ملفات المنصة بس، ومبيلمسش Firebase ولا أي طلب خارجي أو غير GET.
+- `pwa.js`: بيسجّل الـ Service Worker، وبيظهر شريط «ثبّت التطبيق» في `main.html` بس (على أندرويد زرار تثبيت، وعلى iPhone شرح الإضافة للشاشة الرئيسية)، ولو الطالب قفله بيختفي أسبوع.
+- أُضيفت 5 سطور في `<head>` لصفحات الطالب: main, login, welcome, files, files-lesson-view, exams, lesson-exam, mistakes, stats, forum, competitions, weekly, invites, subscribe, profile, chat-boys, chat-girls.
+- ما اتلمسش: index.html وSEO وsitemap، Brevo/OTP، صفحات الأدمن، منطق Firebase.
+- لو عاوز تلغي: امسح الـ 5 سطور من الصفحات (أو ارجع للنسخة القديمة)، وامسح ملفات الـ PWA.
