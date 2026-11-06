@@ -89,3 +89,6 @@
 - أُضيفت 5 سطور في `<head>` لصفحات الطالب: main, login, welcome, files, files-lesson-view, exams, lesson-exam, mistakes, stats, forum, competitions, weekly, invites, subscribe, profile, chat-boys, chat-girls.
 - ما اتلمسش: index.html وSEO وsitemap، Brevo/OTP، صفحات الأدمن، منطق Firebase.
 - لو عاوز تلغي: امسح الـ 5 سطور من الصفحات (أو ارجع للنسخة القديمة)، وامسح ملفات الـ PWA.
+
+# إنترو احترافي
+- `intro.js` (جديد): شاشة افتتاحية متحركة (لوجو بحلقات دوّارة + اسم المنصة + شريط تحميل، ~3.5 ثانية) بتظهر مرة واحدة لكل جلسة في `index.html` و`login.html`. فيها «تخطي» (أو اضغط أي مكان / Esc)، وبتحترم تقليل الحركة. للتجربة افتح `index.html?intro=1`.
