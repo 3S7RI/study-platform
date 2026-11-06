@@ -30,6 +30,26 @@ h2{font-size:1.3rem;margin-bottom:8px}
 .say:active{transform:scale(.98)}
 .foot{text-align:center;color:#94a3b8;font-size:.9rem;margin:10px 0 24px}
 .msg{background:var(--card);border-radius:18px;padding:30px 18px;text-align:center;font-size:1.3rem;font-weight:800}
+.sec-list{list-style:none}
+.sec-list li{font-size:1.15rem;line-height:1.8;font-weight:700;padding:10px 12px;border-radius:14px;margin-bottom:8px}
+.sec-list.good li{background:#dcfce7;color:#14532d}
+.sec-list.bad li{background:#fee2e2;color:#7f1d1d}
+.sec-list.tip li{background:#e0e7ff;color:#1e1b4b}
+.meter{margin-top:14px}
+.meter .top{display:flex;justify-content:space-between;font-weight:800;font-size:1.05rem;margin-bottom:6px}
+.bar{height:12px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+.note{color:var(--muted);font-size:.95rem;line-height:1.7;margin-top:6px}
+.sub{padding:12px 4px;border-bottom:2px solid #e2e8f0}
+.sub:last-child{border:0}
+.sub .h{display:flex;justify-content:space-between;gap:8px;font-size:1.15rem;font-weight:800;margin-bottom:6px}
+.sub small{color:var(--muted);font-weight:700;font-size:.95rem}
+details.card summary{font-size:1.3rem;font-weight:900;cursor:pointer;list-style:none}
+details.card summary::-webkit-details-marker{display:none}
+.ls{padding:12px 4px;border-bottom:2px solid #e2e8f0}
+.ls:last-child{border:0}
+.ls .h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800;font-size:1.05rem;margin-bottom:6px}
+.chip{display:inline-block;color:#fff;border-radius:10px;padding:3px 9px;font-weight:900;font-size:1rem}
 </style>
 </head>
 <body>
@@ -72,7 +92,10 @@ function spokenText(r) {
     t += (r.studySinceLastSec != null ? 'ذاكر المدة اللي فاتت ' + dur(r.studySinceLastSec) : 'مجموع وقت المذاكرة ' + dur(r.studyTotalSec)) + '. ';
     t += 'بيدخل المنصة ' + r.streak + ' يوم ورا بعض. ';
     if (r.avg != null) t += 'متوسط درجات الامتحانات ' + r.avg + ' في المية. ';
-    t += r.advice;
+    if (r.lessonsTotal) t += 'خلّص ' + r.lessonsDone + ' حصة كاملة من ' + r.lessonsTotal + '. ';
+    if ((r.strengths || []).length) t += 'نقاط القوة: ' + r.strengths.slice(0, 3).join('. ') + '. ';
+    if ((r.weaknesses || []).length) t += 'محتاج يتحسّن في: ' + r.weaknesses.slice(0, 3).join('. ') + '. ';
+    t += (r.tips && r.tips.length) ? 'نصيحتنا: ' + r.tips.slice(0, 3).join(' ') : r.advice;
     return t;
 }
 
@@ -91,24 +114,52 @@ function say(text) {
     } catch (e) { alert('تعذر تشغيل الصوت على الجهاز ده'); }
 }
 
+const list = (arr, cls) => arr && arr.length ? `<ul class="sec-list ${cls}">${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+const bar = (p, color) => `<div class="bar"><i style="width:${Math.max(2, Math.min(100, p))}%;background:${color}"></i></div>`;
+const TREND = { up: '📈 في تحسّن', down: '📉 في نزول', flat: '➖ ثابت' };
+
 function render(r) {
     const kid = r.gender === 'female' ? 'بنتكم' : 'ابنكم';
     const exams = (r.recent || []).map(e => `<div class="ex"><span>${esc(e.t)}</span><span class="pc" style="background:${pcColor(e.p)}">${esc(e.p)}%</span></div>`).join('');
+    const comp = r.comp || {};
+    const compItems = (comp.items || []).map(e => `<div class="ex"><span>${esc(e.t)}</span>${e.p == null ? '<span class="pc" style="background:var(--gray)">بانتظار الاعتماد</span>' : `<span class="pc" style="background:${pcColor(e.p)}">${esc(e.p)}%</span>`}</div>`).join('');
+    const subs = (r.subjects || []).map(s => `<div class="sub"><div class="h"><span>${esc(s.s)}</span><span style="color:${s.avg == null ? 'var(--gray)' : pcColor(s.avg)}">${s.avg == null ? 'لسه من غير امتحان' : esc(s.avg) + '%'}</span></div>${s.avg == null ? '' : bar(s.avg, pcColor(s.avg))}<small>خلّص ${esc(s.done)} من ${esc(s.total)} حصة${s.n ? ' • ' + esc(s.n) + ' امتحان' : ''}</small></div>`).join('');
+    const lessons = (r.lessons || []).map(l => `<div class="ls"><div class="h"><span>الحصة ${esc(l.n)}${l.t ? ': ' + esc(l.t) : ''}${l.s && l.s !== 'عام' ? ' <small style="color:var(--muted)">(' + esc(l.s) + ')</small>' : ''}</span>${l.e == null ? '<span class="chip" style="background:var(--gray)">من غير امتحان</span>' : `<span class="chip" style="background:${pcColor(l.e)}">${esc(l.e)}%</span>`}</div>${bar(l.p, l.p === 100 ? 'var(--green)' : 'var(--primary)')}<div class="note">إنجاز الحصة ${esc(l.p)}%${l.at > 1 ? ' • حلّ الامتحان ' + esc(l.at) + ' مرات' : ''}${l.mk ? ' • غلط في ' + esc(l.mk) + ' سؤال' : ''}</div></div>`).join('');
+    const tips = (r.tips && r.tips.length) ? r.tips : [r.advice];
+
     $app.innerHTML = `
       <div class="card">
         <div class="hello">تقرير عن ${kid}</div>
         <div class="name">${esc(r.name)}</div>
         <div class="badge b-${esc(r.status)}"><span class="e">${EMO[r.status] || '⚪'}</span><span>${esc(r.statusText)}</span></div>
+        ${r.overall != null && r.status !== 'none' ? `<div class="meter"><div class="top"><span>التقييم العام</span><span style="color:${pcColor(r.overall)}">${esc(r.overall)}%</span></div>${bar(r.overall, pcColor(r.overall))}<div class="note">محسوب من درجات الامتحانات وإنجاز الحصص وانتظام الدخول على المنصة.</div></div>` : ''}
       </div>
       <button class="say" id="sayBtn">🔊 اسمع التقرير بصوت</button>
+      ${(r.strengths || []).length ? `<div class="card"><h2>💪 شاطر في إيه؟</h2>${list(r.strengths, 'good')}</div>` : ''}
+      ${(r.weaknesses || []).length ? `<div class="card"><h2>📌 محتاج يتحسّن في إيه؟</h2>${list(r.weaknesses, 'bad')}</div>` : ''}
       <div class="card">
+        <h2>⏱ المذاكرة والانتظام</h2>
         <div class="row"><div class="ic">⏱</div><div><div class="lab">${r.studySinceLastSec != null ? 'ذاكر المدة اللي فاتت' : 'مجموع وقت المذاكرة'}</div><div class="val">${esc(dur(r.studySinceLastSec != null ? r.studySinceLastSec : r.studyTotalSec))}</div></div></div>
-        <div class="row"><div class="ic">🔥</div><div><div class="lab">أيام متواصلة على المنصة</div><div class="val">${esc(r.streak)} يوم</div></div></div>
-        ${r.avg != null ? `<div class="row"><div class="ic">📝</div><div><div class="lab">متوسط درجات الامتحانات</div><div class="val" style="color:${pcColor(r.avg)}">${esc(r.avg)}%</div></div></div>` : ''}
+        ${r.studySinceLastSec != null ? `<div class="row"><div class="ic">🕒</div><div><div class="lab">إجمالي وقت المذاكرة</div><div class="val">${esc(dur(r.studyTotalSec))}</div></div></div>` : ''}
+        ${r.studyAvgPerDaySec != null ? `<div class="row"><div class="ic">📅</div><div><div class="lab">متوسط المذاكرة في اليوم</div><div class="val">${esc(dur(r.studyAvgPerDaySec))}</div></div></div>` : ''}
+        <div class="row"><div class="ic">🔥</div><div><div class="lab">أيام متواصلة على المنصة</div><div class="val">${esc(r.streak)} يوم${r.longestStreak > r.streak ? ' <small style="color:var(--muted);font-size:1rem">(أطول مرة ' + esc(r.longestStreak) + ')</small>' : ''}</div></div></div>
+        ${r.inactiveDays != null && r.inactiveDays >= 1 ? `<div class="row"><div class="ic">🗓</div><div><div class="lab">آخر دخول</div><div class="val">من ${esc(r.inactiveDays)} ${r.inactiveDays === 1 ? 'يوم' : 'أيام'}</div></div></div>` : ''}
         <div class="row"><div class="ic">⭐</div><div><div class="lab">النقاط</div><div class="val">${esc(r.points)}</div></div></div>
       </div>
-      ${exams ? `<div class="card"><h2>📋 آخر الامتحانات</h2>${exams}</div>` : ''}
-      <div class="card"><h2>💬 نصيحتنا ليكم</h2><div class="advice">${esc(r.advice)}</div></div>`;
+      ${r.lessonsTotal ? `<div class="card"><h2>🎬 الحصص</h2>
+        <div class="row"><div class="ic">✅</div><div><div class="lab">حصص خلّصها كاملة</div><div class="val">${esc(r.lessonsDone)} من ${esc(r.lessonsTotal)}</div></div></div>
+        ${bar(Math.round(r.lessonsDone / r.lessonsTotal * 100), 'var(--green)')}
+        <div class="note">بدأ ${esc(r.lessonsStarted)} حصة${r.videos && r.videos.t ? ' • فيديوهات: ' + esc(r.videos.d) + '/' + esc(r.videos.t) : ''}${r.notes && r.notes.t ? ' • ملازم: ' + esc(r.notes.d) + '/' + esc(r.notes.t) : ''}${r.sums && r.sums.t ? ' • ملخصات: ' + esc(r.sums.d) + '/' + esc(r.sums.t) : ''}</div></div>` : ''}
+      ${subs ? `<div class="card"><h2>📚 مستواه في كل مادة</h2>${subs}</div>` : ''}
+      <div class="card"><h2>📝 الامتحانات</h2>
+        ${r.avg != null ? `<div class="row"><div class="ic">📝</div><div><div class="lab">متوسط امتحانات الحصص${r.examsCount ? ' (' + esc(r.examsCount) + ' امتحان)' : ''}</div><div class="val" style="color:${pcColor(r.avg)}">${esc(r.avg)}%${r.trend ? ' <small style="font-size:1rem">' + TREND[r.trend] + '</small>' : ''}</div></div></div>` : '<div class="note">لسه ما حلّش امتحانات حصص.</div>'}
+        ${comp.avg != null ? `<div class="row"><div class="ic">🏆</div><div><div class="lab">متوسط الامتحانات الشاملة</div><div class="val" style="color:${pcColor(comp.avg)}">${esc(comp.avg)}%</div></div></div>` : ''}
+        ${r.mistakesTotal ? `<div class="note">إجمالي الأسئلة اللي غلط فيها: ${esc(r.mistakesTotal)} سؤال (متسجّلة عنده في صفحة «أخطائي» عشان يراجعها).</div>` : ''}
+      </div>
+      ${exams ? `<div class="card"><h2>📋 آخر امتحانات الحصص</h2>${exams}</div>` : ''}
+      ${compItems ? `<div class="card"><h2>🏆 الامتحانات الشاملة</h2>${compItems}</div>` : ''}
+      ${lessons ? `<details class="card"><summary>🔎 تفاصيل كل حصة ▾</summary>${lessons}</details>` : ''}
+      <div class="card"><h2>💬 نصيحتنا ليكم</h2>${list(tips, 'tip')}</div>`;
     document.getElementById('sayBtn').onclick = () => say(spokenText(r));
 }
 
