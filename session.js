@@ -282,7 +282,7 @@
         var KEY = 'AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U';
         var page = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index';
         var STUDENT_PAGES = ['index', 'login', 'welcome', 'main', 'profile', 'stats', 'files', 'files-lesson-view', 'lesson-exam',
-            'exams', 'forum', 'chat-boys', 'chat-girls', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes'];
+            'exams', 'forum', 'chat-boys', 'chat-girls', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes', 'periodic-table'];
         // توكن دخول Firebase للطالب الحالي: قواعد Firestore بتطلب مستخدم مسجّل، والـ fetch العادي من غير توكن كان بيترفض (permission denied).
         var FB_VER = '10.8.0', FB_CFG = { apiKey: KEY, authDomain: 'study-trip-1.firebaseapp.com', projectId: 'study-trip-1', storageBucket: 'study-trip-1.firebasestorage.app', messagingSenderId: '632096690853', appId: '1:632096690853:web:f9622d14de73a761dcf34c' };
         function getIdToken() {
@@ -305,7 +305,7 @@
                 });
             });
         }
-        var REPORT_PAGES = ['main', 'profile', 'stats', 'files', 'files-lesson-view', 'exams', 'forum', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes'];
+        var REPORT_PAGES = ['main', 'profile', 'stats', 'files', 'files-lesson-view', 'exams', 'forum', 'subscribe', 'weekly', 'competitions', 'invites', 'mistakes', 'periodic-table'];
         if (STUDENT_PAGES.indexOf(page) < 0) return;
 
         function today() {

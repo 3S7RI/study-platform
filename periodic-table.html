@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الجدول الدوري للعناصر | رحلة دراسية</title>
+    <script src="plans.js"></script>
+    <script src="session.js"></script>
+    <script>PS.guard();</script>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #06b6d4; --th-bg: rgba(255,255,255,0.05);
+            --shadow: 0 8px 20px rgba(0,0,0,0.2); --stage: #0b1220;
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #0891b2; --th-bg: rgba(0,0,0,0.04);
+            --shadow: 0 8px 20px rgba(0,0,0,0.06); --stage: #e8eef7;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 12px; font-size: 0.9rem; }
+        .wrap { max-width: 1180px; margin: 0 auto; }
+        .top { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 8px 14px; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .top a { text-decoration: none; color: var(--text-main); background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; }
+        .top b { color: var(--primary); font-size: 0.95rem; }
+        .hero { background: var(--bg-card); border: 1px solid var(--border-color); border-top: 4px solid var(--primary); border-radius: 20px; padding: 18px 16px; text-align: center; box-shadow: var(--shadow); margin-bottom: 14px; }
+        .hero h1 { font-size: 1.35rem; font-weight: 900; }
+        .hero p { color: var(--text-muted); font-size: 0.82rem; margin-top: 5px; line-height: 1.8; }
+
+        /* ===== أدوات التحكم ===== */
+        .tools { display: grid; gap: 10px; margin-bottom: 12px; }
+        .search { position: relative; }
+        .search input { width: 100%; padding: 12px 14px 12px 14px; border-radius: 14px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 0.95rem; outline: none; }
+        .search input:focus { border-color: var(--primary); }
+        .row-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+        .seg { display: inline-flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 3px; gap: 2px; }
+        .seg button { border: none; background: transparent; color: var(--text-muted); padding: 7px 12px; border-radius: 9px; font-weight: 800; font-size: 0.78rem; cursor: pointer; }
+        .seg button.on { background: var(--primary); color: #fff; }
+        .legend { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; cursor: pointer; border: 1px solid color-mix(in srgb, var(--c) 55%, var(--border-color)); background: color-mix(in srgb, var(--c) 14%, var(--bg-card)); color: var(--text-main); }
+        .chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); display: inline-block; }
+        .chip.off { opacity: .38; }
+
+        /* ===== الجدول ===== */
+        .tbl-wrap { direction: ltr; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; border-radius: 16px; }
+        .ptable { display: grid; grid-template-columns: repeat(18, minmax(46px, 1fr)); grid-template-rows: repeat(7, auto) 12px repeat(2, auto); gap: 4px; min-width: 860px; direction: ltr; }
+        .cell { --c: #64748b; position: relative; text-align: center; cursor: pointer; border-radius: 9px; padding: 3px 2px 4px; min-height: 58px;
+            border: 1px solid color-mix(in srgb, var(--c) 60%, var(--border-color)); border-top: 3px solid var(--c);
+            background: color-mix(in srgb, var(--c) 17%, var(--bg-card)); color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; transition: transform .15s, box-shadow .15s, opacity .2s; }
+        .cell:hover, .cell:focus-visible { transform: scale(1.12); z-index: 3; box-shadow: 0 8px 22px color-mix(in srgb, var(--c) 45%, transparent); outline: none; }
+        .cell .z { position: absolute; top: 2px; left: 4px; font-size: 0.52rem; color: var(--text-muted); font-weight: 700; direction: ltr; }
+        .cell .s { font-size: 1.12rem; font-weight: 900; line-height: 1.15; margin-top: 8px; direction: ltr; }
+        .cell .n { font-size: 0.56rem; color: var(--text-muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1px; direction: rtl; }
+        .cell.dim { opacity: .14; }
+        .cell.ph { cursor: default; min-height: 58px; font-size: 0.55rem; color: var(--text-muted); justify-content: center; border-top-width: 1px; }
+        .cell.ph:hover { transform: none; box-shadow: none; }
+        .hint { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin: 6px 0 12px; }
+
+        /* ===== القائمة ===== */
+        .list { display: none; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+        body.view-list .list { display: grid; }
+        body.view-list .tbl-wrap, body.view-list .hint.tbl-only { display: none; }
+        .list .cell { min-height: 84px; padding-top: 6px; }
+        .list .cell .s { font-size: 1.4rem; margin-top: 10px; }
+        .list .cell .n { font-size: 0.7rem; margin-top: 2px; }
+        .list .cell .m { font-size: 0.56rem; color: var(--text-muted); direction: ltr; }
+
+        /* ===== نافذة التفاصيل ===== */
+        .sheet { position: fixed; inset: 0; z-index: 3000; display: none; background: rgba(2,6,23,.72); backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 14px; }
+        .sheet.open { display: flex; }
+        .dlg { --c: #06b6d4; width: 100%; max-width: 1000px; max-height: calc(100dvh - 28px); overflow-y: auto; background: var(--bg-card); border: 1px solid color-mix(in srgb, var(--c) 45%, var(--border-color)); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.5); position: relative; }
+        .p-head { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: linear-gradient(120deg, color-mix(in srgb, var(--c) 28%, var(--bg-card)), var(--bg-card)); border-bottom: 1px solid var(--border-color); }
+        .p-sym { flex: none; width: 58px; height: 58px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 25%, var(--bg-card)); border: 2px solid var(--c); direction: ltr; line-height: 1; }
+        .p-sym small { font-size: 0.6rem; color: var(--text-muted); font-weight: 700; }
+        .p-sym b { font-size: 1.55rem; font-weight: 900; }
+        .p-title { flex: 1; min-width: 0; }
+        .p-title h2 { font-size: 1.25rem; font-weight: 900; line-height: 1.3; }
+        .p-title div { color: var(--text-muted); font-size: 0.8rem; direction: ltr; text-align: right; }
+        .nav-btn, .x-btn { flex: none; width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .nav-btn:hover, .x-btn:hover { border-color: var(--c); }
+        .p-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 14px; }
+        @media (min-width: 860px) { .p-body { grid-template-columns: minmax(340px, 5fr) minmax(0, 6fr); align-items: start; } .stage-box { position: sticky; top: 84px; } }
+
+        .stage { position: relative; border-radius: 18px; overflow: hidden; background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c) 18%, var(--stage)), var(--stage) 72%); border: 1px solid var(--border-color); aspect-ratio: 1 / 1; max-height: 520px; width: 100%; }
+        .stage canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+        .stage canvas:active { cursor: grabbing; }
+        .stage .tip { position: absolute; top: 8px; right: 0; left: 0; text-align: center; font-size: 0.68rem; color: var(--text-muted); pointer-events: none; transition: opacity .5s; }
+        .legend3d { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 8px; font-size: 0.7rem; color: var(--text-muted); }
+        .legend3d span { display: inline-flex; align-items: center; gap: 5px; }
+        .legend3d i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .ctl { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+        .ctl button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 11px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); font-weight: 700; font-size: 0.76rem; cursor: pointer; }
+        .ctl button.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 20%, var(--bg-card)); }
+
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .tag { padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 800; border: 1px solid color-mix(in srgb, var(--c) 60%, var(--border-color)); background: color-mix(in srgb, var(--c) 18%, var(--bg-card)); }
+        .tag.plain { --c: #64748b; }
+        .sec-t { font-size: 0.82rem; font-weight: 900; color: var(--c); margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+        .sec-t::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
+        .sec-t:first-child { margin-top: 0; }
+        .props { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .prop { background: var(--th-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+        .prop.wide { grid-column: 1 / -1; }
+        .prop label { display: block; font-size: 0.66rem; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
+        .prop div { font-weight: 800; font-size: 0.86rem; line-height: 1.5; overflow-wrap: anywhere; }
+        .prop div .ltr { direction: ltr; unicode-bidi: embed; display: inline-block; }
+        .prop small { color: var(--text-muted); font-weight: 600; font-size: .72rem; }
+        .cfg { direction: ltr; text-align: left; font-family: Consolas, 'Courier New', monospace; font-size: .85rem; }
+        .shells { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; direction: ltr; }
+        .shell { display: inline-flex; flex-direction: column; align-items: center; min-width: 38px; padding: 4px 6px; border-radius: 9px; background: color-mix(in srgb, var(--c) 14%, var(--bg-card)); border: 1px solid color-mix(in srgb, var(--c) 40%, var(--border-color)); }
+        .shell small { font-size: .6rem; color: var(--text-muted); font-weight: 800; }
+        .shell b { font-size: .9rem; }
+        .uses { background: color-mix(in srgb, var(--c) 10%, var(--bg-card)); border: 1px solid color-mix(in srgb, var(--c) 35%, var(--border-color)); border-radius: 14px; padding: 12px 14px; line-height: 1.95; font-size: .86rem; }
+        .more { display: inline-block; margin-top: 12px; font-size: .76rem; color: var(--primary); text-decoration: none; font-weight: 800; }
+        .foot-note { text-align: center; color: var(--text-muted); font-size: .7rem; line-height: 1.8; margin: 14px 0 4px; }
+        @media (max-width: 480px) {
+            body { padding: 8px; }
+            .dlg { border-radius: 18px; }
+            .sheet { padding: 6px; }
+            .p-sym { width: 50px; height: 50px; } .p-sym b { font-size: 1.3rem; }
+            .p-title h2 { font-size: 1.1rem; }
+            .p-body { padding: 10px; }
+        }
+        @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
+    </style>
+    <link rel="stylesheet" href="mobile.css">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="pwa.js" defer></script>
+</head>
+<body>
+    <script src="intro.js"></script>
+<div class="wrap">
+    <div class="top"><a href="main.html">&rarr; الرئيسية</a><b>الجدول الدوري</b></div>
+    <section class="hero">
+        <h1>الجدول الدوري للعناصر</h1>
+        <p>كل العناصر الـ 118 في مكان واحد. اضغط على أي عنصر وشوف كل تفاصيله، وذرّته بمجسّم ثلاثي الأبعاد تلفّه بإصبعك.</p>
+    </section>
+
+    <div class="tools">
+        <div class="search"><input id="q" type="search" placeholder="ابحث باسم العنصر أو رمزه أو رقمه الذري (مثال: ذهب، Fe، 17)" autocomplete="off"></div>
+        <div class="row-tools">
+            <div class="seg" id="viewSeg"><button data-v="table" class="on">الجدول</button><button data-v="list">قائمة</button></div>
+            <div class="seg" id="modeSeg"><button data-m="cat" class="on">الفئة</button><button data-m="state">الحالة</button><button data-m="block">المستوى (s p d f)</button><button data-m="origin">الأصل</button></div>
+        </div>
+        <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="tbl-wrap"><div class="ptable" id="ptable"></div></div>
+    <div class="hint tbl-only">اسحب الجدول يمين ويسار على الموبايل لرؤية كل المجموعات.</div>
+    <div class="list" id="list"></div>
+    <p class="foot-note">الأرقام تقريبية. بعض قيم العناصر المشعّة والثقيلة (مثل الدرجات والكثافات) تقديرية أو غير معروفة بعد.</p>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="تفاصيل العنصر">
+    <div class="dlg" id="panel">
+        <div class="p-head">
+            <button class="nav-btn" id="nextBtn" aria-label="العنصر التالي" title="العنصر التالي"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <div class="p-sym" id="pSym"></div>
+            <div class="p-title" id="pTitle"></div>
+            <button class="nav-btn" id="prevBtn" aria-label="العنصر السابق" title="العنصر السابق"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+            <button class="x-btn" id="closeBtn" aria-label="إغلاق"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="p-body">
+            <div class="stage-box">
+                <div class="stage"><canvas id="cv"></canvas><div class="tip" id="tip">اسحب بإصبعك لتلف الذرة، واستخدم إصبعين للتقريب</div></div>
+                <div class="ctl">
+                    <button id="bAuto" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>دوران تلقائي</button>
+                    <button id="bOrb" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>المدارات</button>
+                    <button id="bRes" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>إعادة ضبط</button>
+                </div>
+                <div class="legend3d"><span><i style="background:#ef4444"></i>بروتون</span><span><i style="background:#60a5fa"></i>نيوترون</span><span><i style="background:#fbbf24"></i>إلكترون</span></div>
+            </div>
+            <div id="pInfo"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* =====================================================================
+ * بيانات العناصر: [الرمز, الاسم بالإنجليزي, الاسم بالعربي, الكتلة الذرية, انصهار K, غليان K, كثافة g/cm3, سالبية كهربية, سنة الاكتشاف, المكتشف, الاستخدامات]
+ * الفئة والمجموعة والدورة والتوزيع الإلكتروني بتتحسب من الرقم الذري.
+ * ===================================================================== */
+var EL = [
+['H','Hydrogen','هيدروجين',1.008,14.01,20.28,0.0000899,2.20,'1766','هنري كافنديش','أخف العناصر وأكثرها وفرة في الكون؛ يدخل في تركيب الماء، ويُستخدم وقودًا للصواريخ وفي صناعة الأمونيا.'],
+['He','Helium','هيليوم',4.0026,0.95,4.22,0.0001785,null,'1868','جانسن ولوكير (بالتحليل الطيفي)، وعزله رامزي عام 1895','غاز خامل لا يشتعل؛ يُملأ به البالونات والمناطيد، ويُبرِّد مغناطيسات أجهزة الرنين المغناطيسي (MRI).'],
+['Li','Lithium','ليثيوم',6.94,453.65,1603,0.534,0.98,'1817','يوهان أرفدسون','أخف المعادن؛ يُستخدم في بطاريات الليثيوم أيون للموبايلات والسيارات الكهربائية.'],
+['Be','Beryllium','بيريليوم',9.0122,1560,2742,1.85,1.57,'1798','لوي فوكلان','معدن خفيف وصلب جدًا؛ يدخل في سبائك الطائرات والأقمار الصناعية ونوافذ أجهزة الأشعة السينية.'],
+['B','Boron','بورون',10.81,2349,4200,2.34,2.04,'1808','غاي لوساك وتينار','يدخل في زجاج البايركس المقاوم للحرارة وفي مواد التنظيف (البوراكس) وبعض الأسمدة.'],
+['C','Carbon','كربون',12.011,3823,4098,2.267,2.55,'قديمًا','معروف منذ القدم','أساس الحياة؛ موجود في الفحم والجرافيت والألماس وفي كل المركبات العضوية.'],
+['N','Nitrogen','نيتروجين',14.007,63.15,77.36,0.0012506,3.04,'1772','دانيال رذرفورد','يمثل حوالي 78% من الهواء؛ يدخل في الأسمدة والأمونيا، ويُستخدم سائلًا في التبريد الشديد.'],
+['O','Oxygen','أكسجين',15.999,54.36,90.20,0.001429,3.44,'1774','جوزيف بريستلي وكارل شيله','ضروري للتنفس والاحتراق، ويمثل حوالي 21% من الهواء؛ يُستخدم في المستشفيات واللحام.'],
+['F','Fluorine','فلور',18.998,53.53,85.03,0.001696,3.98,'1886','هنري مواسان','أنشط اللافلزات؛ يُضاف لمعجون الأسنان لتقوية المينا، ويدخل في صناعة التفلون.'],
+['Ne','Neon','نيون',20.180,24.56,27.07,0.0008999,null,'1898','ويليام رامزي وموريس ترافرز','غاز نبيل يضيء باللون البرتقالي المحمر عند مرور الكهرباء فيه؛ يُستخدم في لافتات النيون.'],
+['Na','Sodium','صوديوم',22.990,370.87,1156,0.971,0.93,'1807','همفري ديفي','فلز قلوي لين يتفاعل بعنف مع الماء؛ يدخل في ملح الطعام (كلوريد الصوديوم) وصناعة الصابون والزجاج.'],
+['Mg','Magnesium','ماغنسيوم',24.305,923,1363,1.738,1.31,'1755','جوزيف بلاك (تمييزه)، وعزله ديفي عام 1808','فلز خفيف يدخل في سبائك الطائرات والسيارات، ويوجد في الكلوروفيل، ويعطي ضوءًا أبيض ساطعًا في الألعاب النارية.'],
+['Al','Aluminium','ألومنيوم',26.982,933.47,2792,2.70,1.61,'1825','هانز كريستيان أورستد','فلز خفيف مقاوم للصدأ؛ يُستخدم في الطائرات وعلب المشروبات وأدوات الطبخ وورق الألومنيوم.'],
+['Si','Silicon','سيليكون',28.085,1687,3538,2.329,1.90,'1824','يونس برزيليوس','أساس الرقائق الإلكترونية والخلايا الشمسية؛ يدخل في تركيب الرمل والزجاج.'],
+['P','Phosphorus','فوسفور',30.974,317.3,553.7,1.82,2.19,'1669','هينينج براند','ضروري للعظام والـ DNA؛ يدخل في الأسمدة وأعواد الثقاب.'],
+['S','Sulfur','كبريت',32.06,388.36,717.8,2.07,2.58,'قديمًا','معروف منذ القدم','يُستخدم في صناعة حمض الكبريتيك والأسمدة والبارود وفلكنة المطاط.'],
+['Cl','Chlorine','كلور',35.45,171.6,239.11,0.003214,3.16,'1774','كارل فيلهلم شيله','غاز أصفر مخضر سام؛ يُستخدم لتعقيم مياه الشرب والمسابح ويدخل في المبيّضات وصناعة PVC.'],
+['Ar','Argon','أرجون',39.948,83.8,87.3,0.0017837,null,'1894','اللورد رايلي وويليام رامزي','ثالث أكثر غازات الهواء وفرة؛ غاز خامل يُستخدم في المصابيح الكهربائية واللحام لحماية المعدن.'],
+['K','Potassium','بوتاسيوم',39.098,336.53,1032,0.862,0.82,'1807','همفري ديفي','مهم للأعصاب والعضلات ويوجد في الموز؛ يدخل في الأسمدة.'],
+['Ca','Calcium','كالسيوم',40.078,1115,1757,1.55,1.00,'1808','همفري ديفي','أساس العظام والأسنان وأصداف البحر؛ يدخل في الجير والأسمنت والجبس.'],
+['Sc','Scandium','سكانديوم',44.956,1814,3109,2.985,1.36,'1879','لارس نيلسون','يُضاف لسبائك الألومنيوم في الطائرات والمعدات الرياضية وفي إضاءة الاستوديوهات.'],
+['Ti','Titanium','تيتانيوم',47.867,1941,3560,4.506,1.54,'1791','ويليام جريجور','قوي وخفيف ومقاوم للتآكل؛ يُستخدم في الطائرات وزراعة العظام والمفاصل الصناعية.'],
+['V','Vanadium','فاناديوم',50.942,2183,3680,6.0,1.63,'1801','أندريس ديل ريو (وأعاد اكتشافه سيفستروم 1830)','يقوّي الصلب؛ يدخل في صناعة الأدوات وزنبركات السيارات.'],
+['Cr','Chromium','كروم',51.996,2180,2944,7.15,1.66,'1797','لوي فوكلان','يُستخدم في الطلاء اللامع المقاوم للصدأ وفي الصلب الذي لا يصدأ (ستانلس ستيل).'],
+['Mn','Manganese','منغنيز',54.938,1519,2334,7.21,1.55,'1774','يوهان جان','يدخل في صناعة الصلب ويقوّيه، وفي البطاريات الجافة.'],
+['Fe','Iron','حديد',55.845,1811,3134,7.874,1.83,'قديمًا','معروف منذ القدم','أهم المعادن صناعيًا؛ يُصنع منه الصلب، وهو موجود في هيموجلوبين الدم.'],
+['Co','Cobalt','كوبالت',58.933,1768,3200,8.90,1.88,'1735','جورج براندت','يعطي اللون الأزرق للزجاج والخزف، ويدخل في البطاريات والمغناطيسات القوية.'],
+['Ni','Nickel','نيكل',58.693,1728,3186,8.908,1.91,'1751','أكسل كرونستد','يُستخدم في العملات والصلب المقاوم للصدأ والبطاريات القابلة للشحن.'],
+['Cu','Copper','نحاس',63.546,1357.77,2835,8.96,1.90,'قديمًا','معروف منذ القدم','موصل ممتاز للكهرباء؛ يُستخدم في الأسلاك الكهربائية والأنابيب والعملات.'],
+['Zn','Zinc','زنك',65.38,692.68,1180,7.14,1.65,'1746','أندرياس ماركجراف (عزله)','يُستخدم في جلفنة الحديد لحمايته من الصدأ، وفي النحاس الأصفر والبطاريات.'],
+['Ga','Gallium','غاليوم',69.723,302.91,2477,5.91,1.81,'1875','بول إميل ليكوك دي بوابودران','ينصهر تقريبًا في اليد (حوالي 30°م)؛ يدخل في الإلكترونيات ولمبات LED.'],
+['Ge','Germanium','جرمانيوم',72.630,1211.4,3106,5.323,2.01,'1886','كليمنس فينكلر','شبه موصل يُستخدم في الإلكترونيات والألياف الضوئية.'],
+['As','Arsenic','زرنيخ',74.922,1090,887,5.727,2.18,'قديمًا','معروف منذ القدم','سام؛ استُخدم قديمًا في المبيدات، ويدخل حاليًا في أشباه الموصلات. يتسامى قبل أن ينصهر عند الضغط العادي.'],
+['Se','Selenium','سيلينيوم',78.971,494,958,4.81,2.55,'1817','يونس برزيليوس','يُستخدم في الخلايا الضوئية والزجاج الملوّن، وهو ضروري للجسم بكميات ضئيلة جدًا.'],
+['Br','Bromine','بروم',79.904,265.8,332.0,3.122,2.96,'1826','أنطوان بالار','سائل بني محمر ثقيل ونفّاذ الرائحة؛ يُستخدم في مثبطات الحريق.'],
+['Kr','Krypton','كريبتون',83.798,115.79,119.93,0.003733,3.00,'1898','ويليام رامزي وموريس ترافرز','غاز نبيل يُستخدم في بعض المصابيح ولمبات الفلاش السريعة.'],
+['Rb','Rubidium','روبيديوم',85.468,312.46,961,1.532,0.82,'1861','بونزن وكيرشوف','فلز قلوي شديد النشاط؛ يُستخدم في الساعات الذرية والأبحاث العلمية.'],
+['Sr','Strontium','سترونشيوم',87.62,1050,1655,2.64,0.95,'1790','أدير كروفورد','يعطي اللون الأحمر القاني للألعاب النارية.'],
+['Y','Yttrium','إتريوم',88.906,1799,3609,4.472,1.22,'1794','يوهان جادولين','يدخل في شاشات التلفزيون الملونة والليزر ومصابيح LED البيضاء.'],
+['Zr','Zirconium','زركونيوم',91.224,2128,4682,6.52,1.33,'1789','مارتن كلابروت','شديد المقاومة للتآكل؛ يُستخدم في أغلفة وقود المفاعلات النووية.'],
+['Nb','Niobium','نيوبيوم',92.906,2750,5017,8.57,1.6,'1801','تشارلز هاتشيت','يدخل في الصلب عالي القوة وفي المغناطيسات فائقة التوصيل لأجهزة MRI.'],
+['Mo','Molybdenum','موليبدينوم',95.95,2896,4912,10.28,2.16,'1778','كارل شيله','يقوّي الصلب ويقاوم الحرارة العالية؛ يدخل في المحركات والأدوات.'],
+['Tc','Technetium','تكنيتيوم',98,2430,4538,11.0,1.9,'1937','بيرييه وسيجريه','أول عنصر صُنع صناعيًا؛ مشع ويُستخدم في التصوير الطبي النووي.'],
+['Ru','Ruthenium','روثينيوم',101.07,2607,4423,12.45,2.2,'1844','كارل كلاوس','يدخل في الأقراص الصلبة والتلامسات الكهربائية وبعض سبائك المجوهرات.'],
+['Rh','Rhodium','روديوم',102.91,2237,3968,12.41,2.28,'1803','ويليام وولاستون','من أغلى المعادن؛ يُستخدم في المحولات الحفازة لعوادم السيارات.'],
+['Pd','Palladium','بلاديوم',106.42,1828.05,3236,12.02,2.20,'1803','ويليام وولاستون','يُستخدم في المحولات الحفازة وفي الإلكترونيات والمجوهرات.'],
+['Ag','Silver','فضة',107.87,1234.93,2435,10.49,1.93,'قديمًا','معروف منذ القدم','أفضل موصل للكهرباء والحرارة؛ يُستخدم في المجوهرات والمرايا والتصوير والعملات.'],
+['Cd','Cadmium','كادميوم',112.41,594.22,1040,8.65,1.69,'1817','فريدريش شتروماير','يُستخدم في بطاريات النيكل-كادميوم القابلة للشحن؛ سام.'],
+['In','Indium','إنديوم',114.82,429.75,2345,7.31,1.78,'1863','رايش وريختر','يُستخدم في شاشات اللمس والشاشات المسطحة.'],
+['Sn','Tin','قصدير',118.71,505.08,2875,7.31,1.96,'قديمًا','معروف منذ القدم','يُستخدم في طلاء علب الصفيح وفي اللحام وسبيكة البرونز.'],
+['Sb','Antimony','أنتيمون',121.76,903.78,1860,6.697,2.05,'قديمًا','معروف منذ القدم','يدخل في مثبطات الحريق وفي سبائك الرصاص لبطاريات السيارات.'],
+['Te','Tellurium','تيلوريوم',127.60,722.66,1261,6.24,2.1,'1782','فرانز مولر فون رايشنشتاين','يُستخدم في الخلايا الشمسية وبعض السبائك.'],
+['I','Iodine','يود',126.90,386.85,457.4,4.93,2.66,'1811','برنار كورتوا','ضروري للغدة الدرقية؛ يُستخدم في المطهرات (صبغة اليود) وملح الطعام المُيوَّد.'],
+['Xe','Xenon','زينون',131.29,161.4,165.05,0.005894,2.6,'1898','ويليام رامزي وموريس ترافرز','غاز نبيل يُستخدم في مصابيح السيارات (زينون) وفي محركات الفضاء الأيونية.'],
+['Cs','Caesium','سيزيوم',132.91,301.59,944,1.873,0.79,'1860','بونزن وكيرشوف','تُصنع منه أدق الساعات الذرية التي تُعرَّف بها الثانية.'],
+['Ba','Barium','باريوم',137.33,1000,2118,3.594,0.89,'1808','همفري ديفي','يُستخدم في فحص الجهاز الهضمي بالأشعة (وجبة الباريوم) وفي الألعاب النارية الخضراء.'],
+['La','Lanthanum','لانثانوم',138.91,1193,3737,6.145,1.10,'1839','كارل موساندر','يدخل في عدسات الكاميرات وبطاريات السيارات الهجينة.'],
+['Ce','Cerium','سيريوم',140.12,1068,3716,6.77,1.12,'1803','برزيليوس وهيسينجر وكلابروت','يُستخدم في الولاعات والمحولات الحفازة وصقل الزجاج.'],
+['Pr','Praseodymium','براسيوديميوم',140.91,1208,3793,6.773,1.13,'1885','كارل أوير فون فيلسباخ','يعطي لونًا أصفر مخضرًا للزجاج والسيراميك، ويدخل في المغناطيسات القوية.'],
+['Nd','Neodymium','نيوديميوم',144.24,1297,3347,7.007,1.14,'1885','كارل أوير فون فيلسباخ','تُصنع منه أقوى المغناطيسات الدائمة (في السماعات وتوربينات الرياح).'],
+['Pm','Promethium','بروميثيوم',145,1315,3273,7.26,null,'1945','ماريسنكي وجلندينين وكوريل','مشع؛ يُستخدم في الطلاء المضيء وبعض البطاريات النووية الصغيرة.'],
+['Sm','Samarium','ساماريوم',150.36,1345,2067,7.52,1.17,'1879','ليكوك دي بوابودران','يدخل في مغناطيسات الساماريوم-كوبالت المقاومة للحرارة.'],
+['Eu','Europium','يوروبيوم',151.96,1099,1802,5.243,1.2,'1901','أوجين ديماركاي','يعطي اللون الأحمر في الشاشات الملونة، ويُستخدم في حماية أوراق النقد.'],
+['Gd','Gadolinium','غادولينيوم',157.25,1585,3546,7.895,1.20,'1880','جان دي ماريناك','يُستخدم كمادة تباين في فحوصات الرنين المغناطيسي.'],
+['Tb','Terbium','تربيوم',158.93,1629,3503,8.229,1.1,'1843','كارل موساندر','يُستخدم في المصابيح الخضراء ومستشعرات الحقول المغناطيسية.'],
+['Dy','Dysprosium','ديسبروسيوم',162.50,1680,2840,8.55,1.22,'1886','ليكوك دي بوابودران','يدخل في مغناطيسات المحركات الكهربائية التي تعمل في حرارة عالية.'],
+['Ho','Holmium','هولميوم',164.93,1734,2993,8.795,1.23,'1878','ديلافونتين وسوريه وكليف','له أعلى قدرة مغناطيسية بين العناصر؛ يُستخدم في بعض الليزر الطبي.'],
+['Er','Erbium','إربيوم',167.26,1802,3141,9.066,1.24,'1843','كارل موساندر','يُستخدم في مضخمات الألياف الضوئية (كابلات الإنترنت).'],
+['Tm','Thulium','ثوليوم',168.93,1818,2223,9.321,1.25,'1879','بير تيودور كليف','يُستخدم في بعض أجهزة الأشعة المحمولة والليزر.'],
+['Yb','Ytterbium','إتربيوم',173.05,1097,1469,6.965,1.1,'1878','جان دي ماريناك','يُستخدم في الساعات الذرية فائقة الدقة والليزر.'],
+['Lu','Lutetium','لوتيتيوم',174.97,1925,3675,9.84,1.27,'1907','جورج أوربان','يُستخدم في أجهزة التصوير الطبي PET وفي الأبحاث.'],
+['Hf','Hafnium','هافنيوم',178.49,2506,4876,13.31,1.3,'1923','كوستر وفون هيفيسي','يُستخدم في قضبان التحكم بالمفاعلات النووية ورقائق الكمبيوتر.'],
+['Ta','Tantalum','تانتالوم',180.95,3290,5731,16.69,1.5,'1802','أندرس إيكبرج','يُستخدم في مكثفات الموبايلات وفي أدوات الجراحة لأنه لا يتفاعل مع الجسم.'],
+['W','Tungsten','تنجستن',183.84,3695,5828,19.25,2.36,'1783','الأخوان إلهوير','أعلى نقطة انصهار بين الفلزات؛ يُصنع منه فتيل المصابيح الكهربائية.'],
+['Re','Rhenium','رينيوم',186.21,3459,5869,21.02,1.9,'1925','نوداك وتاكه وبيرج','يدخل في محركات الطائرات النفاثة لتحمّله الحرارة.'],
+['Os','Osmium','أوزميوم',190.23,3306,5285,22.59,2.2,'1803','سميثسون تينانت','أكثف عنصر طبيعي معروف؛ يُستخدم في أسنّة الأقلام والتلامسات الكهربائية.'],
+['Ir','Iridium','إيريديوم',192.22,2719,4701,22.56,2.20,'1803','سميثسون تينانت','شديد مقاومة التآكل؛ يُستخدم في شمعات الإشعال والأجهزة الدقيقة.'],
+['Pt','Platinum','بلاتين',195.08,2041.4,4098,21.45,2.28,'1735','أنطونيو دي أويوا','يُستخدم في المجوهرات والمحولات الحفازة وبعض أدوية السرطان.'],
+['Au','Gold','ذهب',196.97,1337.33,3129,19.30,2.54,'قديمًا','معروف منذ القدم','لا يصدأ ولا يتأكسد؛ يُستخدم في المجوهرات والإلكترونيات والاحتياطيات النقدية.'],
+['Hg','Mercury','زئبق',200.59,234.32,629.88,13.534,2.00,'قديمًا','معروف منذ القدم','الفلز السائل الوحيد في الظروف العادية؛ سام جدًا واستُخدم قديمًا في موازين الحرارة.'],
+['Tl','Thallium','ثاليوم',204.38,577,1746,11.85,1.62,'1861','ويليام كروكس','سام جدًا؛ يُستخدم في أجهزة الكشف عن الأشعة تحت الحمراء.'],
+['Pb','Lead','رصاص',207.2,600.61,2022,11.34,2.33,'قديمًا','معروف منذ القدم','يُستخدم في بطاريات السيارات وفي الحماية من الأشعة؛ سام.'],
+['Bi','Bismuth','بزموت',208.98,544.7,1837,9.78,2.02,'1753','كلود جيوفروا (تمييزه)','يدخل في أدوية المعدة وفي سبائك تنصهر في درجات حرارة منخفضة.'],
+['Po','Polonium','بولونيوم',209,527,1235,9.196,2.0,'1898','ماري وبيير كوري','شديد الإشعاع؛ اكتشفته ماري كوري وسمّته على اسم بلدها بولندا.'],
+['At','Astatine','أستاتين',210,575,610,7,2.2,'1940','كورسون وماكنزي وسيجريه','أندر العناصر في القشرة الأرضية؛ يُدرَس لعلاج السرطان.'],
+['Rn','Radon','رادون',222,202,211.3,0.00973,2.2,'1900','فريدريش دورن','غاز مشع ينتج من تحلل اليورانيوم في التربة؛ قد يتجمع في الأقبية.'],
+['Fr','Francium','فرانسيوم',223,300,950,null,0.79,'1939','مارجريت بيريه','شديد الندرة والإشعاع وعمره قصير جدًا، فلا استخدام عملي له.'],
+['Ra','Radium','راديوم',226,973,2010,5.5,0.9,'1898','ماري وبيير كوري','استُخدم قديمًا في الطلاء المضيء والعلاج الإشعاعي، لكن إشعاعه خطير.'],
+['Ac','Actinium','أكتينيوم',227,1323,3471,10.07,1.1,'1899','أندريه دوبيرن','مشع؛ يُدرَس في العلاج الإشعاعي للسرطان.'],
+['Th','Thorium','ثوريوم',232.04,2115,5061,11.72,1.3,'1828','يونس برزيليوس','مشع ضعيف يُدرَس كوقود نووي بديل لليورانيوم.'],
+['Pa','Protactinium','بروتاكتينيوم',231.04,1841,4300,15.37,1.5,'1913','فايانس وجورينج','نادر ومشع؛ يُستخدم في الأبحاث العلمية فقط.'],
+['U','Uranium','يورانيوم',238.03,1405.3,4404,19.1,1.38,'1789','مارتن كلابروت','وقود المفاعلات النووية ومحطات توليد الطاقة.'],
+['Np','Neptunium','نبتونيوم',237,917,4273,20.45,1.36,'1940','ماكميلان وأبلسون','أول عنصر ما بعد اليورانيوم؛ ينتج في المفاعلات النووية.'],
+['Pu','Plutonium','بلوتونيوم',244,912.5,3501,19.84,1.28,'1940','جلين سيبورج وآخرون','يُستخدم في الأسلحة النووية وبطاريات مسابير الفضاء.'],
+['Am','Americium','أمريسيوم',243,1449,2880,13.67,1.13,'1944','سيبورج وآخرون','موجود في كاشفات الدخان المنزلية.'],
+['Cm','Curium','كوريوم',247,1613,3383,13.51,1.28,'1944','سيبورج وآخرون','يُستخدم مصدرَ طاقة في مسابير الفضاء؛ سُمّي تكريمًا لماري وبيير كوري.'],
+['Bk','Berkelium','بيركيليوم',247,1259,2900,14.78,1.3,'1949','سيبورج وطومسون وجيورسو','يُصنع بكميات ضئيلة للبحث وتخليق عناصر أثقل.'],
+['Cf','Californium','كاليفورنيوم',251,1173,1743,15.1,1.3,'1950','طومسون وستريت وجيورسو وسيبورج','مصدر قوي للنيوترونات؛ يُستخدم في الكشف عن الذهب والنفط وتشغيل المفاعلات.'],
+['Es','Einsteinium','أينشتاينيوم',252,1133,1269,8.84,1.3,'1952','جيورسو وفريقه','يُصنع بكميات دقيقة جدًا للبحث العلمي؛ سُمّي على اسم أينشتاين.'],
+['Fm','Fermium','فيرميوم',257,1800,null,null,1.3,'1952','جيورسو وفريقه','يُنتَج في المفاعلات للأبحاث فقط؛ سُمّي على اسم إنريكو فيرمي.'],
+['Md','Mendelevium','مندليفيوم',258,1100,null,null,1.3,'1955','جيورسو وسيبورج وفريقهما','يُصنع ذرة بذرة؛ سُمّي تكريمًا لمندليف مبتكر الجدول الدوري.'],
+['No','Nobelium','نوبليوم',259,1100,null,null,1.3,'1958','جيورسو وسيبورج وفريقهما','يُصنع للبحث فقط؛ سُمّي تكريمًا لألفريد نوبل.'],
+['Lr','Lawrencium','لورنسيوم',266,1900,null,null,null,'1961','جيورسو وفريقه','يُصنع للبحث فقط؛ آخر عناصر الأكتينيدات.'],
+['Rf','Rutherfordium','رذرفورديوم',267,null,null,null,null,'1969','معامل دوبنا (روسيا) وبيركلي (أمريكا)','عنصر مُصنَّع يعيش لثوانٍ فقط؛ يُدرَس للأبحاث.'],
+['Db','Dubnium','دوبنيوم',268,null,null,null,null,'1970','معامل دوبنا وبيركلي','عنصر مُصنَّع يُنتَج بذرات قليلة للأبحاث؛ سُمّي على اسم مدينة دوبنا الروسية.'],
+['Sg','Seaborgium','سيبورجيوم',269,null,null,null,null,'1974','معمل بيركلي (أمريكا)','عنصر مُصنَّع؛ سُمّي تكريمًا للعالم جلين سيبورج.'],
+['Bh','Bohrium','بوريوم',270,null,null,null,null,'1981','معهد GSI في دارمشتات (ألمانيا)','عنصر مُصنَّع؛ سُمّي تكريمًا للعالم نيلز بور.'],
+['Hs','Hassium','هاسيوم',277,null,null,null,null,'1984','معهد GSI في دارمشتات','عنصر مُصنَّع؛ سُمّي على اسم ولاية هسن الألمانية.'],
+['Mt','Meitnerium','مايتنريوم',278,null,null,null,null,'1982','معهد GSI في دارمشتات','عنصر مُصنَّع؛ سُمّي تكريمًا للعالمة ليزه مايتنر.'],
+['Ds','Darmstadtium','دارمشتاتيوم',281,null,null,null,null,'1994','معهد GSI في دارمشتات','عنصر مُصنَّع؛ سُمّي على اسم مدينة دارمشتات الألمانية.'],
+['Rg','Roentgenium','رونتجينيوم',282,null,null,null,null,'1994','معهد GSI في دارمشتات','عنصر مُصنَّع؛ سُمّي تكريمًا لفيلهلم رونتجن مكتشف الأشعة السينية.'],
+['Cn','Copernicium','كوبرنيسيوم',285,null,null,null,null,'1996','معهد GSI في دارمشتات','عنصر مُصنَّع؛ سُمّي تكريمًا للعالم نيكولاس كوبرنيكوس.'],
+['Nh','Nihonium','نيهونيوم',286,null,null,null,null,'2004','معهد ريكن (اليابان)','أول عنصر يُكتشف في آسيا؛ اسمه مأخوذ من «نيهون» وهو اسم اليابان بالياباني.'],
+['Fl','Flerovium','فليروفيوم',289,null,null,null,null,'1998','معامل دوبنا (روسيا)','عنصر مُصنَّع؛ سُمّي تكريمًا للعالم جورجي فليروف.'],
+['Mc','Moscovium','موسكوفيوم',290,null,null,null,null,'2003','معامل دوبنا وأوك ريدج','عنصر مُصنَّع؛ سُمّي على اسم إقليم موسكو.'],
+['Lv','Livermorium','ليفرموريوم',293,null,null,null,null,'2000','معامل دوبنا وليفرمور','عنصر مُصنَّع؛ سُمّي على اسم معمل ليفرمور الوطني.'],
+['Ts','Tennessine','تينيسين',294,null,null,null,null,'2010','معامل دوبنا وأوك ريدج','عنصر مُصنَّع؛ سُمّي على اسم ولاية تينيسي الأمريكية.'],
+['Og','Oganesson','أوغانيسون',294,null,null,null,null,'2002','معامل دوبنا (تأكد عام 2006)','آخر عناصر الجدول حاليًا وأثقلها؛ سُمّي تكريمًا للعالم يوري أوغانيسيان.']
+];
+var EST = {85:1,87:1,99:1,100:1,101:1,102:1,103:1};   // عناصر قيم درجاتها تقديرية
+
+/* ======================= حسابات من الرقم الذري ======================= */
+var CATS = {
+    alkali:   { n: 'فلزات قلوية',               c: '#ef4444' },
+    alkaline: { n: 'فلزات قلوية أرضية',         c: '#f97316' },
+    trans:    { n: 'فلزات انتقالية',            c: '#3b82f6' },
+    post:     { n: 'فلزات ضعيفة',               c: '#94a3b8' },
+    metalloid:{ n: 'أشباه فلزات',               c: '#14b8a6' },
+    nonmetal: { n: 'لافلزات',                   c: '#22c55e' },
+    halogen:  { n: 'هالوجينات',                 c: '#eab308' },
+    noble:    { n: 'غازات نبيلة',               c: '#a855f7' },
+    lanth:    { n: 'لانثانيدات',                c: '#ec4899' },
+    actin:    { n: 'أكتينيدات',                 c: '#06b6d4' }
+};
+function catOf(z) {
+    if ([3,11,19,37,55,87].indexOf(z) > -1) return 'alkali';
+    if ([4,12,20,38,56,88].indexOf(z) > -1) return 'alkaline';
+    if (z >= 57 && z <= 71) return 'lanth';
+    if (z >= 89 && z <= 103) return 'actin';
+    if ([2,10,18,36,54,86,118].indexOf(z) > -1) return 'noble';
+    if ([9,17,35,53,85,117].indexOf(z) > -1) return 'halogen';
+    if ([5,14,32,33,51,52].indexOf(z) > -1) return 'metalloid';
+    if ([1,6,7,8,15,16,34].indexOf(z) > -1) return 'nonmetal';
+    if ((z >= 21 && z <= 30) || (z >= 39 && z <= 48) || (z >= 72 && z <= 80) || (z >= 104 && z <= 112)) return 'trans';
+    return 'post';
+}
+function posOf(z) {
+    if (z === 1) return [1, 1];
+    if (z === 2) return [1, 18];
+    if (z <= 4) return [2, z - 2];
+    if (z <= 10) return [2, z + 8];
+    if (z <= 12) return [3, z - 10];
+    if (z <= 18) return [3, z];
+    if (z <= 36) return [4, z - 18];
+    if (z <= 54) return [5, z - 36];
+    if (z <= 56) return [6, z - 54];
+    if (z <= 71) return [9, z - 54];
+    if (z <= 86) return [6, z - 68];
+    if (z <= 88) return [7, z - 86];
+    if (z <= 103) return [10, z - 86];
+    return [7, z - 100];
+}
+function periodOf(z) { return z <= 2 ? 1 : z <= 10 ? 2 : z <= 18 ? 3 : z <= 36 ? 4 : z <= 54 ? 5 : z <= 86 ? 6 : 7; }
+function groupOf(z) { var c = catOf(z); if (c === 'lanth' || c === 'actin') return null; return posOf(z)[1]; }
+function blockOf(z) {
+    var c = catOf(z), g = groupOf(z);
+    if (c === 'lanth' || c === 'actin') return 'f';
+    if (z === 2 || g <= 2) return 's';
+    if (g >= 13) return 'p';
+    return 'd';
+}
+var BLOCKS = { s: { n: 'المستوى s', c: '#ef4444' }, p: { n: 'المستوى p', c: '#22c55e' }, d: { n: 'المستوى d', c: '#3b82f6' }, f: { n: 'المستوى f', c: '#a855f7' } };
+var STATES = { solid: { n: 'صلب', c: '#6366f1' }, liquid: { n: 'سائل', c: '#06b6d4' }, gas: { n: 'غاز', c: '#f59e0b' }, unk: { n: 'غير معروفة', c: '#64748b' } };
+var ORIGINS = { nat: { n: 'طبيعي', c: '#22c55e' }, syn: { n: 'مُصنَّع (من صنع الإنسان)', c: '#f97316' } };
+function stateOf(z) {
+    var e = EL[z - 1], mp = e[4], bp = e[5];
+    if (mp == null && bp == null) return 'unk';
+    if (bp != null && bp < 293.15) return 'gas';
+    if (mp != null && mp < 293.15) return 'liquid';
+    if (mp != null) return 'solid';
+    return 'unk';
+}
+function originOf(z) { return (z === 43 || z === 61 || z >= 93) ? 'syn' : 'nat'; }
+function radioactive(z) { return z === 43 || z === 61 || z >= 84; }
+
+/* التوزيع الإلكتروني بالترتيب (قاعدة أوفباو + الاستثناءات المعروفة) */
+var ORDER = ['1s','2s','2p','3s','3p','4s','3d','4p','5s','4d','5p','6s','4f','5d','6p','7s','5f','6d','7p'];
+var CAP = { s: 2, p: 6, d: 10, f: 14 };
+var OVR = {
+    24:{'3d':5,'4s':1}, 29:{'3d':10,'4s':1}, 41:{'4d':4,'5s':1}, 42:{'4d':5,'5s':1}, 44:{'4d':7,'5s':1}, 45:{'4d':8,'5s':1},
+    46:{'4d':10,'5s':0}, 47:{'4d':10,'5s':1}, 57:{'4f':0,'5d':1}, 58:{'4f':1,'5d':1}, 64:{'4f':7,'5d':1}, 78:{'5d':9,'6s':1}, 79:{'5d':10,'6s':1},
+    89:{'5f':0,'6d':1}, 90:{'5f':0,'6d':2}, 91:{'5f':2,'6d':1}, 92:{'5f':3,'6d':1}, 93:{'5f':4,'6d':1}, 96:{'5f':7,'6d':1}, 103:{'6d':0,'7p':1}
+};
+function subshells(z, useOvr) {
+    var left = z, out = {};
+    for (var i = 0; i < ORDER.length && left > 0; i++) { var k = ORDER[i], c = Math.min(CAP[k[1]], left); out[k] = c; left -= c; }
+    if (useOvr && OVR[z]) for (var s in OVR[z]) out[s] = OVR[z][s];
+    return out;
+}
+function sortSub(a, b) { return (a[0] - b[0]) || ('spdf'.indexOf(a[1]) - 'spdf'.indexOf(b[1])); }
+function sup(n) { var m = '⁰¹²³⁴⁵⁶⁷⁸⁹'; return String(n).split('').map(function (d) { return m[+d]; }).join(''); }
+function fmtCfg(sub, core) {
+    return Object.keys(sub).filter(function (k) { return sub[k] - (core && core[k] || 0) > 0; }).sort(sortSub)
+        .map(function (k) { return k + sup(sub[k] - (core && core[k] || 0)); }).join(' ');
+}
+function configOf(z) {
+    var sub = subshells(z, true), full = fmtCfg(sub, null), short = full;
+    var nobles = [[86,'Rn'],[54,'Xe'],[36,'Kr'],[18,'Ar'],[10,'Ne'],[2,'He']];
+    for (var i = 0; i < nobles.length; i++) {
+        if (z > nobles[i][0]) { short = '[' + nobles[i][1] + '] ' + fmtCfg(sub, subshells(nobles[i][0], false)); break; }
+    }
+    var shells = [];
+    Object.keys(sub).forEach(function (k) { var n = +k[0]; shells[n - 1] = (shells[n - 1] || 0) + sub[k]; });
+    for (var j = 0; j < shells.length; j++) shells[j] = shells[j] || 0;
+    return { full: full, short: short, shells: shells };
+}
+function valenceOf(z) {
+    var g = groupOf(z);
+    if (z === 2) return '2';
+    if (g === null || (g >= 3 && g <= 12)) return 'متغيّر (غالبًا 1 أو 2)';
+    return String(g <= 2 ? g : g - 10);
+}
+var SHELL_NAMES = ['K','L','M','N','O','P','Q'];
+
+/* ============================ الجدول والقائمة ============================ */
+var mode = 'cat', view = 'table', query = '', hiddenKeys = {};
+function keyOf(z) {
+    if (mode === 'cat') return catOf(z);
+    if (mode === 'state') return stateOf(z);
+    if (mode === 'block') return blockOf(z);
+    return originOf(z);
+}
+function palette() { return mode === 'cat' ? CATS : mode === 'state' ? STATES : mode === 'block' ? BLOCKS : ORIGINS; }
+function colorOf(z) { return palette()[keyOf(z)].c; }
+function $(id) { return document.getElementById(id); }
+function esc(t) { return PS.esc(t); }
+function fmt(n, d) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: d == null ? 3 : d }); }
+
+function cellHtml(z, inList, pos) {
+    var e = EL[z - 1];
+    var st = '--c:' + colorOf(z) + (pos ? ';grid-row:' + pos[0] + ';grid-column:' + pos[1] : '');
+    return '<button type="button" class="cell" data-z="' + z + '" aria-label="' + esc(e[2]) + ' ' + esc(e[0]) + '" style="' + st + '">' +
+        '<span class="z">' + z + '</span><span class="s">' + esc(e[0]) + '</span><span class="n">' + esc(e[2]) + '</span>' +
+        (inList ? '<span class="m">' + esc(String(e[3])) + '</span>' : '') + '</button>';
+}
+function buildTable() {
+    var h = '';
+    for (var z = 1; z <= 118; z++) h += cellHtml(z, false, posOf(z));
+    h += '<div class="cell ph" style="grid-row:6;grid-column:3;--c:' + (mode === 'cat' ? CATS.lanth.c : '#64748b') + '">57–71</div>';
+    h += '<div class="cell ph" style="grid-row:7;grid-column:3;--c:' + (mode === 'cat' ? CATS.actin.c : '#64748b') + '">89–103</div>';
+    $('ptable').innerHTML = h;
+}
+function buildList() {
+    var h = ''; for (var z = 1; z <= 118; z++) h += cellHtml(z, true);
+    $('list').innerHTML = h;
+}
+function buildLegend() {
+    var P = palette(), h = '';
+    Object.keys(P).forEach(function (k) { h += '<span class="chip' + (hiddenKeys[k] ? ' off' : '') + '" data-k="' + k + '" style="--c:' + P[k].c + '"><i></i>' + P[k].n + '</span>'; });
+    $('legend').innerHTML = h;
+}
+function matches(z) {
+    if (hiddenKeys[keyOf(z)]) return false;
+    if (!query) return true;
+    var e = EL[z - 1], q = query.toLowerCase();
+    return String(z) === q || e[0].toLowerCase() === q || e[1].toLowerCase().indexOf(q) === 0 || e[2].indexOf(query) > -1 || e[1].toLowerCase().indexOf(q) > -1;
+}
+function applyFilter() {
+    var cells = document.querySelectorAll('.cell[data-z]');
+    var first = null;
+    for (var i = 0; i < cells.length; i++) {
+        var ok = matches(+cells[i].getAttribute('data-z'));
+        cells[i].classList.toggle('dim', !ok);
+        if (ok && !first && query && cells[i].offsetParent) first = cells[i];
+    }
+    if (first) { try { first.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) {} }
+}
+function rebuild() { buildTable(); buildList(); buildLegend(); applyFilter(); }
+function store(k, v) { try { localStorage.setItem('pt_' + k, v); } catch (e) {} }
+function load(k, d) { try { return localStorage.getItem('pt_' + k) || d; } catch (e) { return d; } }
+
+function setView(v) {
+    view = v; document.body.classList.toggle('view-list', v === 'list');
+    [].forEach.call($('viewSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); });
+    store('view', v);
+}
+function setMode(m) {
+    mode = m; hiddenKeys = {};
+    [].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-m') === m); });
+    store('mode', m); rebuild();
+}
+
+/* ============================= نافذة التفاصيل ============================= */
+var cur = 0, atom = null;
+function tempText(k, z) {
+    if (k == null) return 'غير معروفة';
+    var c = k - 273.15, t = Math.abs(c) >= 1000 ? Math.round(c) : Math.round(c * 10) / 10;
+    return '<span class="ltr">' + fmt(t, 1) + ' °C</span> <small>(' + fmt(k, 1) + ' K)</small>' + (EST[z] ? ' <small>تقديرية</small>' : '');
+}
+function densText(d, z) {
+    if (d == null) return 'غير معروفة';
+    var t = d < 0.01 ? '<span class="ltr">' + fmt(d * 1000, 3) + ' g/L</span>' : '<span class="ltr">' + fmt(d, 3) + ' g/cm³</span>';
+    return t + (EST[z] ? ' <small>تقديرية</small>' : '');
+}
+function prop(l, v, wide) { return '<div class="prop' + (wide ? ' wide' : '') + '"><label>' + l + '</label><div>' + v + '</div></div>'; }
+
+function openElement(z) {
+    if (z < 1) z = 118; if (z > 118) z = 1;
+    cur = z;
+    var e = EL[z - 1], ck = catOf(z), cat = CATS[ck], cf = configOf(z), st = stateOf(z);
+    var A = Math.round(e[3]), nn = Math.max(0, A - z), g = groupOf(z);
+    var panel = $('panel'); panel.style.setProperty('--c', cat.c);
+    $('pSym').innerHTML = '<small>' + z + '</small><b>' + esc(e[0]) + '</b>';
+    $('pTitle').innerHTML = '<h2>' + esc(e[2]) + '</h2><div>' + esc(e[1]) + '</div>';
+
+    var tags = '<span class="tag">' + cat.n + '</span><span class="tag plain">' + STATES[st].n + (st === 'unk' ? '' : ' في درجة الحرارة العادية') + '</span>' +
+        (originOf(z) === 'syn' ? '<span class="tag plain">مُصنَّع</span>' : '') + (radioactive(z) ? '<span class="tag plain">مشع</span>' : '');
+    var shellsH = cf.shells.map(function (n, i) { return '<span class="shell"><small>' + SHELL_NAMES[i] + '</small><b>' + n + '</b></span>'; }).join('');
+    var disc = e[8] === 'قديمًا' ? 'معروف منذ القدم' : e[8];
+
+    $('pInfo').innerHTML =
+        '<div class="tag-row">' + tags + '</div>' +
+        '<div class="sec-t">التركيب الذري</div><div class="props">' +
+            prop('العدد الذري (عدد البروتونات)', z) +
+            prop('الكتلة الذرية', '<span class="ltr">' + fmt(e[3], 4) + '</span> <small>وحدة كتلة ذرية</small>') +
+            prop('عدد الإلكترونات (ذرة متعادلة)', z) +
+            prop('عدد النيوترونات (تقريبًا)', '≈ ' + nn) +
+            prop('الدورة', periodOf(z) + ' <small>(' + periodOf(z) + ' مستويات طاقة)</small>') +
+            prop('المجموعة', g === null ? 'عنصر انتقالي داخلي' : g) +
+            prop('إلكترونات التكافؤ', valenceOf(z)) +
+            prop('المستوى الفرعي الأخير', BLOCKS[blockOf(z)].n) +
+            '<div class="prop wide"><label>التوزيع الإلكتروني (مختصر)</label><div class="cfg">' + esc(cf.short) + '</div></div>' +
+            (cf.short !== cf.full ? '<div class="prop wide"><label>التوزيع الإلكتروني (كامل)</label><div class="cfg">' + esc(cf.full) + '</div></div>' : '') +
+            '<div class="prop wide"><label>الإلكترونات في كل مستوى طاقة</label><div class="shells">' + shellsH + '</div></div>' +
+        '</div>' +
+        '<div class="sec-t">الخواص الفيزيائية</div><div class="props">' +
+            prop('درجة الانصهار', tempText(e[4], z)) +
+            prop(e[5] != null && e[4] != null && e[5] < e[4] ? 'درجة التسامي' : 'درجة الغليان', tempText(e[5], z)) +
+            prop('الكثافة', densText(e[6], z)) +
+            prop('السالبية الكهربية (باولنج)', e[7] == null ? 'غير معروفة / لا تنطبق' : '<span class="ltr">' + e[7] + '</span>') +
+        '</div>' +
+        '<div class="sec-t">الاكتشاف</div><div class="props">' +
+            prop('سنة الاكتشاف', disc) +
+            prop('المكتشف', esc(e[9] === 'معروف منذ القدم' ? '—' : e[9])) +
+        '</div>' +
+        '<div class="sec-t">فيمَ يُستخدم وأهم معلومة عنه</div><div class="uses">' + esc(e[10]) + '</div>' +
+        '<a class="more" target="_blank" rel="noopener noreferrer" href="https://ar.wikipedia.org/wiki/' + encodeURIComponent(e[2]) + '">اقرأ أكثر في ويكيبيديا ←</a>';
+
+    $('sheet').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    panel.scrollTop = 0;
+    if (!atom) atom = new Atom3D($('cv'));
+    atom.set(z, A, cf.shells, cat.c);
+    atom.start();
+    $('tip').style.opacity = 1; setTimeout(function () { $('tip').style.opacity = 0; }, 4500);
+    try { history.replaceState(null, '', '#' + z); } catch (e2) {}
+}
+function closeSheet() {
+    $('sheet').classList.remove('open'); document.body.style.overflow = '';
+    if (atom) atom.stop();
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+}
+
+/* ============================== مجسّم الذرة 3D ============================== */
+/* محرّك بسيط على Canvas من غير مكتبات: نواة (بروتونات ونيوترونات) + مدارات + إلكترونات متحركة،
+ * بإسقاط منظوري وترتيب بالعمق، والدوران بسحب الإصبع أو الماوس، والتقريب بإصبعين أو عجلة الماوس. */
+function Atom3D(canvas) {
+    var ctx = canvas.getContext('2d'), self = this;
+    var Z = 1, A = 1, shells = [1], accent = '#06b6d4';
+    var yaw = 0.5, pitch = 0.45, vy = 0, vp = 0, zoom = 1, auto = true, orbits = true, raf = 0, t0 = 0;
+    var W = 0, H = 0, dpr = 1, nuc = [], rings = [], RING_PTS = 72;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) auto = false;
+    var TILT = [0, 1.05, -1.05, 0.52, -0.52, 1.45, -1.45], SPIN = [0, 0.8, 1.6, 2.4, 0.4, 1.2, 2.0];
+
+    function sprite(size, stops) {
+        var c = document.createElement('canvas'); c.width = c.height = size;
+        var g = c.getContext('2d'), r = size / 2, gr = g.createRadialGradient(r * 0.66, r * 0.62, r * 0.08, r, r, r);
+        stops.forEach(function (s) { gr.addColorStop(s[0], s[1]); });
+        g.fillStyle = gr; g.beginPath(); g.arc(r, r, r, 0, 6.2832); g.fill(); return c;
+    }
+    var SP = sprite(64, [[0, '#fecaca'], [0.35, '#ef4444'], [1, '#7f1d1d']]);
+    var SN = sprite(64, [[0, '#dbeafe'], [0.35, '#60a5fa'], [1, '#1e3a8a']]);
+    var SE = (function () {
+        var c = document.createElement('canvas'); c.width = c.height = 64; var g = c.getContext('2d');
+        var gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+        gr.addColorStop(0, '#fffbeb'); gr.addColorStop(0.22, '#fde047'); gr.addColorStop(0.45, 'rgba(251,191,36,.55)'); gr.addColorStop(1, 'rgba(251,191,36,0)');
+        g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c;
+    })();
+
+    function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+    function shellR(k) { return 1 + 0.8 * k; }
+
+    this.set = function (z, a, sh, col) {
+        Z = z; A = Math.max(1, a); shells = sh; accent = col; yaw = 0.5; pitch = 0.45; vy = vp = 0; zoom = 1;
+        var Rn = Math.min(0.85, (0.22 + 0.38 * Math.pow(A / 294, 1 / 3)) * (1 + 0.1 * (shells.length - 1))), rn = Rn / Math.cbrt(A) * 0.68, rand = rng(z * 977), ga = Math.PI * (3 - Math.sqrt(5));
+        var isP = []; for (var i = 0; i < A; i++) isP.push(i < Z); for (var j = A - 1; j > 0; j--) { var r = Math.floor(rand() * (j + 1)), tmp = isP[j]; isP[j] = isP[r]; isP[r] = tmp; }
+        nuc = [];
+        for (var n = 0; n < A; n++) {
+            var rr = A === 1 ? 0 : Rn * Math.cbrt((n + 0.5) / A), yy = A === 1 ? 0 : 1 - 2 * (n + 0.5) / A, rad = Math.sqrt(Math.max(0, 1 - yy * yy)), th = ga * n;
+            nuc.push({ x: Math.cos(th) * rad * rr, y: yy * rr, z: Math.sin(th) * rad * rr, p: isP[n], r: rn });
+        }
+        rings = shells.map(function (cnt, k) {
+            var pts = []; for (var q = 0; q < RING_PTS; q++) { var a2 = q / RING_PTS * 6.2832; pts.push([Math.cos(a2) * shellR(k), Math.sin(a2) * shellR(k), 0]); }
+            return { k: k, cnt: cnt, pts: pts, tilt: TILT[k % 7], spin: SPIN[k % 7], phase: rand() * 6.28 };
+        });
+        resize();
+    };
+    function rot(p, tilt, spin) {          /* مدار: ميل حول X ثم دوران حول Y */
+        var x = p[0], y = p[1], z = p[2], c = Math.cos(tilt), s = Math.sin(tilt);
+        var y1 = y * c - z * s, z1 = y * s + z * c; var c2 = Math.cos(spin), s2 = Math.sin(spin);
+        return [x * c2 + z1 * s2, y1, -x * s2 + z1 * c2];
+    }
+    var unit = 40, D = 12, cx = 0, cy = 0;
+    function proj(p) {                     /* دوران المشاهد + إسقاط منظوري */
+        var cY = Math.cos(yaw), sY = Math.sin(yaw), cP = Math.cos(pitch), sP = Math.sin(pitch);
+        var x1 = p[0] * cY + p[2] * sY, z1 = -p[0] * sY + p[2] * cY;
+        var y2 = p[1] * cP - z1 * sP, z2 = p[1] * sP + z1 * cP;
+        var f = D / (D - z2), s = unit * zoom * f;
+        return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s: s };
+    }
+    function resize() {
+        var r = canvas.getBoundingClientRect(); if (!r.width) return;
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx = W / 2; cy = H / 2;
+        var Rmax = shellR(shells.length - 1) + 0.3; D = Rmax * 3.4;
+        unit = Math.min(W, H) / 2 / Rmax * 0.9;
+    }
+    window.addEventListener('resize', function () { if (raf) resize(); });
+
+    function frame(ts) {
+        raf = requestAnimationFrame(frame);
+        var dt = Math.min(0.05, (ts - (t0 || ts)) / 1000); t0 = ts;
+        if (!W) resize();
+        if (auto && !dragging) yaw += dt * 0.35;
+        yaw += vy; pitch += vp; vy *= 0.94; vp *= 0.94;
+        pitch = Math.max(-1.45, Math.min(1.45, pitch));
+        ctx.clearRect(0, 0, W, H);
+        var items = [], back = [], front = [], i, j;
+        var tt = ts / 1000;
+        rings.forEach(function (rg) {
+            var pr = rg.pts.map(function (p) { return proj(rot(p, rg.tilt, rg.spin)); });
+            if (orbits) for (i = 0; i < pr.length; i++) {
+                var a = pr[i], b = pr[(i + 1) % pr.length], seg = { a: a, b: b, z: (a.z + b.z) / 2 };
+                (seg.z < 0 ? back : front).push(seg);
+            }
+            var sp = (rg.k % 2 ? -1 : 1) * 1.5 / Math.pow(rg.k + 1, 0.85);
+            for (j = 0; j < rg.cnt; j++) {
+                var ang = rg.phase + j / rg.cnt * 6.2832 + tt * sp;
+                var p3 = rot([Math.cos(ang) * shellR(rg.k), Math.sin(ang) * shellR(rg.k), 0], rg.tilt, rg.spin), q = proj(p3);
+                items.push({ z: q.z, x: q.x, y: q.y, r: Math.max(2, Math.min(8, 0.085 * q.s)), e: true });
+            }
+        });
+        for (i = 0; i < nuc.length; i++) { var n = nuc[i], pp = proj([n.x, n.y, n.z]); items.push({ z: pp.z, x: pp.x, y: pp.y, r: Math.max(1.1, n.r * pp.s), p: n.p }); }
+        items.sort(function (u, v) { return u.z - v.z; });
+        ctx.lineWidth = 1; ctx.strokeStyle = accent;
+        function drawSegs(list, base) {
+            for (var m = 0; m < list.length; m++) {
+                var s = list[m]; ctx.globalAlpha = base + 0.35 * (s.z / (shellR(shells.length - 1) + 1));
+                ctx.beginPath(); ctx.moveTo(s.a.x, s.a.y); ctx.lineTo(s.b.x, s.b.y); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+        drawSegs(back, 0.16);
+        for (i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (it.e) { var gr = it.r * 2.3; ctx.drawImage(SE, it.x - gr, it.y - gr, gr * 2, gr * 2); }
+            else ctx.drawImage(it.p ? SP : SN, it.x - it.r, it.y - it.r, it.r * 2, it.r * 2);
+        }
+        drawSegs(front, 0.34);
+    }
+
+    /* ===== تحكم باللمس والماوس ===== */
+    var dragging = false, last = null, pts = {}, pinch0 = 0, zoom0 = 1;
+    function cnt() { return Object.keys(pts).length; }
+    canvas.addEventListener('pointerdown', function (e) {
+        canvas.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+        if (cnt() === 1) { dragging = true; last = { x: e.clientX, y: e.clientY }; vy = vp = 0; }
+        if (cnt() === 2) { var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); zoom0 = zoom; dragging = false; }
+    });
+    canvas.addEventListener('pointermove', function (e) {
+        if (!pts[e.pointerId]) return; pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+        if (cnt() === 2) { var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]]; zoom = Math.max(0.55, Math.min(2.6, zoom0 * Math.hypot(a.x - b.x, a.y - b.y) / (pinch0 || 1))); return; }
+        if (dragging && last) {
+            var dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY };
+            yaw += dx * 0.011; pitch += dy * 0.011; vy = dx * 0.0016; vp = dy * 0.0016;
+        }
+    });
+    function up(e) { delete pts[e.pointerId]; if (cnt() < 2) { dragging = cnt() === 1; if (dragging) { var k = Object.keys(pts)[0]; last = pts[k]; } } }
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', function (e) { e.preventDefault(); zoom = Math.max(0.55, Math.min(2.6, zoom * (e.deltaY < 0 ? 1.1 : 0.9))); }, { passive: false });
+
+    this.start = function () { if (!raf) { t0 = 0; resize(); raf = requestAnimationFrame(frame); } };
+    this.stop = function () { if (raf) cancelAnimationFrame(raf); raf = 0; };
+    this.setAuto = function (v) { auto = v; };
+    this.setOrbits = function (v) { orbits = v; };
+    this.reset = function () { yaw = 0.5; pitch = 0.45; vy = vp = 0; zoom = 1; };
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { if (raf) { cancelAnimationFrame(raf); raf = -1; } } else if (raf === -1) { raf = 0; self.start(); } });
+}
+
+/* ============================== ربط الأحداث ============================== */
+document.body.setAttribute('data-theme', (function () { try { return localStorage.getItem('platform_theme') || 'dark'; } catch (e) { return 'dark'; } })());
+function onGrid(e) { var b = e.target.closest('.cell[data-z]'); if (b) openElement(+b.getAttribute('data-z')); }
+$('ptable').addEventListener('click', onGrid);
+$('list').addEventListener('click', onGrid);
+$('legend').addEventListener('click', function (e) {
+    var c = e.target.closest('.chip'); if (!c) return; var k = c.getAttribute('data-k');
+    hiddenKeys[k] = !hiddenKeys[k]; buildLegend(); applyFilter();
+});
+$('viewSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) setView(b.getAttribute('data-v')); });
+$('modeSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) setMode(b.getAttribute('data-m')); });
+$('q').addEventListener('input', function () { query = this.value.trim(); applyFilter(); });
+$('q').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    for (var z = 1; z <= 118; z++) if (matches(z)) { openElement(z); break; }
+});
+$('closeBtn').addEventListener('click', closeSheet);
+$('sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
+$('nextBtn').addEventListener('click', function () { openElement(cur + 1); });
+$('prevBtn').addEventListener('click', function () { openElement(cur - 1); });
+$('bAuto').addEventListener('click', function () { this.classList.toggle('on'); atom.setAuto(this.classList.contains('on')); });
+$('bOrb').addEventListener('click', function () { this.classList.toggle('on'); atom.setOrbits(this.classList.contains('on')); });
+$('bRes').addEventListener('click', function () { atom.reset(); });
+document.addEventListener('keydown', function (e) {
+    if (!$('sheet').classList.contains('open')) return;
+    if (e.key === 'Escape') closeSheet();
+    else if (e.key === 'ArrowLeft') openElement(cur + 1);
+    else if (e.key === 'ArrowRight') openElement(cur - 1);
+});
+window.addEventListener('hashchange', function () { var z = parseInt(location.hash.slice(1), 10); if (z >= 1 && z <= 118) openElement(z); });
+
+setView(load('view', 'table')); mode = load('mode', 'cat'); if (['cat','state','block','origin'].indexOf(mode) < 0) mode = 'cat';
+[].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-m') === mode); });
+rebuild();
+(function () { var z = parseInt(location.hash.slice(1), 10); if (z >= 1 && z <= 118) openElement(z); })();
+if (EL.length !== 118) console.error('عدد العناصر غير صحيح:', EL.length);
+</script>
+</body>
+</html>
