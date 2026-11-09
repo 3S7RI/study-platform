@@ -115,17 +115,6 @@
         .uses { background: color-mix(in srgb, var(--c) 10%, var(--bg-card)); border: 1px solid color-mix(in srgb, var(--c) 35%, var(--border-color)); border-radius: 14px; padding: 12px 14px; line-height: 1.95; font-size: .86rem; }
         .more { display: inline-block; margin-top: 12px; font-size: .76rem; color: var(--primary); text-decoration: none; font-weight: 800; }
         .foot-note { text-align: center; color: var(--text-muted); font-size: .7rem; line-height: 1.8; margin: 14px 0 4px; }
-        /* ===== تبويب الذرة / الشكل الحقيقي ===== */
-        .stage-tabs { margin-bottom: 8px; }
-        .stage-tabs .seg { display: flex; width: 100%; }
-        .stage-tabs .seg button { flex: 1; }
-        .seg button.dis { opacity: .55; }
-        .forms { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
-        .forms button { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); font-weight: 800; font-size: 0.74rem; cursor: pointer; }
-        .forms button.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, var(--bg-card)); }
-        .s-cap { text-align: center; font-size: 0.8rem; font-weight: 800; margin-top: 8px; min-height: 1px; }
-        .s-cap small { display: block; color: var(--text-muted); font-weight: 600; font-size: 0.68rem; margin-top: 2px; }
-        .ctl button[hidden], .forms[hidden], .stage canvas[hidden] { display: none !important; }
         @media (max-width: 480px) {
             body { padding: 8px; }
             .dlg { border-radius: 18px; }
@@ -134,6 +123,19 @@
             .p-title h2 { font-size: 1.1rem; }
             .p-body { padding: 10px; }
         }
+
+        /* ===== تابات المجسّم + الشكل الحقيقي ===== */
+        .stab { display: flex; width: 100%; margin-bottom: 10px; }
+        .stab button { flex: 1; padding: 9px 8px; }
+        .stab button.on { background: var(--c, var(--primary)); }
+        .real-cap { text-align: center; margin-top: 10px; padding: 0 4px; }
+        .real-cap b { display: block; font-size: 0.95rem; font-weight: 900; }
+        .real-cap span { display: block; font-size: 0.76rem; color: var(--text-muted); line-height: 1.9; margin-top: 3px; }
+        .real-cap em { display: block; font-style: normal; font-size: 0.68rem; color: var(--c); opacity: .9; margin-top: 4px; font-weight: 700; }
+        .vrow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+        .vrow button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); font-weight: 800; font-size: 0.76rem; cursor: pointer; }
+        .vrow button.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, var(--bg-card)); }
+        @media (min-width: 860px) { .stage { max-height: 440px; } }
         @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
     </style>
     <link rel="stylesheet" href="mobile.css">
@@ -150,7 +152,7 @@
     <div class="top"><a href="main.html">&rarr; الرئيسية</a><b>الجدول الدوري</b></div>
     <section class="hero">
         <h1>الجدول الدوري للعناصر</h1>
-        <p>كل العناصر الـ 118 في مكان واحد. اضغط على أي عنصر وشوف كل تفاصيله، وذرّته بمجسّم ثلاثي الأبعاد تلفّه بإصبعك.</p>
+        <p>كل العناصر الـ 118 في مكان واحد. اضغط على أي عنصر وشوف كل تفاصيله، وشكله الحقيقي في الحياة وذرّته بمجسّمات ثلاثية الأبعاد تلفّها بإصبعك.</p>
     </section>
 
     <div class="tools">
@@ -179,26 +181,32 @@
         </div>
         <div class="p-body">
             <div class="stage-box">
-                <div class="stage-tabs"><div class="seg" id="mSeg"><button type="button" data-sm="atom">نموذج الذرة</button><button type="button" data-sm="struct" class="on">الشكل الحقيقي للمادة</button></div></div>
-                <div class="stage"><canvas id="cv"></canvas><canvas id="cv2" hidden></canvas><div class="tip" id="tip">اسحب بإصبعك لتلف الذرة، واستخدم إصبعين للتقريب</div></div>
-                <div class="s-cap" id="sCap"></div>
-                <div class="forms" id="forms" hidden></div>
+                <div class="seg stab" id="stab"><button type="button" data-t="real" class="on">الشكل الحقيقي للمادة</button><button type="button" data-t="atom">نموذج الذرة</button></div>
+                <div id="paneReal">
+                    <div class="stage"><canvas id="cvR"></canvas><div class="tip" id="tipR">اسحب بإصبعك لتلف العينة، واستخدم إصبعين للتقريب</div></div>
+                    <div class="real-cap" id="realCap"></div>
+                    <div class="vrow" id="vrow"></div>
+                    <div class="ctl">
+                        <button id="bAutoR" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>دوران تلقائي</button>
+                        <button id="bResR" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>إعادة ضبط</button>
+                    </div>
+                </div>
+                <div id="paneAtom" style="display:none">
+                    <div class="stage"><canvas id="cv"></canvas><div class="tip" id="tip">اسحب بإصبعك لتلف الذرة، واستخدم إصبعين للتقريب</div></div>
                 <div class="ctl">
                     <button id="bAuto" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>دوران تلقائي</button>
                     <button id="bOrb" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>المدارات</button>
-                    <button id="bBond" class="on" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M8.2 15.8l7.6-7.6"/></svg>الروابط</button>
-                    <button id="bFill" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="12" r="5"/><circle cx="16" cy="12" r="5"/></svg>تراص الذرات</button>
-                    <button id="bCell" class="on" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>حدود الخلية</button>
-                    <button id="bRep" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>عدة خلايا</button>
                     <button id="bRes" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>إعادة ضبط</button>
                 </div>
-                <div class="legend3d" id="lg3d"><span><i style="background:#ef4444"></i>بروتون</span><span><i style="background:#60a5fa"></i>نيوترون</span><span><i style="background:#fbbf24"></i>إلكترون</span></div>
+                <div class="legend3d"><span><i style="background:#ef4444"></i>بروتون</span><span><i style="background:#60a5fa"></i>نيوترون</span><span><i style="background:#fbbf24"></i>إلكترون</span></div>
+                </div>
             </div>
             <div id="pInfo"></div>
         </div>
     </div>
 </div>
 
+<script src="periodic-real.js"></script>
 <script>
 /* =====================================================================
  * بيانات العناصر: [الرمز, الاسم بالإنجليزي, الاسم بالعربي, الكتلة الذرية, انصهار K, غليان K, كثافة g/cm3, سالبية كهربية, سنة الاكتشاف, المكتشف, الاستخدامات]
@@ -498,7 +506,7 @@ function setMode(m) {
 }
 
 /* ============================= نافذة التفاصيل ============================= */
-var cur = 0, atom = null;
+var cur = 0, atom = null, real = null, formIdx = 0, tab = load('tab', 'real');
 function tempText(k, z) {
     if (k == null) return 'غير معروفة';
     var c = k - 273.15, t = Math.abs(c) >= 1000 ? Math.round(c) : Math.round(c * 10) / 10;
@@ -540,7 +548,6 @@ function openElement(z) {
             (cf.short !== cf.full ? '<div class="prop wide"><label>التوزيع الإلكتروني (كامل)</label><div class="cfg">' + esc(cf.full) + '</div></div>' : '') +
             '<div class="prop wide"><label>الإلكترونات في كل مستوى طاقة</label><div class="shells">' + shellsH + '</div></div>' +
         '</div>' +
-        '<div id="sInfo"></div>' +
         '<div class="sec-t">الخواص الفيزيائية</div><div class="props">' +
             prop('درجة الانصهار', tempText(e[4], z)) +
             prop(e[5] != null && e[4] != null && e[5] < e[4] ? 'درجة التسامي' : 'درجة الغليان', tempText(e[5], z)) +
@@ -558,16 +565,33 @@ function openElement(z) {
     document.body.style.overflow = 'hidden';
     panel.scrollTop = 0;
     if (!atom) atom = new Atom3D($('cv'));
-    if (!st3d) st3d = new Struct3D($('cv2'));
     atom.set(z, A, cf.shells, cat.c);
-    loadStruct(z, cat.c);
-    applyStageMode();
+    if (!real) real = new Real3D($('cvR'));
+    formIdx = 0; real.reset(); showReal(z, cat.c);
+    setTab(tab);
+    var tp = $(tab === 'real' ? 'tipR' : 'tip'); tp.style.opacity = 1; setTimeout(function () { tp.style.opacity = 0; }, 4500);
     try { history.replaceState(null, '', '#' + z); } catch (e2) {}
+}
+function hexRgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+function showReal(z, accent) {
+    var fs = Real3D.forms(z), f = fs[formIdx] || fs[0], note = Real3D.note(f.t);
+    $('stab').style.setProperty('--c', accent);
+    $('paneReal').style.setProperty('--c', accent);
+    real.set(z, f, hexRgb(accent));
+    $('realCap').innerHTML = '<b>' + esc(f.l) + '</b><span>' + esc(f.d) + '</span>' + (note ? '<em>' + esc(note) + '</em>' : '');
+    $('vrow').innerHTML = fs.length > 1 ? fs.map(function (x, i) { return '<button type="button" data-i="' + i + '"' + (i === formIdx ? ' class="on"' : '') + '>' + esc(x.s) + '</button>'; }).join('') : '';
+}
+function setTab(t) {
+    tab = t === 'atom' ? 'atom' : 'real'; store('tab', tab);
+    [].forEach.call($('stab').children, function (b) { b.classList.toggle('on', b.getAttribute('data-t') === tab); });
+    $('paneReal').style.display = tab === 'real' ? '' : 'none';
+    $('paneAtom').style.display = tab === 'atom' ? '' : 'none';
+    if (tab === 'real') { atom.stop(); real.start(); } else { real.stop(); atom.start(); }
 }
 function closeSheet() {
     $('sheet').classList.remove('open'); document.body.style.overflow = '';
     if (atom) atom.stop();
-    if (st3d) st3d.stop();
+    if (real) real.stop();
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
 }
 
@@ -710,460 +734,6 @@ function Atom3D(canvas) {
     document.addEventListener('visibilitychange', function () { if (document.hidden) { if (raf) { cancelAnimationFrame(raf); raf = -1; } } else if (raf === -1) { raf = 0; self.start(); } });
 }
 
-/* ============================ الشكل الحقيقي للمادة ============================
- * لكل عنصر: ترتيب الذرات الفعلي في المادة (شبكة بلورية للصلب، أو جزيء للغازات والافتراضيات).
- * ثوابت الشبكة بالأنجستروم عند درجة حرارة الغرفة ما لم يُذكر غير ذلك، وهي قيم تقريبية.
- * العناصر الثقيلة (Z ≥ 100 تقريبًا) لم تُحدَّد بنيتها تجريبيًا فلا تُعرض. */
-/*PURE-START*/
-var R3 = Math.sqrt(3), PHI = (1 + Math.sqrt(5)) / 2;
-function ext(o, p) { if (p) for (var k in p) o[k] = p[k]; return o; }
-function cellMatrix(a, b, c, al, be, ga) {
-    var r = Math.PI / 180, ca = Math.cos(al * r), cb = Math.cos(be * r), cg = Math.cos(ga * r), sg = Math.sin(ga * r);
-    var cx = c * cb, cy = c * (ca - cb * cg) / sg, cz = Math.sqrt(Math.max(0, c * c - cx * cx - cy * cy));
-    return [[a, 0, 0], [b * cg, b * sg, 0], [cx, cy, cz]];
-}
-function wrap1(v) { return v - Math.floor(v + 1e-6); }
-
-/* ---------- أنواع الشبكات ---------- */
-var LT = {
-    bcc:  { ar: 'مكعب مركزي الجسم (bcc)', cn: '8', apf: '68%' },
-    fcc:  { ar: 'مكعب مركزي الأوجه (fcc)', cn: '12', apf: '74%' },
-    hcp:  { ar: 'سداسي متراص (hcp) — ترتيب الطبقات ABAB', cn: '12', apf: '74%' },
-    dhcp: { ar: 'سداسي متراص مزدوج (dhcp) — ترتيب الطبقات ABAC', cn: '12', apf: '74%' },
-    sm:   { ar: 'تراص ثلاثي (نوع Sm) — ترتيب الطبقات ABABCBCAC', cn: '12', apf: '74%' },
-    sc:   { ar: 'مكعب بسيط (sc)', cn: '6', apf: '52%' },
-    dia:  { ar: 'مكعب الألماس', cn: '4', apf: '34%' },
-    bct:  { ar: 'رباعي مركزي الجسم (bct)' },
-    rho:  { ar: 'معيني الأوجه (Rhombohedral)' },
-    orth: { ar: 'معيني قائم (Orthorhombic)' },
-    mono: { ar: 'أحادي الميل (Monoclinic)' },
-    hexl: { ar: 'سداسي طبقي' },
-    trig: { ar: 'سداسي (سلاسل لولبية)' },
-    a7:   { ar: 'معيني الأوجه طبقي (نوع A7)' },
-    cplx: { ar: 'مكعب معقّد (58 ذرة في الخلية)' },
-    mol:  { ar: 'جزيئي' }
-};
-var KD = {
-    metal: { n: 'رابطة فلزية', t: 'أيونات موجبة مرتّبة في الشبكة يحيط بها بحر من الإلكترونات الحرة، ولذلك يوصّل الفلز الكهرباء والحرارة جيدًا ويمكن طَرْقه وسحبه.' },
-    cov:   { n: 'روابط تساهمية (شبكة عملاقة)', t: 'كل ذرة ترتبط بروابط تساهمية قوية مع جاراتها في كل الاتجاهات، فتصبح المادة كلها «جزيئًا عملاقًا» صلبًا ودرجة انصهاره عالية.' },
-    layer: { n: 'روابط قوية داخل الطبقة، وضعيفة بين الطبقات', t: 'الذرات داخل الطبقة الواحدة متماسكة برابطة قوية، أما الطبقات فتتجاذب بقوى ضعيفة، لذلك تنزلق الطبقات فوق بعضها.' },
-    chain: { n: 'سلاسل تساهمية', t: 'الذرات متصلة برابطة تساهمية على هيئة سلاسل لولبية طويلة، والسلاسل تتجاور بقوى أضعف.' },
-    mol:   { n: 'جزيئات منفصلة', t: 'الروابط داخل الجزيء قوية، أما القوى بين الجزيئات فضعيفة جدًا، ولذلك تكون درجتا الانصهار والغليان منخفضتين نسبيًا.' },
-    vdw:   { n: 'قوى فاندرفال الضعيفة', t: 'ذرات متعادلة مستقلة تتجاذب بقوى ضعيفة جدًا، لذلك لا تتجمّد إلا عند درجات حرارة منخفضة جدًا.' },
-    atom:  { n: 'لا توجد روابط', t: 'الغازات النبيلة لا ترتبط بذرات أخرى، فتوجد في صورة ذرات منفردة (جزيء أحادي الذرة).' },
-    none:  { n: '—', t: '' }
-};
-
-/* ---------- الجزيئات (إحداثيات بالأنجستروم) ---------- */
-function diat(d) { return [[-d / 2, 0, 0], [d / 2, 0, 0]]; }
-function cycSigns(v) {
-    var out = [], perms = [[0, 1, 2], [1, 2, 0], [2, 0, 1]];
-    perms.forEach(function (p) { for (var m = 0; m < 8; m++) out.push([v[p[0]] * ((m & 1) ? -1 : 1), v[p[1]] * ((m & 2) ? -1 : 1), v[p[2]] * ((m & 4) ? -1 : 1)]); });
-    return out;
-}
-function uniq(pts) {
-    var s = {}, o = [];
-    pts.forEach(function (p) { var k = p.map(function (x) { return Math.round(x * 1000); }).join(','); if (!s[k]) { s[k] = 1; o.push(p); } });
-    return o;
-}
-var MOLG = {
-    H2: function () { return diat(0.74); },
-    N2: function () { return diat(1.10); },
-    O2: function () { return diat(1.21); },
-    F2: function () { return diat(1.42); },
-    Cl2: function () { return diat(1.99); },
-    Br2: function () { return diat(2.28); },
-    I2: function () { return diat(2.67); },
-    O3: function () { var d = 1.278, h = 58.4 * Math.PI / 180; return [[0, 0.55, 0], [-d * Math.sin(h), 0.55 - d * Math.cos(h), 0], [d * Math.sin(h), 0.55 - d * Math.cos(h), 0]]; },
-    P4: function () { var s = 2.21 / (2 * Math.SQRT2); return [[s, s, s], [s, -s, -s], [-s, s, -s], [-s, -s, s]]; },
-    S8: function () { var R = 2.345, h = 0.495, p = []; for (var i = 0; i < 8; i++) { var t = i * Math.PI / 4; p.push([R * Math.cos(t), R * Math.sin(t), i % 2 ? -h : h]); } return p; },
-    B12: function () {
-        var s = 0.875, v = [];
-        [-1, 1].forEach(function (a) { [-1, 1].forEach(function (b) { v.push([0, a, b * PHI]); v.push([a, b * PHI, 0]); v.push([a * PHI, 0, b]); }); });
-        return v.map(function (p) { return [p[0] * s, p[1] * s, p[2] * s]; });
-    },
-    C60: function () {
-        var s = 1.43 / 2;
-        return uniq([].concat(cycSigns([0, 1, 3 * PHI]), cycSigns([1, 2 + PHI, 2 * PHI]), cycSigns([PHI, 2, 2 * PHI + 1]))).map(function (p) { return [p[0] * s, p[1] * s, p[2] * s]; });
-    }
-};
-
-/* ---------- مولّدات النماذج ---------- */
-function orbitTd(x, y, z) {   /* مدار المجموعة النقطية -43m (24 عملية) */
-    var P = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]], S = [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]], v = [x, y, z], out = [], seen = {};
-    P.forEach(function (p) { S.forEach(function (s) {
-        var q = [wrap1(s[0] * v[p[0]]), wrap1(s[1] * v[p[1]]), wrap1(s[2] * v[p[2]])], k = q.map(function (t) { return Math.round(t * 1000) % 1000; }).join(',');
-        if (!seen[k]) { seen[k] = 1; out.push(q); }
-    }); });
-    return out;
-}
-function cmce(y, z) { return [[0, y, z], [0, 0.5 - y, z + 0.5], [0, y + 0.5, 0.5 - z], [0, -y, -z]]; }
-var FCC4 = [[0, 0, 0], [0, .5, .5], [.5, 0, .5], [.5, .5, 0]];
-var BC = [[0, 0, 0], [.5, .5, .5]], FC = [[0, 0, 0]];
-var HEXA7 = [[0, 0, 0], [2 / 3, 1 / 3, 1 / 3], [1 / 3, 2 / 3, 2 / 3]];
-
-function latAtoms(f, n) {
-    var M = cellMatrix.apply(null, f.cell), out = [], seen = {}, eps = 1e-4;
-    f.cent.forEach(function (c) { f.basis.forEach(function (b) {
-        var w = [wrap1(b[0] + c[0]), wrap1(b[1] + c[1]), wrap1(b[2] + c[2])];
-        for (var i = 0; i <= n; i++) for (var j = 0; j <= n; j++) for (var k = 0; k <= n; k++) {
-            var fx = w[0] + i, fy = w[1] + j, fz = w[2] + k;
-            if (fx > n + eps || fy > n + eps || fz > n + eps) continue;
-            var key = Math.round(fx * 500) + ',' + Math.round(fy * 500) + ',' + Math.round(fz * 500);
-            if (seen[key]) continue; seen[key] = 1;
-            out.push({ x: fx * M[0][0] + fy * M[1][0] + fz * M[2][0], y: fx * M[0][1] + fy * M[1][1] + fz * M[2][1], z: fx * M[0][2] + fy * M[1][2] + fz * M[2][2], L: 0 });
-        }
-    }); });
-    return out;
-}
-function latEdges(M, n) {
-    var E = [];
-    function P(i, j, k) { return [i * M[0][0] + j * M[1][0] + k * M[2][0], i * M[0][1] + j * M[1][1] + k * M[2][1], i * M[0][2] + j * M[1][2] + k * M[2][2]]; }
-    for (var i = 0; i <= n; i++) for (var j = 0; j <= n; j++) for (var k = 0; k <= n; k++) {
-        if (i < n) E.push(P(i, j, k).concat(P(i + 1, j, k)));
-        if (j < n) E.push(P(i, j, k).concat(P(i, j + 1, k)));
-        if (k < n) E.push(P(i, j, k).concat(P(i, j, k + 1)));
-    }
-    return E;
-}
-function cpModel(f) {      /* تراص سداسي: hcp كمنشور سداسي، والباقي طبقات سداسية متراصة */
-    var a = f.a, N = f.st.length, d = f.c / N, atoms = [], edges = [], i, k, ang, seq = f.st + f.st.charAt(0);
-    function hex(cxx, cyy, z, L) {
-        atoms.push({ x: cxx, y: cyy, z: z, L: L });
-        for (var q = 0; q < 6; q++) atoms.push({ x: cxx + a * Math.cos(q * Math.PI / 3), y: cyy + a * Math.sin(q * Math.PI / 3), z: z, L: L });
-    }
-    if (f.st === 'AB') {
-        for (k = 0; k < 3; k++) {
-            if (seq.charAt(k) === 'A') hex(0, 0, k * d, 0);
-            else for (i = 0; i < 3; i++) { ang = (30 + 120 * i) * Math.PI / 180; atoms.push({ x: a / R3 * Math.cos(ang), y: a / R3 * Math.sin(ang), z: k * d, L: 1 }); }
-        }
-        for (i = 0; i < 6; i++) {
-            var a1 = i * Math.PI / 3, a2 = (i + 1) * Math.PI / 3, c1 = a * Math.cos(a1), s1 = a * Math.sin(a1), c2 = a * Math.cos(a2), s2 = a * Math.sin(a2);
-            edges.push([c1, s1, 0, c2, s2, 0], [c1, s1, f.c, c2, s2, f.c], [c1, s1, 0, c1, s1, f.c]);
-        }
-    } else {
-        for (k = 0; k <= N; k++) {
-            var L = seq.charAt(k), o = L === 'A' ? [0, 0] : [a / R3 * Math.cos((L === 'B' ? 30 : 90) * Math.PI / 180), a / R3 * Math.sin((L === 'B' ? 30 : 90) * Math.PI / 180)];
-            hex(o[0], o[1], k * d, 'ABC'.indexOf(L));
-        }
-    }
-    return { atoms: atoms, edges: edges };
-}
-
-/* يبني نموذج العرض: ذرات + روابط + حدود الخلية */
-function buildModel(f, rep) {
-    var atoms = [], edges = [], canRep = false, i, j, n = 1;
-    if (f.t === 'atom') atoms = [{ x: 0, y: 0, z: 0, L: 0 }];
-    else if (f.t === 'mol') atoms = MOLG[f.m]().map(function (p) { return { x: p[0], y: p[1], z: p[2], L: 0 }; });
-    else if (f.t === 'lat') { canRep = !f.norep; n = (rep && canRep) ? 2 : 1; atoms = latAtoms(f, n); edges = latEdges(cellMatrix.apply(null, f.cell), n); }
-    else if (f.t === 'cell') edges = latEdges(cellMatrix.apply(null, f.cell), 1);
-    else if (f.t === 'cp') { var r = cpModel(f); atoms = r.atoms; edges = r.edges; }
-    var mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
-    function ext3(x, y, z) { var v = [x, y, z]; for (var q = 0; q < 3; q++) { if (v[q] < mn[q]) mn[q] = v[q]; if (v[q] > mx[q]) mx[q] = v[q]; } }
-    atoms.forEach(function (a) { ext3(a.x, a.y, a.z); });
-    edges.forEach(function (e) { ext3(e[0], e[1], e[2]); ext3(e[3], e[4], e[5]); });
-    var c = [(mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2];
-    atoms.forEach(function (a) { a.x -= c[0]; a.y -= c[1]; a.z -= c[2]; });
-    edges.forEach(function (e) { e[0] -= c[0]; e[1] -= c[1]; e[2] -= c[2]; e[3] -= c[0]; e[4] -= c[1]; e[5] -= c[2]; });
-    var dmin = f.t === 'atom' ? 2 : 0, bonds = [];
-    if (atoms.length > 1) {
-        dmin = 1e9;
-        for (i = 0; i < atoms.length; i++) for (j = i + 1; j < atoms.length; j++) {
-            var d = Math.hypot(atoms[i].x - atoms[j].x, atoms[i].y - atoms[j].y, atoms[i].z - atoms[j].z);
-            if (d > 1e-6 && d < dmin) dmin = d;
-        }
-        var th = (f.bf || 1.12) * dmin;
-        for (i = 0; i < atoms.length; i++) for (j = i + 1; j < atoms.length; j++)
-            if (Math.hypot(atoms[i].x - atoms[j].x, atoms[i].y - atoms[j].y, atoms[i].z - atoms[j].z) <= th) bonds.push([i, j]);
-    }
-    var R = 0.5;
-    atoms.forEach(function (a) { R = Math.max(R, Math.hypot(a.x, a.y, a.z) + 0.5 * dmin); });
-    edges.forEach(function (e) { R = Math.max(R, Math.hypot(e[0], e[1], e[2]), Math.hypot(e[3], e[4], e[5])); });
-    var layers = null;
-    if (f.t === 'cp') { layers = []; atoms.forEach(function (a) { if (layers.indexOf(a.L) < 0) layers.push(a.L); }); layers.sort(); }
-    return { atoms: atoms, edges: edges, bonds: bonds, dmin: dmin, R: R, canRep: canRep, layers: layers };
-}
-
-/* ---------- مُنشئات سريعة للأشكال ---------- */
-function mk(o, p) { return ext(o, p); }
-function bcc(a, p) { return mk({ t: 'lat', lt: 'bcc', kd: 'metal', n: 'بلورة الفلز', cell: [a, a, a, 90, 90, 90], basis: [[0, 0, 0], [.5, .5, .5]], cent: FC }, p); }
-function fcc(a, p) { return mk({ t: 'lat', lt: 'fcc', kd: 'metal', n: 'بلورة الفلز', cell: [a, a, a, 90, 90, 90], basis: FCC4, cent: FC }, p); }
-function sc(a, p) { return mk({ t: 'lat', lt: 'sc', kd: 'metal', n: 'بلورة الفلز', cell: [a, a, a, 90, 90, 90], basis: [[0, 0, 0]], cent: FC }, p); }
-function dia(a, p) { return mk({ t: 'lat', lt: 'dia', kd: 'cov', n: 'بلورة', cell: [a, a, a, 90, 90, 90], basis: FCC4.concat(FCC4.map(function (b) { return [b[0] + .25, b[1] + .25, b[2] + .25]; })), cent: FC }, p); }
-function hcp(a, c, p) { return mk({ t: 'cp', lt: 'hcp', kd: 'metal', n: 'بلورة الفلز', a: a, c: c, st: 'AB' }, p); }
-function dhcp(a, c, p) { return mk({ t: 'cp', lt: 'dhcp', kd: 'metal', n: 'بلورة الفلز', a: a, c: c, st: 'ABAC' }, p); }
-function mol(m, n, d, p) { return mk({ t: 'mol', lt: 'mol', m: m, kd: 'mol', n: n, d: d }, p); }
-function atomF(d, p) { return mk({ t: 'atom', kd: 'atom', n: 'ذرات منفردة (غاز)', d: d || '' }, p); }
-
-var ST = {};
-[[3, 3.51], [11, 4.29], [19, 5.33], [23, 3.03], [24, 2.88], [26, 2.87], [37, 5.70], [41, 3.30], [42, 3.15], [55, 6.14], [56, 5.02], [63, 4.58], [73, 3.30], [74, 3.16], [88, 5.15]]
-    .forEach(function (p) { ST[p[0]] = [bcc(p[1])]; });
-[[13, 4.05], [20, 5.59], [28, 3.52], [29, 3.61], [38, 6.08], [45, 3.80], [46, 3.89], [47, 4.09], [58, 5.16], [70, 5.48], [77, 3.84], [78, 3.92], [79, 4.08], [82, 4.95], [89, 5.31], [90, 5.08], [99, 5.75]]
-    .forEach(function (p) { ST[p[0]] = [fcc(p[1])]; });
-[[4, 2.29, 3.58], [12, 3.21, 5.21], [21, 3.31, 5.27], [22, 2.95, 4.68], [27, 2.51, 4.07], [30, 2.66, 4.95], [39, 3.65, 5.73], [40, 3.23, 5.15], [43, 2.74, 4.40], [44, 2.71, 4.28], [48, 2.98, 5.62], [64, 3.64, 5.78], [65, 3.60, 5.69], [66, 3.59, 5.65], [67, 3.58, 5.62], [68, 3.56, 5.59], [69, 3.54, 5.56], [71, 3.50, 5.55], [72, 3.20, 5.06], [75, 2.76, 4.46], [76, 2.73, 4.32], [81, 3.46, 5.53]]
-    .forEach(function (p) { ST[p[0]] = [hcp(p[1], p[2])]; });
-[[57, 3.77, 12.16], [59, 3.67, 11.83], [60, 3.66, 11.80], [61, 3.65, 11.65], [95, 3.47, 11.24], [96, 3.50, 11.34], [97, 3.42, 11.07], [98, 3.39, 11.0]]
-    .forEach(function (p) { ST[p[0]] = [dhcp(p[1], p[2])]; });
-
-ST[1] = [mol('H2', 'جزيء الهيدروجين H₂', 'ذرتان ترتبطان برابطة تساهمية أحادية؛ أخف وأبسط جزيء في الكون.')];
-ST[2] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'),
-    hcp(3.57, 5.83, { kd: 'vdw', n: 'بلورة صلبة (تحت ضغط عالٍ)', d: 'لا يتجمّد الهيليوم عند الضغط العادي مهما بُرِّد؛ يلزمه ضغط أكبر من 25 ضغطًا جويًا ليتبلور بتراص سداسي.', est: true })];
-ST[5] = [mol('B12', 'وحدة B₁₂ (عشرينية الأوجه)', 'البورون الصلب مبني من وحدات كل منها 12 ذرة على رؤوس شكل عشريني الأوجه (20 وجهًا مثلثًا)، وتتصل هذه الوحدات معًا في شبكة تساهمية عملاقة شديدة الصلابة.', { kd: 'cov', est: true })];
-ST[6] = [
-    mk({ t: 'lat', lt: 'hexl', kd: 'layer', n: 'جرافيت', cell: [2.46, 2.46, 6.71, 90, 90, 120], basis: [[0, 0, .25], [1 / 3, 2 / 3, .25], [0, 0, .75], [2 / 3, 1 / 3, .75]], cent: FC, d: 'كل ذرة كربون مرتبطة بثلاث ذرات في حلقات سداسية مسطحة، والطبقات تنزلق فوق بعضها (ولذلك يكتب القلم الرصاص) ويوصّل الكهرباء.' }),
-    dia(3.567, { n: 'ألماس', d: 'كل ذرة كربون مرتبطة بأربع ذرات في شكل هرم رباعي الأوجه؛ لذلك الألماس أصلب مادة طبيعية ولا يوصّل الكهرباء.' }),
-    mol('C60', 'فوليرين C₆₀', 'كرة جوفاء من 60 ذرة كربون (12 وجهًا خماسيًا و20 سداسيًا) تشبه كرة القدم.', { kd: 'mol' })
-];
-ST[7] = [mol('N2', 'جزيء النيتروجين N₂', 'ذرتان ترتبطان برابطة ثلاثية قوية جدًا، وهذا سبب خمول غاز النيتروجين.')];
-ST[8] = [mol('O2', 'جزيء الأكسجين O₂', 'ذرتان ترتبطان برابطة ثنائية.'), mol('O3', 'جزيء الأوزون O₃', 'جزيء منحنٍ بزاوية ≈ 117° بين الرابطتين؛ يتكوّن في طبقة الجو العليا ويحجب الأشعة فوق البنفسجية.')];
-ST[9] = [mol('F2', 'جزيء الفلور F₂', 'ذرتان ترتبطان برابطة أحادية؛ أنشط اللافلزات.')];
-ST[10] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'), fcc(4.43, { kd: 'vdw', n: 'بلورة صلبة (عند التجمّد)', d: 'يتبلور عند حوالي −249°م.', est: true })];
-ST[14] = [dia(5.431, { n: 'بلورة السيليكون', d: 'نفس ترتيب الألماس: كل ذرة ترتبط بأربع ذرات في هرم رباعي الأوجه، وهو شبه موصل أساس الرقائق الإلكترونية.' })];
-ST[15] = [
-    mol('P4', 'فوسفور أبيض P₄', 'أربع ذرات في هرم رباعي الأوجه؛ شديد النشاط ويشتعل تلقائيًا في الهواء.'),
-    mk({ t: 'lat', lt: 'orth', kd: 'layer', n: 'فوسفور أسود', cell: [3.314, 10.478, 4.376, 90, 90, 90], basis: cmce(.1017, .0806), cent: [[0, 0, 0], [.5, .5, 0]], d: 'طبقات متعرّجة (على شكل ثنيات)؛ كل ذرة مرتبطة بثلاث ذرات. وهو أثبت صور الفوسفور.' })
-];
-ST[16] = [mol('S8', 'جزيء الكبريت S₈', 'ثماني ذرات في حلقة «تاجية» متعرّجة؛ هو الشكل الشائع للكبريت الأصفر.')];
-ST[17] = [mol('Cl2', 'جزيء الكلور Cl₂', 'ذرتان ترتبطان برابطة أحادية.')];
-ST[18] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'), fcc(5.26, { kd: 'vdw', n: 'بلورة صلبة (عند التجمّد)', d: 'يتبلور عند حوالي −189°م.' })];
-ST[25] = [mk({ t: 'lat', lt: 'cplx', kd: 'metal', n: 'α-منغنيز', norep: 1, bf: 1.1, cell: [8.911, 8.911, 8.911, 90, 90, 90],
-    basis: [[0, 0, 0]].concat(orbitTd(.3179, .3179, .3179), orbitTd(.3571, .3571, .0347), orbitTd(.0896, .0896, .2819)), cent: BC,
-    d: 'أعقد بنية بين الفلزات: 58 ذرة في وحدة الخلية الواحدة، بأربعة أوضاع مختلفة للذرات.' })];
-ST[31] = [mk({ t: 'lat', lt: 'orth', kd: 'metal', n: 'بلورة الفلز', cell: [4.519, 7.657, 4.526, 90, 90, 90], basis: cmce(.1549, .0810), cent: [[0, 0, 0], [.5, .5, 0]], bf: 1.05,
-    d: 'ذراته تتجمّع في أزواج (Ga₂) داخل الشبكة، وهذا سبب سهولة انصهاره عند حوالي 30°م.' })];
-ST[32] = [dia(5.658, { n: 'بلورة الجرمانيوم', d: 'نفس ترتيب الألماس والسيليكون؛ شبه موصل.' })];
-ST[33] = [mk({ t: 'lat', lt: 'a7', kd: 'layer', n: 'زرنيخ رمادي', cell: [3.760, 3.760, 10.548, 90, 90, 120], basis: [[0, 0, .2271], [0, 0, -.2271]], cent: HEXA7, d: 'طبقات متعرّجة؛ كل ذرة مرتبطة بثلاث ذرات داخل الطبقة.' })];
-ST[34] = [mk({ t: 'lat', lt: 'trig', kd: 'chain', n: 'سيلينيوم رمادي', cell: [4.366, 4.366, 4.954, 90, 90, 120], basis: [[.2254, 0, 1 / 3], [0, .2254, 2 / 3], [-.2254, -.2254, 0]], cent: FC, d: 'سلاسل لولبية من ذرات السيلينيوم تمتد على طول المحور الرأسي.' })];
-ST[35] = [mol('Br2', 'جزيء البروم Br₂', 'ذرتان ترتبطان برابطة أحادية؛ والبروم سائل في الظروف العادية وتتحرك جزيئاته بحرية.')];
-ST[36] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'), fcc(5.72, { kd: 'vdw', n: 'بلورة صلبة (عند التجمّد)', d: 'يتبلور عند حوالي −157°م.' })];
-ST[49] = [mk({ t: 'lat', lt: 'bct', kd: 'metal', n: 'بلورة الفلز', cell: [3.25, 3.25, 4.95, 90, 90, 90], basis: [[0, 0, 0]], cent: BC, d: 'مكعب مركزي الوجه مضغوط ومشوّه في اتجاه واحد.' })];
-ST[50] = [mk({ t: 'lat', lt: 'bct', kd: 'metal', n: 'قصدير أبيض (β)', cell: [5.83, 5.83, 3.18, 90, 90, 90], basis: [[0, 0, 0], [0, .5, .25]], cent: BC, d: 'الصورة الفلزية المستقرة عند درجة حرارة الغرفة. وتحت 13°م تتحول ببطء إلى القصدير الرمادي (بنية الألماس).' })];
-ST[51] = [mk({ t: 'lat', lt: 'a7', kd: 'layer', n: 'بلورة الأنتيمون', cell: [4.307, 4.307, 11.273, 90, 90, 120], basis: [[0, 0, .2336], [0, 0, -.2336]], cent: HEXA7, d: 'طبقات متعرّجة؛ كل ذرة مرتبطة بثلاث ذرات داخل الطبقة.' })];
-ST[52] = [mk({ t: 'lat', lt: 'trig', kd: 'chain', n: 'بلورة التيلوريوم', cell: [4.457, 4.457, 5.929, 90, 90, 120], basis: [[.2636, 0, 1 / 3], [0, .2636, 2 / 3], [-.2636, -.2636, 0]], cent: FC, d: 'سلاسل لولبية من ذرات التيلوريوم.' })];
-ST[53] = [
-    mk({ t: 'lat', lt: 'orth', kd: 'mol', n: 'بلورة اليود', cell: [7.18, 4.71, 9.81, 90, 90, 90], basis: cmce(.1543, .1174), cent: [[0, 0, 0], [.5, .5, 0]], bf: 1.1, d: 'جزيئات I₂ مرتّبة في شبكة معينية قائمة، وتتجاذب بقوى ضعيفة؛ ولذلك يتسامى اليود بسهولة عند التسخين.' }),
-    mol('I2', 'جزيء اليود I₂', 'ذرتان ترتبطان برابطة أحادية.')
-];
-ST[54] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'), fcc(6.20, { kd: 'vdw', n: 'بلورة صلبة (عند التجمّد)', d: 'يتبلور عند حوالي −112°م.' })];
-ST[62] = [mk({ t: 'cp', lt: 'sm', kd: 'metal', n: 'بلورة الفلز', a: 3.62, c: 26.2, st: 'ABABCBCAC', d: 'يتكرر ترتيب 9 طبقات متراصة في نمط ABABCBCAC.' })];
-ST[80] = [mk({ t: 'lat', lt: 'rho', kd: 'metal', n: 'زئبق صلب (مجمّد)', cell: [3.005, 3.005, 3.005, 70.53, 70.53, 70.53], basis: [[0, 0, 0]], cent: FC, d: 'الزئبق سائل في الظروف العادية ولا يتبلور إلا تحت −39°م تقريبًا؛ وهذا ترتيب ذراته بعد التجمّد.' })];
-ST[83] = [mk({ t: 'lat', lt: 'a7', kd: 'layer', n: 'بلورة البزموت', cell: [4.546, 4.546, 11.862, 90, 90, 120], basis: [[0, 0, .2340], [0, 0, -.2340]], cent: HEXA7, d: 'طبقات متعرّجة؛ كل ذرة مرتبطة بثلاث ذرات داخل الطبقة.' })];
-ST[84] = [sc(3.35, { n: 'بولونيوم α', d: 'العنصر الوحيد الذي يتبلور في الشبكة المكعبة البسيطة عند الظروف العادية.' })];
-ST[86] = [atomF('غاز أحادي الذرة لا يكوّن جزيئات.'), fcc(6.5, { kd: 'vdw', n: 'بلورة صلبة (متوقّعة)', d: 'بنية متوقعة؛ لم تُقَس بدقة بسبب إشعاع الرادون الشديد.', est: true })];
-ST[91] = [mk({ t: 'lat', lt: 'bct', kd: 'metal', n: 'بلورة الفلز', cell: [3.925, 3.925, 3.238, 90, 90, 90], basis: [[0, 0, 0]], cent: BC })];
-ST[92] = [mk({ t: 'lat', lt: 'orth', kd: 'metal', n: 'يورانيوم α', cell: [2.854, 5.870, 4.955, 90, 90, 90], basis: [[0, .1025, .25], [0, -.1025, .75]], cent: [[0, 0, 0], [.5, .5, 0]], bf: 1.08, d: 'طبقات متعرّجة من الذرات، وهي الصورة المستقرة عند درجة حرارة الغرفة.' })];
-ST[93] = [mk({ t: 'cell', lt: 'orth', kd: 'metal', n: 'نبتونيوم α (حدود الخلية فقط)', cell: [6.663, 4.723, 4.887, 90, 90, 90], d: 'بنية معيّنية قائمة معقّدة؛ يظهر هنا شكل وحدة الخلية فقط دون مواضع الذرات.', est: true })];
-ST[94] = [mk({ t: 'cell', lt: 'mono', kd: 'metal', n: 'بلوتونيوم α (حدود الخلية فقط)', cell: [6.183, 4.822, 10.963, 90, 101.8, 90], d: 'بنية أحادية الميل معقّدة (16 ذرة في الخلية)؛ يظهر هنا شكل وحدة الخلية فقط دون مواضع الذرات.', est: true })];
-/*PURE-END*/
-
-/* ---------- مجسّم البنية على Canvas (بدون مكتبات): كرات مظلّلة + روابط + حدود الخلية ---------- */
-function shade(h, t) {
-    var n = parseInt(h.slice(1), 16), c = [n >> 16 & 255, n >> 8 & 255, n & 255], o = t > 0 ? 255 : 0, k = Math.abs(t);
-    return '#' + c.map(function (v) { var x = Math.round(v + (o - v) * k).toString(16); return x.length < 2 ? '0' + x : x; }).join('');
-}
-function Struct3D(canvas) {
-    var ctx = canvas.getContext('2d'), self = this;
-    var mdl = null, cols = [], yaw = 0.6, pitch = 0.4, vy = 0, vp = 0, zoom = 1, auto = true, showB = true, fill = false, showC = true;
-    var raf = 0, t0 = 0, W = 0, H = 0, dpr = 1, unit = 40, D = 12, cx = 0, cy = 0, cache = {}, dragging = false;
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) auto = false;
-
-    function spr(col) {
-        if (cache[col]) return cache[col];
-        var c = document.createElement('canvas'); c.width = c.height = 96;
-        var g = c.getContext('2d'), r = 48, gr = g.createRadialGradient(r * 0.62, r * 0.55, r * 0.06, r, r, r);
-        gr.addColorStop(0, shade(col, 0.78)); gr.addColorStop(0.4, col); gr.addColorStop(1, shade(col, -0.58));
-        g.fillStyle = gr; g.beginPath(); g.arc(r, r, r, 0, 6.2832); g.fill();
-        return (cache[col] = c);
-    }
-    this.set = function (m, col, keep) {
-        mdl = m; cols = [col, shade(col, 0.5), shade(col, -0.4)];
-        if (!keep) { yaw = 0.6; pitch = 0.4; vy = vp = 0; zoom = 1; }
-        resize();
-    };
-    this.setOpts = function (b, f, c) { showB = b; fill = f; showC = c; };
-    function resize() {
-        var r = canvas.getBoundingClientRect(); if (!r.width) return;
-        dpr = Math.min(2, window.devicePixelRatio || 1);
-        W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); cx = W / 2; cy = H / 2;
-        var R = mdl ? mdl.R : 1; D = R * 3.6; unit = Math.min(W, H) / 2 / R * 0.74;
-    }
-    window.addEventListener('resize', function () { if (raf) resize(); });
-    function proj(x, y, z) {
-        var cY = Math.cos(yaw), sY = Math.sin(yaw), cP = Math.cos(pitch), sP = Math.sin(pitch);
-        var x1 = x * cY + z * sY, z1 = -x * sY + z * cY, y2 = y * cP - z1 * sP, z2 = y * sP + z1 * cP;
-        var f = D / (D - z2), s = unit * zoom * f;
-        return { x: cx + x1 * s, y: cy - y2 * s, z: z2, s: s };
-    }
-    var shMemo = {};
-    function sh(c, t) { var k = c + t; return shMemo[k] || (shMemo[k] = shade(c, t)); }
-
-    function frame(ts) {
-        raf = requestAnimationFrame(frame);
-        var dt = Math.min(0.05, (ts - (t0 || ts)) / 1000); t0 = ts;
-        if (!W) resize();
-        if (!mdl || !W) return;
-        if (auto && !dragging) yaw += dt * 0.4;
-        yaw += vy; pitch += vp; vy *= 0.94; vp *= 0.94;
-        pitch = Math.max(-1.45, Math.min(1.45, pitch));
-        ctx.clearRect(0, 0, W, H);
-        var light = document.body.getAttribute('data-theme') === 'light', items = [], i, it, rr = (fill ? 0.5 : 0.2) * mdl.dmin;
-        var P = mdl.atoms.map(function (a) { return proj(a.x, a.y, a.z); });
-        for (i = 0; i < P.length; i++) items.push({ k: 0, z: P[i].z, x: P[i].x, y: P[i].y, r: Math.max(1.6, rr * P[i].s), c: cols[mdl.atoms[i].L] || cols[0] });
-        if (showB && !fill) mdl.bonds.forEach(function (b) {
-            var pa = P[b[0]], pb = P[b[1]];
-            items.push({ k: 1, z: (pa.z + pb.z) / 2, a: pa, b: pb, w: Math.max(1.4, 0.07 * mdl.dmin * (pa.s + pb.s) / 2), c: cols[mdl.atoms[b[0]].L] || cols[0] });
-        });
-        if (showC) mdl.edges.forEach(function (e) {
-            var pa = proj(e[0], e[1], e[2]), pb = proj(e[3], e[4], e[5]);
-            items.push({ k: 2, z: (pa.z + pb.z) / 2, a: pa, b: pb });
-        });
-        items.sort(function (u, v) { return u.z - v.z; });
-        var span = mdl.R;
-        ctx.lineCap = 'round';
-        for (i = 0; i < items.length; i++) {
-            it = items[i];
-            ctx.globalAlpha = 0.6 + 0.4 * Math.max(0, Math.min(1, (it.z + span) / (2 * span)));
-            if (it.k === 0) ctx.drawImage(spr(it.c), it.x - it.r, it.y - it.r, it.r * 2, it.r * 2);
-            else if (it.k === 1) {
-                ctx.beginPath(); ctx.moveTo(it.a.x, it.a.y); ctx.lineTo(it.b.x, it.b.y);
-                ctx.strokeStyle = sh(it.c, -0.45); ctx.lineWidth = it.w; ctx.stroke();
-                ctx.strokeStyle = sh(it.c, 0.3); ctx.lineWidth = it.w * 0.45; ctx.stroke();
-            } else {
-                ctx.beginPath(); ctx.moveTo(it.a.x, it.a.y); ctx.lineTo(it.b.x, it.b.y);
-                ctx.globalAlpha *= 0.7; ctx.strokeStyle = light ? '#334155' : '#e2e8f0'; ctx.lineWidth = 1.1;
-                ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
-            }
-        }
-        ctx.globalAlpha = 1;
-    }
-
-    var last = null, pts = {}, pinch0 = 0, zoom0 = 1;
-    function cnt() { return Object.keys(pts).length; }
-    canvas.addEventListener('pointerdown', function (e) {
-        canvas.setPointerCapture(e.pointerId); pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-        if (cnt() === 1) { dragging = true; last = { x: e.clientX, y: e.clientY }; vy = vp = 0; }
-        if (cnt() === 2) { var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); zoom0 = zoom; dragging = false; }
-    });
-    canvas.addEventListener('pointermove', function (e) {
-        if (!pts[e.pointerId]) return; pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-        if (cnt() === 2) { var k = Object.keys(pts), a = pts[k[0]], b = pts[k[1]]; zoom = Math.max(0.5, Math.min(3, zoom0 * Math.hypot(a.x - b.x, a.y - b.y) / (pinch0 || 1))); return; }
-        if (dragging && last) {
-            var dx = e.clientX - last.x, dy = e.clientY - last.y; last = { x: e.clientX, y: e.clientY };
-            yaw += dx * 0.011; pitch += dy * 0.011; vy = dx * 0.0016; vp = dy * 0.0016;
-        }
-    });
-    function up(e) { delete pts[e.pointerId]; if (cnt() < 2) { dragging = cnt() === 1; if (dragging) { var k = Object.keys(pts)[0]; last = pts[k]; } } }
-    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-    canvas.addEventListener('wheel', function (e) { e.preventDefault(); zoom = Math.max(0.5, Math.min(3, zoom * (e.deltaY < 0 ? 1.1 : 0.9))); }, { passive: false });
-
-    this.start = function () { if (!raf) { t0 = 0; resize(); raf = requestAnimationFrame(frame); } };
-    this.stop = function () { if (raf > 0) cancelAnimationFrame(raf); raf = 0; };
-    this.setAuto = function (v) { auto = v; };
-    this.reset = function () { yaw = 0.6; pitch = 0.4; vy = vp = 0; zoom = 1; };
-    document.addEventListener('visibilitychange', function () { if (document.hidden) { if (raf > 0) { cancelAnimationFrame(raf); raf = -1; } } else if (raf === -1) { raf = 0; self.start(); } });
-}
-
-/* ---------- واجهة تبويب «الشكل الحقيقي» ---------- */
-var st3d = null, sMode = 'struct', sForms = [], sIdx = 0, sZ = 0, sColor = '#06b6d4', sModel = null;
-var sBond = true, sFill = false, sCell = true, sRep = false;
-var TIP_ATOM = '', LG_ATOM = '';
-var NOSTRUCT = {
-    85: 'نادر جدًا ومشع وعمره قصير؛ لا توجد كمية كافية لتحديد بنيته البلورية.',
-    87: 'نادر جدًا ومشع وعمره قصير؛ لا توجد كمية كافية لتحديد بنيته البلورية.'
-};
-function effMode() { return (sMode === 'struct' && sForms.length) ? 'struct' : 'atom'; }
-function curForm() { return sForms[sIdx] || null; }
-function cellText(f) {
-    var c = f.cell, t = [];
-    if (f.t === 'cp') return 'a = ' + f.a + ' ، c = ' + f.c + ' Å';
-    t.push('a = ' + c[0]); if (c[1] !== c[0]) t.push('b = ' + c[1]); if (c[2] !== c[0]) t.push('c = ' + c[2]);
-    var s = t.join(' ، ') + ' Å';
-    if (c[3] === c[4] && c[4] === c[5] && c[3] !== 90) s += ' ، α = ' + c[3] + '°';
-    else { if (c[4] !== 90) s += ' ، β = ' + c[4] + '°'; if (c[5] !== 90) s += ' ، γ = ' + c[5] + '°'; }
-    return s;
-}
-function loadStruct(z, col) {
-    sZ = z; sColor = col; sForms = ST[z] || []; sIdx = 0; sRep = false;
-    sBond = !(sForms[0] && sForms[0].t === 'cp');   /* التراص السداسي: الروابط مزدحمة فنخفيها افتراضيًا */
-}
-function renderStructInfo() {
-    var box = $('sInfo'); if (!box) return;
-    var f = curForm();
-    if (!f) {
-        var msg = NOSTRUCT[sZ] || 'لم تُحدَّد بنيته البلورية تجريبيًا بعد؛ فهو يُصنَّع بكميات ضئيلة جدًا (ذرات قليلة) وينحلّ إشعاعيًا في وقت قصير.';
-        box.innerHTML = '<div class="sec-t">الشكل الحقيقي للمادة</div><div class="uses">' + esc(msg) + '</div>';
-        return;
-    }
-    var lt = LT[f.lt] || {}, kd = KD[f.kd] || KD.none, rows = '';
-    if (f.t === 'atom') rows += prop('الشكل', 'ذرات منفردة');
-    else if (f.t === 'mol') rows += prop('الشكل', 'جزيء منفصل') + prop('أقصر رابطة (الطول)', '<span class="ltr">' + sModel.dmin.toFixed(2) + ' Å</span>');
-    else {
-        rows += prop('نوع الشبكة', esc(lt.ar || '—'), true);
-        if (f.t !== 'cell') rows += prop('أقرب مسافة بين ذرتين', '<span class="ltr">' + sModel.dmin.toFixed(2) + ' Å</span>');
-        rows += prop('ثوابت وحدة الخلية', '<span class="ltr">' + cellText(f) + '</span>', !(f.t !== 'cell'));
-        if (lt.cn) rows += prop('عدد التناسق (الجيران الأقرب)', lt.cn);
-        if (lt.apf) rows += prop('كفاءة التعبئة', lt.apf);
-    }
-    rows += prop('نوع الترابط', esc(kd.n), true);
-    box.innerHTML = '<div class="sec-t">الشكل الحقيقي للمادة</div>' +
-        '<div class="tag-row"><span class="tag">' + esc(f.n) + '</span>' + (f.est ? '<span class="tag plain">بيانات تقريبية</span>' : '') + '</div>' +
-        '<div class="props">' + rows + '</div>' +
-        '<div class="uses" style="margin-top:8px">' + esc(kd.t) + (f.d ? '<br>' + esc(f.d) : '') + '</div>' +
-        '<div class="foot-note" style="margin:6px 0 0;text-align:right">ثوابت الشبكة تقريبية (بوحدة أنجستروم Å = 10⁻¹⁰ م) وعند درجة حرارة الغرفة ما لم يُذكر غير ذلك.</div>';
-}
-function renderChips() {
-    var box = $('forms'), eff = effMode();
-    box.hidden = !(eff === 'struct' && sForms.length > 1);
-    box.innerHTML = sForms.map(function (f, i) { return '<button type="button" data-i="' + i + '" class="' + (i === sIdx ? 'on' : '') + '">' + esc(f.n) + '</button>'; }).join('');
-}
-function updLegend() {
-    var lg = $('lg3d'), eff = effMode(), f = curForm();
-    if (eff !== 'struct' || !f) { lg.innerHTML = LG_ATOM; return; }
-    var h = '';
-    if (sModel.layers && sModel.layers.length > 1) {
-        var cs = [sColor, shade(sColor, 0.5), shade(sColor, -0.4)];
-        sModel.layers.forEach(function (l) { h += '<span><i style="background:' + cs[l] + '"></i>طبقة ' + 'ABC'.charAt(l) + '</span>'; });
-    } else h += '<span><i style="background:' + sColor + '"></i>ذرة ' + esc(EL[sZ - 1][2]) + '</span>';
-    if (sModel.edges.length) h += '<span><i style="background:transparent;border:1.5px dashed var(--text-muted);border-radius:2px"></i>حدود وحدة الخلية</span>';
-    lg.innerHTML = h;
-}
-function updBtns() {
-    var isS = effMode() === 'struct', m = sModel;
-    $('bOrb').hidden = isS;
-    $('bBond').hidden = !(isS && m && m.bonds.length);
-    $('bFill').hidden = !(isS && m && m.atoms.length > 1);
-    $('bCell').hidden = !(isS && m && m.edges.length);
-    $('bRep').hidden = !(isS && m && m.canRep);
-    $('bBond').classList.toggle('on', sBond); $('bFill').classList.toggle('on', sFill);
-    $('bCell').classList.toggle('on', sCell); $('bRep').classList.toggle('on', sRep);
-}
-function updCap() {
-    var eff = effMode(), f = curForm(), cap = $('sCap');
-    if (eff === 'struct' && f) cap.innerHTML = esc(f.n) + (LT[f.lt] && f.t !== 'mol' ? '<small>' + esc(LT[f.lt].ar) + '</small>' : '');
-    else if (sMode === 'struct') cap.innerHTML = 'بنيته غير معروفة بعد<small>نعرض لك نموذج الذرة بدلًا منه</small>';
-    else cap.innerHTML = '';
-    $('tip').textContent = eff === 'struct' ? 'اسحب بإصبعك لتلف الشكل، واستخدم إصبعين للتقريب' : TIP_ATOM;
-    $('tip').style.opacity = 1; clearTimeout(updCap.t); updCap.t = setTimeout(function () { $('tip').style.opacity = 0; }, 4500);
-}
-function refreshStruct(keep) {
-    sModel = curForm() ? buildModel(curForm(), sRep) : null;
-    renderStructInfo(); renderChips();
-    var eff = effMode(), isS = eff === 'struct';
-    [].forEach.call($('mSeg').children, function (b) {
-        var m = b.getAttribute('data-sm');
-        b.classList.toggle('on', m === eff);
-        b.classList.toggle('dis', m === 'struct' && !sForms.length);
-    });
-    $('cv').hidden = isS; $('cv2').hidden = !isS;
-    if (isS) {
-        atom.stop(); st3d.set(sModel, sColor, keep); st3d.setOpts(sBond, sFill, sCell); st3d.start();
-    } else { st3d.stop(); atom.start(); }
-    updBtns(); updLegend(); updCap();
-}
-function applyStageMode() { refreshStruct(false); }
-
 /* ============================== ربط الأحداث ============================== */
 document.body.setAttribute('data-theme', (function () { try { return localStorage.getItem('platform_theme') || 'dark'; } catch (e) { return 'dark'; } })());
 function onGrid(e) { var b = e.target.closest('.cell[data-z]'); if (b) openElement(+b.getAttribute('data-z')); }
@@ -1184,6 +754,10 @@ $('closeBtn').addEventListener('click', closeSheet);
 $('sheet').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
 $('nextBtn').addEventListener('click', function () { openElement(cur + 1); });
 $('prevBtn').addEventListener('click', function () { openElement(cur - 1); });
+$('stab').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b && real) { setTab(b.getAttribute('data-t')); var tp = $(tab === 'real' ? 'tipR' : 'tip'); tp.style.opacity = 1; setTimeout(function () { tp.style.opacity = 0; }, 3500); } });
+$('vrow').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; formIdx = +b.getAttribute('data-i'); showReal(cur, CATS[catOf(cur)].c); });
+$('bAutoR').addEventListener('click', function () { this.classList.toggle('on'); real.setAuto(this.classList.contains('on')); });
+$('bResR').addEventListener('click', function () { real.reset(); });
 $('bAuto').addEventListener('click', function () { this.classList.toggle('on'); atom.setAuto(this.classList.contains('on')); });
 $('bOrb').addEventListener('click', function () { this.classList.toggle('on'); atom.setOrbits(this.classList.contains('on')); });
 $('bRes').addEventListener('click', function () { atom.reset(); });
@@ -1194,18 +768,6 @@ document.addEventListener('keydown', function (e) {
     else if (e.key === 'ArrowRight') openElement(cur - 1);
 });
 window.addEventListener('hashchange', function () { var z = parseInt(location.hash.slice(1), 10); if (z >= 1 && z <= 118) openElement(z); });
-
-/* ---- ربط تبويب الشكل الحقيقي ---- */
-TIP_ATOM = $('tip').textContent; LG_ATOM = $('lg3d').innerHTML;
-sMode = load('3dmode', 'struct') === 'atom' ? 'atom' : 'struct';
-$('mSeg').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; sMode = b.getAttribute('data-sm'); store('3dmode', sMode); applyStageMode(); });
-$('forms').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; sIdx = +b.getAttribute('data-i'); sBond = !(curForm() && curForm().t === 'cp'); refreshStruct(false); });
-$('bBond').addEventListener('click', function () { sBond = !sBond; this.classList.toggle('on', sBond); st3d.setOpts(sBond, sFill, sCell); });
-$('bFill').addEventListener('click', function () { sFill = !sFill; this.classList.toggle('on', sFill); st3d.setOpts(sBond, sFill, sCell); });
-$('bCell').addEventListener('click', function () { sCell = !sCell; this.classList.toggle('on', sCell); st3d.setOpts(sBond, sFill, sCell); });
-$('bRep').addEventListener('click', function () { sRep = !sRep; refreshStruct(true); });
-$('bAuto').addEventListener('click', function () { if (st3d) st3d.setAuto(this.classList.contains('on')); });
-$('bRes').addEventListener('click', function () { if (st3d) st3d.reset(); });
 
 setView(load('view', 'table')); mode = load('mode', 'cat'); if (['cat','state','block','origin'].indexOf(mode) < 0) mode = 'cat';
 [].forEach.call($('modeSeg').children, function (b) { b.classList.toggle('on', b.getAttribute('data-m') === mode); });
