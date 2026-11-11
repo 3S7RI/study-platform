@@ -382,7 +382,7 @@
                     var hrs = Math.max(1, Math.ceil(left / 3600000));
                     var when = hrs >= 24 ? 'بعد حوالي يوم' : 'بعد ' + hrs + ' ساعة تقريباً';
                     var what = st.accountType === 'trial' ? 'التجربة المجانية' : 'اشتراكك';
-                    banner('ps-exp', '⏳ ' + what + ' هيخلص ' + when + '. <a href="subscribe.html" style="color:#fde047;text-decoration:underline">جدّد دلوقتي</a>', '#b45309');
+                    banner('ps-exp', '⏳ ' + what + ' هيخلص ' + when + '. <a href="packages.html" style="color:#fde047;text-decoration:underline">جدّد دلوقتي</a>', '#b45309');
                     ready(function () { var x = document.querySelector('#ps-exp button'); if (x) x.addEventListener('click', function () { lsSet('ps_exp_seen', today()); }); });
                 }
             } catch (e) {}
