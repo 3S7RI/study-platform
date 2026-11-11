@@ -105,12 +105,18 @@
     <div id="currentSub"></div>
     <div id="pendingNotice"></div>
 
-    <div class="card" id="planCard">
-        <h2>1️⃣ اختار الباقة والمدة</h2>
+    <!-- اختيار الباقات بقى في صفحة packages.html. الكارت ده مخفي ومحتفظين بيه عشان باقي الكود بيعتمد عليه -->
+    <div class="card" id="planCard" style="display:none;">
         <div id="promoBar"></div>
         <div class="tiers" id="plans"></div>
         <div id="groupBox"></div>
+    </div>
+
+    <div class="card" id="chosenCard" style="display:none;">
+        <h2>الباقة اللي اخترتها</h2>
+        <div id="chosenInfo" style="font-weight:800; font-size:.95rem; line-height:1.9;"></div>
         <p class="hint" id="upgradeHint"></p>
+        <a href="packages.html" style="display:inline-block; margin-top:8px; font-size:.82rem; font-weight:800; color:var(--gold);">← تغيير الباقة أو المدة</a>
     </div>
 
     <div class="card" id="payCard" style="display:none;">
@@ -279,6 +285,8 @@
         $('orderSummary').textContent = selected.size
             ? 'باقة الشلة (' + selected.size + ' طلاب) • ' + PL.tier(selected.tier).name + ' • ' + PL.daysText(selected.days)
             : 'باقة ' + PL.tier(selected.tier).name + ' • ' + selected.label;
+        $('chosenInfo').textContent = $('orderSummary').textContent + ' • ' + p.price + ' جنيه';
+        $('chosenCard').style.display = hasPending ? 'none' : 'block';
     }
 
     function methodList() {
@@ -366,7 +374,8 @@
                 <span style="color:var(--text-muted); font-size:0.78rem;">باقة ${PS.esc(req.planName || '')} • ${PS.esc(req.amount)} جنيه • من رقم ${PS.esc(req.payerPhone)}</span>
             </div>` : '';
         $('payCard').style.display = (!req && selected) ? 'block' : 'none';
-        $('planCard').style.display = req ? 'none' : 'block';
+        $('planCard').style.display = 'none';
+        $('chosenCard').style.display = (!req && selected) ? 'block' : 'none';
     }
 
     async function loadAll() {
@@ -389,7 +398,14 @@
             reqs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
         } catch (e) { console.warn(e); }
 
-        renderPending(reqs.find(r => r.status === 'pending') || null);
+        const pendingReq = reqs.find(r => r.status === 'pending') || null;
+        // الباقة بتتختار من packages.html وبتيجي هنا في الرابط (?plan=...). من غير باقة ومن غير طلب معلّق بنرجّعه لصفحة الباقات.
+        const qs = new URLSearchParams(location.search);
+        const planOpt = qs.get('plan') ? PL.optionById(qs.get('plan')) : null;
+        if (!pendingReq && !planOpt && !qs.get('history')) { location.replace('packages.html'); return; }
+        if (planOpt) selected = planOpt;
+        renderPending(pendingReq);
+        if (planOpt && !pendingReq) { renderMembers(); refreshOrder(); renderMethods(); }
 
         const hist = reqs.slice(0, 8);
         if (hist.length) {

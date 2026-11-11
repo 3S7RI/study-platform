@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+    <script src="plans.js"></script>
+    <script src="session.js"></script>
+    <script>PS.guard();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>باقات الاشتراك - رحلة دراسية</title>
+    <script>try { var th = localStorage.getItem('platform_theme'); if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th); } catch (e) {}</script>
+    <style>
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --primary: #6366f1; --success: #10b981; --danger: #ef4444; --gold: #fbbf24;
+            --th-bg: rgba(255,255,255,0.04); --shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        [data-theme="light"] {
+            --bg-main: #f1f5f9; --bg-card: #ffffff; --text-main: #1e293b; --text-muted: #64748b;
+            --border-color: #e2e8f0; --primary: #4f46e5; --gold: #d97706; --th-bg: rgba(0,0,0,0.03); --shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 14px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 10px 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+        .top-bar a { color: var(--text-main); text-decoration: none; font-weight: 700; font-size: .85rem; background: var(--th-bg); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 10px; }
+        .top-bar h1 { font-size: 1rem; color: var(--gold); }
+
+        .hero { text-align: center; padding: 22px 14px 8px; }
+        .hero h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 8px; }
+        .hero p { color: var(--text-muted); font-size: .92rem; line-height: 1.9; max-width: 560px; margin: 0 auto; }
+
+        .notice { border-radius: 14px; padding: 14px 16px; line-height: 1.9; font-size: .88rem; margin-bottom: 14px; }
+        .notice.ok { background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.5); }
+        .notice.warn { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.5); }
+        .notice a { color: var(--gold); font-weight: 800; }
+        .promo-bar { background: linear-gradient(135deg,#f59e0b,#ef4444); color: #fff; border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: .88rem; text-align: center; margin-bottom: 14px; }
+
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 22px; }
+        .step { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 12px 8px; text-align: center; }
+        .step b { display: flex; width: 30px; height: 30px; margin: 0 auto 6px; border-radius: 50%; background: var(--primary); color: #fff; align-items: center; justify-content: center; font-size: .9rem; }
+        .step span { font-size: .8rem; font-weight: 700; line-height: 1.6; display: block; }
+        .step small { display: block; font-size: .7rem; color: var(--text-muted); margin-top: 2px; line-height: 1.6; }
+
+        .sec-title { font-size: 1.1rem; font-weight: 900; margin: 26px 0 4px; }
+        .sec-sub { font-size: .82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.8; }
+
+        .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; align-items: stretch; margin-top: 18px; }
+        .tier { position: relative; border: 2px solid var(--border-color); border-radius: 20px; padding: 22px 16px 16px; background: var(--bg-card); display: flex; flex-direction: column; box-shadow: var(--shadow); }
+        .tier.popular { border-color: var(--gold); box-shadow: 0 0 24px rgba(251,191,36,.25); }
+        .tier.mine { border-color: var(--success); }
+        .tier .pop { position: absolute; top: -12px; right: 16px; background: var(--gold); color: #1e293b; font-size: .72rem; font-weight: 900; padding: 3px 12px; border-radius: 999px; }
+        .tier .mine-tag { position: absolute; top: -12px; left: 16px; background: var(--success); color: #fff; font-size: .72rem; font-weight: 900; padding: 3px 12px; border-radius: 999px; }
+        .tier h3 { font-size: 1.5rem; font-weight: 900; }
+        .tier .who { font-size: .8rem; color: var(--text-muted); margin: 2px 0 12px; line-height: 1.7; }
+        .tier .from { font-size: .78rem; color: var(--text-muted); }
+        .tier .from b { font-size: 1.7rem; color: var(--gold); font-weight: 900; margin-inline: 4px; }
+        .tier ul { list-style: none; margin: 12px 0 14px; font-size: .84rem; line-height: 1.9; flex: 1; }
+        .tier li::before { content: '✓'; color: var(--success); font-weight: 900; margin-inline-end: 6px; }
+        .opts-title { font-size: .76rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; }
+        .opt { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; border: 2px solid var(--border-color); background: var(--th-bg); color: var(--text-main); border-radius: 12px; padding: 10px 12px; margin-top: 8px; text-decoration: none; transition: border-color .2s, transform .2s; }
+        .opt:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .opt .l { font-size: .86rem; font-weight: 800; }
+        .opt .l small { display: block; font-size: .68rem; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
+        .opt .off { background: var(--success); color: #fff; font-size: .64rem; font-weight: 900; padding: 1px 7px; border-radius: 6px; margin-inline-start: 4px; }
+        .opt .p { text-align: left; white-space: nowrap; font-weight: 900; color: var(--gold); font-size: 1.05rem; }
+        .opt .p s { display: block; color: var(--text-muted); font-weight: 600; font-size: .68rem; }
+        .opt .go { background: var(--primary); color: #fff; border-radius: 8px; padding: 4px 10px; font-size: .72rem; font-weight: 800; margin-inline-start: 8px; }
+
+        .tbl-wrap { overflow-x: auto; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 460px; }
+        th, td { padding: 11px 10px; text-align: center; border-bottom: 1px solid var(--border-color); }
+        th:first-child, td:first-child { text-align: right; font-weight: 700; }
+        tr:last-child td { border-bottom: none; }
+        th { font-size: .9rem; }
+        td.hl, th.hl { background: rgba(251,191,36,.07); }
+
+        .group { border: 2px solid #a78bfa; border-radius: 20px; padding: 18px 16px; background: var(--bg-card); box-shadow: var(--shadow); }
+        .group h3 { font-size: 1.2rem; font-weight: 900; color: #a78bfa; margin-bottom: 4px; }
+        .group p { font-size: .84rem; color: var(--text-muted); line-height: 1.9; }
+        .group .gopts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+
+        details { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; margin-top: 8px; }
+        summary { cursor: pointer; padding: 12px 14px; font-weight: 800; font-size: .88rem; list-style: none; }
+        summary::-webkit-details-marker { display: none; }
+        summary::before { content: '+'; display: inline-block; width: 20px; color: var(--gold); font-weight: 900; }
+        details[open] summary::before { content: '−'; }
+        details p { padding: 0 14px 14px; font-size: .84rem; line-height: 1.9; color: var(--text-muted); }
+
+        .cta-note { text-align: center; margin: 22px 0 8px; font-size: .82rem; color: var(--text-muted); line-height: 1.9; }
+        .cta-note a { color: var(--gold); font-weight: 800; }
+        @media (max-width: 520px) {
+            .steps { grid-template-columns: 1fr; }
+            .step { display: flex; align-items: center; gap: 10px; text-align: right; padding: 10px 12px; }
+            .step b { margin: 0; flex-shrink: 0; }
+            .hero h2 { font-size: 1.25rem; }
+        }
+    </style>
+    <link rel="stylesheet" href="mobile.css">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <script src="pwa.js" defer></script>
+</head>
+<body>
+    <script src="intro.js"></script>
+<div class="container">
+    <div class="top-bar">
+        <a href="main.html">← الرئيسية</a>
+        <h1>باقات الاشتراك</h1>
+    </div>
+
+    <div id="statusBox"></div>
+    <div id="promoBar"></div>
+
+    <div class="hero">
+        <h2>اختار الباقة اللي تناسبك</h2>
+        <p>كل باقة بتفتح لك مميزات أكتر في الحصص والامتحانات والمساعد الذكي. ابدأ بأي باقة، وتقدر تترقّى بعد كده من غير ما تخسر أيامك.</p>
+    </div>
+
+    <div class="steps">
+        <div class="step"><b>1</b><div><span>اختار الباقة والمدة</span><small>من الباقات تحت</small></div></div>
+        <div class="step"><b>2</b><div><span>حوّل المبلغ</span><small>اتصالات كاش / فوري / بنك</small></div></div>
+        <div class="step"><b>3</b><div><span>اشتراكك يتفعّل</span><small>بعد مراجعة الإدارة</small></div></div>
+    </div>
+
+    <div class="tiers" id="tiers"><p class="sec-sub">جاري تحميل الباقات...</p></div>
+
+    <h2 class="sec-title">الفرق بين الباقات بالأرقام</h2>
+    <p class="sec-sub">مقارنة سريعة عشان تعرف إيه اللي هتاخده بالظبط.</p>
+    <div class="tbl-wrap"><table id="cmp"></table></div>
+
+    <div id="groupSec"></div>
+
+    <h2 class="sec-title">أسئلة شائعة</h2>
+    <details><summary>إزاي أدفع؟</summary><p>بعد ما تختار الباقة بتفتح لك صفحة الدفع: حوّل المبلغ بالظبط على رقم اتصالات كاش أو فوري أو حساب بنكي، وبعدين اكتب رقم موبايلك اللي حوّلت منه واضغط «ابعت الطلب».</p></details>
+    <details><summary>اشتراكي هيتفعّل إمتى؟</summary><p>الإدارة بتراجع طلبك في أقل من 6 ساعات في أوقات العمل. ولو الوقت متأخر أو بدري، بيتراجع أول ما نبدأ الشغل. فلوسك محفوظة وتقدر تتابع حالة الطلب من صفحة الاشتراك.</p></details>
+    <details><summary>لو عندي اشتراك شغال وجدّدت؟</summary><p>الأيام الجديدة بتتضاف على الأيام المتبقية ومبتضيعش. ولو رقّيت لباقة أعلى، أيامك المتبقية بتتحوّل لأيام في الباقة الأعلى.</p></details>
+    <details><summary>عندي كود خصم، أكتبه فين؟</summary><p>اكتب الكود في صفحة الدفع قبل ما تبعت الطلب، والسعر بيتحدّث قدامك.</p></details>
+    <details><summary>إيه الفرق بين الباقات المدفوعة والتجربة المجانية؟</summary><p>التجربة المجانية 24 ساعة بتفتح مميزات Pro مرة واحدة لكل حساب. بعدها لازم تشترك في باقة عشان تكمّل بنفس المميزات.</p></details>
+    <details><summary>عندي كود تفعيل VIP؟</summary><p>ادخل على الملف الشخصي واكتب الكود في خانة التفعيل، وهيتفعّل اشتراكك فوراً.</p></details>
+
+    <div class="cta-note">محتاج مساعدة في الاختيار؟ اسأل المساعد الذكي (الأيقونة العايمة) أو كلّم الدعم.<br>
+        <a href="subscribe.html?history=1">شوف طلبات الاشتراك السابقة</a></div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const app = initializeApp({
+        apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
+        authDomain: "study-trip-1.firebaseapp.com",
+        projectId: "study-trip-1",
+        storageBucket: "study-trip-1.firebasestorage.app",
+        messagingSenderId: "632096690853",
+        appId: "1:632096690853:web:f9622d14de73a761dcf34c"
+    });
+    const auth = getAuth(app), db = getFirestore(app);
+    const PL = window.PSPlans, $ = (id) => document.getElementById(id);
+    let student = PS.getStudent() || {};
+
+    const WHO = {
+        plus: 'للبداية: كل الأساسيات اللي تحتاجها للمذاكرة.',
+        pro: 'الأنسب لمعظم الطلاب: محاولات ودخول أكتر وإحصائيات كاملة.',
+        elite: 'للي عايز أقصى استفادة: أعلى حدود وأولوية في الدعم.'
+    };
+    const link = (id) => 'subscribe.html?plan=' + encodeURIComponent(id);
+    const perDay = (o, p) => { const v = p / Math.max(1, o.days); return (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10) + ' ج في اليوم'; };
+
+    function renderStatus(pending) {
+        const exp = student.subscriptionExpiry ? new Date(student.subscriptionExpiry).getTime() : 0;
+        let h = '';
+        if (pending) {
+            h = '<div class="notice ok"><b>طلب الاشتراك بتاعك قيد المراجعة.</b> باقة ' + PS.esc(pending.planName || '') + ' • ' + PS.esc(pending.amount) + ' جنيه. هتتفعّل أول ما الإدارة تراجعه. <a href="subscribe.html">تابع الطلب</a></div>';
+        } else if (exp > Date.now()) {
+            const left = Math.ceil((exp - Date.now()) / 86400000), tier = PL.tierOf(student);
+            const trial = student.accountType === 'trial';
+            h = '<div class="notice ok">' + (trial ? 'أنت على التجربة المجانية (مميزات Pro)، وباقيلك ' + (left <= 1 ? 'أقل من يوم' : left + ' يوم') + '.'
+                : 'باقتك الحالية: <b>' + PS.esc(tier ? PL.tier(tier).name : 'VIP') + '</b>، وباقيلك ' + left + ' يوم. أي تجديد بيتضاف على المتبقي.') + '</div>';
+        } else {
+            h = '<div class="notice warn">حسابك دلوقتي مجاني. اختار باقة من تحت عشان تفتح كل المميزات.</div>';
+        }
+        $('statusBox').innerHTML = h;
+    }
+
+    function renderTiers() {
+        const pr = PL.config().promo || {};
+        const on = pr.enabled && Number(pr.percent) > 0 && (!pr.endsAt || Number(pr.endsAt) > Date.now());
+        $('promoBar').innerHTML = on ? '<div class="promo-bar">' + PS.esc(pr.label || 'عرض خاص') + ' — خصم ' + Number(pr.percent) + '%' +
+            (pr.endsAt ? ' لحد ' + new Date(Number(pr.endsAt)).toLocaleDateString('ar-EG', { dateStyle: 'medium' }) : '') + '</div>' : '';
+        const mine = PL.tierOf(student);
+        $('tiers').innerHTML = PL.tiers().map(k => {
+            const t = PL.tier(k), opts = PL.optionsOf(k);
+            if (!opts.length) return '';
+            const cheapest = opts.map(o => ({ o, p: PL.priceOf(o).price })).sort((a, b) => a.p - b.p)[0];
+            const feats = (t.features || []).filter(f => !f.soon).map(f => '<li>' + PS.esc(f.t) + '</li>').join('');
+            const rows = opts.map(o => {
+                const pp = PL.priceOf(o), dsc = PL.discountOf(o);
+                return '<a class="opt" href="' + link(o.id) + '"><span class="l">' + PS.esc(o.label) + (dsc ? '<span class="off">وفّر ' + dsc + '%</span>' : '') +
+                    '<small>' + perDay(o, pp.price) + '</small></span><span class="p">' + (pp.price < o.price ? '<s>' + o.price + ' ج</s>' : '') + pp.price + ' ج</span><span class="go">اشترك</span></a>';
+            }).join('');
+            return '<div class="tier' + (t.popular ? ' popular' : '') + (mine === k && student.accountType !== 'trial' ? ' mine' : '') + '">' +
+                (t.popular ? '<span class="pop">الأكثر طلباً</span>' : '') +
+                (mine === k && student.accountType !== 'trial' ? '<span class="mine-tag">باقتك الحالية</span>' : '') +
+                '<h3 style="color:' + PS.esc(t.color) + '">' + PS.esc(t.name) + '</h3>' +
+                '<div class="who">' + PS.esc(WHO[k] || '') + '</div>' +
+                '<div class="from">تبدأ من<b>' + cheapest.p + '</b>جنيه</div>' +
+                '<ul>' + feats + '</ul>' +
+                '<div class="opts-title">اختار المدة:</div>' + rows + '</div>';
+        }).join('');
+    }
+
+    function renderCompare() {
+        const ks = PL.tiers(), fl = PL.config().free || {};
+        const lim = (k, f) => Number((PL.tier(k).limits || {})[f]) || 0;
+        const hl = ks.indexOf('pro');
+        const row = (label, free, fn) => '<tr><td>' + label + '</td><td>' + free + '</td>' + ks.map((k, i) => '<td' + (i === hl ? ' class="hl"' : '') + '>' + fn(k) + '</td>').join('') + '</tr>';
+        $('cmp').innerHTML = '<thead><tr><th></th><th>مجاني</th>' + ks.map((k, i) => '<th' + (i === hl ? ' class="hl"' : '') + ' style="color:' + PS.esc(PL.tier(k).color) + '">' + PS.esc(PL.tier(k).name) + '</th>').join('') + '</tr></thead><tbody>' +
+            row('أسئلة المساعد الذكي في اليوم', Number(fl.aiDaily) || 15, k => lim(k, 'aiDaily')) +
+            row('دخول زيادة لكل حصة', '—', k => lim(k, 'lessonBonus') ? '+' + lim(k, 'lessonBonus') : 'حسب الإعداد') +
+            row('محاولات زيادة في امتحان الحصة', '—', k => lim(k, 'examBonus') ? '+' + lim(k, 'examBonus') : '—') +
+            '</tbody>';
+    }
+
+    function renderGroups() {
+        const gs = PL.groups();
+        if (!gs.length) { $('groupSec').innerHTML = ''; return; }
+        const t = PL.tier(gs[0].tier) || {};
+        $('groupSec').innerHTML = '<h2 class="sec-title">باقة الشلة: ذاكروا مع بعض ووفّروا</h2>' +
+            '<div class="group"><h3>باقة الشلة</h3><p>اشترك مع أصحابك (3 أو 5 طلاب حسب الباقة). كل واحد في الشلة بياخد مميزات ' + PS.esc(t.name || 'Pro') + ' كاملة بسعر أقل للفرد. إنت بتدفع مرة واحدة وبتكتب الـ ID بتاع كل صاحب (STU-0000) في صفحة الدفع، وكلكم بتتفعلوا مع بعض.</p>' +
+            '<div class="gopts">' + gs.map(g => {
+                const pp = PL.priceOf(g), per = Math.round(pp.price / g.size), dsc = PL.groupDiscountOf(g);
+                return '<a class="opt" href="' + link(g.id) + '"><span class="l">' + PS.esc(g.label) + '<small>' + per + ' ج للفرد' + (dsc ? ' • وفّر ' + dsc + '%' : '') + '</small></span><span class="p">' + pp.price + ' ج</span><span class="go">اشترك</span></a>';
+            }).join('') + '</div></div>';
+    }
+
+    function renderAll(pending) { renderStatus(pending); renderTiers(); renderCompare(); renderGroups(); }
+
+    async function load() {
+        renderAll(null); // من الإعدادات الافتراضية/المحفوظة فوراً، وبعدين نحدّث
+        try { const d = await getDoc(doc(db, 'students', PS.email())); if (d.exists()) student = d.data(); } catch (e) {}
+        await PL.refresh(db, getDoc, doc);
+        let pending = null;
+        try {
+            const sn = await getDocs(query(collection(db, 'subscriptionRequests'), where('studentId', '==', PS.studentId()), where('status', '==', 'pending'), limit(1)));
+            if (!sn.empty) pending = sn.docs[0].data();
+        } catch (e) {}
+        renderAll(pending);
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user && !PS.isAdminSession()) { window.location.replace('login.html'); return; }
+        load();
+    });
+</script>
+</body>
+</html>
