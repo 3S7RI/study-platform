@@ -1,42 +1,19 @@
-// push.js — تفعيل إشعارات المنصة للطالب (FCM). بيتحمّل في main.html.
-// - بيظهر شريط صغير «فعّل التنبيهات» (مرة كل 7 أيام لو الطالب قفله). التفعيل لازم بضغطة الطالب.
+// push.js — الإشعارات (FCM) + كارت «تثبيت التطبيق والإشعارات» في الملف الشخصي.
+// - الكارت بيظهر في profile.html بس، وبيفضل ظاهر دايماً (حتى لو الاتنين متفعلين بيبقى شكله أخضر).
 // - مفتاح VAPID العام بيتقرا من Firestore (config/push.vapidKey) اللي الأدمن بيحطه من admin-push.html.
-// - من غير نت: مفيش حاجة بتحصل (الإشعارات جاية من الإنترنت أصلاً).
+// - في باقي الصفحات: لو الإشعارات متفعلة بالفعل بيجدّد التوكن بهدوء من غير أي شريط أو زرار.
 import { getApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const KEY = 'ps_push_dismissed_at', WEEK = 7 * 86400000;
 const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-if (supported && !/admin/.test(location.pathname)) init();
+const isAdminPage = /admin/.test(location.pathname);
+const isProfile = /profile\.html$/.test(location.pathname);
 
-function dismissed() { try { return Date.now() - Number(localStorage.getItem(KEY) || 0) < WEEK; } catch (e) { return false; } }
+const standalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-async function init() {
-    try {
-        if (Notification.permission === 'denied') return;
-        if (Notification.permission === 'granted') { register(true); return; }   // بيجدّد التوكن بهدوء
-        if (dismissed()) return;
-        setTimeout(showBar, 6000);
-    } catch (e) {}
-}
-
-function showBar() {
-    if (document.getElementById('psPushBar')) return;
-    const bar = document.createElement('div');
-    bar.id = 'psPushBar';
-    bar.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:420px;margin:0 auto;z-index:9998;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--bg-card,#1e293b);color:var(--text-main,#f8fafc);border:1px solid var(--border-color,#334155);box-shadow:0 10px 25px rgba(0,0,0,.35);font-size:14px;direction:rtl';
-    bar.innerHTML = '<span style="flex:1;line-height:1.5">🔔 فعّل التنبيهات عشان توصلك المنافسات والامتحانات الجديدة</span>';
-    const ok = document.createElement('button');
-    ok.textContent = 'فعّل';
-    ok.style.cssText = 'background:#6366f1;color:#fff;border:0;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer';
-    ok.onclick = async () => { ok.disabled = true; const r = await register(false); bar.remove(); if (r !== 'ok') try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {} };
-    const no = document.createElement('button');
-    no.textContent = '✕';
-    no.setAttribute('aria-label', 'إغلاق');
-    no.style.cssText = 'background:transparent;border:0;color:inherit;font-size:16px;cursor:pointer';
-    no.onclick = () => { try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {} bar.remove(); };
-    bar.append(ok, no);
-    document.body.appendChild(bar);
+if (supported && !isAdminPage) {
+    try { if (Notification.permission === 'granted') register(true); } catch (e) {}   // تجديد التوكن بهدوء
 }
 
 async function register(silent) {
@@ -62,49 +39,114 @@ async function register(silent) {
     } catch (e) { console.warn('push register failed', e); return 'fail'; }
 }
 
-
-/* ---------------------- زر تفعيل الإشعارات الثابت ---------------------- */
-const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+/* ---------------------- كارت الملف الشخصي ---------------------- */
 const MSG = {
-    ok: '✅ تم تفعيل الإشعارات على جهازك',
-    denied: 'الإشعارات مقفولة للموقع. دوس على القفل جنب الرابط ← الإشعارات ← سماح، وبعدها جرّب تاني.',
+    ok: 'تم تفعيل الإشعارات على جهازك بنجاح.',
+    denied: 'الإشعارات مقفولة للموقع في المتصفح. دوس على أيقونة القفل جنب الرابط ← الإشعارات ← سماح، وبعدها ارجع اضغط «فعّل» تاني.',
     novapid: 'الإشعارات لسه متجهزتش من الإدارة. جرّب بعد شوية.',
     noemail: 'سجّل دخولك الأول وبعدها فعّل الإشعارات.',
     fail: 'معرفناش نفعّل الإشعارات. اقفل الصفحة وافتحها تاني وجرّب.',
-    ios: 'على الآيفون: دوس زرار المشاركة ← «إضافة إلى الشاشة الرئيسية»، وافتح المنصة من الأيقونة الجديدة، وبعدها فعّل الإشعارات.',
-    nosupport: 'المتصفح ده مش بيدعم الإشعارات. جرّب Chrome.'
+    ios: 'على الآيفون الإشعارات بتشتغل بس بعد ما تضيف المنصة للشاشة الرئيسية (iOS 16.4 فما فوق): اضغط زرار المشاركة في Safari ← «إضافة إلى الشاشة الرئيسية»، وافتح المنصة من الأيقونة الجديدة، وبعدها فعّل الإشعارات.',
+    nosupport: 'المتصفح ده مش بيدعم الإشعارات. جرّب Chrome أو Edge.'
 };
 
-function paintBtn(btn) {
-    const on = supported && Notification.permission === 'granted';
-    btn.textContent = on ? '🔔 إشعارات الموبايل: مفعّلة ✅' : '🔔 فعّل إشعارات المنصة على جهازك';
-    btn.style.opacity = on ? '.75' : '1';
+function buildCard() {
+    if (document.getElementById('psAppCard')) return;
+    const anchor = document.getElementById('profileCardMain');
+    if (!anchor) return;
+
+    const st = document.createElement('style');
+    st.textContent =
+        '#psAppCard{max-width:600px;margin:16px auto 0;padding:18px;border-radius:20px;direction:rtl;text-align:right;background:var(--card-bg,#1e293b);border:1px solid var(--border-color,#334155);color:var(--text-main,#f8fafc)}' +
+        '#psAppCard h3{font-size:1rem;margin:0 0 4px;font-weight:800}' +
+        '#psAppCard .pa-sub{font-size:.8rem;color:var(--text-secondary,#94a3b8);line-height:1.7;margin-bottom:12px}' +
+        '#psAppCard .pa-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--border-color,#334155);background:rgba(255,255,255,.03);margin-top:10px;flex-wrap:wrap}' +
+        '#psAppCard .pa-row.ok{border-color:rgba(16,185,129,.55);background:rgba(16,185,129,.08)}' +
+        '#psAppCard .pa-row.todo{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}' +
+        '#psAppCard .pa-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(99,102,241,.15);color:#a5b4fc;flex-shrink:0}' +
+        '#psAppCard .pa-row.ok .pa-ic{background:rgba(16,185,129,.18);color:#34d399}' +
+        '#psAppCard .pa-row.todo .pa-ic{background:rgba(245,158,11,.18);color:#fbbf24}' +
+        '#psAppCard .pa-txt{flex:1;min-width:150px}' +
+        '#psAppCard .pa-txt b{display:block;font-size:.9rem}' +
+        '#psAppCard .pa-txt span{display:block;font-size:.76rem;color:var(--text-secondary,#94a3b8);line-height:1.7;margin-top:2px}' +
+        '#psAppCard .pa-btn{border:0;border-radius:10px;padding:9px 16px;font-weight:800;font-size:.84rem;cursor:pointer;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);font-family:inherit}' +
+        '#psAppCard .pa-btn:disabled{opacity:.6;cursor:not-allowed}' +
+        '#psAppCard .pa-done{font-size:.8rem;font-weight:800;color:#34d399}' +
+        '#psAppCard .pa-note{flex-basis:100%;font-size:.78rem;line-height:1.8;color:var(--text-secondary,#94a3b8)}';
+    document.head.appendChild(st);
+
+    const card = document.createElement('div');
+    card.id = 'psAppCard';
+    card.innerHTML =
+        '<h3>تثبيت التطبيق والإشعارات</h3>' +
+        '<div class="pa-sub">ثبّت المنصة على جهازك وفعّل الإشعارات عشان توصلك تنبيهات الامتحانات والمنافسات حتى والتطبيق مقفول.</div>' +
+        '<div class="pa-row" id="paInstall"></div>' +
+        '<div class="pa-row" id="paNotif"></div>';
+    anchor.insertAdjacentElement('afterend', card);
+
+    const mk = (id, ok, title, desc, btnText, onClick, note) => {
+        const row = document.getElementById(id);
+        row.className = 'pa-row ' + (ok ? 'ok' : 'todo');
+        row.innerHTML = '<div class="pa-ic">' + (id === 'paInstall'
+            ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>'
+            : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>') + '</div>' +
+            '<div class="pa-txt"><b></b><span></span></div>';
+        row.querySelector('b').textContent = title;
+        row.querySelector('span').textContent = desc;
+        if (ok) {
+            const d = document.createElement('div'); d.className = 'pa-done'; d.textContent = '✓ شغّال'; row.appendChild(d);
+        } else if (btnText) {
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'pa-btn'; b.textContent = btnText;
+            b.onclick = () => onClick(b, row);
+            row.appendChild(b);
+        }
+        if (note) { const n = document.createElement('div'); n.className = 'pa-note'; n.textContent = note; row.appendChild(n); }
+    };
+
+    const paintInstall = () => {
+        const api = window.PSInstall || {};
+        if (standalone() || api.installed) {
+            mk('paInstall', true, 'التطبيق مثبّت', 'بتفتح المنصة من أيقونتها زي أي تطبيق.');
+        } else if (api.deferred) {
+            mk('paInstall', false, 'ثبّت التطبيق على جهازك', 'يفتح من أيقونة على الشاشة الرئيسية بدون متصفح.', 'ثبّت التطبيق', async (b) => {
+                b.disabled = true;
+                try { api.deferred.prompt(); await api.deferred.userChoice; } catch (e) {}
+                api.deferred = null; paintInstall();
+            });
+        } else if (isIOS) {
+            mk('paInstall', false, 'ثبّت التطبيق على جهازك', 'محتاج خطوتين بسيطتين من Safari.', null, null,
+                'اضغط زرار المشاركة (المربع اللي فيه سهم لفوق) في أسفل Safari، وبعدين اختار «إضافة إلى الشاشة الرئيسية» وبعدها «إضافة».');
+        } else {
+            mk('paInstall', false, 'ثبّت التطبيق على جهازك', 'لو الزرار مش ظاهر، التثبيت بيتم من قائمة المتصفح.', null, null,
+                'على أندرويد (Chrome): اضغط ⋮ ثم «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية». على الكمبيوتر: اضغط أيقونة التثبيت في شريط العنوان، أو ⋮ ثم «Cast, save, and share» ثم «Install page as app».');
+        }
+    };
+
+    const paintNotif = () => {
+        const granted = supported && Notification.permission === 'granted';
+        if (granted) {
+            mk('paNotif', true, 'الإشعارات مفعّلة', 'هتوصلك تنبيهات الامتحانات والمنافسات.');
+            return;
+        }
+        const denied = supported && Notification.permission === 'denied';
+        mk('paNotif', false, 'فعّل إشعارات المنصة', 'عشان متفوتش امتحان أو منافسة جديدة.', 'فعّل الإشعارات', async (b, row) => {
+            let note = row.querySelector('.pa-note');
+            if (!note) { note = document.createElement('div'); note.className = 'pa-note'; row.appendChild(note); }
+            note.textContent = '';
+            if (!supported) { note.textContent = (isIOS && !standalone()) ? MSG.ios : MSG.nosupport; return; }
+            if (Notification.permission === 'denied') { note.textContent = MSG.denied; return; }
+            b.disabled = true; b.textContent = 'جاري التفعيل...';
+            const r = await register(false);
+            if (r === 'ok') { paintNotif(); return; }
+            b.disabled = false; b.textContent = 'فعّل الإشعارات';
+            note.textContent = MSG[r] || MSG.fail;
+        }, denied ? MSG.denied : ((!supported && isIOS && !standalone()) ? MSG.ios : ''));
+    };
+
+    paintInstall(); paintNotif();
+    window.addEventListener('ps-install-change', paintInstall);
 }
 
-function addButton() {
-    if (/admin/.test(location.pathname) || document.getElementById('psPushBtn')) return;
-    const anchor = document.querySelector('.welcome-section');
-    if (!anchor) return;
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;margin:6px 0 14px;direction:rtl';
-    const btn = document.createElement('button');
-    btn.id = 'psPushBtn';
-    btn.style.cssText = 'background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:0;border-radius:12px;padding:10px 18px;font-weight:700;font-size:.95rem;cursor:pointer;font-family:inherit;box-shadow:0 6px 16px rgba(99,102,241,.35)';
-    const note = document.createElement('div');
-    note.style.cssText = 'font-size:.82rem;color:var(--text-muted,#94a3b8);text-align:center;line-height:1.6;max-width:420px';
-    paintBtn(btn);
-    btn.onclick = async () => {
-        note.textContent = '';
-        if (!supported) { note.textContent = (isIOS && !standalone) ? MSG.ios : MSG.nosupport; return; }
-        if (Notification.permission === 'denied') { note.textContent = MSG.denied; return; }
-        btn.disabled = true; btn.textContent = '... جاري التفعيل';
-        const r = await register(false);
-        btn.disabled = false; paintBtn(btn);
-        note.textContent = MSG[r] || MSG.fail;
-        if (r === 'ok') { const bar = document.getElementById('psPushBar'); if (bar) bar.remove(); }
-    };
-    wrap.append(btn, note);
-    anchor.insertAdjacentElement('afterend', wrap);
+if (isProfile) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', buildCard); else buildCard();
 }
-addButton();
