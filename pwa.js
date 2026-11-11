@@ -13,11 +13,14 @@
     window.addEventListener('beforeinstallprompt', function (e) {
         e.preventDefault();
         api.deferred = e;
+        api.installed = false;
+        try { localStorage.removeItem('ps_installed'); } catch (x) {}   // المتصفح بيعرض التثبيت = التطبيق مش متثبت
         changed();
     });
     window.addEventListener('appinstalled', function () {
         api.installed = true;
         api.deferred = null;
+        try { localStorage.setItem('ps_installed', '1'); } catch (x) {}
         changed();
     });
 })();
