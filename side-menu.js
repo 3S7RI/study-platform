@@ -16,8 +16,7 @@
             { t: 'الصفحة الرئيسية', href: 'main.html', ic: 'home' },
             { t: 'الحصص والشروحات', href: 'files.html', ic: 'book' },
             { t: 'الامتحانات الشاملة', href: 'exams.html', ic: 'edit' },
-            { t: 'أخطائي', href: 'mistakes.html', ic: 'list' },
-            { t: 'الجدول الدوري', href: 'periodic-table.html', ic: 'atom' }
+            { t: 'أخطائي', href: 'mistakes.html', ic: 'list' }
         ] },
         { title: 'التفاعل والمنافسة', items: [
             { t: 'الدردشة العامة', action: 'chat', ic: 'chat' },
@@ -30,6 +29,9 @@
             { t: 'الملف الشخصي', href: 'profile.html', ic: 'user' },
             { t: 'باقات الاشتراك', href: 'packages.html', ic: 'star' },
             { t: 'نظام الدعوات', href: 'invites.html', ic: 'gift' }
+        ] },
+        { title: 'غير ذلك', items: [
+            { t: 'الجدول الدوري', href: 'periodic-table.html', ic: 'atom' }
         ] },
         { title: 'مساعدة', items: [
             { t: 'دليل المنصة', action: 'guide', ic: 'help' },

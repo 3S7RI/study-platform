@@ -135,6 +135,11 @@
         .vrow { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
         .vrow button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--th-bg); color: var(--text-main); font-weight: 800; font-size: 0.76rem; cursor: pointer; }
         .vrow button.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, var(--bg-card)); }
+        /* ===== الصورة الحقيقية للعنصر (من ويكيبيديا) ===== */
+        .stage .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #f8fafc; display: none; }
+        .stage .photo-msg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: .8rem; font-weight: 700; color: var(--text-muted); line-height: 1.9; }
+        .photo-cred { text-align: center; font-size: .66rem; color: var(--text-muted); margin-top: 8px; line-height: 1.8; }
+        .photo-cred a { color: var(--primary); text-decoration: none; font-weight: 700; }
         @media (min-width: 860px) { .stage { max-height: 440px; } }
         @media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
     </style>
@@ -183,10 +188,11 @@
             <div class="stage-box">
                 <div class="seg stab" id="stab"><button type="button" data-t="real" class="on">الشكل الحقيقي للمادة</button><button type="button" data-t="atom">نموذج الذرة</button></div>
                 <div id="paneReal">
-                    <div class="stage"><canvas id="cvR"></canvas><div class="tip" id="tipR">اسحب بإصبعك لتلف العينة، واستخدم إصبعين للتقريب</div></div>
+                    <div class="stage"><canvas id="cvR"></canvas><img id="realPhoto" class="photo" alt="" referrerpolicy="no-referrer" decoding="async"><div class="photo-msg" id="photoMsg"></div><div class="tip" id="tipR">اسحب بإصبعك لتلف العينة، واستخدم إصبعين للتقريب</div></div>
                     <div class="real-cap" id="realCap"></div>
+                    <div class="photo-cred" id="photoCred"></div>
                     <div class="vrow" id="vrow"></div>
-                    <div class="ctl">
+                    <div class="ctl" id="ctlR">
                         <button id="bAutoR" class="on" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>دوران تلقائي</button>
                         <button id="bResR" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>إعادة ضبط</button>
                     </div>
@@ -568,9 +574,65 @@ function openElement(z) {
     atom.set(z, A, cf.shells, cat.c);
     if (!real) real = new Real3D($('cvR'));
     formIdx = 0; real.reset(); showReal(z, cat.c);
+    loadPhoto(z);
     setTab(tab);
     var tp = $(tab === 'real' ? 'tipR' : 'tip'); tp.style.opacity = 1; setTimeout(function () { tp.style.opacity = 0; }, 4500);
     try { history.replaceState(null, '', '#' + z); } catch (e2) {}
+}
+/* ============ الصورة الحقيقية للعنصر ============
+ * بتتجاب وقت التشغيل من ويكيبيديا (الصورة الرئيسية لصفحة العنصر = صورة فوتوغرافية للمادة نفسها)،
+ * وبتتخزن 30 يوم في localStorage. لو مفيش صورة (زي العناصر المصنّعة) أو النت ضعيف، بيرجع المجسّم 3D التقريبي زي ما كان. */
+var photoOn = false, photoReq = 0, PHOTO_TTL = 30 * 864e5;
+var BAD_IMG = /\.svg$|electron|shell|spectr|symbol|bohr|periodic|lattice|structure|diagram|logo|\bmap\b|flag|chart|graph|orbital|emission|absorption/i;
+function wikiTitle(z) { var n = EL[z - 1][1]; return n === 'Mercury' ? 'Mercury (element)' : n; }
+function photoCacheGet(z) { try { var o = JSON.parse(localStorage.getItem('pt_img_' + z) || 'null'); if (o && Date.now() - o.t < PHOTO_TTL) return o; } catch (e) {} return null; }
+function photoCachePut(z, o) { try { o.t = Date.now(); localStorage.setItem('pt_img_' + z, JSON.stringify(o)); } catch (e) {} }
+function photoFetch(z) {
+    var c = photoCacheGet(z); if (c) return Promise.resolve(c);
+    var url = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail%7Cname&pithumbsize=900&redirects=1&format=json&origin=*&titles=' + encodeURIComponent(wikiTitle(z));
+    return fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http')); }).then(function (j) {
+        var pg = j && j.query && j.query.pages, p = pg && pg[Object.keys(pg)[0]];
+        var ok = p && p.thumbnail && /^https:\/\//.test(p.thumbnail.source || '') && p.pageimage && !BAD_IMG.test(p.pageimage);
+        var o = ok ? { u: p.thumbnail.source, n: p.pageimage } : { u: '' };
+        photoCachePut(z, o);
+        return o;
+    });
+}
+function photoMode(mode) {   /* 'load' | 'photo' | '3d' */
+    photoOn = mode === 'photo';
+    var on = mode === 'photo', ld = mode === 'load';
+    $('realPhoto').style.display = on ? 'block' : 'none';
+    $('photoMsg').style.display = ld ? 'flex' : 'none';
+    $('cvR').style.display = mode === '3d' ? 'block' : 'none';
+    $('ctlR').style.display = mode === '3d' ? '' : 'none';
+    if (mode !== '3d') { $('vrow').style.display = 'none'; $('tipR').style.opacity = 0; } else { $('vrow').style.display = ''; }
+    $('photoCred').innerHTML = '';
+    if (mode !== '3d' && real) real.stop();
+}
+function loadPhoto(z) {
+    var my = ++photoReq, e = EL[z - 1], im = $('realPhoto');
+    photoMode('load');
+    $('photoMsg').textContent = 'جاري تحميل الصورة الحقيقية...';
+    $('realCap').innerHTML = '<b>' + esc(e[2]) + '</b>';
+    function fallback() {
+        if (my !== photoReq) return;
+        photoMode('3d'); showReal(z, CATS[catOf(z)].c);
+        if (tab === 'real' && real) real.start();
+        $('photoCred').textContent = 'مفيش صورة حقيقية متاحة للعنصر ده دلوقتي، ده مجسّم تقريبي.';
+    }
+    photoFetch(z).then(function (o) {
+        if (my !== photoReq) return;
+        if (!o.u) { fallback(); return; }
+        im.onload = function () {
+            if (my !== photoReq) return;
+            photoMode('photo');
+            im.alt = e[2];
+            $('realCap').innerHTML = '<b>الشكل الحقيقي لعنصر ' + esc(e[2]) + '</b><span>صورة فوتوغرافية حقيقية للمادة</span>';
+            $('photoCred').innerHTML = 'المصدر: ويكيبيديا / ويكيميديا كومنز — <a target="_blank" rel="noopener noreferrer" href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(o.n) + '">صاحب الصورة والترخيص</a>';
+        };
+        im.onerror = fallback;
+        im.src = o.u;
+    }).catch(function () { fallback(); });
 }
 function hexRgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
 function showReal(z, accent) {
@@ -586,7 +648,7 @@ function setTab(t) {
     [].forEach.call($('stab').children, function (b) { b.classList.toggle('on', b.getAttribute('data-t') === tab); });
     $('paneReal').style.display = tab === 'real' ? '' : 'none';
     $('paneAtom').style.display = tab === 'atom' ? '' : 'none';
-    if (tab === 'real') { atom.stop(); real.start(); } else { real.stop(); atom.start(); }
+    if (tab === 'real') { atom.stop(); if (!photoOn) real.start(); } else { real.stop(); atom.start(); }
 }
 function closeSheet() {
     $('sheet').classList.remove('open'); document.body.style.overflow = '';
