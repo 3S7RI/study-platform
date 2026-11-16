@@ -205,9 +205,10 @@
             };
         },
         badgeHtml: function (d) {
-            var k = P.tierOf(d); if (!k || !cfg.tiers[k].badge) return '';
+            var k = P.tierOf(d); if (!k || !cfg.tiers[k]) return '';
             var t = cfg.tiers[k];
-            return '<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:.62rem;font-weight:900;letter-spacing:.5px;margin-inline-start:6px;vertical-align:middle;color:#0b1020;background:' + t.color + ';">' + t.badge + '</span>';
+            var label = t.badge || String(t.name || k).toUpperCase();
+            return '<span style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:.62rem;font-weight:900;letter-spacing:.5px;margin-inline-start:6px;vertical-align:middle;color:#0b1020;background:' + t.color + ';">' + label + '</span>';
         }
     };
     global.PSPlans = P;

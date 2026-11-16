@@ -151,6 +151,30 @@
             box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; margin: auto;
         }
         .hidden { display: none !important; }
+    
+        /* ---- شاشة التسليم ---- */
+        .submit-overlay { position: fixed; inset: 0; z-index: 99999; display: none; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.82); backdrop-filter: blur(6px); padding: 20px; }
+        .submit-overlay.show { display: flex; animation: soFade .25s ease; }
+        @keyframes soFade { from { opacity: 0; } to { opacity: 1; } }
+        .submit-box { width: 100%; max-width: 380px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 22px; padding: 26px 22px; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,.5); }
+        .submit-icon { width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(99,102,241,.15); color: var(--primary); transition: all .35s ease; }
+        .submit-icon svg { width: 28px; height: 28px; }
+        .submit-icon .spin { animation: soSpin 1s linear infinite; transform-origin: center; }
+        @keyframes soSpin { to { transform: rotate(360deg); } }
+        .submit-box.done .submit-icon { background: rgba(16,185,129,.18); color: var(--success); transform: scale(1.08); }
+        .submit-box.fail .submit-icon { background: rgba(239,68,68,.15); color: #ef4444; }
+        .submit-title { font-size: 1.02rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
+        .submit-sub { font-size: .8rem; color: var(--text-muted); margin-bottom: 16px; min-height: 1.2em; }
+        .submit-track { height: 10px; border-radius: 99px; background: var(--th-bg); overflow: hidden; border: 1px solid var(--border-color); }
+        .submit-fill { height: 100%; width: 0%; border-radius: 99px; background: linear-gradient(90deg, #6366f1, #38bdf8); transition: width .25s ease; position: relative; overflow: hidden; }
+        .submit-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); transform: translateX(-100%); animation: soShine 1.1s infinite; }
+        .submit-box.done .submit-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+        .submit-box.done .submit-fill::after, .submit-box.fail .submit-fill::after { animation: none; display: none; }
+        @keyframes soShine { to { transform: translateX(100%); } }
+        .submit-pct { margin-top: 8px; font-size: .78rem; font-weight: 800; color: var(--primary); }
+        .submit-retry { display: none; margin-top: 14px; padding: 9px 22px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .submit-box.fail .submit-retry { display: inline-block; }
+        .sched-count { margin: 10px 0 0; padding: 9px 12px; border-radius: 12px; background: var(--th-bg); border: 1px dashed var(--border-color); color: var(--primary); font-weight: 800; font-size: .82rem; text-align: center; }
     </style>
     <link rel="stylesheet" href="mobile.css">
     <link rel="manifest" href="manifest.webmanifest">
@@ -267,6 +291,17 @@
         </div>
     </div>
 
+        <div class="submit-overlay" id="submitOverlay">
+        <div class="submit-box" id="submitBox">
+            <div class="submit-icon" id="submitIcon"></div>
+            <div class="submit-title" id="submitTitle">جاري تسليم الامتحان...</div>
+            <div class="submit-sub" id="submitSub">من فضلك متقفلش الصفحة</div>
+            <div class="submit-track"><div class="submit-fill" id="submitFill"></div></div>
+            <div class="submit-pct" id="submitPct">0%</div>
+            <button type="button" class="submit-retry" id="submitRetry">إعادة المحاولة</button>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -288,6 +323,42 @@
         const db = getFirestore(app);
 
         let availableExamsList = [];
+        let schedTicker = null;
+        let renderedOpenSig = '';
+
+        function examSchedTime(e) {
+            const v = e && e.settings && e.settings.scheduledAt;
+            if (!v || !String(v).trim()) return 0;
+            const t = new Date(v).getTime();
+            return isNaN(t) ? 0 : t;
+        }
+        function isExamLockedBySchedule(e) {
+            return !PS.isAdminSession() && examSchedTime(e) > Date.now();
+        }
+        function isExamHiddenBySchedule(e) {
+            return isExamLockedBySchedule(e) && e.settings && e.settings.scheduleMode === 'hidden';
+        }
+        function fmtCountdown(ms) {
+            const t = Math.max(0, Math.floor(ms / 1000));
+            const d = Math.floor(t / 86400), h = Math.floor((t % 86400) / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+            const p = n => (n < 10 ? '0' : '') + n;
+            return (d > 0 ? d + ' يوم ' : '') + p(h) + ':' + p(m) + ':' + p(sec);
+        }
+        function openSignature() {
+            return availableExamsList.map(e => e.id + ':' + (isExamHiddenBySchedule(e) ? 'h' : isExamLockedBySchedule(e) ? 'l' : 'o')).join('|');
+        }
+        function startSchedTicker() {
+            if (schedTicker) clearInterval(schedTicker);
+            renderedOpenSig = openSignature();
+            if (!availableExamsList.some(e => isExamLockedBySchedule(e))) return;
+            schedTicker = setInterval(() => {
+                if (activeSelectedExam) { clearInterval(schedTicker); return; }
+                document.querySelectorAll('[data-sched-target]').forEach(el => {
+                    el.textContent = 'يفتح بعد: ' + fmtCountdown(Number(el.getAttribute('data-sched-target')) - Date.now());
+                });
+                if (openSignature() !== renderedOpenSig) renderExamsListUI(availableExamsList);
+            }, 1000);
+        }
         let activeSelectedExam = null;
         let pendingExamIdToStart = null;
         let timerInterval = null;
@@ -344,12 +415,14 @@
             document.getElementById('examContainer').innerHTML = `<div style="text-align: center; padding: 30px; background: var(--bg-card); border-radius: 16px;"><h3 style="font-size:0.88rem;">${msg}</h3></div>`;
         }
 
-        function renderExamsListUI(exams) {
+        function renderExamsListUI(allExams) {
+            const exams = allExams.filter(e => !isExamHiddenBySchedule(e));
+            if (exams.length === 0) { renderNoExamMessage("لا توجد امتحانات متاحة حالياً."); startSchedTicker(); return; }
             let html = `<h2 style="font-size: 1.05rem; margin-bottom: 12px; color: var(--text-main);">قائمة الامتحانات المتاحة للإجابة <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></h2>`;
             
             exams.forEach((exam) => {
                 let duration = exam.settings?.duration || 30;
-                let attemptsAllowed = (parseInt(exam.settings?.attempts) || 1) + (PS.isAdminSession() ? 0 : PS.limits().examBonus);
+                let attemptsAllowed = (parseInt(exam.settings?.attempts) || 1);
                 let maxQuota = exam.settings?.maxQuota ? parseInt(exam.settings.maxQuota) : null;
                 let submissions = exam.examSubmissions || [];
                 
@@ -362,7 +435,11 @@
                 let isBlocked = studentAttemptsExceeded || quotaExceeded;
                 let statusText = quotaExceeded ? "اكتمل العدد النهائي للمتقدمين (Quota)" : "استنفدت عدد المحاولات المتاحة";
 
-                let btnHtml = isBlocked 
+                let schedTs = examSchedTime(exam);
+                let schedLocked = isExamLockedBySchedule(exam);
+                let btnHtml = schedLocked
+                    ? `<div class="sched-count" data-sched-target="${schedTs}">يفتح بعد: ${fmtCountdown(schedTs - Date.now())}</div><button class="start-exam-btn disabled" disabled style="margin-top:10px;">الامتحان مقفول لحد ميعاد الفتح</button>`
+                    : isBlocked 
                     ? `<button class="start-exam-btn disabled" disabled>${statusText}</button>`
                     : `<button class="start-exam-btn" onclick="checkExamRequirements('${exam.id}')">دخول الامتحان <svg class="ic" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.125em;flex-shrink:0" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></button>`;
 
@@ -382,6 +459,7 @@
             });
 
             document.getElementById('examContainer').innerHTML = html;
+            startSchedTicker();
         }
 
         window.checkExamRequirements = function(examId) {
@@ -436,6 +514,12 @@
         async function startSpecificExam(examId) {
             activeSelectedExam = availableExamsList.find(e => e.id === examId);
             if (!activeSelectedExam) return;
+            if (isExamLockedBySchedule(activeSelectedExam)) {
+                alert('الامتحان لسه ما اتفتحش. استنى ميعاد الفتح.');
+                activeSelectedExam = null;
+                renderExamsListUI(availableExamsList);
+                return;
+            }
 
             await registerInitialAttemptInCloud(examId);
 
@@ -679,28 +763,87 @@
             let percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 100;
             let earnedPoints = score >= totalMarks ? 15 : 5;
 
+            const instantResult = activeSelectedExam.settings?.instantResult !== false;
+
             document.getElementById('examContainer').innerHTML = '';
-            document.getElementById('resultGradeText').textContent = `النتيجة: ${score} من ${totalMarks}`;
-            document.getElementById('resultPercentageText').textContent = `النسبة المئوية: ${percentage}%`;
-            
-            // إصلاح رسالة نهاية الامتحان وعرض الرسالة المخصصة بشكل صحيح
+            const overlayCtl = openSubmitOverlay();
+
+            let saved = await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
+            while (!saved) {
+                await overlayCtl.fail();
+                saved = await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
+            }
+            await overlayCtl.finish();
+
+            const gradeEl = document.getElementById('resultGradeText');
+            const pctEl = document.getElementById('resultPercentageText');
+            if (instantResult) {
+                gradeEl.textContent = `النتيجة: ${score} من ${totalMarks}`;
+                pctEl.textContent = `النسبة المئوية: ${percentage}%`;
+            } else {
+                gradeEl.textContent = 'تم استلام إجاباتك بنجاح';
+                pctEl.textContent = 'هتظهر لك الدرجة والنسبة بعد ما المدرس يعتمد النتيجة.';
+            }
+
             let endingMsg = activeSelectedExam.settings?.customMsg || 'شكراً لإتمامك الامتحان بنجاح!';
             document.getElementById('customEndingMsg').textContent = endingMsg;
-            
+
             document.getElementById('examResultBox').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            await saveStudentResultToCloud(score, totalMarks, studentAnswersRecord, earnedPoints);
-
-            // إصلاح تفعيل وعرض شاشة الاحتفال بالدرجة الكاملة (التقفيل)
+            // الاحتفال والشهادة بيكشفوا الدرجة، فمش بيظهروا لو النتيجة الفورية مقفولة
             let isFullScore = score >= totalMarks;
             let hasCertEnabled = activeSelectedExam.settings?.hasCertificate === true;
 
-            if (isFullScore && hasCertEnabled) {
+            if (instantResult && isFullScore && hasCertEnabled) {
                 document.getElementById('totalPointsDisplay').textContent = earnedPoints;
                 triggerCelebrationEffect();
             }
         };
+
+        const ICON_SPIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path class="spin" d="M21 12a9 9 0 1 1-6.2-8.55"/></svg>';
+        const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>';
+        const ICON_ERR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>';
+
+        function openSubmitOverlay() {
+            const ov = document.getElementById('submitOverlay'), box = document.getElementById('submitBox');
+            const fill = document.getElementById('submitFill'), pct = document.getElementById('submitPct');
+            const title = document.getElementById('submitTitle'), sub = document.getElementById('submitSub');
+            const icon = document.getElementById('submitIcon'), retry = document.getElementById('submitRetry');
+            let p = 0, timer = null;
+            const set = v => { p = v; fill.style.width = v + '%'; pct.textContent = Math.round(v) + '%'; };
+            const run = () => {
+                clearInterval(timer);
+                timer = setInterval(() => { if (p < 90) set(p + Math.max(0.6, (90 - p) * 0.06)); }, 120);
+            };
+            const reset = () => {
+                box.classList.remove('done', 'fail');
+                icon.innerHTML = ICON_SPIN;
+                title.textContent = 'جاري تسليم الامتحان...';
+                sub.textContent = 'من فضلك متقفلش الصفحة';
+                set(0); run();
+            };
+            reset();
+            ov.classList.add('show');
+            return {
+                finish: () => new Promise(res => {
+                    clearInterval(timer); set(100);
+                    box.classList.remove('fail'); box.classList.add('done');
+                    icon.innerHTML = ICON_OK;
+                    title.textContent = 'تم تسليم امتحانك بنجاح';
+                    sub.textContent = 'جاري عرض الصفحة...';
+                    setTimeout(() => { ov.classList.remove('show'); res(); }, 1100);
+                }),
+                fail: () => new Promise(res => {
+                    clearInterval(timer);
+                    box.classList.add('fail');
+                    icon.innerHTML = ICON_ERR;
+                    title.textContent = 'تعذر حفظ التسليم';
+                    sub.textContent = 'اتأكد من النت واضغط إعادة المحاولة (إجاباتك لسه محفوظة).';
+                    retry.onclick = () => { retry.onclick = null; reset(); res(); };
+                })
+            };
+        }
 
         function triggerCelebrationEffect() {
             document.getElementById('celebrationOverlay').style.display = 'flex';
@@ -770,11 +913,13 @@
                     }
 
                     await updateDoc(examRef, { examSubmissions: submissions });
+                    return true;
                 }
+                return false;
 
                 // ملاحظة: النقاط الفعلية تُمنح مرة واحدة عند اعتماد الدرجة من الأدمن (exam-stats.html) بعلامة pointsAwarded،
                 // لذلك لا نضيفها هنا حتى لا تُحسب مرتين.
-            } catch (err) { console.error("خطأ في حفظ النتيجة:", err); }
+            } catch (err) { console.error("خطأ في حفظ النتيجة:", err); return false; }
         }
     </script>
 </body>

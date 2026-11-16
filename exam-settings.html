@@ -129,7 +129,7 @@
         .form-group { margin-top: 12px; text-align: right; }
         .form-group label { display: block; font-size: 0.8rem; margin-bottom: 5px; color: var(--text-muted); font-weight: 600; }
         
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-color);
             background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; outline: none;
         }
@@ -193,7 +193,7 @@
                 <div class="setting-card"><label for="settingAIBot">تفعيل بوت التصحيح التلقائي (AI)</label><label class="switch"><input type="checkbox" id="settingAIBot" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingTimer">تفعيل المؤقت الزمني</label><label class="switch"><input type="checkbox" id="settingTimer" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingShuffle">خلط ترتيب الأسئلة عشوائياً</label><label class="switch"><input type="checkbox" id="settingShuffle"><span class="slider"></span></label></div>
-                <div class="setting-card"><label for="settingInstantResult">عرض النتيجة الفورية للطالب</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
+                <div class="setting-card"><label for="settingInstantResult">عرض الدرجة والنسبة للطالب فور التسليم (لو اتقفل: يشوفها بعد ما تعتمدها)</label><label class="switch"><input type="checkbox" id="settingInstantResult" checked><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingFullScreen">جعل الامتحان وضع ملء الشاشة <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><rect x='2' y='3' width='20' height='14' rx='2'/><path d='M8 21h8M12 17v4'/></svg></label><label class="switch"><input type="checkbox" id="settingFullScreen"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingAntiCheat">منع مغادرة الصفحة وعمل Refresh <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg></label><label class="switch"><input type="checkbox" id="settingAntiCheat"><span class="slider"></span></label></div>
                 <div class="setting-card"><label for="settingWelcomeToggle">تفعيل رسالة التنبيه قبل الامتحان <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><path d='M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9'/><path d='M13.73 21a2 2 0 0 1-3.46 0'/></svg></label><label class="switch"><input type="checkbox" id="settingWelcomeToggle" checked onchange="toggleWelcomeInput()"><span class="slider"></span></label></div>
@@ -270,6 +270,16 @@
             
             <div class="form-group">
                 <label>الحد الأقصى للمتقدمين (Quota):</label><input type="number" id="settingMaxQuota" placeholder="بلا حدود">
+            </div>
+
+            <div class="form-row-grid-2" style="margin-bottom: 12px;">
+                <div class="form-group"><label>جدولة الامتحان - ميعاد الفتح (اختياري):</label><input type="datetime-local" id="settingScheduledAt"></div>
+                <div class="form-group"><label>قبل الميعاد الطالب يشوف الامتحان إزاي؟</label>
+                    <select id="settingScheduleMode">
+                        <option value="locked">ظاهر ومقفول بعدّاد تنازلي</option>
+                        <option value="hidden">مخفي تماماً لحد الميعاد</option>
+                    </select>
+                </div>
             </div>
 
             <button class="btn-save" onclick="saveExamSettingsToCloud()">حفظ إعدادات الامتحان والشهادة بالسحابة <svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0' aria-hidden='true'><circle cx='12' cy='12' r='3'/><path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'/></svg></button>
@@ -442,6 +452,8 @@
             document.getElementById('settingAttempts').value = s.attempts || 1;
             document.getElementById('settingPassingScore').value = s.passingScore || 50;
             document.getElementById('settingMaxQuota').value = s.maxQuota || '';
+            document.getElementById('settingScheduledAt').value = s.scheduledAt || '';
+            document.getElementById('settingScheduleMode').value = s.scheduleMode === 'hidden' ? 'hidden' : 'locked';
         };
 
         window.togglePasswordInput = function() {
@@ -525,7 +537,9 @@
                 duration: parseInt(document.getElementById('settingDuration').value) || 30,
                 attempts: parseInt(document.getElementById('settingAttempts').value) || 1,
                 passingScore: parseInt(document.getElementById('settingPassingScore').value) || 50,
-                maxQuota: document.getElementById('settingMaxQuota').value.trim()
+                maxQuota: document.getElementById('settingMaxQuota').value.trim(),
+                scheduledAt: document.getElementById('settingScheduledAt').value || '',
+                scheduleMode: document.getElementById('settingScheduleMode').value === 'hidden' ? 'hidden' : 'locked'
             };
 
             try {
