@@ -1,13 +1,13 @@
 /* session.js — الجلسة الموحدة لمنصة رحلة دراسية
  * سكريبت عادي (غير module): يُحمَّل في <head> قبل أي سكريبت آخر.
- * - جلسة الطالب محفوظة في localStorage لمدة 48 ساعة من آخر تسجيل دخول فعلي.
+ * - جلسة الطالب محفوظة في localStorage لمدة 10 أيام، وبتتجدد مع كل استخدام (يعني مبتنتهيش طول ما الطالب بيدخل).
  * - الأدمن لا تُحفظ جلسته (يبقى في sessionStorage كما كان).
  * - معرّف الطالب في كل المنصة هو studentId (STU-0001...) وليس uid.
  */
 (function (global) {
     'use strict';
 
-    var SESSION_MS = 48 * 60 * 60 * 1000;
+    var SESSION_MS = 10 * 24 * 60 * 60 * 1000; // 10 أيام (بتتجدد تلقائياً مع كل استخدام)
     var LS = null, SS = null;
     try { LS = global.localStorage; } catch (e) {}
     try { SS = global.sessionStorage; } catch (e) {}
@@ -43,6 +43,18 @@
         return { key: r.key, min: r.min, frame: r.frame, level: lv, label: 'Lv.' + lv };
     }
 
+    // تجديد الجلسة: لو الطالب جلسته سارية ودخل المنصة، نجدد العدّاد (كتابة واحدة كل ساعة بالكتير)
+    function renewSession() {
+        try {
+            if (ssGet('isAdmin') === 'true' || ssGet('isAdminLoggedIn') === 'true' || lsGet('platform_user_type') === 'admin') return;
+            var t = parseInt(lsGet('platform_login_time'), 10);
+            if (isNaN(t) || t <= 0) return;
+            var age = Date.now() - t;
+            if (age <= SESSION_MS && age > 60 * 60 * 1000) lsSet('platform_login_time', String(Date.now()));
+        } catch (e) {}
+    }
+    renewSession();
+
     function parse(raw) { try { return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
 
     var PS = {
@@ -63,7 +75,7 @@
         /** يُستدعى مرة واحدة عند تسجيل الدخول/التسجيل الفعلي فقط */
         startSession: function () { lsSet('platform_login_time', String(Date.now())); },
 
-        /** هل الجلسة سارية (أقل من 48 ساعة)؟ */
+        /** هل الجلسة سارية (أقل من 10 أيام من آخر استخدام)؟ */
         isFresh: function () {
             var t = PS.loginTime();
             return t > 0 && (Date.now() - t) <= SESSION_MS;

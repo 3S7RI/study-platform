@@ -7,7 +7,7 @@
     
     <script src="plans.js"></script>
     <script src="session.js"></script>
-    <!-- التحقق الأوتوماتيكي للطلاب فقط: الجلسة محفوظة 48 ساعة، والأدمن لا تُحفظ جلسته -->
+    <!-- التحقق الأوتوماتيكي للطلاب فقط: الجلسة محفوظة 10 أيام، والأدمن لا تُحفظ جلسته -->
     <script>
         (function() {
             var userType = localStorage.getItem('platform_user_type'); // 'admin' أو 'student'
@@ -20,7 +20,7 @@
             } else if (PS.isFresh() && PS.email() && PS.studentId()) {
                 window.location.replace('main.html');
             } else if (PS.loginTime()) {
-                PS.clearStudent(); // انتهت الـ 48 ساعة
+                PS.clearStudent(); // انتهت الجلسة (10 أيام)
             }
         })();
     </script>
@@ -450,8 +450,24 @@
             btn.disabled = true;
 
             try {
+                // 0. لو فضل مستخدم قديم (جلسة منتهية) في Firebase Auth نطلّعه الأول عشان مفيش توكن قديم يبوّظ الدخول
+                try { if (window.firebaseAuth.currentUser) await window.signOutUser(); } catch (e) {}
+
                 // 1. تسجيل الدخول في Firebase Auth أولاً
-                await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                // لو النت ضعيف أو اتقطع لحظة: نعيد المحاولة تلقائياً 3 مرات قبل ما نظهر الخطأ
+                for (let attempt = 1; ; attempt++) {
+                    try {
+                        await window.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                        break;
+                    } catch (netErr) {
+                        if (netErr && netErr.code === 'auth/network-request-failed' && attempt < 3) {
+                            btn.textContent = 'النت ضعيف... بنحاول تاني';
+                            await new Promise(r => setTimeout(r, 1500 * attempt));
+                            continue;
+                        }
+                        throw netErr;
+                    }
+                }
 
                 // 2. هل هو أدمن؟
                 const adminSnap = await window.getDoc(window.doc(window.firebaseDb, "admins", email));
@@ -459,7 +475,7 @@
                     const adminData = adminSnap.data();
                     const adminDataString = JSON.stringify(adminData);
 
-                    // الأدمن: لا نحفظ وقت الدخول (لا توجد جلسة 48 ساعة للأدمن، يسجل دخوله كل مرة للأمان)
+                    // الأدمن: لا نحفظ وقت الدخول (لا توجد جلسة محفوظة للأدمن، يسجل دخوله كل مرة للأمان)
                     localStorage.setItem('platform_user_type', 'admin');
                     localStorage.setItem('isAdmin', 'true');
 
@@ -493,7 +509,7 @@
                     throw new Error('هذا الحساب موقوف، تواصل مع إدارة المنصة.');
                 }
 
-                // جلسة الطالب: 48 ساعة من الآن في localStorage
+                // جلسة الطالب: 10 أيام من الآن في localStorage
                 PS.startSession();
                 PS.saveStudent(studentData);
 
@@ -511,8 +527,14 @@
                     passError.style.display = 'block';
                 } else if (error.code === 'auth/too-many-requests') {
                     showPlatformModal('محاولات كثيرة', 'تم إيقاف المحاولات مؤقتاً بسبب كثرة المحاولات الخاطئة، حاول بعد قليل أو استعد كلمة المرور.');
+                } else if (error.code === 'auth/network-request-failed') {
+                    showPlatformModal('مشكلة في الاتصال', 'تعذر الاتصال بخوادم المنصة. تأكد من النت، وجرّب تقفل أي VPN أو حاجب إعلانات، أو افتح الرابط من Chrome مباشرة (مش من جوه واتساب أو فيسبوك)، وحاول تاني.');
+                } else if (error.code === 'auth/user-disabled') {
+                    showPlatformModal('حساب موقوف', 'هذا الحساب موقوف، تواصل مع إدارة المنصة.');
+                } else if (error.code === 'permission-denied' || error.code === 'resource-exhausted' || error.code === 'unavailable') {
+                    showPlatformModal('المنصة مشغولة', 'في ضغط على المنصة دلوقتي، جرّب تاني بعد دقيقة. (' + error.code + ')');
                 } else {
-                    showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + error.message);
+                    showPlatformModal('خطأ في التحقق', 'حدث خطأ: ' + (error.code ? '[' + error.code + '] ' : '') + error.message);
                 }
                 btn.textContent = 'تسجيل الدخول';
                 btn.disabled = false;
