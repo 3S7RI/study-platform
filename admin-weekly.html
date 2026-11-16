@@ -105,6 +105,7 @@
     let adminName = 'admin';
     let cfg = { prizes: [7, 3, 1] };
     let rowsNow = [];
+    let allRows = [];
     let winnersDoc = null;
 
     function fillWeeks() {
@@ -136,8 +137,9 @@
         $('tbl').innerHTML = '<div class="empty">جاري التحميل...</div>';
         $('finBtn').disabled = true;
         try {
-            const [res, wd] = await Promise.all([fetchWeeklyBoard(db, no, 10, true), getDoc(doc(db, 'weeklyWinners', String(no)))]);
-            rowsNow = res.rows;
+            const [res, wd] = await Promise.all([fetchWeeklyBoard(db, no, 10, true, { includeExcluded: true }), getDoc(doc(db, 'weeklyWinners', String(no)))]);
+            allRows = res.rows;
+            rowsNow = res.rows.filter(x => !x.excluded).slice(0, 10);
             winnersDoc = wd.exists() ? wd.data() : null;
             const finished = no < cur;
             let st;
@@ -147,14 +149,42 @@
             } else st = finished ? '<span class="tag open">الأسبوع انتهى وبانتظار اعتمادك</span>' : '<span class="tag live">الأسبوع لسه شغال، مينفعش يتعتمد دلوقتي</span>';
             $('status').innerHTML = st;
             $('finBtn').disabled = !finished || (!rowsNow.length && !winnersDoc) || (winnersDoc && !(winnersDoc.winners || []).some(w => w.prizeDays > 0 && !w.given));
-            if (!rowsNow.length && !winnersDoc) { $('tbl').innerHTML = '<div class="empty">مفيش نقاط في الأسبوع ده.</div>'; return; }
-            const list = winnersDoc ? winnersDoc.winners : rowsNow.map((x, i) => ({ rank: i + 1, studentId: x.studentId, name: x.name, points: x.points, prizeDays: cfg.prizes[i] || 0 }));
-            $('tbl').innerHTML = '<table><tr><th>المركز</th><th>الطالب</th><th>ID</th><th>النقاط</th><th>الجايزة</th></tr>' +
-                list.map(w => '<tr><td>' + w.rank + '</td><td>' + esc(w.name) + '</td><td dir="ltr">' + esc(w.studentId) + '</td><td>' + nf(w.points) + '</td><td>' + (w.prizeDays ? nf(w.prizeDays) + ' يوم' + (winnersDoc ? (w.given ? ' ✔' : ' …') : '') : '—') + '</td></tr>').join('') + '</table>';
+            if (!allRows.length && !winnersDoc) { $('tbl').innerHTML = '<div class="empty">مفيش نقاط في الأسبوع ده.</div>'; return; }
+            if (winnersDoc) {
+                $('tbl').innerHTML = '<table><tr><th>المركز</th><th>الطالب</th><th>ID</th><th>النقاط</th><th>الجايزة</th></tr>' +
+                    winnersDoc.winners.map(w => '<tr><td>' + w.rank + '</td><td>' + esc(w.name) + '</td><td dir="ltr">' + esc(w.studentId) + '</td><td>' + nf(w.points) + '</td><td>' + (w.prizeDays ? nf(w.prizeDays) + ' يوم' + (w.given ? ' ✔' : ' …') : '—') + '</td><td></td></tr>').join('') + '</table>';
+            } else {
+                let pos = 0;
+                $('tbl').innerHTML = '<table><tr><th>المركز</th><th>الطالب</th><th>ID</th><th>النقاط</th><th>الجايزة</th><th>استبعاد</th></tr>' +
+                    allRows.map(x => {
+                        const ex = x.excluded === true;
+                        if (!ex) pos++;
+                        const pz = (!ex && pos <= 10) ? (cfg.prizes[pos - 1] || 0) : 0;
+                        const sid = esc(x.studentId);
+                        return '<tr' + (ex ? ' style="opacity:.5"' : '') + '><td>' + (ex ? '—' : pos) + '</td><td>' + esc(x.name) + '</td><td dir="ltr">' + sid + '</td><td>' + nf(x.points) + '</td><td>' + (pz ? nf(pz) + ' يوم' : '—') + '</td>' +
+                            '<td><button class="btn btn-sm" style="padding:4px 10px;font-size:.72rem" onclick="toggleWeeklyExclude(\'' + sid + '\',' + (ex ? 'false' : 'true') + ')">' + (ex ? 'إرجاع' : 'استبعاد') + '</button></td></tr>';
+                    }).join('') + '</table><p style="font-size:.72rem;color:var(--text-muted);margin-top:8px;line-height:1.7">الاستبعاد بيشيل الطالب من لوحة المتصدرين الأسبوعية والعامة ومن الجوايز، وبيتطبق على كل الأسابيع. تقدر ترجّعه في أي وقت.</p>';
+            }
         } catch (e) {
             console.warn(e);
             $('tbl').innerHTML = '<div class="empty">تعذر تحميل الأسبوع.</div>';
         }
+    };
+
+    window.toggleWeeklyExclude = async function (sid, on) {
+        sid = String(sid || '').toUpperCase();
+        if (!/^STU-\d{3,6}$/.test(sid)) return;
+        if (!confirm(on ? 'استبعاد ' + sid + ' من لوحات المتصدرين والجوايز؟' : 'إرجاع ' + sid + ' للوحات المتصدرين؟')) return;
+        try {
+            const ref = doc(db, 'settings', 'leaderboard');
+            const s0 = await getDoc(ref);
+            let list = s0.exists() && Array.isArray(s0.data().excludedStudentIds) ? s0.data().excludedStudentIds.map(x => String(x).toUpperCase()) : [];
+            if (on) { if (!list.includes(sid)) { if (list.length >= 40) return toast('الحد الأقصى 40 طالب مستبعد'); list.push(sid); } }
+            else list = list.filter(x => x !== sid);
+            await setDoc(ref, { excludedStudentIds: list, updatedAt: Date.now() }, { merge: true });
+            toast(on ? 'اتشال من اللوحات' : 'اترجع للوحات');
+            loadWeek();
+        } catch (e) { console.warn(e); toast('حصل خطأ، جرّب تاني'); }
     };
 
     window.finalizeWeek = async function () {

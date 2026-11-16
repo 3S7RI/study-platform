@@ -636,19 +636,40 @@ export function weekMsLeft(ts = Date.now()) {
 
 const WK_TTL_MS = 5 * 60 * 1000;
 
-export async function fetchWeeklyBoard(db, weekNo, n = 20, force = false) {
-    const key = 'wk_lb_' + weekNo + '_' + n;
+/** الطلاب المستبعدين من لوحات المتصدرين (العامة والأسبوعية) — بيتحددوا من لوحة الأدمن: settings/leaderboard.excludedStudentIds */
+export async function getLbExcluded(db) {
     try {
-        if (!force) {
+        const s = await getDoc(doc(db, 'settings', 'leaderboard'));
+        const d = s.exists() ? s.data() : {};
+        return Array.isArray(d.excludedStudentIds) ? d.excludedStudentIds.map(x => String(x).toUpperCase()).slice(0, 40) : [];
+    } catch (e) { return []; }
+}
+
+/**
+ * أفضل n طالب في أسبوع معيّن. المستبعدين بيتشالوا تلقائي (ويتجاب زيادة بعددهم عشان العدد يكمل n).
+ * opts.includeExcluded = true (للأدمن): بيرجّع كمان المستبعدين بعلامة excluded:true، ومن غير كاش.
+ */
+export async function fetchWeeklyBoard(db, weekNo, n = 20, force = false, opts = {}) {
+    const key = 'wk_lb_' + weekNo + '_' + n;
+    const inc = opts && opts.includeExcluded === true;
+    try {
+        if (!force && !inc) {
             const raw = sessionStorage.getItem(key);
             if (raw) { const c = JSON.parse(raw); if (c && Date.now() - c.t < WK_TTL_MS && Array.isArray(c.rows)) return { rows: c.rows, at: c.t, cached: true }; }
         }
     } catch (e) {}
-    const snap = await getDocs(query(collection(db, 'weeklyBoards', String(weekNo), 'scores'), orderBy('points', 'desc'), limit(n)));
-    const rows = [];
-    snap.forEach(d => { const x = d.data(); if ((Number(x.points) || 0) > 0) rows.push({ studentId: x.studentId || d.id, name: x.name || 'طالب', gender: x.gender || 'male', points: Number(x.points) || 0, hidden: x.hidden === true }); });
+    const excl = await getLbExcluded(db);
+    const snap = await getDocs(query(collection(db, 'weeklyBoards', String(weekNo), 'scores'), orderBy('points', 'desc'), limit(n + excl.length)));
+    let rows = [];
+    snap.forEach(d => {
+        const x = d.data();
+        if ((Number(x.points) || 0) <= 0) return;
+        const sid = x.studentId || d.id;
+        rows.push({ studentId: sid, name: x.name || 'طالب', gender: x.gender || 'male', points: Number(x.points) || 0, hidden: x.hidden === true, excluded: excl.includes(String(sid).toUpperCase()) });
+    });
+    if (!inc) rows = rows.filter(r => !r.excluded).slice(0, n);
     const at = Date.now();
-    try { sessionStorage.setItem(key, JSON.stringify({ t: at, rows })); } catch (e) {}
+    if (!inc) { try { sessionStorage.setItem(key, JSON.stringify({ t: at, rows })); } catch (e) {} }
     return { rows, at, cached: false };
 }
 
