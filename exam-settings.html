@@ -273,8 +273,8 @@
             </div>
 
             <div class="form-row-grid-2" style="margin-bottom: 12px;">
-                <div class="form-group"><label>جدولة الامتحان - ميعاد الفتح (اختياري):</label><input type="datetime-local" id="settingScheduledAt"></div>
-                <div class="form-group"><label>قبل الميعاد الطالب يشوف الامتحان إزاي؟</label>
+                <div class="form-group"><label>جدولة الامتحان - ميعاد الفتح (اختياري):</label><input type="datetime-local" id="settingScheduledAt" data-ps-schedule></div>
+                <div class="form-group" id="scheduleModeGroup"><label>قبل الميعاد الطالب يشوف الامتحان إزاي؟</label>
                     <select id="settingScheduleMode">
                         <option value="locked">ظاهر ومقفول بعدّاد تنازلي</option>
                         <option value="hidden">مخفي تماماً لحد الميعاد</option>
@@ -287,6 +287,16 @@
     </div>
 
     <!-- Firebase SDK -->
+    <script src="schedule-picker.js"></script>
+    <script>
+        (function () {
+            var inp = document.getElementById('settingScheduledAt'), grp = document.getElementById('scheduleModeGroup');
+            function sync(on) { if (grp) grp.style.display = on ? '' : 'none'; }
+            if (window.PSSchedule) PSSchedule.init();
+            inp.addEventListener('ps-schedule-toggle', function (e) { sync(e.detail.enabled); });
+            sync(inp._pssApi ? inp._pssApi.isOn() : !!inp.value);
+        })();
+    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
