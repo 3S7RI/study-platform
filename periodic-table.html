@@ -586,13 +586,14 @@ var photoOn = false, photoReq = 0, PHOTO_TTL = 30 * 864e5, NOPHOTO_TTL = 864e5;
 /* بنرفض بس الرسومات والمخططات الواضحة (طيف، مدارات، رموز...) ونقبل أي صورة فوتوغرافية */
 var BAD_IMG = /\.svg$|electron shell|electron config|spectr|\bsymbol\b|bohr|lattice|crystal structure|diagram|logo|\bflag\b|orbital|emission|absorption|periodic|\bicon\b|commons-logo|wiki|question|padlock|\bmap\b|\bgif$|\bogg$|\bwebm$|\btif/i;
 function wikiTitle(z) { var n = EL[z - 1][1]; return n === 'Mercury' ? 'Mercury (element)' : n; }
-function photoCacheGet(z) { try { var o = JSON.parse(localStorage.getItem('pt_img2_' + z) || 'null'); if (o && Date.now() - o.t < (o.u ? PHOTO_TTL : NOPHOTO_TTL)) return o; } catch (e) {} return null; }
-function photoCachePut(z, o) { try { o.t = Date.now(); localStorage.setItem('pt_img2_' + z, JSON.stringify(o)); } catch (e) {} }
+function photoCacheGet(z) { try { var o = JSON.parse(localStorage.getItem('pt_img3_' + z) || 'null'); if (o && Date.now() - o.t < (o.u ? PHOTO_TTL : NOPHOTO_TTL)) return o; } catch (e) {} return null; }
+function photoCachePut(z, o) { try { o.t = Date.now(); localStorage.setItem('pt_img3_' + z, JSON.stringify(o)); } catch (e) {} }
 function okName(n) { return !!n && /\.(jpe?g|png|webp)$/i.test(n) && !BAD_IMG.test(String(n).replace(/_/g, ' ')); }
-function fileUrl(n) { return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(n).replace(/^File:/i, '').replace(/ /g, '_')) + '?width=900'; }
+/* أحجام قياسية بس (500 / 960): ويكيميديا بترفض الأحجام الغريبة (429) لو مش متولّدة قبل كده */
+function fileUrl(n, w) { return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(n).replace(/^File:/i, '').replace(/ /g, '_')) + '?width=' + (w || 960); }
 function photoFetch(z) {
     var c = photoCacheGet(z); if (c) return Promise.resolve(c);
-    var url = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages%7Cimages&piprop=thumbnail%7Cname&pithumbsize=900&imlimit=100&redirects=1&format=json&origin=*&titles=' + encodeURIComponent(wikiTitle(z));
+    var url = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages%7Cimages&piprop=thumbnail%7Cname&pithumbsize=960&imlimit=100&redirects=1&format=json&origin=*&titles=' + encodeURIComponent(wikiTitle(z));
     return fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http')); }).then(function (j) {
         var pg = j && j.query && j.query.pages, p = pg && pg[Object.keys(pg)[0]], o = { u: '' };
         if (p) {
@@ -602,9 +603,10 @@ function photoFetch(z) {
                 /* مفيش صورة رئيسية صالحة: ندوّر في صور الصفحة على أول صورة فوتوغرافية اسمها فيه اسم العنصر */
                 var nm = EL[z - 1][1].toLowerCase(), list = (p.images || []).map(function (x) { return String(x.title || '').replace(/^File:/i, ''); });
                 var hit = list.filter(function (n) { return okName(n) && n.toLowerCase().replace(/_/g, ' ').indexOf(nm) !== -1; })[0];
-                if (hit) o = { u: fileUrl(hit), n: hit };
+                if (hit) o = { u: fileUrl(hit, 960), n: hit };
             }
         }
+        if (!o.u) console.warn('[periodic] no photo for', wikiTitle(z), p ? (p.pageimage || '(no pageimage)') : '(no page)', p && p.images ? p.images.map(function (x) { return x.title; }).slice(0, 12) : '');
         photoCachePut(z, o);
         return o;
     });
@@ -641,7 +643,14 @@ function loadPhoto(z) {
             $('realCap').innerHTML = '<b>الشكل الحقيقي لعنصر ' + esc(e[2]) + '</b><span>صورة فوتوغرافية حقيقية للمادة</span>';
             $('photoCred').innerHTML = 'المصدر: ويكيبيديا / ويكيميديا كومنز — <a target="_blank" rel="noopener noreferrer" href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(o.n) + '">صاحب الصورة والترخيص</a>';
         };
-        im.onerror = fallback;
+        /* لو الصورة ماتحمّلتش (رفض/حجم)، نجرّب نفس الملف بحجم 500 ثم نرجع للمجسّم */
+        var tries = 0;
+        im.onerror = function () {
+            if (my !== photoReq) return;
+            console.warn('[periodic] image failed', im.src);
+            if (tries++ === 0 && o.n) { im.src = fileUrl(o.n, 500); return; }
+            fallback();
+        };
         im.src = o.u;
     }).catch(function () { fallback(); });
 }
