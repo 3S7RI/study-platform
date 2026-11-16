@@ -582,18 +582,29 @@ function openElement(z) {
 /* ============ الصورة الحقيقية للعنصر ============
  * بتتجاب وقت التشغيل من ويكيبيديا (الصورة الرئيسية لصفحة العنصر = صورة فوتوغرافية للمادة نفسها)،
  * وبتتخزن 30 يوم في localStorage. لو مفيش صورة (زي العناصر المصنّعة) أو النت ضعيف، بيرجع المجسّم 3D التقريبي زي ما كان. */
-var photoOn = false, photoReq = 0, PHOTO_TTL = 30 * 864e5;
-var BAD_IMG = /\.svg$|electron|shell|spectr|symbol|bohr|periodic|lattice|structure|diagram|logo|\bmap\b|flag|chart|graph|orbital|emission|absorption/i;
+var photoOn = false, photoReq = 0, PHOTO_TTL = 30 * 864e5, NOPHOTO_TTL = 864e5;
+/* بنرفض بس الرسومات والمخططات الواضحة (طيف، مدارات، رموز...) ونقبل أي صورة فوتوغرافية */
+var BAD_IMG = /\.svg$|electron shell|electron config|spectr|\bsymbol\b|bohr|lattice|crystal structure|diagram|logo|\bflag\b|orbital|emission|absorption|periodic|\bicon\b|commons-logo|wiki|question|padlock|\bmap\b|\bgif$|\bogg$|\bwebm$|\btif/i;
 function wikiTitle(z) { var n = EL[z - 1][1]; return n === 'Mercury' ? 'Mercury (element)' : n; }
-function photoCacheGet(z) { try { var o = JSON.parse(localStorage.getItem('pt_img_' + z) || 'null'); if (o && Date.now() - o.t < PHOTO_TTL) return o; } catch (e) {} return null; }
-function photoCachePut(z, o) { try { o.t = Date.now(); localStorage.setItem('pt_img_' + z, JSON.stringify(o)); } catch (e) {} }
+function photoCacheGet(z) { try { var o = JSON.parse(localStorage.getItem('pt_img2_' + z) || 'null'); if (o && Date.now() - o.t < (o.u ? PHOTO_TTL : NOPHOTO_TTL)) return o; } catch (e) {} return null; }
+function photoCachePut(z, o) { try { o.t = Date.now(); localStorage.setItem('pt_img2_' + z, JSON.stringify(o)); } catch (e) {} }
+function okName(n) { return !!n && /\.(jpe?g|png|webp)$/i.test(n) && !BAD_IMG.test(String(n).replace(/_/g, ' ')); }
+function fileUrl(n) { return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(n).replace(/^File:/i, '').replace(/ /g, '_')) + '?width=900'; }
 function photoFetch(z) {
     var c = photoCacheGet(z); if (c) return Promise.resolve(c);
-    var url = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail%7Cname&pithumbsize=900&redirects=1&format=json&origin=*&titles=' + encodeURIComponent(wikiTitle(z));
+    var url = 'https://en.wikipedia.org/w/api.php?action=query&prop=pageimages%7Cimages&piprop=thumbnail%7Cname&pithumbsize=900&imlimit=100&redirects=1&format=json&origin=*&titles=' + encodeURIComponent(wikiTitle(z));
     return fetch(url).then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('http')); }).then(function (j) {
-        var pg = j && j.query && j.query.pages, p = pg && pg[Object.keys(pg)[0]];
-        var ok = p && p.thumbnail && /^https:\/\//.test(p.thumbnail.source || '') && p.pageimage && !BAD_IMG.test(p.pageimage);
-        var o = ok ? { u: p.thumbnail.source, n: p.pageimage } : { u: '' };
+        var pg = j && j.query && j.query.pages, p = pg && pg[Object.keys(pg)[0]], o = { u: '' };
+        if (p) {
+            if (p.thumbnail && /^https:\/\//.test(p.thumbnail.source || '') && okName(p.pageimage)) {
+                o = { u: p.thumbnail.source, n: p.pageimage };
+            } else {
+                /* مفيش صورة رئيسية صالحة: ندوّر في صور الصفحة على أول صورة فوتوغرافية اسمها فيه اسم العنصر */
+                var nm = EL[z - 1][1].toLowerCase(), list = (p.images || []).map(function (x) { return String(x.title || '').replace(/^File:/i, ''); });
+                var hit = list.filter(function (n) { return okName(n) && n.toLowerCase().replace(/_/g, ' ').indexOf(nm) !== -1; })[0];
+                if (hit) o = { u: fileUrl(hit), n: hit };
+            }
+        }
         photoCachePut(z, o);
         return o;
     });
