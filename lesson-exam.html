@@ -492,6 +492,7 @@
             let totalScore = 0;
             let maxScore = 0;
             let questions = currentExamData.questions || [];
+            let correctCount = 0; // [جديد] عدد الإجابات الصحيحة
             let mistakes = []; // الأسئلة اللي اتجاوبت غلط (أو اتسابت) — بتظهر للطالب في صفحة «أخطائي»
 
             questions.forEach((q, qIdx) => {
@@ -503,7 +504,7 @@
                     let selectedVal = checkedInputs.length > 0 ? parseInt(checkedInputs[0].value) : -1;
                     let correctVal = parseInt(q.correct);
                     if (checkedInputs.length > 0 && selectedVal === correctVal) {
-                        totalScore += qMarks;
+                        totalScore += qMarks; correctCount++;
                     } else if (!isNaN(correctVal)) {
                         mistakes.push({
                             idx: qIdx,
@@ -545,6 +546,8 @@
                     // النقاط حسب الدرجة: نقاط الامتحان × نسبة الدرجة + مكافأة الدرجة النهائية
                     let ratio = maxScore > 0 ? (totalScore / maxScore) : 0;
                     let earnedNow = Math.round(examPoints * ratio) + (isPerfect ? perfectBonus : 0);
+                    // [جديد] نقاط على كل إجابة صحيحة (لو الأدمن فعّلها في إعدادات الحصة)
+                    if (pts.perCorrectEnabled === true) { let pc = Number(pts.perCorrect); earnedNow = correctCount * (isNaN(pc) ? 1 : Math.max(0, pc)); }
                     let pointsToAdd = Math.max(0, earnedNow - alreadyAwarded);
                     let newAwardedTotal = Math.max(alreadyAwarded, earnedNow);
 

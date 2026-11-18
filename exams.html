@@ -730,6 +730,27 @@
             }
         };
 
+        function countCorrectAnswers(exam, sub) {
+            // [جديد] عدد الإجابات الصحيحة (اختيار من متعدد / صح وخطأ / متعدد الاختيارات). الأسئلة المقالية والصوتية بتتصحح يدوي ومش بتتحسب هنا.
+            let n = 0; const qs = (exam && exam.questions) || []; const ans = (sub && sub.answers) || {};
+            qs.forEach((q, idx) => {
+                const t = q.type || 'mcq';
+                if (t !== 'mcq' && t !== 'tf' && t !== 'checkbox') return;
+                const opts = q.options || ['صح', 'خطأ'];
+                const a = ans[idx];
+                if (a === undefined || a === null || a === 'لم يُجب') return;
+                if (Array.isArray(q.correct)) {
+                    const want = q.correct.slice().sort((x, y) => x - y).map(i => opts[i]).join(', ');
+                    const got = Array.isArray(a) ? a.map(String).join(', ') : String(a);
+                    if (want && want === got) n++;
+                } else {
+                    const right = opts[q.correct];
+                    if ((right !== undefined && String(a) === String(right)) || a === q.correct) n++;
+                }
+            });
+            return n;
+        }
+
         window.submitExam = async function(e) {
             if (e) e.preventDefault();
             isExamActiveNow = false;
@@ -775,6 +796,7 @@
             const _st = activeSelectedExam.settings || {}; const _np = parseInt(_st.normalPoints), _bp = parseInt(_st.bonusPoints);
             const _normal = (_st.enableBonus === true && !isNaN(_np)) ? _np : 10, _bonus = (_st.enableBonus === true && !isNaN(_bp)) ? _bp : 15;
             let earnedPoints = score <= 0 ? 0 : (score >= totalMarks ? _bonus : _normal);
+            if (_st.perCorrectEnabled === true && score > 0) { const _pp = parseInt(_st.perCorrectPoints); earnedPoints = countCorrectAnswers(activeSelectedExam, { answers: studentAnswersRecord }) * (isNaN(_pp) ? 1 : Math.max(0, _pp)); }
 
             const instantResult = activeSelectedExam.settings?.instantResult !== false;
 
