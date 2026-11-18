@@ -163,7 +163,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc, initializeFirestore, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -177,7 +177,17 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة (بدل قائمة فاضية بالغلط عند ضعف الاتصال).
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         let lessonsMap = {};
         let examsMap = {};
@@ -204,7 +214,7 @@
         async function loadLessonsAndExams() {
             try {
                 // 1. جلب الامتحانات من كولكشن lessonExams المخصص للحصص
-                const examsSnap = await getDocs(collection(db, "lessonExams"));
+                const examsSnap = await getListSafe(collection(db, "lessonExams"));
                 examsSnap.forEach((docSnap) => {
                     examsMap[docSnap.id] = docSnap.data();
                 });
@@ -217,7 +227,7 @@
                 }
 
                 // 2. جلب الحصص وتعبئة القائمة وجدول العرض السفلي
-                const lessonsSnap = await getDocs(collection(db, "lessons"));
+                const lessonsSnap = await getListSafe(collection(db, "lessons"));
                 const lessonSelect = document.getElementById('lessonSelect');
                 lessonSelect.innerHTML = '<option value="">-- اختر الحصة الدراسية --</option>';
                 

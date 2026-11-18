@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="levels.js"></script>
     <title>منصة رحلة دراسية - إحصائيات ونتائج الحصص</title>
     <style>
         :root {
@@ -392,7 +393,7 @@
             <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px; font-weight: 700;">اسم الطالب</h3>
             
             <div>
-                <span class="level-badge-box badge-legendary" id="modalStudentLevelBadge" onclick="openRankGuideModal()"><svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#fbbf24' aria-hidden='true'><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z'/></svg> جاري التحميل...</span>
+                <span class="level-badge-box badge-legendary" id="modalStudentLevelBadge"><svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#fbbf24' aria-hidden='true'><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z'/></svg> جاري التحميل...</span>
             </div>
             
             <div class="unified-info-box">
@@ -507,7 +508,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, deleteDoc, doc, updateDoc, initializeFirestore, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { logAdminAction } from "./admin-service.js";
         import { findStudentDocument, addPointsToStudent, calculateStudentRank, deleteStudentAccountDoc } from "./student-service.js";
 
@@ -523,7 +524,17 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة (بدل قائمة فاضية بالغلط عند ضعف الاتصال).
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         let globalLessonsList = [];
         let globalStudentsList = [];
@@ -554,7 +565,7 @@
 
         async function fetchLessonsAndStudents() {
             try {
-                const lessonsSnap = await getDocs(collection(db, "lessons"));
+                const lessonsSnap = await getListSafe(collection(db, "lessons"));
                 globalLessonsList = [];
                 const container = document.getElementById('lessonsCardsContainer');
                 
@@ -670,14 +681,14 @@
                 let name = student.name || student.fullName || 'طالب المنصة';
                 let avatar = student.avatar || student.profileImage || 'https://www.w3schools.com/howto/img_avatar.png';
                 let totalScore = Number(student.points || student.totalScore || student.score || 0);
-                let rank = calculateStudentRank(totalScore);
+                let _lt = LV.info(totalScore).tier;
                 
                 let activity = (student.lessonsActivity || {})[lessonId] || (student.activity || {})[lessonId] || {};
                 let studentIdentifier = student.email || student.studentId || student.id;
 
                 let avatarHtml = `
                     <div class="student-row-box" onclick='openStudentProfile(${JSON.stringify(studentIdentifier)})' style="cursor:pointer;">
-                        <div class="avatar-wrapper-sm ${rank.frameClass}">
+                        <div class="avatar-wrapper-sm" style="background:linear-gradient(45deg,${_lt.c1},${_lt.c2});box-shadow:0 0 10px ${_lt.c2};border-radius:50%;">
                             <img src="${avatar}" alt="صورة">
                         </div>
                         <span class="student-profile-link"><b>${name}</b></span>
@@ -899,9 +910,12 @@
                         document.getElementById('modalStudentAvatar').src = data.profileImage || data.avatar;
                     }
 
-                    levelBadge.textContent = `${rank.title} • ${totalScore} نقطة`;
-                    avatarFrame.className = `avatar-wrapper-lg ${rank.frameClass}`;
-                    levelBadge.className = `level-badge-box ${rank.badgeClass}`;
+                    const _t = LV.info(totalScore); const _tt = _t.tier;
+                    avatarFrame.className = 'avatar-wrapper-lg';
+                    avatarFrame.style.background = 'linear-gradient(45deg,' + _tt.c1 + ',' + _tt.c2 + ')';
+                    avatarFrame.style.boxShadow = '0 0 16px ' + _tt.c2;
+                    levelBadge.className = '';
+                    levelBadge.innerHTML = LV.badge(_t.level) + ' <span style="font-size:.8rem;opacity:.85">• ' + totalScore + ' نقطة</span>';
 
                     document.getElementById('editStudentNameInput').value = data.fullName || data.name || '';
                     document.getElementById('editStudentPhoneInput').value = data.phone || data.parentPhone || data.phoneNumber || '';

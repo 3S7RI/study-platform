@@ -317,7 +317,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, initializeFirestore, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -331,7 +331,17 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة (بدل قائمة فاضية بالغلط عند ضعف الاتصال).
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         let globalExamsList = [];
         let globalLessonsList = [];
@@ -360,7 +370,7 @@
 
         async function fetchExamsForDropdown() {
             try {
-                const querySnapshot = await getDocs(collection(db, "exams"));
+                const querySnapshot = await getListSafe(collection(db, "exams"));
                 globalExamsList = [];
                 const select = document.getElementById('lessonExamSelect');
                 let html = '<option value="">-- بدون امتحان (اختياري) --</option>';
@@ -378,7 +388,7 @@
 
         async function fetchExistingLessonsList() {
             try {
-                const querySnapshot = await getDocs(collection(db, "lessons"));
+                const querySnapshot = await getListSafe(collection(db, "lessons"));
                 globalLessonsList = [];
                 const container = document.getElementById('existingLessonsContainer');
                 let html = '';

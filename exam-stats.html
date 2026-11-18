@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="levels.js"></script>
     <title>منصة رحلة دراسية - إحصائيات ونتائج الامتحانات</title>
     <style>
         :root {
@@ -272,7 +273,7 @@
             <h3 id="modalStudentName" style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 8px; font-weight: 700;">اسم الطالب</h3>
             
             <div>
-                <span class="level-badge-box badge-legendary" id="modalStudentLevelBadge" onclick="openRankGuideModal()"><svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#fbbf24' aria-hidden='true'><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z'/></svg> جاري التحميل...</span>
+                <span class="level-badge-box badge-legendary" id="modalStudentLevelBadge"><svg class='ic' viewBox='0 0 24 24' width='1em' height='1em' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='vertical-align:-0.125em;flex-shrink:0;color:#fbbf24' aria-hidden='true'><path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z'/></svg> جاري التحميل...</span>
             </div>
             
             <div class="unified-info-box">
@@ -350,7 +351,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc, setDoc, serverTimestamp, initializeFirestore, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { findStudentDocument, addPointsToStudent, calculateStudentRank } from "./student-service.js";
 
         const firebaseConfig = {
@@ -365,7 +366,17 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة (بدل قائمة فاضية بالغلط عند ضعف الاتصال).
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         let globalExamsList = [];
         let activeSelectedSubmission = null;
@@ -397,7 +408,7 @@
             let retries = 3;
             while (retries > 0) {
                 try {
-                    const querySnapshot = await getDocs(collection(db, "exams"));
+                    const querySnapshot = await getListSafe(collection(db, "exams"));
                     globalExamsList = [];
                     querySnapshot.forEach((docSnap) => {
                         let examData = docSnap.data();
@@ -743,12 +754,14 @@
             document.getElementById('examAnswersModal').style.display = 'flex';
         };
 
-        function calculateExamPointsEarned(score, totalMarks) {
+        function calculateExamPointsEarned(score, totalMarks, settings) {
             if (score <= 0) return 0;
-            if (score >= totalMarks) {
-                return 15; // 10 نقاط الامتحان + 5 نقاط مكافأة التقفيل
-            }
-            return 10;
+            // [إصلاح] النقاط من إعدادات الامتحان لو الأدمن فعّل نظام النقاط؛ غير كده الافتراضي القديم (10 / 15)
+            const st = settings || {};
+            const np = parseInt(st.normalPoints), bp = parseInt(st.bonusPoints);
+            const normal = (st.enableBonus === true && !isNaN(np)) ? np : 10;
+            const bonus = (st.enableBonus === true && !isNaN(bp)) ? bp : 15;
+            return score >= totalMarks ? bonus : normal;
         }
 
         window.saveManualGradingAndNotify = async function() {
@@ -763,7 +776,7 @@
             
             let pointsDifference = 0;
             if (!studentSub.pointsAwarded) {
-                let earnedPoints = calculateExamPointsEarned(newScore, studentSub.totalMarks);
+                let earnedPoints = calculateExamPointsEarned(newScore, studentSub.totalMarks, exam.settings);
                 pointsDifference = earnedPoints;
                 studentSub.pointsAwarded = true;
                 studentSub.awardedPointsCount = earnedPoints;
@@ -829,7 +842,7 @@
                 let pointsToAdd = 0;
 
                 if (!sub.pointsAwarded) {
-                    pointsToAdd = calculateExamPointsEarned(sub.score, sub.totalMarks);
+                    pointsToAdd = calculateExamPointsEarned(sub.score, sub.totalMarks, exam.settings);
                     sub.pointsAwarded = true;
                     sub.awardedPointsCount = pointsToAdd;
                 }
@@ -912,18 +925,17 @@
                         document.getElementById('modalStudentAvatar').src = data.profileImage || data.avatar;
                     }
 
-                    let totalScore = data.totalScore || 0;
-                    let rank = calculateStudentRank(totalScore);
-
-                    levelBadge.textContent = `${rank.title} • ${totalScore} نقطة`;
-                    avatarFrame.className = `avatar-wrapper ${rank.frameClass}`;
-                    levelBadge.className = `level-badge-box ${rank.badgeClass}`;
+                    let totalScore = Number(data.totalScore || data.points || 0);
+                    const _t = LV.info(totalScore); const _tt = _t.tier;
+                    avatarFrame.style.background = 'linear-gradient(45deg,' + _tt.c1 + ',' + _tt.c2 + ')';
+                    avatarFrame.style.boxShadow = '0 0 16px ' + _tt.c2;
+                    levelBadge.className = '';
+                    levelBadge.innerHTML = LV.badge(_t.level) + ' <span style="font-size:.8rem;opacity:.85">• ' + totalScore + ' نقطة</span>';
                 } else {
                     document.getElementById('modalStudentId').textContent = 'غير مسجل';
                     document.getElementById('modalStudentPhone').textContent = 'غير متوفر';
-                    levelBadge.textContent = 'متوسط • 0 نقطة';
-                    avatarFrame.className = 'avatar-wrapper rank-frame-medium';
-                    levelBadge.className = `level-badge-box badge-medium`;
+                    levelBadge.className = ''; levelBadge.innerHTML = LV.badge(1) + ' <span style="font-size:.8rem;opacity:.85">• 0 نقطة</span>';
+                    avatarFrame.className = 'avatar-wrapper'; avatarFrame.style.background = '#334155'; avatarFrame.style.boxShadow = 'none';
                 }
             } catch (e) {
                 console.error("خطأ في جلب بيانات الطالب:", e);
