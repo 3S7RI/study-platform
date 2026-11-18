@@ -73,7 +73,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, initializeFirestore, collection, getDocs, query, where, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const app = initializeApp({
         apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -83,7 +83,17 @@
         messagingSenderId: "632096690853",
         appId: "1:632096690853:web:f9622d14de73a761dcf34c"
     });
-    const db = getFirestore(app);
+    let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة. لو الاتصال بالسحابة ضعيف مش بنرجّع قائمة فاضية بالغلط.
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
     document.body.setAttribute('data-theme', localStorage.getItem('platform_theme') || 'dark');
 
     const $ = (id) => document.getElementById(id);
@@ -100,8 +110,8 @@
         try {
             const [resSnap, lessonsSnap, examsSnap] = await Promise.all([
                 getDocs(query(collection(db, 'studentExamResults'), where('userId', '==', sid))),
-                getDocs(collection(db, 'lessons')),
-                getDocs(collection(db, 'exams'))
+                getListSafe(collection(db, 'lessons')),
+                getListSafe(collection(db, 'exams'))
             ]);
             const lessons = {}; lessonsSnap.forEach(d => { lessons[d.id] = d.data(); });
 

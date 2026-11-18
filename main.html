@@ -496,7 +496,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, initializeFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { normalizeSubscription, touchDailyStreak, syncStudyTime, fetchLeaderboard, getMyLeaderboardRank } from "./student-service.js";
 
         const firebaseConfig = {
@@ -511,7 +511,7 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
 
         // قفل/فتح بطاقات المنافسات والدعوات من لوحة الأدمن
         getDoc(doc(db, 'config', 'competitions')).then(function(d) { if (d.exists() && d.data().cardEnabled === false) { var c = document.getElementById('cardWeekly'); if (c) c.style.display = 'none'; } }).catch(function() {});

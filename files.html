@@ -211,7 +211,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, initializeFirestore, collection, getDocs, doc, getDoc, setDoc, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U",
@@ -225,7 +225,17 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة. لو الاتصال بالسحابة ضعيف مش بنرجّع قائمة فاضية بالغلط.
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         let globalLessonsData = [];
         let countdownIntervals = [];
@@ -275,9 +285,10 @@
             document.getElementById('platformToastModal').style.display = 'none';
         };
 
+        window.fetchCloudLessons = fetchCloudLessons;
         async function fetchCloudLessons() {
             try {
-                const querySnapshot = await getDocs(collection(db, "lessons"));
+                const querySnapshot = await getListSafe(collection(db, "lessons"));
                 globalLessonsData = [];
                 querySnapshot.forEach((docSnap) => {
                     globalLessonsData.push({ id: docSnap.id, ...docSnap.data() });
@@ -285,7 +296,7 @@
                 renderLessonsList(globalLessonsData);
             } catch (err) {
                 console.error("خطأ في جلب الحصص:", err);
-                document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">عذراً، حدث خطأ أثناء الاتصال بالسحابة.</p>`;
+                document.getElementById('filesGrid').innerHTML = `<p style="text-align:center; color:var(--danger); grid-column:1/-1;">تعذّر تحميل الحصص (الاتصال ضعيف). <br><button onclick="fetchCloudLessons()" style="margin-top:10px;padding:8px 18px;border:none;border-radius:10px;background:#22d3ee;color:#0f172a;font-weight:800;cursor:pointer">إعادة المحاولة</button></p>`;
             }
         }
 

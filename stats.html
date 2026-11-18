@@ -123,7 +123,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, query, where, limit, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, initializeFirestore, doc, getDoc, getDocs, collection, query, where, limit, getCountFromServer, getDocsFromServer } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { syncStudyTime, getMyLeaderboardRank, normalizeSubscription } from "./student-service.js";
 
         const firebaseConfig = {
@@ -137,7 +137,17 @@
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        let db; try { db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }); } catch (e) { db = getFirestore(app); }
+        // [إصلاح] قراءة قوائم من السيرفر مباشرة مع إعادة محاولة. لو الاتصال بالسحابة ضعيف مش بنرجّع قائمة فاضية بالغلط.
+        async function getListSafe(ref) {
+            let lastErr;
+            for (let i = 0; i < 3; i++) {
+                try { return await getDocsFromServer(ref); } catch (e) { lastErr = e; }
+                await new Promise(r => setTimeout(r, 800 * (i + 1)));
+            }
+            throw lastErr;
+        }
+
 
         /* ---------- الثيم ---------- */
         const bodyElement = document.getElementById('pageBody');
@@ -191,9 +201,9 @@
                 PS.saveStudent(d);
 
                 const [lessonsSnap, resSnap, examsSnap, reqSnap, postsCnt, pendCnt, friendsList, totalStudents] = await Promise.all([
-                    safe(() => getDocs(collection(db, 'lessons')), null),
+                    safe(() => getListSafe(collection(db, 'lessons')), null),
                     safe(() => getDocs(query(collection(db, 'studentExamResults'), where('userId', '==', sid))), null),
-                    safe(() => getDocs(collection(db, 'exams')), null),
+                    safe(() => getListSafe(collection(db, 'exams')), null),
                     safe(() => getDocs(query(collection(db, 'subscriptionRequests'), where('studentId', '==', sid), limit(30))), null),
                     safe(async () => (await getCountFromServer(query(collection(db, 'forumPosts'), where('authorId', '==', sid)))).data().count, null),
                     safe(async () => (await getCountFromServer(query(collection(db, 'pendingPosts'), where('authorId', '==', sid)))).data().count, null),
