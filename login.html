@@ -430,6 +430,30 @@
             }
         }
 
+        // تشخيص سبب فشل الاتصال: بيجرب يوصل لخوادم Google مباشرة ويرجّع كود قصير
+        async function runNetDiag() {
+            const KEY = 'AIzaSyBORRXM-bw9Svp4QS8_1OWUGGbhJToQM6U';
+            const probe = async (url, opts) => {
+                const c = new AbortController();
+                const t = setTimeout(() => c.abort(), 7000);
+                try {
+                    const r = await fetch(url, Object.assign({ signal: c.signal }, opts || {}));
+                    return String(r.status);
+                } catch (e) { return e.name === 'AbortError' ? 'timeout' : 'blocked'; }
+                finally { clearTimeout(t); }
+            };
+            const ua = navigator.userAgent || '';
+            const inApp = /FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|Snapchat|TikTok/i.test(ua) ? 'inapp' : 'browser';
+            const [auth, fs] = await Promise.all([
+                probe('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + KEY, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'diag@example.com', password: 'x', returnSecureToken: true })
+                }),
+                probe('https://firestore.googleapis.com/v1/projects/study-trip-1/databases/(default)/documents/config/site?key=' + KEY)
+            ]);
+            return 'AUTH=' + auth + ' FS=' + fs + ' ONLINE=' + (navigator.onLine ? 1 : 0) + ' ' + inApp;
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -528,7 +552,8 @@
                 } else if (error.code === 'auth/too-many-requests') {
                     showPlatformModal('محاولات كثيرة', 'تم إيقاف المحاولات مؤقتاً بسبب كثرة المحاولات الخاطئة، حاول بعد قليل أو استعد كلمة المرور.');
                 } else if (error.code === 'auth/network-request-failed') {
-                    showPlatformModal('مشكلة في الاتصال', 'تعذر الاتصال بخوادم المنصة. تأكد من النت، وجرّب تقفل أي VPN أو حاجب إعلانات، أو افتح الرابط من Chrome مباشرة (مش من جوه واتساب أو فيسبوك)، وحاول تاني.');
+                    const diag = await runNetDiag();
+                    showPlatformModal('مشكلة في الاتصال', 'تعذر الاتصال بخوادم المنصة. تأكد من النت، وجرّب تقفل أي VPN أو حاجب إعلانات، أو افتح الرابط من Chrome مباشرة (مش من جوه واتساب أو فيسبوك)، وحاول تاني.' + '\n\nكود التشخيص (ابعته لإدارة المنصة): ' + diag);
                 } else if (error.code === 'auth/user-disabled') {
                     showPlatformModal('حساب موقوف', 'هذا الحساب موقوف، تواصل مع إدارة المنصة.');
                 } else if (error.code === 'permission-denied' || error.code === 'resource-exhausted' || error.code === 'unavailable') {
